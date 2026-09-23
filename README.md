@@ -65,6 +65,8 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 ### Backend
 ### Frontend
 
+Mockups: [Wireframes de baja fidelidad](mockups/wireframes-belmonte.html)
+
 Vistas propuestas para el MVP, agrupadas por actor:
 
 **Transversal**
