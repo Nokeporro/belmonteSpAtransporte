@@ -60,7 +60,36 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 ## Modelamiento del problema
 ### Modelo logico
 ### Modelo relacional
+
 ## Arquitectura
+**Cliente-Servidor Desacoplada y Arquitectura en Capas**
+
+El proyecto implementa una **Arquitectura Cliente-Servidor Desacoplada**, respaldada por un patrón de **Arquitectura en Capas (N-Tier)** en el servidor backend:
+
+* **Cliente-Servidor Desacoplado (API REST):**
+  * La aplicación móvil (Android) actúa como la capa de presentación independiente y se comunica con el servidor exclusivamente a través de servicios web **RESTful** mediante peticiones HTTP/JSON.
+  * **Ventaja:** Desacopla la interfaz de usuario de la lógica de negocio. Permite actualizar, rediseñar o escalar la app móvil sin alterar el backend ni la base de datos.
+
+* **Arquitectura en Capas en el Backend (Layered Architecture):**
+  El código de Spring Boot se estructura bajo la separación estricta de responsabilidades en tres capas:
+  1. **Capa de Controladores (`Controller` / API REST):** Gestiona la recepción de peticiones HTTP del dispositivo móvil, valida las entradas y devuelve respuestas estandarizadas en JSON.
+  2. **Capa de Servicios (`Service` / Lógica de Negocio):** Contiene las reglas del negocio de transporte (procesamiento de estados de viaje, asignación de choferes y lógica de transporte).
+  3. **Capa de Persistencia (`Repository` / Acceso a Datos):** Administra las transacciones y consultas a MariaDB mediante Spring Data JPA/Hibernate.
+  * **Ventaja:** Facilita la legibilidad, el mantenimiento, las pruebas del sistema y presenta una estructura profesional para la evaluación del proyecto.
+
+* **Modelo Stateless (Sin Estado) con JWT:**
+  * La comunicación entre el cliente móvil y el backend es totalmente *stateless*. El servidor no almacena sesiones activas en memoria; cada petición valida la identidad del usuario mediante un token **JWT (JSON Web Token)**.
+  * **Ventaja:** Maximiza la eficiencia del servidor y asegura un manejo de sesiones confiable para dispositivos móviles que operan sobre redes móviles variables.
+    
+### Lenguaje de Programación
+
+Se definió **Java** como el lenguaje de programación principal del proyecto —utilizado tanto en el backend (Spring Boot) como en la aplicación móvil nativa (Android Studio)— basándose en las siguientes razones técnicas:
+
+* **Ecosistema Unificado:** Utilizar el mismo lenguaje en ambas capas del proyecto (backend y cliente móvil) reduce la curva de aprendizaje, elimina el cambio de contexto (*context switching*) y facilita la compartición de lógica de validación y modelos de datos.
+* **Tipado Estático y Detección Temprana de Errores:** Al ser un lenguaje fuertemente tipado, la mayoría de los errores de sintaxis o incompatibilidad de datos se detectan en tiempo de compilación y no en ejecución. Esto añade mayor estabilidad a un sistema donde se gestionan datos críticos de transporte.
+* **Modelado del Dominio (POO):** La Programación Orientada a Objetos de Java permite abstraer y estructurar de manera limpia las entidades del negocio de logística (como Usuario, Conductor, SolicitudTraslado y Pasajero), facilitando la mantenibilidad y reusabilidad del código.
+* **Madurez y Portabilidad (JVM):** Al ejecutar sobre la Máquina Virtual de Java (JVM), se garantiza la portabilidad del backend en cualquier sistema operativo. Además, cuenta con un ecosistema maduro y herramientas estándar para la serialización y manipulación de datos (Jackson, Gson, Java Collections Framework).
+* 
 ### Base de datos
 **MariaDB**
 
