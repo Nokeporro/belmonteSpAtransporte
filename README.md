@@ -58,8 +58,19 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 
 ## Historias de usuario
 ## Modelamiento del problema
+Entregar el 26-09-26
 ### Modelo logico
 ### Modelo relacional
+
+Script DDL (Oracle XE 21c): [sql/modelo_relacional.sql](sql/modelo_relacional.sql)
+
+Entidades: `REGION`, `COMUNA`, `UBICACION` (geografía); `TIPO_USUARIO`, `USUARIO` (cuentas de acceso); `SOLICITANTE`, `ADMINISTRADOR`, `CONDUCTOR` (especialización 1:1 de `USUARIO`, una tabla por actor); `PASAJERO`; `ESTADO_SOLICITUD_TRASLADO`; `SOLICITUD_TRASLADO` (entidad central); `DETALLE_SOLICITUD_PASAJERO` (asociativa muchos a muchos entre solicitud y pasajero, ya que un traslado puede llevar más de un pasajero). El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos propios que persistir.
+
+Normalizado a 3FN:
+- `UBICACION` separada de `SOLICITUD_TRASLADO`: latitud/longitud dependen funcionalmente de la dirección, no de la solicitud (dependencia transitiva).
+- `PASAJERO` + `DETALLE_SOLICITUD_PASAJERO` separados de `SOLICITUD_TRASLADO`: una columna única `nombre_pasajero` sería un grupo repetitivo en cuanto hay más de un pasajero por viaje (viola 1FN).
+- `TIPO_USUARIO` y `ESTADO_SOLICITUD_TRASLADO` pasan de `CHECK` a catálogo: no corrige una forma normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que los usan.
+- `COMUNA`/`REGION`: `direccion` es `UNIQUE` en `UBICACION` (llave candidata), por lo que `id_ubicacion → direccion → id_comuna` no viola 3FN; es una descomposición normal de jerarquía geográfica, no una corrección de anomalía.
 ## Arquitectura
 ### Base de datos
 ### Backend
