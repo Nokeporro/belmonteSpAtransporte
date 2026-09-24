@@ -1,0 +1,91 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A46832A3-3E7E-D97B-9540-AAD79992E5E1" name="detalle_solicitud_pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Detalle M:N entre solicitud_traslado y pasajero: qué pasajeros viajan en cada traslado.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>9E140224-7745-89F1-8630-23F303FA52F0</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_solicitud" id="ED94BE3F-E5F1-908E-8003-2B3472F869D1">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>DED67504-8AC3-D911-4053-2D46BDE842FD</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="109C1D52-B952-F185-0531-752BF3C67E44" referredColumn="AC1F59C6-C740-91F2-382B-AEBC9C923F6F"/>
+</associations>
+</Column>
+<Column name="id_pasajero" id="910AE4EE-53F7-0299-C631-DB403FC6D2AD">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>178BB5EA-7F09-8C3F-4C89-94B37A039456</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="E78A534B-DBB9-4B9E-3621-B812EC596588" referredColumn="FAA366DB-C2BC-E108-557E-94EC5D1A69C6"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="6AC82D72-166E-B607-3427-0E813E99434B" name="pk_detalle_sol_pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>BD63F2FC-E617-42F1-CD83-76F69B65AA9D</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="ED94BE3F-E5F1-908E-8003-2B3472F869D1"/>
+<colUsage columnID="910AE4EE-53F7-0299-C631-DB403FC6D2AD"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="555F123C-EA9C-73AB-F0E4-F98C8E42BABA" name="ix_detalle_pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>9E473D83-0D17-9620-4A8C-F3E76F60D896</importedID>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="910AE4EE-53F7-0299-C631-DB403FC6D2AD"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="C8CC9502-9243-36F6-5E4D-3B86A151D26B" name="fk_detalle_pasajero">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="910AE4EE-53F7-0299-C631-DB403FC6D2AD"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="1B62A4D2-C59A-86C8-D3E8-4888F8907A40" name="fk_detalle_solicitud">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="ED94BE3F-E5F1-908E-8003-2B3472F869D1"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

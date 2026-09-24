@@ -1,0 +1,121 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="26A27761-A74F-599A-833F-4C555BC895E5" name="ubicacion">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Direcciones georreferenciadas reutilizables como origen o destino (RF10).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>1851CAC3-AA71-F0FF-7EC8-405BA1606925</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_ubicacion" id="C839ECEC-E19F-8404-786B-92860175610E">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>BB62719D-5D2C-3179-07D3-FFE0B51094F5</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementColumn>true</autoIncrementColumn>
+<identityColumn>true</identityColumn>
+<autoIncrementGenerateAlways>true</autoIncrementGenerateAlways>
+<autoIncrementCycle>false</autoIncrementCycle>
+<autoIncrementOrder>false</autoIncrementOrder>
+</Column>
+<Column name="direccion" id="38D4EB64-BFE9-DE69-99CB-65BEB4332241">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>0B58F0E5-A03F-B186-ED2C-FE460BD4A744</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>A15C09F8-6257-3772-8DC3-7D344071A1AE</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="id_comuna" id="5630B97A-A8ED-8692-5FA5-E5FF4CC13867">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>1F3EF54A-AAC9-2F62-924C-EA6D0BC3C134</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="6D75C468-7D19-EF75-0BD5-E0240DA250F1" referredColumn="52408D54-7C7C-506B-D822-064A696ACFA5"/>
+</associations>
+</Column>
+<Column name="latitud" id="45C5795D-560C-37A8-34D6-E8D9E5B6EB22">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>00A1B802-9EB9-A637-6AFC-FC26F1423D86</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>647F668D-BBF3-6A8A-3363-692268C3C3F9</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="longitud" id="6BE5E478-37EE-0939-1322-4D71F159B52E">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>2F692373-511C-B801-2653-2137F81A66DE</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>647F668D-BBF3-6A8A-3363-692268C3C3F9</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="C584119E-CCDD-34B8-CFED-8A323A7CC139" name="pk_ubicacion">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>08A8518D-754C-DE28-6193-C3D5F4843213</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="C839ECEC-E19F-8404-786B-92860175610E"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="C05637C4-0BC7-005F-1111-43D22C47B8F0" name="uk_ubicacion_direccion">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>50F7BE81-D21A-8AB0-4986-553CFEE72794</importedID>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="38D4EB64-BFE9-DE69-99CB-65BEB4332241"/>
+<colUsage columnID="5630B97A-A8ED-8692-5FA5-E5FF4CC13867"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="D627C0F8-1ABB-9D13-519B-1AADF19F5EDD" name="fk_ubicacion_comuna">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="5630B97A-A8ED-8692-5FA5-E5FF4CC13867"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

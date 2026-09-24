@@ -1,0 +1,95 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="38A9C1A6-16BA-1917-1BD5-DB2CA595FF1E" name="comuna">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Comunas de Chile, agrupadas por región (catálogo geográfico, RF10).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>1128B577-3E45-E5B0-C731-160E0B2D7ADA</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_comuna" id="52408D54-7C7C-506B-D822-064A696ACFA5">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>86645FE5-4FFD-E580-6E0D-42724F10065F</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementColumn>true</autoIncrementColumn>
+<identityColumn>true</identityColumn>
+<autoIncrementGenerateAlways>true</autoIncrementGenerateAlways>
+<autoIncrementCycle>false</autoIncrementCycle>
+<autoIncrementOrder>false</autoIncrementOrder>
+</Column>
+<Column name="nombre" id="77E0A6FD-6FFE-3C99-6165-B928D080CB18">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>12CC43E2-A27C-56D5-AED2-A4B2172EC6D1</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>8584FA74-0EAF-2304-31D7-504751E6346D</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="id_region" id="01E8391E-2ADF-78B9-C379-18E954D1AAF8">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>0638DC3E-B194-45A8-48F8-83395DCC40AA</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="1140C943-6E23-8168-FF42-CFC101654B13" referredColumn="D8D40160-8DCD-BD74-B914-79BE5EAD43A6"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="012464AF-9E4B-9B48-F1DE-B8574CE47606" name="pk_comuna">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>0AA8F611-6D32-34C6-E408-8FA343158F40</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="52408D54-7C7C-506B-D822-064A696ACFA5"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="AE92EDEE-5601-387C-2EBC-CFE12AE4286D" name="uk_comuna_nombre_region">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>7B0C1E78-2A7C-8A4A-0F64-DA25101A3590</importedID>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="77E0A6FD-6FFE-3C99-6165-B928D080CB18"/>
+<colUsage columnID="01E8391E-2ADF-78B9-C379-18E954D1AAF8"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="E380A2E0-671B-D3CC-43C5-50AC234702A2" name="fk_comuna_region">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="01E8391E-2ADF-78B9-C379-18E954D1AAF8"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

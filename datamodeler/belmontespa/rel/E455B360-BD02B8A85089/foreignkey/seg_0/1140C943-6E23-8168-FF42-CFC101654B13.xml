@@ -1,0 +1,18 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="1140C943-6E23-8168-FF42-CFC101654B13" containerWithKeyObject="38A9C1A6-16BA-1917-1BD5-DB2CA595FF1E" localFKIndex="E380A2E0-671B-D3CC-43C5-50AC234702A2" name="fk_comuna_region">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>CC283430-3446-EC0C-8BA4-103E9403577B</importedID>
+<referredTableLongName>region</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>1337FD9F-83F3-2FD4-AEE9-811C0C970AD2</referredTableID>
+<keyObject>12C8ABAD-DF72-A3B3-A558-15401707A379</keyObject>
+<referredKeyID>12C8ABAD-DF72-A3B3-A558-15401707A379</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_region</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

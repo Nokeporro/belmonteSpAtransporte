@@ -1,0 +1,18 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="D25C9208-6DF5-2572-1E27-89BDCEDF173A" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="1FB4A5E2-A7D2-E871-0375-2D3CF4568DFD" name="fk_solicitud_solicitante">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>A1D73D90-7F19-5E1C-7FF8-55340E26C259</importedID>
+<referredTableLongName>solicitante</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>A3DDB078-A7A9-829F-8BF3-101D718EFCD4</referredTableID>
+<keyObject>D3282A8B-3BC0-28EC-E583-16FC717A351C</keyObject>
+<referredKeyID>D3282A8B-3BC0-28EC-E583-16FC717A351C</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_usuario</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

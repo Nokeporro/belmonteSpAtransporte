@@ -1,0 +1,18 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="109C1D52-B952-F185-0531-752BF3C67E44" containerWithKeyObject="A46832A3-3E7E-D97B-9540-AAD79992E5E1" localFKIndex="1B62A4D2-C59A-86C8-D3E8-4888F8907A40" name="fk_detalle_solicitud">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>67CDAF46-BDAD-8C69-8E29-852BC11F99E3</importedID>
+<referredTableLongName>solicitud_traslado</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>D7A58BE8-28CE-A590-9293-A8EE1599BD0E</referredTableID>
+<keyObject>8201E387-7588-7DDE-268E-011D63C63C70</keyObject>
+<referredKeyID>8201E387-7588-7DDE-268E-011D63C63C70</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_solicitud</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

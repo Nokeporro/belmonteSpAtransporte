@@ -1,0 +1,67 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A3DDB078-A7A9-829F-8BF3-101D718EFCD4" name="solicitante">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Datos propios del rol Cliente corporativo/Solicitante (RF01).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>7D632AB0-56DF-FBDB-CF3B-EFB5F137BDF4</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_usuario" id="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>5E8C6694-0217-6460-1AAE-828E89581586</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="7E3AE8EF-E8DC-461E-A73E-00FACB4F1764" referredColumn="416BB401-9378-EC10-89AB-7223A857375A"/>
+</associations>
+</Column>
+<Column name="empresa" id="79DDCED5-BE9A-FCC3-9A9A-742C0D4401F1">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Empresa o área que agenda los traslados.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>8C47C03C-3F68-D2C8-48C7-D922DCB9147C</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>39FE5C60-97E5-2931-E335-1A470B23AD3A</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="D3282A8B-3BC0-28EC-E583-16FC717A351C" name="pk_solicitante">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>C3C56EB7-1440-D1F0-7FBF-22051516994E</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="351E71A8-47BF-850E-D2D6-7B8977443D65" name="fk_solicitante_usuario">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

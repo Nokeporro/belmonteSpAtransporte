@@ -1,0 +1,54 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="2360164D-2B06-9275-B3CC-D386D66D1253" name="administrador">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Rol Recepcionista/Administrador. Sin atributos propios documentados aún; tabla de especialización para completar el modelo de actores.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>F5ED0513-0664-2765-1ACF-DB9B368B76D9</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_usuario" id="22B5DCA5-0730-D554-0E70-0B484B6A19BC">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>2AA94904-E693-A69E-B4E6-133055671E4B</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="9F734496-C8EC-0E95-252B-B89F5F752274" referredColumn="416BB401-9378-EC10-89AB-7223A857375A"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="E6D5A029-56C7-0586-A521-430689279600" name="pk_administrador">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>ACB4E145-3BCC-3C61-7C7A-FA8BE907179D</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="22B5DCA5-0730-D554-0E70-0B484B6A19BC"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="039EBA93-15F0-C190-61D4-0313D058E297" name="fk_administrador_usuario">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="22B5DCA5-0730-D554-0E70-0B484B6A19BC"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

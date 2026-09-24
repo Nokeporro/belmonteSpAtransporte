@@ -1,0 +1,277 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" name="solicitud_traslado">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Solicitud de traslado corporativo (RF02-RF10; casos de uso 1, 4 y 5).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>2CF4EFDB-FFB1-EEAA-C90D-2CA20402DD6F</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_solicitud" id="AC1F59C6-C740-91F2-382B-AEBC9C923F6F">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>53CEEF93-07A6-2520-561C-E50F997BF023</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementColumn>true</autoIncrementColumn>
+<identityColumn>true</identityColumn>
+<autoIncrementGenerateAlways>true</autoIncrementGenerateAlways>
+<autoIncrementCycle>false</autoIncrementCycle>
+<autoIncrementOrder>false</autoIncrementOrder>
+</Column>
+<Column name="id_solicitante" id="E76009C4-4B28-DB02-BD62-6CC4EA6752B4">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>7837E54A-4BBA-BE26-B132-8DB2969244AF</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="D25C9208-6DF5-2572-1E27-89BDCEDF173A" referredColumn="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4"/>
+</associations>
+</Column>
+<Column name="id_conductor" id="6A211382-DD24-F430-4106-33F29FBE296D">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[NULL hasta que el Administrador asigna un conductor (RF05).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>E95102D2-49CC-CC2C-29A4-C89B082333CB</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="D3A92765-F198-EAB6-FA22-4A5FFA407F96" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
+</associations>
+</Column>
+<Column name="fecha_hora_traslado" id="76F310C8-AA67-D9BC-8016-B98C94964FF3">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>526D5D3A-B824-C118-D7AC-307B2C083206</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="id_origen" id="DFA6E9F8-3DFF-D651-A375-1CB775343591">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>247D4552-EFAE-9DB3-E7D6-11D474976705</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="E828BD54-3D85-D0CE-DAAF-809B8BB7EDA4" referredColumn="C839ECEC-E19F-8404-786B-92860175610E"/>
+</associations>
+</Column>
+<Column name="id_destino" id="484C0897-17AB-C27D-2756-518B229CF712">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>688EB712-483E-55C6-D6FB-461AE66D83E5</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="027A8EF4-E69A-69A2-2F55-D4CFB8B0DBFF" referredColumn="C839ECEC-E19F-8404-786B-92860175610E"/>
+</associations>
+</Column>
+<Column name="numero_vuelo" id="3C074F28-D8B3-E650-0BE7-7DB459B928B8">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Opcional; solo aplica a traslados desde/hacia el aeropuerto.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>68F8437F-810F-4A3D-0678-D17212FBE69B</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>A71C6FC5-7C94-1CEA-9796-0C806B72BFFA</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="id_estado" id="74670366-0A39-AC93-8ABB-F211CA322C76">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Ciclo de vida del traslado (RF05/RF09); ver estado_solicitud_traslado.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>B0777F65-516C-6FED-911F-4B4EE45BB5F5</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="075F16B4-81A0-2D81-F265-13E2D7C9A5A0" referredColumn="AAACEA78-4922-01AD-3E37-269BF2BCA4D2"/>
+</associations>
+</Column>
+<Column name="fecha_creacion" id="BF9DAC13-529D-6694-B196-8422BEFE1627">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>23E0BEF4-B638-49D2-6ED4-D476942E5260</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
+<defaultValue>SYSTIMESTAMP</defaultValue>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="fecha_asignacion" id="263755FE-0712-E01E-B47C-275659A29E64">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Momento en que el Administrador asigna un conductor.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>4DAB746D-9005-BD8B-371D-252C7D00797B</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="fecha_inicio" id="90B25645-4340-9B2B-BB81-757986EF0E24">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como En Curso.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>3216D916-0FDE-97D4-A47B-BB9A92ACB6C4</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="fecha_fin" id="A43B7A44-9A3A-A355-8305-01A488328779">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como Finalizado.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>4F69C593-6B1A-B35C-E653-95D4EB9D127B</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT015</logicalDatatype>
+<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="8201E387-7588-7DDE-268E-011D63C63C70" name="pk_solicitud_traslado">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>7875E484-36C6-A961-2CCD-2EC2DD51E073</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="AC1F59C6-C740-91F2-382B-AEBC9C923F6F"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="9D0CB269-CE86-97C1-61F5-48A5C13BE316" name="ix_solicitud_estado">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>BFD87BD8-351E-96AE-B3EA-1170CD151A7F</importedID>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="74670366-0A39-AC93-8ABB-F211CA322C76"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="2DC5F88E-17E0-CDF1-1796-9A3ADBAC2C8E" name="ix_solicitud_conductor_fecha">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>E10A1B8A-F670-8580-F527-69BB06AC46C8</importedID>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="6A211382-DD24-F430-4106-33F29FBE296D"/>
+<colUsage columnID="76F310C8-AA67-D9BC-8016-B98C94964FF3"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="A5B19ED5-304A-BB9E-C9C3-F10A47121AFA" name="fk_solicitud_conductor">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="6A211382-DD24-F430-4106-33F29FBE296D"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="D5BF4119-743D-0810-7498-3A1D4BDF31B6" name="fk_solicitud_destino">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="484C0897-17AB-C27D-2756-518B229CF712"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="AE8C6B2F-6547-2980-FFA8-FE187C2D3601" name="fk_solicitud_estado">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="74670366-0A39-AC93-8ABB-F211CA322C76"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="ECD510AF-9455-E78D-EA28-55DF03C3F537" name="fk_solicitud_origen">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="DFA6E9F8-3DFF-D651-A375-1CB775343591"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="1FB4A5E2-A7D2-E871-0375-2D3CF4568DFD" name="fk_solicitud_solicitante">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E76009C4-4B28-DB02-BD62-6CC4EA6752B4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>
