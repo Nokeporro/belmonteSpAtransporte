@@ -58,9 +58,6 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 
 ## Historias de usuario
 ## Modelamiento del problema
-Entregar el 26-09-26
-### Modelo logico
-### Modelo relacional
 
 Script DDL (Oracle XE 21c): [sql/modelo_relacional.sql](sql/modelo_relacional.sql)
 
@@ -71,6 +68,12 @@ Normalizado a 3FN:
 - `PASAJERO` + `DETALLE_SOLICITUD_PASAJERO` separados de `SOLICITUD_TRASLADO`: una columna única `nombre_pasajero` sería un grupo repetitivo en cuanto hay más de un pasajero por viaje (viola 1FN).
 - `TIPO_USUARIO` y `ESTADO_SOLICITUD_TRASLADO` pasan de `CHECK` a catálogo: no corrige una forma normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que los usan.
 - `COMUNA`/`REGION`: `direccion` es `UNIQUE` en `UBICACION` (llave candidata), por lo que `id_ubicacion → direccion → id_comuna` no viola 3FN; es una descomposición normal de jerarquía geográfica, no una corrección de anomalía.
+
+### Modelo logico
+### Modelo relacional
+
+![modelo relacional]('img/Relacional_1.svg')
+
 ## Arquitectura
 ### Base de datos
 ### Backend
