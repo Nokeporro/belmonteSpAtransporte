@@ -1,0 +1,57 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="0F204CEF-2689-E38E-3F71-471AE7FE6A02" name="pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Personas transportadas; puede no coincidir con el solicitante (casos de uso 1 y 5).]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>B96A0551-1B20-D848-D8E4-599DFDC66AE6</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_pasajero" id="FAA366DB-C2BC-E108-557E-94EC5D1A69C6">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>C10388E4-96C7-3B0D-922F-D5D6F36C0361</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementColumn>true</autoIncrementColumn>
+<identityColumn>true</identityColumn>
+<autoIncrementGenerateAlways>true</autoIncrementGenerateAlways>
+<autoIncrementCycle>false</autoIncrementCycle>
+<autoIncrementOrder>false</autoIncrementOrder>
+</Column>
+<Column name="nombre" id="944A21C3-8706-6D71-5FAA-8A8840F6604E">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>F47001DA-54AB-7808-60FB-2522912CE0ED</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>62739A67-6F76-9147-7D3E-53C2DC062688</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="760CAC48-2F5C-1123-0923-DEBCEFDE9262" name="pk_pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>E274628E-4D26-15C8-145D-44CC336BEE3D</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="FAA366DB-C2BC-E108-557E-94EC5D1A69C6"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

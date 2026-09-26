@@ -1,0 +1,15 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<relationalModel class="oracle.dbtools.crest.model.design.relational.RelationalDesign" name="Relational_1" id="E455B360-8E53-CD41-204C-BD02B8A85089" mainViewID="1641D60D-8F03-7AFC-D80C-AE632BF41EDF">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:27:54 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<shouldBeOpen>false</shouldBeOpen>
+<selectedRDBMSSite>01F6E6D1-21D0-CFBD-ABDD-3988D1813575</selectedRDBMSSite>
+<importDDLFileStamps>
+<importDDLFileStamp class="oracle.dbtools.crest.imports.DDLFileStamp">
+<fileName>modelo_relacional.sql</fileName>
+<pathName>/home/demr/programming/android/belmonteSpAtransporte/sql</pathName>
+<dbType>17</dbType>
+</importDDLFileStamp>
+</importDDLFileStamps>
+</relationalModel>

@@ -1,0 +1,40 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<TableProxyOraclev20c class="oracle.dbtools.crest.model.design.storage.oracle.v20c.TableProxyOraclev20c" name="estado_solicitud_traslado" directorySegmentName="seg_0" id="A2E2F374-9855-346F-93F1-C68674A4EB11">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<logging>YES</logging>
+<partitionedRowMovement>DISABLE</partitionedRowMovement>
+<temporaryChanged>false</temporaryChanged>
+<accessDriverType>oracle_loader</accessDriverType>
+<rejectLimit></rejectLimit>
+<columnProxies itemClass="oracle.dbtools.crest.model.design.storage.oracle.v12c.ColumnProxyOraclev12c">
+<ColumnProxy name="nombre_estado" id="54CBF96D-3CAF-7E30-CD67-27BA23FB5EB4">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+</ColumnProxy>
+<ColumnProxy name="id_estado" id="AAACEA78-4922-01AD-3E37-269BF2BCA4D2">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<autoIncrementDDL>IDENTITY_CLAUSE</autoIncrementDDL>
+</ColumnProxy>
+</columnProxies>
+<primaryKeys>
+<PrimaryKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.PKProxyOraclev10g" name="pk_estado_solicitud" id="BF6804FC-BE77-5CC4-D7C4-AB99F5BDECC9">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexSort>SORTED</indexSort>
+</PrimaryKey>
+</primaryKeys>
+<uniqueKeys>
+<UniqueKey class="oracle.dbtools.crest.model.design.storage.oracle.v10g.UniqueOraclev10g" name="uk_estado_solicitud_nombre" id="8DDDF62B-60A6-EE1A-03BB-602AEF628B64">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexSort>SORTED</indexSort>
+</UniqueKey>
+</uniqueKeys>
+</TableProxyOraclev20c>

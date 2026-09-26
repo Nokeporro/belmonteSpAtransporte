@@ -1,0 +1,18 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="E78A534B-DBB9-4B9E-3621-B812EC596588" containerWithKeyObject="A46832A3-3E7E-D97B-9540-AAD79992E5E1" localFKIndex="C8CC9502-9243-36F6-5E4D-3B86A151D26B" name="fk_detalle_pasajero">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>1BB6C64D-FBE7-816F-7959-25A669FCFB5D</importedID>
+<referredTableLongName>pasajero</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>0F204CEF-2689-E38E-3F71-471AE7FE6A02</referredTableID>
+<keyObject>760CAC48-2F5C-1123-0923-DEBCEFDE9262</keyObject>
+<referredKeyID>760CAC48-2F5C-1123-0923-DEBCEFDE9262</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_pasajero</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

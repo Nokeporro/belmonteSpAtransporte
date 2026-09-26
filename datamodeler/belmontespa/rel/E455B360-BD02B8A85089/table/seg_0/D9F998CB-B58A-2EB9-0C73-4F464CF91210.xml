@@ -1,0 +1,54 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="D9F998CB-B58A-2EB9-0C73-4F464CF91210" name="conductor">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Rol Conductor. Sin atributos propios documentados aún; permite que solicitud_traslado.id_conductor referencie solo usuarios con este rol.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>2A113507-039A-28B9-3754-F7E874A9798A</importedID>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_usuario" id="99F8C592-9EB3-7E44-6A7A-A03B693FDF12">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>12AD90C3-DA1C-6BC4-5575-80FE5C774C60</importedID>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="518C2F30-5B55-F091-0936-DBBC47BD5673" referredColumn="416BB401-9378-EC10-89AB-7223A857375A"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="238D3AA8-4631-387F-08B5-835EF498EE13" name="pk_conductor">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>1932EB85-DA56-8F05-51CD-5B0D86357356</importedID>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="B74E5B7F-15D8-A1BD-63C7-9B89F4DB81A0" name="fk_conductor_usuario">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

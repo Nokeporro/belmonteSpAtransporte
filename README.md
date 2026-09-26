@@ -58,48 +58,23 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 
 ## Historias de usuario
 ## Modelamiento del problema
+
+Script DDL (Oracle XE 21c): [sql/modelo_relacional.sql](sql/modelo_relacional.sql)
+
+Entidades: `REGION`, `COMUNA`, `UBICACION` (geografía); `TIPO_USUARIO`, `USUARIO` (cuentas de acceso); `SOLICITANTE`, `ADMINISTRADOR`, `CONDUCTOR` (especialización 1:1 de `USUARIO`, una tabla por actor); `PASAJERO`; `ESTADO_SOLICITUD_TRASLADO`; `SOLICITUD_TRASLADO` (entidad central); `DETALLE_SOLICITUD_PASAJERO` (asociativa muchos a muchos entre solicitud y pasajero, ya que un traslado puede llevar más de un pasajero). El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos propios que persistir.
+
+Normalizado a 3FN:
+- `UBICACION` separada de `SOLICITUD_TRASLADO`: latitud/longitud dependen funcionalmente de la dirección, no de la solicitud (dependencia transitiva).
+- `PASAJERO` + `DETALLE_SOLICITUD_PASAJERO` separados de `SOLICITUD_TRASLADO`: una columna única `nombre_pasajero` sería un grupo repetitivo en cuanto hay más de un pasajero por viaje (viola 1FN).
+- `TIPO_USUARIO` y `ESTADO_SOLICITUD_TRASLADO` pasan de `CHECK` a catálogo: no corrige una forma normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que los usan.
+- `COMUNA`/`REGION`: `direccion` es `UNIQUE` en `UBICACION` (llave candidata), por lo que `id_ubicacion → direccion → id_comuna` no viola 3FN; es una descomposición normal de jerarquía geográfica, no una corrección de anomalía.
+
 ### Modelo logico
 ### Modelo relacional
 
+![modelo relacional](img/Relational_1.svg)
 ## Arquitectura
-**Cliente-Servidor Desacoplada y Arquitectura en Capas**
 
-El proyecto implementa una **Arquitectura Cliente-Servidor Desacoplada**, respaldada por un patrón de **Arquitectura en Capas (N-Tier)** en el servidor backend:
-
-* **Cliente-Servidor Desacoplado (API REST):**
-  * La aplicación móvil (Android) actúa como la capa de presentación independiente y se comunica con el servidor exclusivamente a través de servicios web **RESTful** mediante peticiones HTTP/JSON.
-  * **Ventaja:** Desacopla la interfaz de usuario de la lógica de negocio. Permite actualizar, rediseñar o escalar la app móvil sin alterar el backend ni la base de datos.
-
-* **Arquitectura en Capas en el Backend (Layered Architecture):**
-  El código de Spring Boot se estructura bajo la separación estricta de responsabilidades en tres capas:
-  1. **Capa de Controladores (`Controller` / API REST):** Gestiona la recepción de peticiones HTTP del dispositivo móvil, valida las entradas y devuelve respuestas estandarizadas en JSON.
-  2. **Capa de Servicios (`Service` / Lógica de Negocio):** Contiene las reglas del negocio de transporte (procesamiento de estados de viaje, asignación de choferes y lógica de transporte).
-  3. **Capa de Persistencia (`Repository` / Acceso a Datos):** Administra las transacciones y consultas a MariaDB mediante Spring Data JPA/Hibernate.
-  * **Ventaja:** Facilita la legibilidad, el mantenimiento, las pruebas del sistema y presenta una estructura profesional para la evaluación del proyecto.
-
-* **Modelo Stateless (Sin Estado) con JWT:**
-  * La comunicación entre el cliente móvil y el backend es totalmente *stateless*. El servidor no almacena sesiones activas en memoria; cada petición valida la identidad del usuario mediante un token **JWT (JSON Web Token)**.
-  * **Ventaja:** Maximiza la eficiencia del servidor y asegura un manejo de sesiones confiable para dispositivos móviles que operan sobre redes móviles variables.
-    
-### Lenguaje de Programación
-
-#### Backend: Java
-Se definió **Java** como el lenguaje para el servidor backend con **Spring Boot** por los siguientes motivos técnicos:
-
-* **Estándar Empresarial y Madurez:** Es el lenguaje nativo por excelencia del ecosistema Spring Boot, contando con soporte absoluto, documentación exhaustiva y un ecosistema de librerías altamente consolidadas.
-* **Tipado Estático y Robustez:** Al ser un lenguaje fuertemente tipado, permite detectar errores de incompatibilidad de datos durante la compilación en lugar de la ejecución, garantizando la estabilidad en el procesamiento transaccional de viajes.
-* **Modelado del Dominio (POO):** Facilita la abstracción limpia de las entidades operativas de transporte mediante Programación Orientada a Objetos, encajando de manera directa en la arquitectura por capas (`Controller` ➔ `Service` ➔ `Repository`).
-* **Portabilidad y Rendimiento:** La JVM asegura una alta eficiencia al procesar peticiones HTTP/REST concurrentes y permite desplegar el servidor en cualquier entorno o contenedor de forma transparente.
-
-####  Frontend Móvil: Kotlin
-Se adoptó **Kotlin** para la aplicación nativa en **Android Studio** debido a sus ventajas fundamentales para el desarrollo móvil moderno:
-
-* **Estándar Oficial "Android-First":** Es el lenguaje prioritario y oficialmente recomendado por Google para el desarrollo nativo en Android, lo que garantiza el mejor soporte en librerías, APIs del sistema operativo y herramientas del IDE.
-* **Seguridad de Nulos (Null Safety):** Incorpora un sistema de tipos que previene en tiempo de compilación las caídas de la app por punteros nulos (*NullPointerExceptions*), la causa principal de fallos en dispositivos móviles.
-* **Manejo de Asincronía con Corrutinas (Coroutines):** Permite realizar llamadas a la API REST (vía Retrofit) y consultas locales (vía Room) en segundo plano de forma no bloqueante, manteniendo la interfaz de usuario rápida y fluida durante el trayecto.
-* **Sintaxis Concisa y Menor Código Repetitivo:** Características como las *Data Classes*, funciones de extensión y mapeo sintáctico reducen significativamente la cantidad de código *boilerplate* frente a Java nativo en Android, acelerando el desarrollo del MVP.
-* **Interoperabilidad 100% con la JVM:** Al compilar sobre la JVM/Android Runtime, comparte exactamente el mismo modelo de datos JSON que retorna el backend en Java, garantizando una integración limpia entre ambas capas.
-  
 ### Base de datos
 **MariaDB**
 
