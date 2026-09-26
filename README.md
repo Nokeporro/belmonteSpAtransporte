@@ -61,20 +61,37 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 - **RF14:** El sistema debe permitir al Recepcionista/Administrador registrar una cuenta de Conductor (nombre, correo, teléfono y contraseña inicial), quedando disponible de inmediato para autenticarse e iniciar sesión.
 - **RF15:** El sistema debe permitir al Cliente corporativo/Solicitante cancelar una solicitud de traslado propia mientras su estado sea "Pendiente" o "Asignado". Si la solicitud ya tenía un conductor asignado, el sistema debe notificarle la cancelación mediante push (FCM).
 
+## Requisitos no funcionales
+
+- **RNF01 (Seguridad):** Las contraseñas se deben almacenar únicamente como hash (nunca en texto plano), y la autenticación entre la app y el backend debe usar JWT con tiempo de expiración definido. El acceso a cada endpoint debe validarse por rol (Solicitante, Administrador, Conductor) según el `SecurityFilterChain` centralizado definido en la Arquitectura.
+- **RNF02 (Disponibilidad ante conectividad intermitente):** La app debe seguir siendo utilizable sin conexión a internet para consultar información ya sincronizada (Room/SQLite), y debe reintentar automáticamente el envío de cambios pendientes (RF11) sin intervención manual del usuario al recuperar la conexión.
+- **RNF03 (Tiempo de respuesta):** Las operaciones de consulta (listar solicitudes, viajes del día) deben responder en menos de 2 segundos bajo condiciones normales de red 4G/Wi-Fi. Una notificación push (RF12/RF13) debe reflejarse en la app en un plazo de segundos, no minutos, desde que ocurre el evento en el backend.
+- **RNF04 (Usabilidad para uso en terreno):** Las pantallas del Conductor (Viajes del día, Detalle de viaje) deben priorizar botones grandes y de fácil lectura, ya que se usan en contexto de movimiento (antes/después de conducir), minimizando la cantidad de pasos para marcar "En Curso"/"Finalizado" o abrir la navegación externa.
+- **RNF05 (Compatibilidad):** La aplicación Android debe ser compatible con Android 8.0 (API 26) en adelante, cubriendo la mayoría de dispositivos de gama media-baja usados por conductores en terreno. El backend debe exponer únicamente contratos JSON estándar (REST), sin acoplarse a un cliente específico.
+- **RNF06 (Mantenibilidad):** El backend y la app deben mantener una separación estricta de capas (`Controller-Service-Repository` en Spring Boot, `View-ViewModel-Repository` en Android/MVVM), de forma que una regla de negocio (ej. transición de estados) se modifique en un único lugar sin tocar la capa de presentación.
+- **RNF07 (Dependencia de servicios externos):** El sistema depende de dos servicios externos con cuota gratuita limitada (Google Places API para autocompletado de direcciones, Firebase Cloud Messaging para notificaciones push). El uso debe monitorearse para no exceder el nivel gratuito durante el desarrollo y las pruebas del MVP.
+- **RNF08 (Privacidad de datos):** Los datos personales de pasajeros y solicitantes (nombre, teléfono, dirección) no deben registrarse en logs de la aplicación ni del backend, y solo deben ser visibles para los actores que participan directamente en cada solicitud (el propio Solicitante, el Administrador y el Conductor asignado).
+
 ## Historias de usuario
 
 - **HU01:** Como Cliente corporativo/Solicitante, quiero registrarme y autenticarme en la aplicación, para acceder de forma segura a mis solicitudes de traslado. (RF01)
-- **HU02:** Como Cliente corporativo/Solicitante, quiero registrar una solicitud de traslado con los datos del pasajero, fecha, hora, origen, destino y número de vuelo, para coordinar el viaje sin depender de llamadas o WhatsApp. (RF02)
+- **HU02:** Como Cliente corporativo/Solicitante, quiero registrar una solicitud de traslado seleccionando origen y destino con autocompletado de Google Places, para coordinar el viaje con datos exactos sin depender de llamadas o WhatsApp. (RF02)
 - **HU03:** Como Cliente corporativo/Solicitante, quiero ver el historial y el estado de mis solicitudes de traslado, para saber en todo momento si mi viaje ya fue asignado. (RF03)
 - **HU04:** Como Recepcionista/Administrador, quiero visualizar las solicitudes pendientes de asignación, para distribuirlas rápidamente entre los conductores disponibles. (RF04)
-- **HU05:** Como Recepcionista/Administrador, quiero asignar un conductor disponible a una solicitud de traslado, para confirmar el viaje y actualizar su estado a Asignado. Criterios de aceptación adicionales: la vista "Asignar conductor" también funciona sobre una solicitud en estado Asignado, permitiendo reemplazar al conductor previamente elegido (por ejemplo, si tuvo un imprevisto). Al reasignar, el estado permanece en "Asignado" (no vuelve a Pendiente), se actualiza id_conductor y fecha_asignacion, y el conductor anterior recibe una notificación push informando que ya no tiene ese viaje, mientras el nuevo conductor recibe la notificación de asignación (RF12). (RF05)
+- **HU05:** Como Recepcionista/Administrador, quiero asignar o reasignar un conductor disponible a una solicitud de traslado, para confirmar el viaje y mantenerlo cubierto ante un imprevisto. (RF05)
 - **HU06:** Como Conductor, quiero autenticarme con las credenciales que me entrega el Administrador, para acceder a mis viajes sin tener que registrarme yo mismo. (RF06)
 - **HU07:** Como Conductor, quiero visualizar en tiempo real los viajes que tengo asignados para el día, para organizar mi jornada de traslados. (RF07)
 - **HU08:** Como Conductor, quiero ver el detalle de un viaje asignado (pasajero, origen y destino), para confirmar los datos antes de iniciar el traslado. (RF08)
 - **HU09:** Como Conductor, quiero actualizar el estado de un traslado a En Curso y a Finalizado, para reflejar el avance real del viaje. (RF09)
 - **HU10:** Como Conductor, quiero abrir la ruta del viaje directamente en Google Maps o Waze desde la app, para no tener que copiar direcciones manualmente y llegar más rápido. (RF10)
-- **HU11:** Como Conductor, quiero que la app guarde mis datos localmente y los sincronice con el backend, para no perder información si la conexión a internet se interrumpe momentáneamente en terreno. (RF11)
-- **HU12:** Como Recepcionista/Administrador, quiero que los cambios de estado de los traslados se reflejen en tiempo real para todos los actores conectados, para tener visibilidad inmediata de la operación sin depender de reportes manuales. (RF12)
+- **HU11:** Como Conductor, quiero seguir consultando mis viajes sin conexión y que los cambios se sincronicen automáticamente al recuperarla, para no perder información mientras estoy en terreno. (RF11)
+- **HU12:** Como Solicitante, quiero recibir una notificación push cuando cambie el estado de mi traslado, para enterarme sin tener que recargar la app manualmente. (RF12)
+- **HU13:** Como Conductor, quiero recibir una notificación push cuando se me asigna un nuevo viaje, para enterarme de inmediato sin estar revisando la app constantemente. (RF12)
+- **HU14:** Como usuario autenticado (Solicitante, Administrador o Conductor), quiero que la app registre mi token de notificaciones al iniciar sesión, para poder recibir avisos dirigidos a mi cuenta. (RF13)
+- **HU15:** Como Recepcionista/Administrador, quiero registrar una cuenta de Conductor con sus credenciales, para que pueda autenticarse sin autorregistrarse. (RF14)
+- **HU16:** Como Solicitante, quiero cancelar una solicitud de traslado que ya no necesito, para liberar al conductor asignado y evitar un viaje innecesario. (RF15)
+
+> Los criterios de aceptación, prioridad y estimación de cada historia están detallados en la tabla de [Backlog](#backlog).
 
 ## Backlog
 
