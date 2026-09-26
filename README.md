@@ -72,7 +72,8 @@ Normalizado a 3FN:
 ### Modelo logico
 ### Modelo relacional
 
-![modelo relacional]('img/Relacional_1.svg')
+![modelo relacional](img/Relacional_1.svg)
+![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
 
 ## Arquitectura
 ### Base de datos
