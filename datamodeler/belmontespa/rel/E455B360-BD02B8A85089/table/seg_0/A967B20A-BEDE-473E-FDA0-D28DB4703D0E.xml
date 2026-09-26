@@ -1,0 +1,46 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A967B20A-BEDE-473E-FDA0-D28DB4703D0E" name="ESTADO_CONDUCTOR">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:28:12 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<ordsAlias>table_14</ordsAlias>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_estado" id="BC242587-94D1-D7AC-FDC8-C20496467B7E">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:33:31 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="estado" id="130D304E-8FDE-662B-6888-B6F1D2FD9537">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:28:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="73DA1A62-C348-44E8-F0E3-0604048FF55F" name="ESTADO_CONDUCTOR_PK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:33:31 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="BC242587-94D1-D7AC-FDC8-C20496467B7E"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

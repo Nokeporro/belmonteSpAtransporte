@@ -26,6 +26,16 @@
 <autoIncrementCycle>false</autoIncrementCycle>
 <autoIncrementOrder>false</autoIncrementOrder>
 </Column>
+<Column name="rut" id="DECFE585-2091-DC5D-DC46-FCFFD91E0521">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:40:14 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
 <Column name="nombre" id="944A21C3-8706-6D71-5FAA-8A8840F6604E">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>

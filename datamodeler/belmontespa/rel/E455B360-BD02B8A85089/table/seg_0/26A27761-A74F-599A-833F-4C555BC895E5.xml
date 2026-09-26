@@ -59,7 +59,6 @@
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>00A1B802-9EB9-A637-6AFC-FC26F1423D86</importedID>
-<nullsAllowed>true</nullsAllowed>
 <use>0</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
 <domain>647F668D-BBF3-6A8A-3363-692268C3C3F9</domain>
@@ -72,7 +71,6 @@
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>2F692373-511C-B801-2653-2137F81A66DE</importedID>
-<nullsAllowed>true</nullsAllowed>
 <use>0</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
 <domain>647F668D-BBF3-6A8A-3363-692268C3C3F9</domain>
@@ -105,6 +103,8 @@
 <indexColumnUsage>
 <colUsage columnID="38D4EB64-BFE9-DE69-99CB-65BEB4332241"/>
 <colUsage columnID="5630B97A-A8ED-8692-5FA5-E5FF4CC13867"/>
+<colUsage columnID="45C5795D-560C-37A8-34D6-E8D9E5B6EB22"/>
+<colUsage columnID="6BE5E478-37EE-0939-1322-4D71F159B52E"/>
 </indexColumnUsage>
 </ind_PK_UK>
 <ind_PK_UK id="D627C0F8-1ABB-9D13-519B-1AADF19F5EDD" name="fk_ubicacion_comuna">

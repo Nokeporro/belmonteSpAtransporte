@@ -25,18 +25,19 @@
 <colAssociation fkAssociation="7E3AE8EF-E8DC-461E-A73E-00FACB4F1764" referredColumn="416BB401-9378-EC10-89AB-7223A857375A"/>
 </associations>
 </Column>
-<Column name="empresa" id="79DDCED5-BE9A-FCC3-9A9A-742C0D4401F1">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<Column name="EMPRESA_id_empresa" id="51170B3E-B873-8F3D-7812-F9CBBB6AE302">
 <createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[Empresa o área que agenda los traslados.]]></commentInRDBMS>
+<createdTime>2026-09-26 15:30:06 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
-<importedID>8C47C03C-3F68-D2C8-48C7-D922DCB9147C</importedID>
-<use>0</use>
-<logicalDatatype>LOGDT024</logicalDatatype>
-<domain>39FE5C60-97E5-2931-E335-1A470B23AD3A</domain>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
 <ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
 <autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="4DB0D1DC-9FE5-E360-AF53-B8EB5EE32784" referredColumn="EA8EE728-0231-75AB-A757-03F3FE1F3587"/>
+</associations>
 </Column>
 </columns>
 <indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
@@ -61,6 +62,16 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="7E594F3A-E176-39E5-C617-81CD403D6FCC" name="solicitante_EMPRESA_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:30:06 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="51170B3E-B873-8F3D-7812-F9CBBB6AE302"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

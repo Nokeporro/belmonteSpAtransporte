@@ -41,23 +41,6 @@
 <colAssociation fkAssociation="D25C9208-6DF5-2572-1E27-89BDCEDF173A" referredColumn="6F3DB5B7-2BFE-F23F-053E-EE9DE2D90CF4"/>
 </associations>
 </Column>
-<Column name="id_conductor" id="6A211382-DD24-F430-4106-33F29FBE296D">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[NULL hasta que el Administrador asigna un conductor (RF05).]]></commentInRDBMS>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>E95102D2-49CC-CC2C-29A4-C89B082333CB</importedID>
-<nullsAllowed>true</nullsAllowed>
-<use>0</use>
-<logicalDatatype>LOGDT019</logicalDatatype>
-<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-<associations>
-<colAssociation fkAssociation="D3A92765-F198-EAB6-FA22-4A5FFA407F96" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
-</associations>
-</Column>
 <Column name="fecha_hora_traslado" id="76F310C8-AA67-D9BC-8016-B98C94964FF3">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
@@ -150,7 +133,6 @@
 <commentInRDBMS><![CDATA[Momento en que el Administrador asigna un conductor.]]></commentInRDBMS>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>4DAB746D-9005-BD8B-371D-252C7D00797B</importedID>
-<nullsAllowed>true</nullsAllowed>
 <use>0</use>
 <logicalDatatype>LOGDT015</logicalDatatype>
 <domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
@@ -164,7 +146,6 @@
 <commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como En Curso.]]></commentInRDBMS>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>3216D916-0FDE-97D4-A47B-BB9A92ACB6C4</importedID>
-<nullsAllowed>true</nullsAllowed>
 <use>0</use>
 <logicalDatatype>LOGDT015</logicalDatatype>
 <domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
@@ -178,12 +159,25 @@
 <commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como Finalizado.]]></commentInRDBMS>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>4F69C593-6B1A-B35C-E653-95D4EB9D127B</importedID>
-<nullsAllowed>true</nullsAllowed>
 <use>0</use>
 <logicalDatatype>LOGDT015</logicalDatatype>
 <domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
 <ownDataTypeParameters>,,</ownDataTypeParameters>
 <autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="MOVIL_id_movil" id="514E1332-00B4-2C2C-FDC5-8F18F682C408">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:53:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="2961F455-43BA-A16C-780D-74FA3FE50254" referredColumn="D51495A7-456E-6F38-3B1F-274497BFC075"/>
+</associations>
 </Column>
 </columns>
 <indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
@@ -219,18 +213,7 @@
 <importedID>E10A1B8A-F670-8580-F527-69BB06AC46C8</importedID>
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
-<colUsage columnID="6A211382-DD24-F430-4106-33F29FBE296D"/>
 <colUsage columnID="76F310C8-AA67-D9BC-8016-B98C94964FF3"/>
-</indexColumnUsage>
-</ind_PK_UK>
-<ind_PK_UK id="A5B19ED5-304A-BB9E-C9C3-F10A47121AFA" name="fk_solicitud_conductor">
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<indexState>Foreign Key</indexState>
-<isSurrogateKey>false</isSurrogateKey>
-<indexColumnUsage>
-<colUsage columnID="6A211382-DD24-F430-4106-33F29FBE296D"/>
 </indexColumnUsage>
 </ind_PK_UK>
 <ind_PK_UK id="D5BF4119-743D-0810-7498-3A1D4BDF31B6" name="fk_solicitud_destino">
@@ -271,6 +254,16 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="E76009C4-4B28-DB02-BD62-6CC4EA6752B4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="527E75EA-6C10-D7F7-222E-C0165807AA82" name="solicitud_traslado_MOVIL_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:53:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="514E1332-00B4-2C2C-FDC5-8F18F682C408"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

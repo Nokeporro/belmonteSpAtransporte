@@ -1,0 +1,104 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A6F489CC-BD6F-72CA-375A-7C2D103DE573" name="MOVIL">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:44:42 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<ordsAlias>table_16</ordsAlias>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_movil" id="D51495A7-456E-6F38-3B1F-274497BFC075">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:45:37 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="patente" id="057AEB75-6766-B07F-8066-66ED65A69C50">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:45:51 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="gps_serial" id="A720377C-D73F-866E-4116-93BB582CCB10">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:47:23 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="ESTADO_MOVIL_id_estado_mov" id="94AAEEE9-F9EF-4B0C-D540-BA55F68CF0D1">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:51:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="9D3FFCE5-6EE7-66FB-1404-5A8E6C52216C" referredColumn="7A04E253-3EB2-28DD-A2E2-D620ECEBB343"/>
+</associations>
+</Column>
+<Column name="conductor_id_usuario" id="E7ADB869-BFDB-B611-18AE-DCA55789F76E">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:51:58 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="BC28B998-E67B-B058-014F-E28D9B7037AD" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
+</associations>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="4BE62E72-0451-F41D-F662-B52DBBF69EDB" name="MOVIL_PK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:45:51 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="D51495A7-456E-6F38-3B1F-274497BFC075"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="025B46BF-2274-FEAA-EA00-B215D5659094" name="MOVIL_ESTADO_MOVIL_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:51:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="94AAEEE9-F9EF-4B0C-D540-BA55F68CF0D1"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="3B71B711-8DA3-7312-F218-DF7BAB83B836" name="MOVIL_conductor_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:51:58 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E7ADB869-BFDB-B611-18AE-DCA55789F76E"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>
