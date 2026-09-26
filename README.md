@@ -40,11 +40,13 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 4. **Gestionar y distribuir solicitudes** (Recepcionista/Administrador): recibir las solicitudes ingresadas y asignarlas a un conductor.
 5. **Actualizar estado del traslado** (Recepcionista/Administrador asigna Pendiente → Asignado; Conductor marca En Curso y Finalizado desde terreno): reflejar el ciclo de vida del viaje según los estados Pendiente, Asignado, En Curso y Finalizado.
 6. **Trazar ruta óptima hacia el destino** (Sistema de navegación externo): a partir de las coordenadas georreferenciadas de origen y destino recibidas al ser invocado por el conductor, calcular y mostrar la ruta óptima de tráfico.
+7.  **Registrar conductor** (Recepcionista/Administrador): crear una cuenta de Conductor ingresando sus datos y credenciales de acceso, sin que el propio conductor se autorregistre.
+8.  **Cancelar solicitud de traslado** (Cliente corporativo/Solicitante): cancelar un viaje que ya registró, siempre que todavía no haya comenzado (no está "En Curso" ni "Finalizado").
 
 ## Requerimientos funcionales
 
 - **RF01:** El sistema debe permitir al Cliente corporativo/Solicitante registrarse y autenticarse en la aplicación.
-- **RF02:** El sistema debe permitir al Cliente corporativo/Solicitante registrar una solicitud de traslado indicando datos del pasajero, fecha, hora, dirección de origen, dirección de destino y número de vuelo (si aplica).
+- **RF02:** El sistema debe permitir al Cliente corporativo/Solicitante registrar una solicitud de traslado indicando datos del pasajero, fecha, hora, dirección de origen, dirección de destino (seleccionadas mediante autocompletado de Google Places, capturando sus coordenadas georreferenciadas) y número de vuelo (si aplica).
 - **RF03:** El sistema debe permitir al Cliente corporativo/Solicitante visualizar el historial y estado de sus solicitudes de traslado.
 - **RF04:** El sistema debe permitir al Recepcionista/Administrador visualizar las solicitudes pendientes de asignación.
 - **RF05:** El sistema debe permitir al Recepcionista/Administrador asignar un conductor disponible a una solicitud de traslado, actualizando su estado a "Asignado".
@@ -53,8 +55,11 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 - **RF08:** El sistema debe permitir al Conductor visualizar el detalle de un viaje asignado (datos del pasajero, dirección de origen y de destino).
 - **RF09:** El sistema debe permitir al Conductor actualizar el estado de un traslado a "En Curso" y a "Finalizado".
 - **RF10:** El sistema debe integrar, mediante Intents del sistema operativo Android, una aplicación externa de navegación (Google Maps/Waze) para trazar la ruta hacia el destino a partir de las coordenadas georreferenciadas.
-- **RF11:** El sistema debe persistir localmente (Room/SQLite) los datos de las solicitudes y sincronizarlos mediante una API REST con el backend.
-- **RF12:** El sistema debe requerir conectividad a internet continua para reflejar en tiempo real las actualizaciones de estado de los viajes.
+- **RF11:** El sistema debe persistir localmente (Room/SQLite) las solicitudes y viajes ya consultados, permitiendo su visualización sin conexión a internet. Los cambios generados sin conexión (por ejemplo, un cambio de estado registrado por el Conductor en terreno) deben quedar en una cola local y sincronizarse automáticamente con el backend vía API REST al recuperar la conectividad.
+- **RF12:** El sistema debe notificar mediante mensajería push (Firebase Cloud Messaging) a los actores afectados cuando ocurra un cambio relevante en una solicitud de traslado (asignación de conductor, cambio de estado a En Curso o Finalizado), de modo que la información se actualice sin que el usuario tenga que recargar la app manualmente.
+- **RF13:** El sistema debe registrar y mantener actualizado el token de notificación push (FCM) de cada usuario autenticado, para poder enviarle notificaciones dirigidas.
+- **RF14:** El sistema debe permitir al Recepcionista/Administrador registrar una cuenta de Conductor (nombre, correo, teléfono y contraseña inicial), quedando disponible de inmediato para autenticarse e iniciar sesión.
+- **RF15:** El sistema debe permitir al Cliente corporativo/Solicitante cancelar una solicitud de traslado propia mientras su estado sea "Pendiente" o "Asignado". Si la solicitud ya tenía un conductor asignado, el sistema debe notificarle la cancelación mediante push (FCM).
 
 ## Historias de usuario
 
@@ -62,7 +67,7 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 - **HU02:** Como Cliente corporativo/Solicitante, quiero registrar una solicitud de traslado con los datos del pasajero, fecha, hora, origen, destino y número de vuelo, para coordinar el viaje sin depender de llamadas o WhatsApp. (RF02)
 - **HU03:** Como Cliente corporativo/Solicitante, quiero ver el historial y el estado de mis solicitudes de traslado, para saber en todo momento si mi viaje ya fue asignado. (RF03)
 - **HU04:** Como Recepcionista/Administrador, quiero visualizar las solicitudes pendientes de asignación, para distribuirlas rápidamente entre los conductores disponibles. (RF04)
-- **HU05:** Como Recepcionista/Administrador, quiero asignar un conductor disponible a una solicitud de traslado, para confirmar el viaje y actualizar su estado a Asignado. (RF05)
+- **HU05:** Como Recepcionista/Administrador, quiero asignar un conductor disponible a una solicitud de traslado, para confirmar el viaje y actualizar su estado a Asignado. Criterios de aceptación adicionales: la vista "Asignar conductor" también funciona sobre una solicitud en estado Asignado, permitiendo reemplazar al conductor previamente elegido (por ejemplo, si tuvo un imprevisto). Al reasignar, el estado permanece en "Asignado" (no vuelve a Pendiente), se actualiza id_conductor y fecha_asignacion, y el conductor anterior recibe una notificación push informando que ya no tiene ese viaje, mientras el nuevo conductor recibe la notificación de asignación (RF12). (RF05)
 - **HU06:** Como Conductor, quiero autenticarme con las credenciales que me entrega el Administrador, para acceder a mis viajes sin tener que registrarme yo mismo. (RF06)
 - **HU07:** Como Conductor, quiero visualizar en tiempo real los viajes que tengo asignados para el día, para organizar mi jornada de traslados. (RF07)
 - **HU08:** Como Conductor, quiero ver el detalle de un viaje asignado (pasajero, origen y destino), para confirmar los datos antes de iniciar el traslado. (RF08)
@@ -76,7 +81,7 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 | ID | Historia de usuario | Criterios de aceptación | Prioridad | Estimación (SP) |
 |----|---|---|---|---|
 | HU01 | Registro y login del Cliente corporativo/Solicitante | El registro se rechaza si el correo ya existe o falta algún campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Con credenciales válidas se accede a "Mis solicitudes"; con credenciales inválidas se muestra un error sin indicar cuál dato falló. | Alta | 3 |
-| HU02 | Registrar solicitud de traslado | El formulario exige pasajero, fecha, hora, origen y destino; el número de vuelo es opcional.<br>Al enviar, la solicitud queda visible en "Mis solicitudes" con estado Pendiente.<br>No permite fechas/horas en el pasado. | Alta | 5 |
+| HU02 | Registrar solicitud de traslado | El campo de origen y destino usa autocompletado (Google Places API): el Solicitante escribe y elige una dirección de una lista de sugerencias, nunca texto libre. Al seleccionar una dirección, la app captura automáticamente latitud y longitud junto con el texto. No se puede enviar el formulario si origen o destino no fueron seleccionados de la lista (evita direcciones sin coordenadas). El número de vuelo es opcional; pasajero, fecha, hora, origen y destino son obligatorios.| Alta | 5 |
 | HU03 | Ver historial y estado de mis solicitudes | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado reflejado corresponde al último cambio registrado por el Administrador o el Conductor. | Media | 3 |
 | HU04 | Panel de solicitudes pendientes | Solo se listan solicitudes en estado Pendiente.<br>Cada fila permite pasar directamente a la vista "Asignar conductor" de esa solicitud. | Alta | 3 |
 | HU05 | Asignar conductor a una solicitud | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a estado Asignado y queda visible en "Viajes del día" del conductor elegido. | Alta | 5 |
@@ -85,8 +90,26 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 | HU08 | Ver detalle de un viaje asignado | Muestra pasajero, número de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
 | HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió. | Alta | 3 |
 | HU10 | Navegar con Google Maps/Waze | Al presionar "Navegar" se abre Google Maps o Waze con el destino precargado.<br>Si no hay ninguna app de navegación instalada, se muestra un aviso en vez de fallar silenciosamente. | Alta | 3 |
-| HU11 | Persistencia local y sincronización | Las solicitudes y viajes se pueden seguir consultando sin conexión, con los últimos datos sincronizados.<br>Al recuperar la conexión, los cambios pendientes (ej. cambio de estado) se envían automáticamente al backend. | Media | 8 |
-| HU12 | Actualizaciones en tiempo real | Un cambio de estado hecho por un Conductor es visible para el Administrador y el Solicitante sin recargar la app manualmente.<br>El tiempo de actualización percibido es de segundos, no minutos. | Media | 5 |
+| HU11 | Persistencia local y sincronización | Las solicitudes y viajes ya cargados se pueden seguir consultando sin conexión.
+Un cambio de estado hecho sin conexión (ej. "Finalizar viaje") se guarda en una cola local y se marca como "pendiente de sincronizar".
+Al recuperar la conexión, la cola se envía automáticamente al backend sin intervención del usuario. | Media | 8 |
+| HU12 | Recibir notificación al cambiar el estado de mi traslado | Como Solicitante, cuando mi traslado pasa a "Asignado", "En Curso" o "Finalizado", recibo una notificación push.
+Al abrir la notificación (o la pantalla "Mis solicitudes"), el estado mostrado ya está actualizado sin necesidad de recargar manualmente. | Media | 5 |
+| HU13 | Recibir notificación de un nuevo viaje asignado| Como Conductor, cuando el Administrador me asigna una solicitud, recibo una notificación push.
+Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
+| HU14 | Registro del token de notificaciones|Como usuario autenticado (Solicitante, Administrador o Conductor), al iniciar sesión la app registra o actualiza mi token FCM en el backend.
+Si el token cambia (reinstalación, cambio de dispositivo), se reemplaza el anterior sin duplicar registros.| Alta | 3 |
+| HU15 |Registrar conductor|Como Administrador, quiero crear una cuenta de Conductor con nombre, correo, teléfono y contraseña, para que pueda autenticarse sin autorregistrarse.
+Criterios: el registro se rechaza si el correo ya existe o falta un campo obligatorio.
+El Administrador define la contraseña directamente en el formulario (no se genera automáticamente).
+La contraseña se guarda como hash (password_hash), nunca en texto plano.
+Al crearse, el conductor queda disponible de inmediato en "Asignar conductor" (HU05).
+No existe una vista de "cambiar contraseña" para el Conductor: si necesita una nueva, el Administrador la reemplaza directamente en su ficha.| Alta | 3 |
+| HU16 |Cancelar solicitud de traslado|Como Solicitante, quiero cancelar un traslado que ya no necesito, para liberar al conductor y que no se presente a un viaje que no va a ocurrir.
+Criterios: el botón "Cancelar" solo está disponible si el estado es Pendiente o Asignado.
+Si el estado es En Curso o Finalizado, no se puede cancelar.
+Al cancelar, el estado pasa a "Cancelado" y queda registrada la fecha/hora de cancelación.
+Si la solicitud tenía conductor asignado, este recibe una notificación push de la cancelación (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".| Alta | 3 |
 
 ## Modelamiento del problema
 
