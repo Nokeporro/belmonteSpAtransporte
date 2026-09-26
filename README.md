@@ -57,11 +57,86 @@ El objetivo del proyecto es eliminar la pérdida de información por canales inf
 - **RF12:** El sistema debe requerir conectividad a internet continua para reflejar en tiempo real las actualizaciones de estado de los viajes.
 
 ## Historias de usuario
+
+- **HU01:** Como Cliente corporativo/Solicitante, quiero registrarme y autenticarme en la aplicación, para acceder de forma segura a mis solicitudes de traslado. (RF01)
+- **HU02:** Como Cliente corporativo/Solicitante, quiero registrar una solicitud de traslado con los datos del pasajero, fecha, hora, origen, destino y número de vuelo, para coordinar el viaje sin depender de llamadas o WhatsApp. (RF02)
+- **HU03:** Como Cliente corporativo/Solicitante, quiero ver el historial y el estado de mis solicitudes de traslado, para saber en todo momento si mi viaje ya fue asignado. (RF03)
+- **HU04:** Como Recepcionista/Administrador, quiero visualizar las solicitudes pendientes de asignación, para distribuirlas rápidamente entre los conductores disponibles. (RF04)
+- **HU05:** Como Recepcionista/Administrador, quiero asignar un conductor disponible a una solicitud de traslado, para confirmar el viaje y actualizar su estado a Asignado. (RF05)
+- **HU06:** Como Conductor, quiero autenticarme con las credenciales que me entrega el Administrador, para acceder a mis viajes sin tener que registrarme yo mismo. (RF06)
+- **HU07:** Como Conductor, quiero visualizar en tiempo real los viajes que tengo asignados para el día, para organizar mi jornada de traslados. (RF07)
+- **HU08:** Como Conductor, quiero ver el detalle de un viaje asignado (pasajero, origen y destino), para confirmar los datos antes de iniciar el traslado. (RF08)
+- **HU09:** Como Conductor, quiero actualizar el estado de un traslado a En Curso y a Finalizado, para reflejar el avance real del viaje. (RF09)
+- **HU10:** Como Conductor, quiero abrir la ruta del viaje directamente en Google Maps o Waze desde la app, para no tener que copiar direcciones manualmente y llegar más rápido. (RF10)
+- **HU11:** Como Conductor, quiero que la app guarde mis datos localmente y los sincronice con el backend, para no perder información si la conexión a internet se interrumpe momentáneamente en terreno. (RF11)
+- **HU12:** Como Recepcionista/Administrador, quiero que los cambios de estado de los traslados se reflejen en tiempo real para todos los actores conectados, para tener visibilidad inmediata de la operación sin depender de reportes manuales. (RF12)
+
+## Backlog
+
+| ID | Historia de usuario | Criterios de aceptación | Prioridad | Estimación (SP) |
+|----|---|---|---|---|
+| HU01 | Registro y login del Cliente corporativo/Solicitante | El registro se rechaza si el correo ya existe o falta algún campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Con credenciales válidas se accede a "Mis solicitudes"; con credenciales inválidas se muestra un error sin indicar cuál dato falló. | Alta | 3 |
+| HU02 | Registrar solicitud de traslado | El formulario exige pasajero, fecha, hora, origen y destino; el número de vuelo es opcional.<br>Al enviar, la solicitud queda visible en "Mis solicitudes" con estado Pendiente.<br>No permite fechas/horas en el pasado. | Alta | 5 |
+| HU03 | Ver historial y estado de mis solicitudes | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado reflejado corresponde al último cambio registrado por el Administrador o el Conductor. | Media | 3 |
+| HU04 | Panel de solicitudes pendientes | Solo se listan solicitudes en estado Pendiente.<br>Cada fila permite pasar directamente a la vista "Asignar conductor" de esa solicitud. | Alta | 3 |
+| HU05 | Asignar conductor a una solicitud | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a estado Asignado y queda visible en "Viajes del día" del conductor elegido. | Alta | 5 |
+| HU06 | Login del Conductor (sin autorregistro) | La pantalla de login del Conductor no ofrece la opción "crear cuenta".<br>Con credenciales inválidas se muestra un error sin revelar si el correo existe. | Alta | 2 |
+| HU07 | Ver viajes del día | Solo se muestran los viajes del conductor autenticado, para la fecha actual, ordenados por hora.<br>Cada viaje muestra pasajero, hora y estado. | Alta | 3 |
+| HU08 | Ver detalle de un viaje asignado | Muestra pasajero, número de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
+| HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió. | Alta | 3 |
+| HU10 | Navegar con Google Maps/Waze | Al presionar "Navegar" se abre Google Maps o Waze con el destino precargado.<br>Si no hay ninguna app de navegación instalada, se muestra un aviso en vez de fallar silenciosamente. | Alta | 3 |
+| HU11 | Persistencia local y sincronización | Las solicitudes y viajes se pueden seguir consultando sin conexión, con los últimos datos sincronizados.<br>Al recuperar la conexión, los cambios pendientes (ej. cambio de estado) se envían automáticamente al backend. | Media | 8 |
+| HU12 | Actualizaciones en tiempo real | Un cambio de estado hecho por un Conductor es visible para el Administrador y el Solicitante sin recargar la app manualmente.<br>El tiempo de actualización percibido es de segundos, no minutos. | Media | 5 |
+
 ## Modelamiento del problema
 
-Script DDL (Oracle XE 21c): [sql/modelo_relacional.sql](sql/modelo_relacional.sql)
+Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 
-Entidades: `REGION`, `COMUNA`, `UBICACION` (geografía); `TIPO_USUARIO`, `USUARIO` (cuentas de acceso); `SOLICITANTE`, `ADMINISTRADOR`, `CONDUCTOR` (especialización 1:1 de `USUARIO`, una tabla por actor); `PASAJERO`; `ESTADO_SOLICITUD_TRASLADO`; `SOLICITUD_TRASLADO` (entidad central); `DETALLE_SOLICITUD_PASAJERO` (asociativa muchos a muchos entre solicitud y pasajero, ya que un traslado puede llevar más de un pasajero). El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos propios que persistir.
+| Entidad | Atributo | Tipo de dato | Clave | Descripción |
+|---|---|---|---|---|
+| REGION | id_region | NUMBER | PK | Identificador de la región. |
+| REGION | nombre | VARCHAR2(60) | UNIQUE, NOT NULL | Nombre de la región. |
+| COMUNA | id_comuna | NUMBER | PK | Identificador de la comuna. |
+| COMUNA | nombre | VARCHAR2(80) | NOT NULL (UNIQUE junto a id_region) | Nombre de la comuna. |
+| COMUNA | id_region | NUMBER | FK → REGION, NOT NULL | Región a la que pertenece. |
+| UBICACION | id_ubicacion | NUMBER | PK | Identificador de la ubicación. |
+| UBICACION | direccion | VARCHAR2(200) | NOT NULL (UNIQUE junto a id_comuna) | Dirección georreferenciada (RF10). |
+| UBICACION | id_comuna | NUMBER | FK → COMUNA, NOT NULL | Comuna de la dirección. |
+| UBICACION | latitud | NUMBER(9,6) | — | Coordenada geográfica (RF10). |
+| UBICACION | longitud | NUMBER(9,6) | — | Coordenada geográfica (RF10). |
+| TIPO_USUARIO | id_tipo_usuario | NUMBER | PK | Identificador del rol. |
+| TIPO_USUARIO | nombre_tipo | VARCHAR2(20) | UNIQUE, NOT NULL | SOLICITANTE, ADMINISTRADOR o CONDUCTOR. |
+| USUARIO | id_usuario | NUMBER | PK | Identificador de la cuenta. |
+| USUARIO | nombre | VARCHAR2(120) | NOT NULL | Nombre del usuario. |
+| USUARIO | correo | VARCHAR2(150) | UNIQUE, NOT NULL | Correo de acceso (login). |
+| USUARIO | telefono | VARCHAR2(20) | — | Teléfono de contacto. |
+| USUARIO | password_hash | VARCHAR2(200) | NOT NULL | Hash de la contraseña. |
+| USUARIO | id_tipo_usuario | NUMBER | FK → TIPO_USUARIO, NOT NULL | Rol de la cuenta. |
+| USUARIO | fecha_registro | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Fecha de creación de la cuenta. |
+| SOLICITANTE | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante. |
+| SOLICITANTE | empresa | VARCHAR2(150) | NOT NULL | Empresa o área que agenda los traslados (RF01). |
+| ADMINISTRADOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). |
+| CONDUCTOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Conductor (sin atributos propios aún). |
+| PASAJERO | id_pasajero | NUMBER | PK | Identificador del pasajero. |
+| PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada. |
+| ESTADO_SOLICITUD_TRASLADO | id_estado | NUMBER | PK | Identificador del estado. |
+| ESTADO_SOLICITUD_TRASLADO | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO o FINALIZADO. |
+| SOLICITUD_TRASLADO | id_solicitud | NUMBER | PK | Identificador de la solicitud. |
+| SOLICITUD_TRASLADO | id_solicitante | NUMBER | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
+| SOLICITUD_TRASLADO | id_conductor | NUMBER | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
+| SOLICITUD_TRASLADO | fecha_hora_traslado | TIMESTAMP | NOT NULL | Fecha y hora del traslado. |
+| SOLICITUD_TRASLADO | id_origen | NUMBER | FK → UBICACION, NOT NULL | Dirección de origen. |
+| SOLICITUD_TRASLADO | id_destino | NUMBER | FK → UBICACION, NOT NULL | Dirección de destino. |
+| SOLICITUD_TRASLADO | numero_vuelo | VARCHAR2(20) | — | Opcional; solo si aplica a un vuelo. |
+| SOLICITUD_TRASLADO | id_estado | NUMBER | FK → ESTADO_SOLICITUD_TRASLADO, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
+| SOLICITUD_TRASLADO | fecha_creacion | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Momento en que se registró la solicitud. |
+| SOLICITUD_TRASLADO | fecha_asignacion | TIMESTAMP | — | Momento en que se asignó un conductor. |
+| SOLICITUD_TRASLADO | fecha_inicio | TIMESTAMP | — | Momento en que el viaje pasó a En Curso. |
+| SOLICITUD_TRASLADO | fecha_fin | TIMESTAMP | — | Momento en que el viaje se marcó Finalizado. |
+| DETALLE_SOLICITUD_PASAJERO | id_solicitud | NUMBER | PK, FK → SOLICITUD_TRASLADO | Traslado en el que viaja el pasajero. |
+| DETALLE_SOLICITUD_PASAJERO | id_pasajero | NUMBER | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
+
+El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos propios que persistir.
 
 Normalizado a 3FN:
 - `UBICACION` separada de `SOLICITUD_TRASLADO`: latitud/longitud dependen funcionalmente de la dirección, no de la solicitud (dependencia transitiva).
