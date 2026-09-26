@@ -83,13 +83,23 @@ El proyecto implementa una **Arquitectura Cliente-Servidor Desacoplada**, respal
     
 ### Lenguaje de Programación
 
-Se definió **Java** como el lenguaje de programación principal del proyecto —utilizado tanto en el backend (Spring Boot) como en la aplicación móvil nativa (Android Studio)— basándose en las siguientes razones técnicas:
+#### Backend: Java
+Se definió **Java** como el lenguaje para el servidor backend con **Spring Boot** por los siguientes motivos técnicos:
 
-* **Ecosistema Unificado:** Utilizar el mismo lenguaje en ambas capas del proyecto (backend y cliente móvil) reduce la curva de aprendizaje, elimina el cambio de contexto (*context switching*) y facilita la compartición de lógica de validación y modelos de datos.
-* **Tipado Estático y Detección Temprana de Errores:** Al ser un lenguaje fuertemente tipado, la mayoría de los errores de sintaxis o incompatibilidad de datos se detectan en tiempo de compilación y no en ejecución. Esto añade mayor estabilidad a un sistema donde se gestionan datos críticos de transporte.
-* **Modelado del Dominio (POO):** La Programación Orientada a Objetos de Java permite abstraer y estructurar de manera limpia las entidades del negocio de logística (como Usuario, Conductor, SolicitudTraslado y Pasajero), facilitando la mantenibilidad y reusabilidad del código.
-* **Madurez y Portabilidad (JVM):** Al ejecutar sobre la Máquina Virtual de Java (JVM), se garantiza la portabilidad del backend en cualquier sistema operativo. Además, cuenta con un ecosistema maduro y herramientas estándar para la serialización y manipulación de datos (Jackson, Gson, Java Collections Framework).
-* 
+* **Estándar Empresarial y Madurez:** Es el lenguaje nativo por excelencia del ecosistema Spring Boot, contando con soporte absoluto, documentación exhaustiva y un ecosistema de librerías altamente consolidadas.
+* **Tipado Estático y Robustez:** Al ser un lenguaje fuertemente tipado, permite detectar errores de incompatibilidad de datos durante la compilación en lugar de la ejecución, garantizando la estabilidad en el procesamiento transaccional de viajes.
+* **Modelado del Dominio (POO):** Facilita la abstracción limpia de las entidades operativas de transporte mediante Programación Orientada a Objetos, encajando de manera directa en la arquitectura por capas (`Controller` ➔ `Service` ➔ `Repository`).
+* **Portabilidad y Rendimiento:** La JVM asegura una alta eficiencia al procesar peticiones HTTP/REST concurrentes y permite desplegar el servidor en cualquier entorno o contenedor de forma transparente.
+
+####  Frontend Móvil: Kotlin
+Se adoptó **Kotlin** para la aplicación nativa en **Android Studio** debido a sus ventajas fundamentales para el desarrollo móvil moderno:
+
+* **Estándar Oficial "Android-First":** Es el lenguaje prioritario y oficialmente recomendado por Google para el desarrollo nativo en Android, lo que garantiza el mejor soporte en librerías, APIs del sistema operativo y herramientas del IDE.
+* **Seguridad de Nulos (Null Safety):** Incorpora un sistema de tipos que previene en tiempo de compilación las caídas de la app por punteros nulos (*NullPointerExceptions*), la causa principal de fallos en dispositivos móviles.
+* **Manejo de Asincronía con Corrutinas (Coroutines):** Permite realizar llamadas a la API REST (vía Retrofit) y consultas locales (vía Room) en segundo plano de forma no bloqueante, manteniendo la interfaz de usuario rápida y fluida durante el trayecto.
+* **Sintaxis Concisa y Menor Código Repetitivo:** Características como las *Data Classes*, funciones de extensión y mapeo sintáctico reducen significativamente la cantidad de código *boilerplate* frente a Java nativo en Android, acelerando el desarrollo del MVP.
+* **Interoperabilidad 100% con la JVM:** Al compilar sobre la JVM/Android Runtime, comparte exactamente el mismo modelo de datos JSON que retorna el backend en Java, garantizando una integración limpia entre ambas capas.
+  
 ### Base de datos
 **MariaDB**
 
