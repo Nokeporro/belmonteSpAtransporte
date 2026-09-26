@@ -184,9 +184,11 @@ Normalizado a 3FN:
 **Spring Boot** como el framework principal para la capa del backend debido a las siguientes ventajas técnicas:
 
 * **Arquitectura REST Nativa para Clientes Móviles:** Permite estructurar y exponer endpoints HTTP en formato JSON estandarizado. Esto facilita la integración transparente con la aplicación móvil Android utilizando librerías de red como Retrofit o Volley.
-* **Seguridad Stateless mediante JWT:** A través de **Spring Security**, la aplicación implementa autenticación basada en tokens **JWT (JSON Web Tokens)**. Al ser una API sin estado (*stateless*), es el enfoque óptimo para dispositivos móviles, permitiendo un control de acceso seguro y basado en roles (ej. Administrador, Chofer).
+* **Seguridad Stateless mediante JWT:** A través de **Spring Security**, la aplicación implementa autenticación basada en tokens **JWT (JSON Web Tokens)**. Al ser una API sin estado (*stateless*), es el enfoque óptimo para dispositivos móviles. El control de acceso por rol (Solicitante, Administrador, Conductor) se centraliza en un único `SecurityFilterChain`, que mapea cada ruta a los roles permitidos y rechaza por defecto (`denyAll`) cualquier endpoint no listado explícitamente.
 * **Diseño Modular y Separación de Capas:** Impone un patrón de diseño claro (`Controller` ➔ `Service` ➔ `Repository`), lo que garantiza un código limpio, mantenible, fácil de auditar y preparado para futuras ampliaciones de lógica de negocio.
 * **Productividad con Spring Data JPA:** Automatiza la persistencia de datos mediante el mapeo objeto-relacional (ORM), eliminando la necesidad de escribir código SQL manual redundante para las operaciones estándar (CRUD).
+* **Notificaciones push con Firebase Cloud Messaging:** Ante cambios relevantes en una solicitud (asignación, cambio de estado, cancelación), la capa `Service` invoca el SDK de Firebase Admin para notificar al actor afectado, evitando que la app dependa de recargar manualmente o de mantener una conexión persistente abierta. Cada usuario autenticado registra su token de dispositivo, que el backend actualiza al iniciar sesión.
+* 
 ### Frontend
 
 ![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
@@ -212,3 +214,15 @@ Vistas propuestas para el MVP, agrupadas por actor:
 - **Viajes del día:** lista de viajes asignados para la fecha actual, ordenados por hora. Cubre el caso de uso 2.
 - **Detalle de viaje asignado:** datos del pasajero, origen, destino, control para marcar "En Curso"/"Finalizado" y botón que dispara el Intent hacia Google Maps/Waze. Cubre los casos de uso 5 y 6.
 - **Historial de viajes realizados** *(segunda iteración)*: viajes ya finalizados por el conductor.
+
+  
+### Frontend (Android)
+
+**MVVM (Model-View-ViewModel)** como arquitectura del lado móvil, en línea con el patrón de capas ya definido en el backend:
+
+* **Separación View / ViewModel:** las pantallas en Jetpack Compose (`View`) solo dibujan estado y envían eventos de usuario; toda la lógica de presentación (validaciones de formulario, qué mostrar según el estado) vive en el `ViewModel`, que expone el estado observable a la UI. Esto evita lógica de negocio mezclada con composables, igual que el backend separa `Controller` de `Service`.
+* **Repository como única fuente de verdad:** cada `ViewModel` no habla directo con Retrofit ni con Room; consulta a un `Repository`, que decide si los datos vienen de la base local (Room) o se piden al backend (Retrofit), y aplica ahí la lógica de sincronización offline definida en RF11.
+* **Dos fuentes de datos por Repository:** un `DataSource` local (Room/SQLite) y uno remoto (Retrofit), ambos detrás de la misma interfaz de `Repository`, para que el resto de la app no dependa de saber de dónde vino el dato.
+* **Inyección de dependencias con Hilt:** para armar `ViewModel → Repository → DataSources` sin que cada pantalla tenga que construir sus propias dependencias a mano, y para poder reemplazar fácilmente el `DataSource` remoto por uno falso en pruebas.
+* **Un ViewModel por pantalla, agrupado por actor:** siguiendo la misma agrupación que ya existe en "Frontend" (Solicitante, Administrador, Conductor), cada pantalla del wireframe tiene su `ViewModel` correspondiente (ej. `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`, `AsignarConductorViewModel`).
+  
