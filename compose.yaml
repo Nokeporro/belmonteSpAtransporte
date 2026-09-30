@@ -1,0 +1,22 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    container_name: belmonte-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-belmonte}
+      MARIADB_USER: ${DB_USER:-belmonte}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-belmonte_dev}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_dev}
+    ports:
+      - "${DB_PORT:-3307}:3306"
+    volumes:
+      - belmonte_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  belmonte_mariadb_data:

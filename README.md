@@ -190,6 +190,8 @@ Normalizado a 3FN:
 ![modelo relacional](img/Relational_1.svg)
 ## Arquitectura
 
+> **Decisión de implementación:** MariaDB es la base de datos oficial de la aplicación. El archivo `datamodeler/schema.sql` conserva el DDL generado para Oracle Data Modeler y sirve como referencia del modelo; no se ejecuta contra MariaDB. El esquema que usa la aplicación se crea con las migraciones Flyway en `backend/src/main/resources/db/migration`.
+
 ### Base de datos
 **MariaDB**
 
@@ -197,6 +199,19 @@ Normalizado a 3FN:
 * **Compatibilidad Total con el Ecosistema Spring:** Cuenta con dialectos oficiales en Hibernate (`MariaDBDialect`) y un driver JDBC oficial (`mariadb-java-client`) ligero y eficiente, permitiendo la generación y migración automática de tablas desde Java.
 * **Filosofía Open Source:** Es un sistema de gestión de bases de datos 100% libre y comunitario (Licencia GPL v2), asegurando estabilidad sin depender de licencias comerciales.
 * **Eficiencia de Recursos en Desarrollo:** Presenta un consumo optimizado de memoria y CPU en entornos de desarrollo local, permitiendo ejecutar simultáneamente el entorno de Android Studio, la base de datos y la API de Spring Boot sin sobrecargar el equipo.
+
+#### Iniciar la base de datos local
+
+Requiere Docker Compose. Desde la raíz del repositorio, en PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up -d mariadb
+```
+
+La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD`; sus valores locales están en `.env.example`. Flyway aplica las migraciones al iniciar el backend. `.env` está excluido de Git: cambia las credenciales para cualquier entorno compartido o desplegado.
+
+Para detener MariaDB conservando sus datos: `docker compose down`. Para borrar también los datos locales: `docker compose down -v`.
 ### Backend
 **Spring Boot** como el framework principal para la capa del backend debido a las siguientes ventajas técnicas:
 
