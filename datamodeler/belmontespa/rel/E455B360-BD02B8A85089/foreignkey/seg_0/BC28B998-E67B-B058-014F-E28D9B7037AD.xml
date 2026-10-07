@@ -1,16 +1,14 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="D3A92765-F198-EAB6-FA22-4A5FFA407F96" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="A5B19ED5-304A-BB9E-C9C3-F10A47121AFA" name="fk_solicitud_conductor">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="BC28B998-E67B-B058-014F-E28D9B7037AD" containerWithKeyObject="A6F489CC-BD6F-72CA-375A-7C2D103DE573" localFKIndex="3B71B711-8DA3-7312-F218-DF7BAB83B836" name="MOVIL_conductor_FK">
 <createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<createdTime>2026-09-26 15:51:58 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
-<importedID>EBBF04E9-293D-5FEA-5144-52FE33C1AEE5</importedID>
 <referredTableLongName>conductor</referredTableLongName>
 <deleteRule>NO ACTION</deleteRule>
 <referredTableID>D9F998CB-B58A-2EB9-0C73-4F464CF91210</referredTableID>
 <keyObject>238D3AA8-4631-387F-08B5-835EF498EE13</keyObject>
 <referredKeyID>238D3AA8-4631-387F-08B5-835EF498EE13</referredKeyID>
-<mandatory>false</mandatory>
+<mandatory>true</mandatory>
 <refColNames>id_usuario</refColNames>
 <transferable>true</transferable>
 <rely>false</rely>

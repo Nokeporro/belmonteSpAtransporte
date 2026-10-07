@@ -1,0 +1,16 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="42AD73DE-FD29-0F02-DF68-3C54AACB45AF" containerWithKeyObject="D9F998CB-B58A-2EB9-0C73-4F464CF91210" localFKIndex="451A9FB1-4C45-01B6-6B80-6522651D73E9" name="conductor_ESTADO_CONDUCTOR_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:36:46 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<referredTableLongName>ESTADO_CONDUCTOR</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>A967B20A-BEDE-473E-FDA0-D28DB4703D0E</referredTableID>
+<keyObject>73DA1A62-C348-44E8-F0E3-0604048FF55F</keyObject>
+<referredKeyID>73DA1A62-C348-44E8-F0E3-0604048FF55F</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_estado</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

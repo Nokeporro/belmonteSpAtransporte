@@ -1,0 +1,66 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A36917F5-5BDD-3274-6F38-F443D6D99AC8" name="EMPRESA">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:22:20 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<ordsAlias>table_13</ordsAlias>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id_empresa" id="EA8EE728-0231-75AB-A757-03F3FE1F3587">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:22:48 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="razon_social" id="077CA6D5-893E-006C-22C8-53D1266767F6">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:23:08 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="rut" id="5D7A050E-8373-E9CE-D3F9-6B184F5A79AF">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:26:17 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="AADC9B51-21AF-6307-C5E4-B6005DC692C4" name="EMPRESA_PK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:29:26 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="EA8EE728-0231-75AB-A757-03F3FE1F3587"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="C3FBA071-5B6C-1D07-A994-2A48D18DD5D3" name="EMPRESA__UN">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:29:54 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="077CA6D5-893E-006C-22C8-53D1266767F6"/>
+<colUsage columnID="5D7A050E-8373-E9CE-D3F9-6B184F5A79AF"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

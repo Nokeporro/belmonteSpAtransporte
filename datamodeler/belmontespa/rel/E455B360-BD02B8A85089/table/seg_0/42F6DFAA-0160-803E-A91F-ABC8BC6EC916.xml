@@ -76,21 +76,6 @@
 <ownDataTypeParameters>,,</ownDataTypeParameters>
 <autoIncrementCycle>false</autoIncrementCycle>
 </Column>
-<Column name="id_tipo_usuario" id="0D9BF6CE-DE02-9E2E-3C9C-0916DF009C1C">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>63E96A60-1EDA-743F-0813-E2CA26A2BA8B</importedID>
-<use>0</use>
-<logicalDatatype>LOGDT019</logicalDatatype>
-<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-<associations>
-<colAssociation fkAssociation="65D157FA-050B-097F-D9FA-3F049711294C" referredColumn="B1DD5598-0EFD-0A07-BB38-52559B56887B"/>
-</associations>
-</Column>
 <Column name="fecha_registro" id="1D70E292-97DE-2424-DCBA-AFBAEF27A1A6">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
@@ -129,16 +114,6 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="345E3ED4-CAF0-7F3B-F891-70A40CB6CBDE"/>
-</indexColumnUsage>
-</ind_PK_UK>
-<ind_PK_UK id="928598BD-900C-0020-74AB-C33BC6AE04B4" name="fk_usuario_tipo">
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<indexState>Foreign Key</indexState>
-<isSurrogateKey>false</isSurrogateKey>
-<indexColumnUsage>
-<colUsage columnID="0D9BF6CE-DE02-9E2E-3C9C-0916DF009C1C"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

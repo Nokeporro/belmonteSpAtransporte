@@ -1,0 +1,16 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="4DB0D1DC-9FE5-E360-AF53-B8EB5EE32784" containerWithKeyObject="A3DDB078-A7A9-829F-8BF3-101D718EFCD4" localFKIndex="7E594F3A-E176-39E5-C617-81CD403D6FCC" name="solicitante_EMPRESA_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-09-26 15:30:06 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<referredTableLongName>EMPRESA</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>A36917F5-5BDD-3274-6F38-F443D6D99AC8</referredTableID>
+<keyObject>AADC9B51-21AF-6307-C5E4-B6005DC692C4</keyObject>
+<referredKeyID>AADC9B51-21AF-6307-C5E4-B6005DC692C4</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_empresa</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>
