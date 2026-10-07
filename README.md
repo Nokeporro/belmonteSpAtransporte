@@ -187,7 +187,7 @@ Normalizado a 3FN:
 ### Modelo logico
 ### Modelo relacional
 
-![modelo relacional](img/Relational_1.svg)
+![modelo relacional](img_README/Relational_1.svg)
 ## Arquitectura
 
 > **Decisión de implementación:** MariaDB es la base de datos oficial de la aplicación. El archivo `datamodeler/schema.sql` conserva el DDL generado para Oracle Data Modeler y sirve como referencia del modelo; no se ejecuta contra MariaDB. El esquema que usa la aplicación se crea con las migraciones Flyway en `backend/src/main/resources/db/migration`.
@@ -220,7 +220,7 @@ Para detener MariaDB conservando sus datos: `docker compose down`. Para borrar t
 * **Diseño Modular y Separación de Capas:** Impone un patrón de diseño claro (`Controller` ➔ `Service` ➔ `Repository`), lo que garantiza un código limpio, mantenible, fácil de auditar y preparado para futuras ampliaciones de lógica de negocio.
 * **Productividad con Spring Data JPA:** Automatiza la persistencia de datos mediante el mapeo objeto-relacional (ORM), eliminando la necesidad de escribir código SQL manual redundante para las operaciones estándar (CRUD).
 * **Notificaciones push con Firebase Cloud Messaging:** Ante cambios relevantes en una solicitud (asignación, cambio de estado, cancelación), la capa `Service` invoca el SDK de Firebase Admin para notificar al actor afectado, evitando que la app dependa de recargar manualmente o de mantener una conexión persistente abierta. Cada usuario autenticado registra su token de dispositivo, que el backend actualiza al iniciar sesión.
-* 
+*
 ### Frontend
 
 ![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
@@ -247,7 +247,7 @@ Vistas propuestas para el MVP, agrupadas por actor:
 - **Detalle de viaje asignado:** datos del pasajero, origen, destino, control para marcar "En Curso"/"Finalizado" y botón que dispara el Intent hacia Google Maps/Waze. Cubre los casos de uso 5 y 6.
 - **Historial de viajes realizados** *(segunda iteración)*: viajes ya finalizados por el conductor.
 
-  
+
 ### Frontend (Android)
 
 **MVVM (Model-View-ViewModel)** como arquitectura del lado móvil, en línea con el patrón de capas ya definido en el backend:
@@ -257,4 +257,4 @@ Vistas propuestas para el MVP, agrupadas por actor:
 * **Dos fuentes de datos por Repository:** un `DataSource` local (Room/SQLite) y uno remoto (Retrofit), ambos detrás de la misma interfaz de `Repository`, para que el resto de la app no dependa de saber de dónde vino el dato.
 * **Inyección de dependencias con Hilt:** para armar `ViewModel → Repository → DataSources` sin que cada pantalla tenga que construir sus propias dependencias a mano, y para poder reemplazar fácilmente el `DataSource` remoto por uno falso en pruebas.
 * **Un ViewModel por pantalla, agrupado por actor:** siguiendo la misma agrupación que ya existe en "Frontend" (Solicitante, Administrador, Conductor), cada pantalla del wireframe tiene su `ViewModel` correspondiente (ej. `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`, `AsignarConductorViewModel`).
-  
+
