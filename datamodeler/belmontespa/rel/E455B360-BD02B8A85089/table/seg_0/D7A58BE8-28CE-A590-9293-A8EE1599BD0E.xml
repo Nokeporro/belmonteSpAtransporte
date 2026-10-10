@@ -161,6 +161,7 @@
 <createdBy>demr</createdBy>
 <createdTime>2026-09-26 15:53:45 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
@@ -175,6 +176,7 @@
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 13:46:52 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
@@ -262,7 +264,7 @@
 <colUsage columnID="E76009C4-4B28-DB02-BD62-6CC4EA6752B4"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="527E75EA-6C10-D7F7-222E-C0165807AA82" name="solicitud_traslado_MOVIL_FK">
+<ind_PK_UK id="527E75EA-6C10-D7F7-222E-C0165807AA82" name="viaje_MOVIL_FK">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-26 15:53:45 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -272,7 +274,7 @@
 <colUsage columnID="514E1332-00B4-2C2C-FDC5-8F18F682C408"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="8E315523-08E5-F1FC-1AEA-6907DF87B999" name="solicitud_traslado_PAGO_FK">
+<ind_PK_UK id="8E315523-08E5-F1FC-1AEA-6907DF87B999" name="viaje_PAGO_FK">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 13:46:52 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>

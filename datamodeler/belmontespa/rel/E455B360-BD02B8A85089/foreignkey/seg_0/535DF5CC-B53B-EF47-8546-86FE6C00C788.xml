@@ -1,5 +1,5 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="535DF5CC-B53B-EF47-8546-86FE6C00C788" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="8E315523-08E5-F1FC-1AEA-6907DF87B999" name="solicitud_traslado_PAGO_FK">
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="535DF5CC-B53B-EF47-8546-86FE6C00C788" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="8E315523-08E5-F1FC-1AEA-6907DF87B999" name="viaje_PAGO_FK">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 13:46:52 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -8,7 +8,7 @@
 <referredTableID>A97A1753-19AB-416C-4772-4DEC53F54E7F</referredTableID>
 <keyObject>A65D3D7F-7984-DB51-48C3-9343F7765C42</keyObject>
 <referredKeyID>A65D3D7F-7984-DB51-48C3-9343F7765C42</referredKeyID>
-<mandatory>true</mandatory>
+<mandatory>false</mandatory>
 <refColNames>id</refColNames>
 <transferable>true</transferable>
 <rely>false</rely>
