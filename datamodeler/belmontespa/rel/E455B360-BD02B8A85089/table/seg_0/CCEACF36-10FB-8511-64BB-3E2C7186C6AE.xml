@@ -1,0 +1,55 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="CCEACF36-10FB-8511-64BB-3E2C7186C6AE" name="ESTADO_PAGO">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:30:56 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<ordsAlias>table_17</ordsAlias>
+<allowColumnReorder>false</allowColumnReorder>
+<existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
+<parsed>true</parsed>
+<columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
+<Column name="id" id="EDA834EC-C13B-5A92-8EC6-89DE9FD56A7D">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:31:29 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+<Column name="estado" id="4987E829-FBB8-B163-68CC-AF0E98D238E4">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:31:29 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
+</Column>
+</columns>
+<indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="F4F6C5FA-D066-31B9-2F13-6DE5CAF93D7A" name="ESTADO_PAGO_PK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:31:29 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="EDA834EC-C13B-5A92-8EC6-89DE9FD56A7D"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="993A47FF-4B68-C2E6-705C-485296270C8F" name="ESTADO_PAGO__UN">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:31:37 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="4987E829-FBB8-B163-68CC-AF0E98D238E4"/>
+</indexColumnUsage>
+</ind_PK_UK>
+</indexes>
+</Table>

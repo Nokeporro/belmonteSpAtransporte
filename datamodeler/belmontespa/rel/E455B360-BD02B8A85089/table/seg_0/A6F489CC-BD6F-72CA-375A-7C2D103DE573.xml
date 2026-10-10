@@ -80,6 +80,27 @@
 <colUsage columnID="D51495A7-456E-6F38-3B1F-274497BFC075"/>
 </indexColumnUsage>
 </ind_PK_UK>
+<ind_PK_UK id="8BF9DD5F-F144-3CA1-411F-F5482A63DF0A" name="MOVIL__UN">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:53:52 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="057AEB75-6766-B07F-8066-66ED65A69C50"/>
+<colUsage columnID="A720377C-D73F-866E-4116-93BB582CCB10"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="FCD5E83D-8604-702F-AC88-F910B70FE0E3" name="MOVIL__IDX">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 13:24:39 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="057AEB75-6766-B07F-8066-66ED65A69C50"/>
+<colUsage columnID="A720377C-D73F-866E-4116-93BB582CCB10"/>
+</indexColumnUsage>
+</ind_PK_UK>
 <ind_PK_UK id="025B46BF-2274-FEAA-EA00-B215D5659094" name="MOVIL_ESTADO_MOVIL_FK">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-26 15:51:45 UTC</createdTime>
