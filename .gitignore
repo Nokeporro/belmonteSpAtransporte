@@ -2,3 +2,6 @@ SEC010V_Anexo_Requerimiento_Belmonte_DuocUC.pdf
 .env
 .env.*
 !.env.example
+.idea
+.vscode
+
