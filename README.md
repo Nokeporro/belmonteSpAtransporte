@@ -38,44 +38,111 @@ despachar rutas a los choferes.
 
 ### Actores involucrados
 
-- **Cliente corporativo / Solicitante:** Empresa o persona (ej. asistente, área de
-  RRHH) que agenda el traslado ingresando el formulario con los datos del viaje
-  (fecha, hora, origen, destino, número de vuelo si aplica) y los datos del pasajero.
-- **Pasajero:** Persona que efectivamente realiza el traslado; puede coincidir o no
-  con quien lo solicitó.
-- **Recepcionista / Administrador:** Encargado de tomar y distribuir las solicitudes
-  de traslado entre los conductores disponibles.
-- **Conductor:** Ejecuta el transporte en terreno; visualiza en tiempo real los
-  viajes que tiene asignados para el día y utiliza la app para trazar la ruta en
+- **ACT-01 — Cliente corporativo / Solicitante:** Empresa o persona (ej. asistente,
+  área de RRHH) que agenda el traslado ingresando el formulario con los datos del
+  viaje (fecha, hora, origen, destino, número de vuelo si aplica) y los datos del
+  pasajero.
+- **ACT-02 — Pasajero:** Persona que efectivamente realiza el traslado; puede
+  coincidir o no con quien lo solicitó.
+- **ACT-03 — Recepcionista / Administrador:** Encargado de tomar y distribuir las
+  solicitudes de traslado entre los conductores disponibles.
+- **ACT-04 — Conductor:** Ejecuta el transporte en terreno; visualiza en tiempo real
+  los viajes que tiene asignados para el día y utiliza la app para trazar la ruta en
   navegadores externos.
-- **Sistema de navegación externo (Google Maps / Waze):** Actor externo que recibe
-  las coordenadas georreferenciadas de origen y destino, y genera el trazado de ruta
-  óptima al ser invocado por el conductor mediante Intents del sistema operativo.
+- **ACT-05 — Sistema de navegación externo (Google Maps / Waze):** Actor externo que
+  recibe las coordenadas georreferenciadas de origen y destino, y genera el trazado
+  de ruta óptima al ser invocado por el conductor mediante Intents del sistema
+  operativo.
 
 ### Casos de uso
 
-1. **Registrar solicitud de traslado** (Cliente corporativo/Solicitante): completar
-un formulario digital con los datos del pasajero, fecha, hora, punto de origen, punto
-de destino y número de vuelo (si aplica).
-2. **Visualizar viajes asignados** (Conductor): ver en tiempo real la lista de viajes
-asignados para el día.
-3. **Navegar a la ruta del viaje** (Conductor): presionar un botón que levante,
-mediante Intents del sistema operativo, una app externa de navegación (Google Maps /
-Waze) con el origen y destino georreferenciados.
-4. **Gestionar y distribuir solicitudes** (Recepcionista/Administrador): recibir las
-solicitudes ingresadas y asignarlas a un conductor.
-5. **Actualizar estado del traslado** (Recepcionista/Administrador asigna Pendiente →
-Asignado; Conductor marca En Curso y Finalizado desde terreno): reflejar el ciclo de
-vida del viaje según los estados Pendiente, Asignado, En Curso y Finalizado.
-6. **Trazar ruta óptima hacia el destino** (Sistema de navegación externo): a partir
-de las coordenadas georreferenciadas de origen y destino recibidas al ser invocado
-por el conductor, calcular y mostrar la ruta óptima de tráfico.
-7.  **Registrar conductor** (Recepcionista/Administrador): crear una cuenta de
-Conductor ingresando sus datos y credenciales de acceso, sin que el propio conductor
-se autorregistre.
-8.  **Cancelar solicitud de traslado** (Cliente corporativo/Solicitante): cancelar un
-viaje que ya registró, siempre que todavía no haya comenzado (no está "En Curso" ni
-"Finalizado").
+#### CU-01 — Registrar solicitud de traslado
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-01 — Cliente corporativo / Solicitante |
+| **Objetivo** | Registrar una solicitud de traslado mediante un formulario digital. |
+| **Precondiciones** | El solicitante dispone de acceso al formulario de solicitud. |
+| **Flujo principal** | 1. El solicitante ingresa al formulario.<br>2. Registra los datos del pasajero.<br>3. Registra fecha y hora del traslado.<br>4. Registra punto de origen y punto de destino.<br>5. Ingresa número de vuelo cuando corresponda.<br>6. El sistema registra la solicitud en estado Pendiente. |
+| **Postcondiciones** | Solicitud almacenada y disponible para gestión. |
+| **Flujos alternativos / excepciones** | Datos incompletos o inválidos. Las reglas específicas de validación no están definidas en el alcance actual. |
+
+#### CU-02 — Visualizar viajes asignados
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-04 — Conductor |
+| **Objetivo** | Permitir al conductor consultar los viajes que tiene asignados para el día. |
+| **Precondiciones** | El conductor tiene viajes asignados y conectividad con el sistema. |
+| **Flujo principal** | 1. El conductor accede a la sección de viajes.<br>2. El sistema obtiene los viajes asignados.<br>3. El sistema presenta la lista de viajes correspondiente al conductor. |
+| **Postcondiciones** | El conductor dispone de la información actualizada de sus viajes. |
+| **Flujos alternativos / excepciones** | Sin conectividad o ausencia de viajes asignados. El comportamiento específico no está definido. |
+
+#### CU-03 — Navegar a la ruta del viaje
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-04 — Conductor |
+| **Objetivo** | Abrir una aplicación externa de navegación utilizando el origen y destino georreferenciados del viaje. |
+| **Precondiciones** | Existe un viaje asignado con coordenadas de origen y destino. |
+| **Flujo principal** | 1. El conductor selecciona un viaje.<br>2. Presiona la opción de navegación.<br>3. La aplicación genera un Intent con origen y destino.<br>4. El sistema operativo entrega la solicitud a una aplicación compatible de navegación.<br>5. La aplicación externa inicia la navegación. |
+| **Postcondiciones** | La aplicación de navegación externa recibe los puntos del viaje. |
+| **Flujos alternativos / excepciones** | No existe una aplicación compatible o el Intent no puede ser procesado. |
+
+#### CU-04 — Gestionar y distribuir solicitudes
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Recibir, revisar y asignar solicitudes de traslado a conductores disponibles. |
+| **Precondiciones** | Existen solicitudes registradas y conductores disponibles. |
+| **Flujo principal** | 1. El administrador consulta las solicitudes.<br>2. Selecciona una solicitud.<br>3. Selecciona un conductor disponible.<br>4. Confirma la asignación.<br>5. El sistema actualiza el estado del traslado a Asignado. |
+| **Postcondiciones** | La solicitud queda asociada a un conductor. |
+| **Flujos alternativos / excepciones** | No existen conductores disponibles. No se ha definido una regla de reasignación automática. |
+
+#### CU-05 — Actualizar estado del traslado
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador; ACT-04 — Conductor |
+| **Objetivo** | Gestionar el ciclo de vida operativo del traslado mediante estados. |
+| **Precondiciones** | Existe una solicitud registrada. |
+| **Flujo principal** | 1. El traslado inicia en estado Pendiente.<br>2. Recepcionista / Administrador asigna un conductor → Asignado.<br>3. Conductor inicia el traslado → En Curso.<br>4. Conductor finaliza el traslado → Finalizado. |
+| **Postcondiciones** | El estado representa la etapa actual del traslado. |
+| **Flujos alternativos / excepciones** | No se encuentran definidas reglas para retroceder estados, cancelar o reabrir un traslado. |
+
+#### CU-06 — Trazar ruta óptima hacia el destino
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-05 — Sistema de navegación externo |
+| **Objetivo** | Calcular y mostrar una ruta utilizando las coordenadas de origen y destino entregadas por la aplicación. |
+| **Precondiciones** | El sistema externo recibe coordenadas válidas de origen y destino. |
+| **Flujo principal** | 1. El sistema externo recibe origen y destino.<br>2. Procesa las coordenadas.<br>3. Calcula una ruta considerando la información de tráfico disponible.<br>4. Muestra el trazado al conductor. |
+| **Postcondiciones** | La ruta de navegación queda visualizada en la aplicación externa. |
+| **Flujos alternativos / excepciones** | El algoritmo de cálculo, proveedor de tráfico y criterios internos pertenecen al sistema externo. |
+
+#### CU-07 — Registrar conductor
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Crear una cuenta de Conductor con credenciales de acceso, para que pueda autenticarse sin autorregistrarse. |
+| **Precondiciones** | El Administrador está autenticado en el sistema. |
+| **Flujo principal** | 1. El Administrador ingresa al formulario de registro de conductor.<br>2. Ingresa nombre, correo, teléfono y una contraseña inicial.<br>3. El sistema valida que el correo no exista y que no falten campos obligatorios.<br>4. El sistema guarda la contraseña como hash (nunca en texto plano).<br>5. El conductor queda disponible de inmediato para autenticarse y para ser asignado en CU-04. |
+| **Postcondiciones** | Existe una cuenta de Conductor activa, lista para iniciar sesión y ser asignada a solicitudes. |
+| **Flujos alternativos / excepciones** | El correo ya existe o falta un campo obligatorio: el registro se rechaza. No existe una vista de "cambiar contraseña" para el Conductor; si necesita una nueva, el Administrador la reemplaza directamente en su ficha. |
+
+#### CU-08 — Cancelar solicitud de traslado
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-01 — Cliente corporativo / Solicitante |
+| **Objetivo** | Cancelar una solicitud de traslado propia que ya no se necesita, liberando al conductor asignado si corresponde. |
+| **Precondiciones** | Existe una solicitud propia en estado Pendiente o Asignado. |
+| **Flujo principal** | 1. El Solicitante abre el detalle de una solicitud propia.<br>2. Presiona el botón "Cancelar".<br>3. El sistema valida que el estado actual sea Pendiente o Asignado.<br>4. El sistema actualiza el estado a Cancelado y registra la fecha/hora de cancelación.<br>5. Si la solicitud tenía conductor asignado, se le notifica la cancelación mediante push (FCM) y el viaje desaparece de su lista "Viajes del día". |
+| **Postcondiciones** | La solicitud queda en estado Cancelado; el conductor, si tenía uno asignado, queda liberado. |
+| **Flujos alternativos / excepciones** | Si el estado es En Curso o Finalizado, el botón "Cancelar" no está disponible y la cancelación se rechaza. |
 
 ## Requerimientos funcionales
 
