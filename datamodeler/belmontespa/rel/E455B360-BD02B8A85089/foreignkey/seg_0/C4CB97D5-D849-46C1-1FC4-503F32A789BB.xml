@@ -1,5 +1,5 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="C4CB97D5-D849-46C1-1FC4-503F32A789BB" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="98384813-E4AD-741F-6F63-063BEA722E68" name="FECHAHORA_FK_inicio">
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="C4CB97D5-D849-46C1-1FC4-503F32A789BB" containerWithKeyObject="D7A58BE8-28CE-A590-9293-A8EE1599BD0E" localFKIndex="98384813-E4AD-741F-6F63-063BEA722E68" name="FECHAHORA_inicio">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 15:18:58 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>

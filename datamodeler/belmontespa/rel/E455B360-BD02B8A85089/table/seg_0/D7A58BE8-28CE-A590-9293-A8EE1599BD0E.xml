@@ -72,20 +72,6 @@
 <colAssociation fkAssociation="027A8EF4-E69A-69A2-2F55-D4CFB8B0DBFF" referredColumn="C839ECEC-E19F-8404-786B-92860175610E"/>
 </associations>
 </Column>
-<Column name="numero_vuelo" id="3C074F28-D8B3-E650-0BE7-7DB459B928B8">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[Opcional; solo aplica a traslados desde/hacia el aeropuerto.]]></commentInRDBMS>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>68F8437F-810F-4A3D-0678-D17212FBE69B</importedID>
-<nullsAllowed>true</nullsAllowed>
-<use>0</use>
-<logicalDatatype>LOGDT024</logicalDatatype>
-<domain>A71C6FC5-7C94-1CEA-9796-0C806B72BFFA</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
 <Column name="id_estado" id="74670366-0A39-AC93-8ABB-F211CA322C76">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
@@ -144,6 +130,20 @@
 <autoIncrementCycle>false</autoIncrementCycle>
 <associations>
 <colAssociation fkAssociation="62A73DC1-67C4-62E0-CEB4-321F0F02D296" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
+</associations>
+</Column>
+<Column name="FH_agenda" id="63FF40AE-72B3-4264-8678-7F72C1198F5F">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 18:58:21 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="FC35E92D-DCC1-13DC-1910-D9DA88ACF5AE" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
 </associations>
 </Column>
 <Column name="FH_asignacion" id="3366442E-B806-2B5A-FE0C-744E3FBA9974">
@@ -205,6 +205,20 @@
 <associations>
 <colAssociation fkAssociation="72182C21-6C67-AC02-B69A-0B285669C2F3" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
 </associations>
+</Column>
+<Column name="numero_vuelo" id="3C074F28-D8B3-E650-0BE7-7DB459B928B8">
+<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
+<createdBy>demr</createdBy>
+<createdTime>2026-09-24 00:28:36 UTC</createdTime>
+<commentInRDBMS><![CDATA[Opcional; solo aplica a traslados desde/hacia el aeropuerto.]]></commentInRDBMS>
+<ownerDesignName>belmontespa</ownerDesignName>
+<importedID>68F8437F-810F-4A3D-0678-D17212FBE69B</importedID>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT024</logicalDatatype>
+<domain>A71C6FC5-7C94-1CEA-9796-0C806B72BFFA</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<autoIncrementCycle>false</autoIncrementCycle>
 </Column>
 </columns>
 <indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
@@ -313,7 +327,7 @@
 <colUsage columnID="3A98E139-0767-5FB7-C34D-160B353DB8BF"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="9AE630FA-3D6E-3A20-2A52-0867697F44DB" name="FECHAHORA_FK_asignacion">
+<ind_PK_UK id="9AE630FA-3D6E-3A20-2A52-0867697F44DB" name="FECHAHORA_asignacion">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 15:18:25 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -323,7 +337,7 @@
 <colUsage columnID="3366442E-B806-2B5A-FE0C-744E3FBA9974"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="98384813-E4AD-741F-6F63-063BEA722E68" name="FECHAHORA_FK_inicio">
+<ind_PK_UK id="98384813-E4AD-741F-6F63-063BEA722E68" name="FECHAHORA_inicio">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 15:18:58 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -333,7 +347,7 @@
 <colUsage columnID="E3C5704D-462A-61C1-9DB7-B2307B3F7DAE"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="2DE6E1EB-448E-8F9E-8F4B-A11E0F5E0965" name="FECHAHORA_FK_fin">
+<ind_PK_UK id="2DE6E1EB-448E-8F9E-8F4B-A11E0F5E0965" name="FECHAHORA_fin">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 15:19:10 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -351,6 +365,16 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="A301E5F2-1138-6106-60ED-400BB7E624E1"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="8FE5B5F5-9602-F300-F63D-714EA100B83B" name="FECHAHORA_agenda">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 18:58:21 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="63FF40AE-72B3-4264-8678-7F72C1198F5F"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>
