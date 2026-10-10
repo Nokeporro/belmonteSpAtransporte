@@ -71,6 +71,13 @@ despachar rutas a los choferes.
   de ruta óptima al ser invocado por el conductor mediante Intents del sistema
   operativo.
 
+> **Nota:** El Anexo de Requerimiento (§2.4) agrupa "Solicitantes / Pasajeros" en un
+> solo actor. Este proyecto los separa en `ACT-01` y `ACT-02` por dos razones: (a) el
+> Pasajero no tiene por qué estar asociado a la empresa que paga el traslado — en el
+> modelo de datos, `PASAJERO` no tiene FK a `EMPRESA`, a diferencia de `SOLICITANTE` —,
+> y (b) el Solicitante puede no ser quien viaja (p. ej. un asistente agenda el
+> traslado de un ejecutivo o de una visita).
+
 ### Casos de uso
 
 #### CU-01 — Registrar solicitud de traslado
@@ -216,10 +223,16 @@ despachar rutas a los choferes.
   con tiempo de expiración definido. El acceso a cada endpoint debe validarse por rol
   (Solicitante, Administrador, Conductor) según el `SecurityFilterChain` centralizado
   definido en la Arquitectura.
-- **RNF02 (Disponibilidad ante conectividad intermitente):** La app debe seguir
-  siendo utilizable sin conexión a internet para consultar información ya
-  sincronizada (Room/SQLite), y debe reintentar automáticamente el envío de cambios
-  pendientes (RF11) sin intervención manual del usuario al recuperar la conexión.
+- **RNF02 (Conectividad continua con tolerancia a cortes breves):** El modo normal de
+  operación requiere conectividad a Internet continua, según el Anexo de
+  Requerimiento (§3.3); no es un diseño offline-first ni permite operar sin red por
+  períodos largos — registrar o recibir una nueva solicitud de traslado requiere
+  conexión. Sobre esa base, la app tolera cortes breves de señal para datos ya
+  sincronizados (Room/SQLite) y para cambios de estado de un viaje ya asignado, que
+  quedan en una cola local y se reintentan automáticamente al recuperar la conexión
+  (RF11) — el mismo patrón que usan apps de despacho en tiempo real (p. ej. Uber: el
+  matching de una carrera nueva exige conexión en vivo, pero un viaje ya asignado
+  tolera cortes breves).
 - **RNF03 (Tiempo de respuesta):** Las operaciones de consulta (listar solicitudes,
   viajes del día) deben responder en menos de 2 segundos bajo condiciones normales de
   red 4G/Wi-Fi. Una notificación push (RF12/RF13) debe reflejarse en la app en un
@@ -247,6 +260,15 @@ despachar rutas a los choferes.
   (nombre, teléfono, dirección) no deben registrarse en logs de la aplicación ni del
   backend, y solo deben ser visibles para los actores que participan directamente en
   cada solicitud (el propio Solicitante, el Administrador y el Conductor asignado).
+- **RNF09 (Protección de datos académicos):** El desarrollo debe usar exclusivamente
+  datos ficticios, sintéticos, agregados o públicos anonimizados (sin nombres, RUT,
+  correos, teléfonos ni credenciales reales), según el Anexo de Requerimiento (§4) y
+  la Ley N.º 21.719 y la Ley N.º 19.628 de protección de datos personales. Los
+  antecedentes del proyecto se comparten solo por canales institucionales, con
+  acceso restringido a quienes participan en la gestión académica.
+- **RNF10 (Entregable):** El proyecto se colabora y documenta vía Git/GitHub, y el
+  ejecutable final se entrega como un APK firmado en modo release (no un build de
+  debug), según el Anexo de Requerimiento ("Alcance tecnológico comprometido").
 
 ## Historias de usuario
 
@@ -378,7 +400,7 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | PASAJERO | rut_hash | VARCHAR2(50) | UNIQUE, NOT NULL | Hash del RUT de la persona transportada. |
 | PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
 | ESTADO_SOLICITUD | id_estado | NUMBER | PK | Identificador del estado. |
-| ESTADO_SOLICITUD | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO o FINALIZADO (RF05/RF09). |
+| ESTADO_SOLICITUD | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
 | BANCO | id | NUMBER | PK | Identificador del banco. |
 | BANCO | nombre | VARCHAR2(50) | NOT NULL (UNIQUE junto a cod_sbif) | Nombre del banco. |
 | BANCO | cod_sbif | NUMBER | NOT NULL (UNIQUE junto a nombre) | Código SBIF del banco. |
@@ -423,6 +445,12 @@ propios que persistir.
 > `MOVIL`, `ESTADO_MOVIL`, `ESTADO_CONDUCTOR` y `DETALLE_MOVIL_CONDUCTOR` no tienen un
 > RF o HU asociado en este documento; conviene revisar si corresponde agregar esos
 > requerimientos o si son alcance futuro.
+
+> **Nota:** `CANCELADO` se añade a `ESTADO_SOLICITUD` más allá de los 4 estados del
+> Anexo de Requerimiento (§3.2: Pendiente, Asignado, En Curso, Finalizado). Se agrega
+> específicamente para generar auditoría: queda un registro con fecha/hora del evento
+> (vía `FECHA_HORA`) sin eliminar la solicitud ni perder trazabilidad, en vez de
+> reutilizar un estado existente o borrar la fila (RF15/CU-08).
 
 Normalizado a 3FN:
 - `UBICACION` separada de `VIAJE`: latitud/longitud dependen funcionalmente de la
