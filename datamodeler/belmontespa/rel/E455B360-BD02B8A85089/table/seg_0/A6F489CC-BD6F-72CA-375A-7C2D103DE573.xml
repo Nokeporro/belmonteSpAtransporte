@@ -54,19 +54,15 @@
 <colAssociation fkAssociation="9D3FFCE5-6EE7-66FB-1404-5A8E6C52216C" referredColumn="7A04E253-3EB2-28DD-A2E2-D620ECEBB343"/>
 </associations>
 </Column>
-<Column name="conductor_id_usuario" id="E7ADB869-BFDB-B611-18AE-DCA55789F76E">
+<Column name="capacidad" id="C741B09A-C72B-185D-5567-796AC585BBEF">
 <createdBy>demr</createdBy>
-<createdTime>2026-09-26 15:51:58 UTC</createdTime>
+<createdTime>2026-10-10 15:12:17 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
-<use>0</use>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
-<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
 <ownDataTypeParameters>,,</ownDataTypeParameters>
-<previousColumn>false</previousColumn>
 <autoIncrementCycle>false</autoIncrementCycle>
-<associations>
-<colAssociation fkAssociation="BC28B998-E67B-B058-014F-E28D9B7037AD" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
-</associations>
 </Column>
 </columns>
 <indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
@@ -110,16 +106,6 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="94AAEEE9-F9EF-4B0C-D540-BA55F68CF0D1"/>
-</indexColumnUsage>
-</ind_PK_UK>
-<ind_PK_UK id="3B71B711-8DA3-7312-F218-DF7BAB83B836" name="MOVIL_conductor_FK">
-<createdBy>demr</createdBy>
-<createdTime>2026-09-26 15:51:58 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<indexState>Foreign Key</indexState>
-<isSurrogateKey>false</isSurrogateKey>
-<indexColumnUsage>
-<colUsage columnID="E7ADB869-BFDB-B611-18AE-DCA55789F76E"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

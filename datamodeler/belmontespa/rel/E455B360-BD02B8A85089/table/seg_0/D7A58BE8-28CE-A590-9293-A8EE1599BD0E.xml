@@ -102,61 +102,6 @@
 <colAssociation fkAssociation="075F16B4-81A0-2D81-F265-13E2D7C9A5A0" referredColumn="AAACEA78-4922-01AD-3E37-269BF2BCA4D2"/>
 </associations>
 </Column>
-<Column name="fecha_creacion" id="BF9DAC13-529D-6694-B196-8422BEFE1627">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>23E0BEF4-B638-49D2-6ED4-D476942E5260</importedID>
-<use>0</use>
-<logicalDatatype>LOGDT015</logicalDatatype>
-<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
-<defaultValue>SYSTIMESTAMP</defaultValue>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
-<Column name="fecha_asignacion" id="263755FE-0712-E01E-B47C-275659A29E64">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[Momento en que el Administrador asigna un conductor.]]></commentInRDBMS>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>4DAB746D-9005-BD8B-371D-252C7D00797B</importedID>
-<nullsAllowed>true</nullsAllowed>
-<use>0</use>
-<logicalDatatype>LOGDT015</logicalDatatype>
-<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
-<Column name="fecha_inicio" id="90B25645-4340-9B2B-BB81-757986EF0E24">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como En Curso.]]></commentInRDBMS>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>3216D916-0FDE-97D4-A47B-BB9A92ACB6C4</importedID>
-<nullsAllowed>true</nullsAllowed>
-<use>0</use>
-<logicalDatatype>LOGDT015</logicalDatatype>
-<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
-<Column name="fecha_fin" id="A43B7A44-9A3A-A355-8305-01A488328779">
-<sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
-<createdBy>demr</createdBy>
-<createdTime>2026-09-24 00:28:36 UTC</createdTime>
-<commentInRDBMS><![CDATA[Momento en que el Conductor marca el viaje como Finalizado.]]></commentInRDBMS>
-<ownerDesignName>belmontespa</ownerDesignName>
-<importedID>4F69C593-6B1A-B35C-E653-95D4EB9D127B</importedID>
-<nullsAllowed>true</nullsAllowed>
-<use>0</use>
-<logicalDatatype>LOGDT015</logicalDatatype>
-<domain>D8818CEC-9B08-B25C-9BCB-03110C02A648</domain>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
 <Column name="MOVIL_id_movil" id="514E1332-00B4-2C2C-FDC5-8F18F682C408">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-26 15:53:45 UTC</createdTime>
@@ -185,6 +130,80 @@
 <autoIncrementCycle>false</autoIncrementCycle>
 <associations>
 <colAssociation fkAssociation="535DF5CC-B53B-EF47-8546-86FE6C00C788" referredColumn="6E3F9CDE-398E-85B4-33AD-BEBC041ADF48"/>
+</associations>
+</Column>
+<Column name="FH_creacion" id="3A98E139-0767-5FB7-C34D-160B353DB8BF">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:17:49 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="62A73DC1-67C4-62E0-CEB4-321F0F02D296" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
+</associations>
+</Column>
+<Column name="FH_asignacion" id="3366442E-B806-2B5A-FE0C-744E3FBA9974">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:18:25 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="02A0B78F-795B-F00A-4399-2F9432F686E4" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
+</associations>
+</Column>
+<Column name="FH_inicio" id="E3C5704D-462A-61C1-9DB7-B2307B3F7DAE">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:18:58 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="C4CB97D5-D849-46C1-1FC4-503F32A789BB" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
+</associations>
+</Column>
+<Column name="FH_fin" id="8762AA87-A655-FC90-7923-058342CBA25D">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:19:10 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="E1374BD7-E87B-75BA-1FA3-FF4419B259C7" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
+</associations>
+</Column>
+<Column name="CONDUCTOR_id_usuario" id="A301E5F2-1138-6106-60ED-400BB7E624E1">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:29:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<nullsAllowed>true</nullsAllowed>
+<use>0</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<domain>2CBF92C2-B733-0F27-DB6D-FFF546A75A34</domain>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="72182C21-6C67-AC02-B69A-0B285669C2F3" referredColumn="99F8C592-9EB3-7E44-6A7A-A03B693FDF12"/>
 </associations>
 </Column>
 </columns>
@@ -224,7 +243,7 @@
 <colUsage columnID="E76009C4-4B28-DB02-BD62-6CC4EA6752B4"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="D5BF4119-743D-0810-7498-3A1D4BDF31B6" name="fk_solicitud_destino">
+<ind_PK_UK id="D5BF4119-743D-0810-7498-3A1D4BDF31B6" name="fk_viaje_destino">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -234,7 +253,7 @@
 <colUsage columnID="484C0897-17AB-C27D-2756-518B229CF712"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="AE8C6B2F-6547-2980-FFA8-FE187C2D3601" name="fk_solicitud_estado">
+<ind_PK_UK id="AE8C6B2F-6547-2980-FFA8-FE187C2D3601" name="fk_viaje_estado">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -244,7 +263,7 @@
 <colUsage columnID="74670366-0A39-AC93-8ABB-F211CA322C76"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="ECD510AF-9455-E78D-EA28-55DF03C3F537" name="fk_solicitud_origen">
+<ind_PK_UK id="ECD510AF-9455-E78D-EA28-55DF03C3F537" name="fk_viaje_origen">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -254,7 +273,7 @@
 <colUsage columnID="DFA6E9F8-3DFF-D651-A375-1CB775343591"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="1FB4A5E2-A7D2-E871-0375-2D3CF4568DFD" name="fk_solicitud_solicitante">
+<ind_PK_UK id="1FB4A5E2-A7D2-E871-0375-2D3CF4568DFD" name="fk_viaje_solicitante">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
@@ -282,6 +301,56 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="9D968175-824D-85FE-FBDF-013BDB3A6C82"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="4970EE22-AC3C-209D-6BA2-41354735737B" name="FECHAHORA_creacion">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:17:49 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="3A98E139-0767-5FB7-C34D-160B353DB8BF"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="9AE630FA-3D6E-3A20-2A52-0867697F44DB" name="FECHAHORA_FK_asignacion">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:18:25 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="3366442E-B806-2B5A-FE0C-744E3FBA9974"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="98384813-E4AD-741F-6F63-063BEA722E68" name="FECHAHORA_FK_inicio">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:18:58 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="E3C5704D-462A-61C1-9DB7-B2307B3F7DAE"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="2DE6E1EB-448E-8F9E-8F4B-A11E0F5E0965" name="FECHAHORA_FK_fin">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:19:10 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="8762AA87-A655-FC90-7923-058342CBA25D"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="E4AE4270-BF20-DEB3-DF71-D7E03EA26E05" name="VIAJE_CONDUCTOR_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:29:45 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="A301E5F2-1138-6106-60ED-400BB7E624E1"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

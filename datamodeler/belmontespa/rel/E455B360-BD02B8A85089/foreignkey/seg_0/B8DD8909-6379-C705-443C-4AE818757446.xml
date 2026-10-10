@@ -1,0 +1,16 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="B8DD8909-6379-C705-443C-4AE818757446" containerWithKeyObject="57941B9E-DD3E-53B8-9E12-62F1913EC9C9" localFKIndex="6BA22D8B-6382-07FB-28D8-5108B9CD0AFC" name="DETALLE_MOVIL_CONDUCTOR_MOVIL_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:13:03 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<referredTableLongName>MOVIL</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>A6F489CC-BD6F-72CA-375A-7C2D103DE573</referredTableID>
+<keyObject>4BE62E72-0451-F41D-F662-B52DBBF69EDB</keyObject>
+<referredKeyID>4BE62E72-0451-F41D-F662-B52DBBF69EDB</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>id_movil</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>
