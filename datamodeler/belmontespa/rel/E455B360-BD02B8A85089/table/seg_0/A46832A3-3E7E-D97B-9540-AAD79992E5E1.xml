@@ -1,16 +1,17 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A46832A3-3E7E-D97B-9540-AAD79992E5E1" name="detalle_solicitud_pasajero">
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A46832A3-3E7E-D97B-9540-AAD79992E5E1" name="DETALLE_VIAJE_PASAJERO">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <commentInRDBMS><![CDATA[Detalle M:N entre solicitud_traslado y pasajero: qué pasajeros viajan en cada traslado.]]></commentInRDBMS>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>9E140224-7745-89F1-8630-23F303FA52F0</importedID>
+<ordsAlias>detalle_solicitud_pasajero</ordsAlias>
 <allowColumnReorder>false</allowColumnReorder>
 <existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
 <parsed>true</parsed>
 <columns itemClass="oracle.dbtools.crest.model.design.relational.Column">
-<Column name="id_solicitud" id="ED94BE3F-E5F1-908E-8003-2B3472F869D1">
+<Column name="id_viaje" id="ED94BE3F-E5F1-908E-8003-2B3472F869D1">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
@@ -77,7 +78,7 @@
 <colUsage columnID="910AE4EE-53F7-0299-C631-DB403FC6D2AD"/>
 </indexColumnUsage>
 </ind_PK_UK>
-<ind_PK_UK id="1B62A4D2-C59A-86C8-D3E8-4888F8907A40" name="fk_detalle_solicitud">
+<ind_PK_UK id="1B62A4D2-C59A-86C8-D3E8-4888F8907A40" name="fk_detalle_viaje">
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>

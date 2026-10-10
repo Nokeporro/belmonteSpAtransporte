@@ -1,0 +1,16 @@
+<?xml version = '1.0' encoding = 'UTF-8'?>
+<FKIndexAssociation class="oracle.dbtools.crest.model.design.relational.FKIndexAssociation" directorySegmentName="seg_0" id="7A083603-A3C9-521E-6487-62D778875A8E" containerWithKeyObject="A97A1753-19AB-416C-4772-4DEC53F54E7F" localFKIndex="B4159E65-3ABA-E569-5EEA-B6FB8FEAE448" name="PAGO_TIPO_RECIBO_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 14:00:33 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<referredTableLongName>TIPO_RECIBO</referredTableLongName>
+<deleteRule>NO ACTION</deleteRule>
+<referredTableID>B57EFD8E-92BA-7144-7672-DF9D57A7AF20</referredTableID>
+<keyObject>D6096ABD-9398-CDBA-B56E-E0C348B23CBA</keyObject>
+<referredKeyID>D6096ABD-9398-CDBA-B56E-E0C348B23CBA</referredKeyID>
+<mandatory>true</mandatory>
+<refColNames>nombre</refColNames>
+<transferable>true</transferable>
+<rely>false</rely>
+<columnDependencyConstraintGenerateInDDL>true</columnDependencyConstraintGenerateInDDL>
+</FKIndexAssociation>

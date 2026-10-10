@@ -1,5 +1,5 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="D9F998CB-B58A-2EB9-0C73-4F464CF91210" name="conductor">
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="D9F998CB-B58A-2EB9-0C73-4F464CF91210" name="CONDUCTOR">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>

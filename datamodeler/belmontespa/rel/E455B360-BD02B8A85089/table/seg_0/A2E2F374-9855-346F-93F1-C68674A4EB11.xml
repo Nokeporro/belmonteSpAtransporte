@@ -1,11 +1,12 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
-<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A2E2F374-9855-346F-93F1-C68674A4EB11" name="estado_solicitud_traslado">
+<Table class="oracle.dbtools.crest.model.design.relational.Table" directorySegmentName="seg_0" id="A2E2F374-9855-346F-93F1-C68674A4EB11" name="ESTADO_SOLICITUD">
 <sourceDDLFile>modelo_relacional.sql</sourceDDLFile>
 <createdBy>demr</createdBy>
 <createdTime>2026-09-24 00:28:36 UTC</createdTime>
 <commentInRDBMS><![CDATA[Catálogo de estados: PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09).]]></commentInRDBMS>
 <ownerDesignName>belmontespa</ownerDesignName>
 <importedID>5A7B7703-372C-088A-4BF6-5E8937F365C0</importedID>
+<ordsAlias>estado_solicitud_traslado</ordsAlias>
 <allowColumnReorder>false</allowColumnReorder>
 <existDependencyGenerateInDDl>true</existDependencyGenerateInDDl>
 <parsed>true</parsed>
