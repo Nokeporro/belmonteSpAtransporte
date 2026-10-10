@@ -8,6 +8,23 @@
 
 ## Indice
 
+- [Integrantes](#integrantes)
+- [Introduccion](#introduccion)
+  - [Descripcion de la problematica](#descripcion-de-la-problematica)
+  - [Actores involucrados](#actores-involucrados)
+  - [Casos de uso](#casos-de-uso)
+- [Requerimientos funcionales](#requerimientos-funcionales)
+- [Requisitos no funcionales](#requisitos-no-funcionales)
+- [Historias de usuario](#historias-de-usuario)
+- [Backlog](#backlog)
+- [Modelamiento del problema](#modelamiento-del-problema)
+  - [Modelo relacional](#modelo-relacional)
+- [Arquitectura](#arquitectura)
+  - [Base de datos MariaDB](#base-de-datos-mariadb)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+  - [Frontend (Android)](#frontend-android)
+
 ## Introduccion
 
 Belmonte SpA es una empresa del rubro de transporte privado corporativo, enfocada en
@@ -359,7 +376,7 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | DETALLE_MOVIL_CONDUCTOR | id_usuario | NUMBER | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
 | PASAJERO | id_pasajero | NUMBER | PK | Identificador del pasajero. |
 | PASAJERO | rut_hash | VARCHAR2(50) | UNIQUE, NOT NULL | Hash del RUT de la persona transportada. |
-| PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (casos de uso 1 y 5). |
+| PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
 | ESTADO_SOLICITUD | id_estado | NUMBER | PK | Identificador del estado. |
 | ESTADO_SOLICITUD | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO o FINALIZADO (RF05/RF09). |
 | BANCO | id | NUMBER | PK | Identificador del banco. |
@@ -386,29 +403,26 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | VIAJE | id_solicitante | NUMBER | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
 | VIAJE | id_origen | NUMBER | FK → UBICACION, NOT NULL | Dirección de origen. |
 | VIAJE | id_destino | NUMBER | FK → UBICACION, NOT NULL | Dirección de destino. |
-| VIAJE | numero_vuelo | VARCHAR2(20) | — | Opcional; solo si aplica a un vuelo. |
 | VIAJE | id_estado | NUMBER | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
 | VIAJE | MOVIL_id_movil | NUMBER | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
 | VIAJE | PAGO_id | NUMBER | FK → PAGO | Pago asociado al viaje, si existe. |
 | VIAJE | FH_creacion | NUMBER | FK → FECHA_HORA, NOT NULL | Momento en que se registró la solicitud. |
+| VIAJE | FH_agenda | NUMBER | FK → FECHA_HORA, NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
 | VIAJE | FH_asignacion | NUMBER | FK → FECHA_HORA | Momento en que se asignó un conductor. |
 | VIAJE | FH_inicio | NUMBER | FK → FECHA_HORA | Momento en que el viaje pasó a En Curso. |
 | VIAJE | FH_fin | NUMBER | FK → FECHA_HORA | Momento en que el viaje se marcó Finalizado. |
 | VIAJE | CONDUCTOR_id_usuario | NUMBER | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
+| VIAJE | numero_vuelo | VARCHAR2(20) | — | Opcional; solo si aplica a un vuelo. |
 | DETALLE_VIAJE_PASAJERO | id_viaje | NUMBER | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
 | DETALLE_VIAJE_PASAJERO | id_pasajero | NUMBER | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
 
 El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
 propios que persistir.
 
-> **Nota:** `VIAJE` ya no tiene una columna para la fecha/hora *solicitada* del
-> traslado (solo `FH_creacion`, `FH_asignacion`, `FH_inicio` y `FH_fin`, que
-> registran momentos del ciclo de vida). RF02 exige capturar la fecha y hora del
-> traslado al crear la solicitud, por lo que este dato parece faltar en el DDL
-> actual. Además, `BANCO`, `EMPRESA`, `ESTADO_PAGO`, `MEDIO_PAGO`, `PAGO`,
-> `TIPO_RECIBO`, `MOVIL`, `ESTADO_MOVIL`, `ESTADO_CONDUCTOR` y
-> `DETALLE_MOVIL_CONDUCTOR` no tienen un RF o HU asociado en este documento; conviene
-> revisar si corresponde agregar esos requerimientos o si son alcance futuro.
+> **Nota:** `BANCO`, `EMPRESA`, `ESTADO_PAGO`, `MEDIO_PAGO`, `PAGO`, `TIPO_RECIBO`,
+> `MOVIL`, `ESTADO_MOVIL`, `ESTADO_CONDUCTOR` y `DETALLE_MOVIL_CONDUCTOR` no tienen un
+> RF o HU asociado en este documento; conviene revisar si corresponde agregar esos
+> requerimientos o si son alcance futuro.
 
 Normalizado a 3FN:
 - `UBICACION` separada de `VIAJE`: latitud/longitud dependen funcionalmente de la
@@ -422,9 +436,9 @@ Normalizado a 3FN:
   `MEDIO_PAGO` y `TIPO_RECIBO` sí pasan de `CHECK` a catálogo: no corrige una forma
   normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que
   los usan.
-- `FECHA_HORA` centraliza los valores de fecha/hora usados por `VIAJE` (creación,
-  asignación, inicio, fin) y `PAGO`: tampoco corrige una forma normal, pero permite
-  cambiar el tipo de dato de fecha/hora en un solo lugar.
+- `FECHA_HORA` centraliza los valores de fecha/hora usados por `VIAJE` (agenda,
+  creación, asignación, inicio, fin) y `PAGO`: tampoco corrige una forma normal, pero
+  permite cambiar el tipo de dato de fecha/hora en un solo lugar.
 - `COMUNA`/`REGION`: `id_comuna` es un atributo propio de `UBICACION` (no derivado de
   `direccion`, que ya no es `UNIQUE` por sí sola sino en conjunto con comuna y
   coordenadas), por lo que la referencia a `COMUNA` es una FK normal y no una
@@ -465,7 +479,10 @@ Normalizado a 3FN:
 
 Requiere Docker Compose. Desde la raíz del repositorio, en PowerShell:
 
-```powershell Copy-Item .env.example .env docker compose up -d mariadb ```
+```powershell
+Copy-Item .env.example .env
+docker compose up -d mariadb
+```
 
 La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD`; sus valores locales están en
 `.env.example`. Flyway aplica las migraciones al iniciar el backend. `.env` está
@@ -473,9 +490,12 @@ excluido de Git: cambia las credenciales para cualquier entorno compartido o
 desplegado.
 
 Para detener MariaDB conservando sus datos: `docker compose down`. Para borrar
-también los datos locales: `docker compose down -v`. ### Backend **Spring Boot** como
-el framework principal para la capa del backend debido a las siguientes ventajas
-técnicas:
+también los datos locales: `docker compose down -v`.
+
+### Backend
+
+**Spring Boot** como el framework principal para la capa del backend debido a las
+siguientes ventajas técnicas:
 
 * **Arquitectura REST Nativa para Clientes Móviles:** Permite estructurar y exponer
   endpoints HTTP en formato JSON estandarizado. Esto facilita la integración
@@ -501,7 +521,7 @@ técnicas:
   dependa de recargar manualmente o de mantener una conexión persistente abierta.
   Cada usuario autenticado registra su token de dispositivo, que el backend actualiza
   al iniciar sesión.
-*
+
 ### Frontend
 
 ![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
@@ -518,26 +538,31 @@ Vistas propuestas para el MVP, agrupadas por actor:
   credenciales son asignadas por el Administrador, por lo que solo usa la vista de
   Login.
 - **Registrar solicitud de traslado:** formulario con datos del pasajero, fecha,
-  hora, origen, destino y n.º de vuelo (si aplica). Cubre el caso de uso 1.
+  hora, origen, destino y n.º de vuelo (si aplica). Cubre CU-01.
 - **Mis solicitudes (historial):** lista de traslados agendados con su estado actual
   (Pendiente/Asignado/En Curso/Finalizado).
 - **Detalle de solicitud:** vista de una solicitud puntual con los datos ingresados,
   estado, y datos del conductor una vez asignado.
 
 **Recepcionista / Administrador**
-- **Panel de solicitudes pendientes:** listado de solicitudes sin asignar. Entrada al
-  caso de uso 4.
+- **Panel de solicitudes pendientes:** listado de solicitudes sin asignar. Entrada a
+  CU-04.
 - **Asignar conductor:** vista para elegir un conductor disponible para una solicitud
-  puntual. Cubre el caso de uso 4.
+  puntual. Cubre CU-04.
 - **Panel general / dashboard** *(segunda iteración)*: resumen operativo con conteo
   de viajes por estado.
+- **Sistema de distribución de solicitudes** *(mejora futura, no evaluada para el
+  MVP)*: automatizar la asignación de conductor (hoy manual, RF05/CU-04) y dejar al
+  Administrador enfocado en administración de usuarios y el dashboard. No tiene RF ni
+  HU que lo respalde en el anexo de requerimiento ni en este documento; evaluar recién
+  si se amplía el alcance más allá del MVP académico.
 
 **Conductor**
 - **Viajes del día:** lista de viajes asignados para la fecha actual, ordenados por
-  hora. Cubre el caso de uso 2.
+  hora. Cubre CU-02.
 - **Detalle de viaje asignado:** datos del pasajero, origen, destino, control para
   marcar "En Curso"/"Finalizado" y botón que dispara el Intent hacia Google
-  Maps/Waze. Cubre los casos de uso 5 y 6.
+  Maps/Waze. Cubre CU-03 y CU-05.
 - **Historial de viajes realizados** *(segunda iteración)*: viajes ya finalizados por
   el conductor.
 
