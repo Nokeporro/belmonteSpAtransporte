@@ -62,7 +62,9 @@ despachar rutas a los choferes.
 - **ACT-02 — Pasajero:** Persona que efectivamente realiza el traslado; puede
   coincidir o no con quien lo solicitó.
 - **ACT-03 — Recepcionista / Administrador:** Encargado de tomar y distribuir las
-  solicitudes de traslado entre los conductores disponibles.
+  solicitudes de traslado entre los conductores disponibles; también gestiona la
+  flota (registrar vehículos y habilitar conductores para operarlos) y los pagos de
+  los viajes.
 - **ACT-04 — Conductor:** Ejecuta el transporte en terreno; visualiza en tiempo real
   los viajes que tiene asignados para el día y utiliza la app para trazar la ruta en
   navegadores externos.
@@ -120,8 +122,8 @@ despachar rutas a los choferes.
 | **Actor(es)** | ACT-03 — Recepcionista / Administrador |
 | **Objetivo** | Recibir, revisar y asignar solicitudes de traslado a conductores disponibles. |
 | **Precondiciones** | Existen solicitudes registradas y conductores disponibles. |
-| **Flujo principal** | 1. El administrador consulta las solicitudes.<br>2. Selecciona una solicitud.<br>3. Selecciona un conductor disponible.<br>4. Confirma la asignación.<br>5. El sistema actualiza el estado del traslado a Asignado. |
-| **Postcondiciones** | La solicitud queda asociada a un conductor. |
+| **Flujo principal** | 1. El administrador consulta las solicitudes.<br>2. Selecciona una solicitud.<br>3. Selecciona un conductor disponible (el sistema sugiere los vehículos habilitados para ese conductor).<br>4. Confirma la asignación.<br>5. El sistema actualiza el estado del traslado a Asignado y marca al conductor y al vehículo como Ocupado/En uso. |
+| **Postcondiciones** | La solicitud queda asociada a un conductor y a un vehículo habilitado para él. |
 | **Flujos alternativos / excepciones** | No existen conductores disponibles. No se ha definido una regla de reasignación automática. |
 
 #### CU-05 — Actualizar estado del traslado
@@ -131,7 +133,7 @@ despachar rutas a los choferes.
 | **Actor(es)** | ACT-03 — Recepcionista / Administrador; ACT-04 — Conductor |
 | **Objetivo** | Gestionar el ciclo de vida operativo del traslado mediante estados. |
 | **Precondiciones** | Existe una solicitud registrada. |
-| **Flujo principal** | 1. El traslado inicia en estado Pendiente.<br>2. Recepcionista / Administrador asigna un conductor → Asignado.<br>3. Conductor inicia el traslado → En Curso.<br>4. Conductor finaliza el traslado → Finalizado. |
+| **Flujo principal** | 1. El traslado inicia en estado Pendiente.<br>2. Recepcionista / Administrador asigna un conductor → Asignado.<br>3. Conductor inicia el traslado → En Curso.<br>4. Conductor finaliza el traslado → Finalizado.<br>5. Al finalizar, el conductor y el vehículo asignados vuelven a estado Disponible. |
 | **Postcondiciones** | El estado representa la etapa actual del traslado. |
 | **Flujos alternativos / excepciones** | No se encuentran definidas reglas para retroceder estados, cancelar o reabrir un traslado. |
 
@@ -164,14 +166,59 @@ despachar rutas a los choferes.
 | **Actor(es)** | ACT-01 — Cliente corporativo / Solicitante |
 | **Objetivo** | Cancelar una solicitud de traslado propia que ya no se necesita, liberando al conductor asignado si corresponde. |
 | **Precondiciones** | Existe una solicitud propia en estado Pendiente o Asignado. |
-| **Flujo principal** | 1. El Solicitante abre el detalle de una solicitud propia.<br>2. Presiona el botón "Cancelar".<br>3. El sistema valida que el estado actual sea Pendiente o Asignado.<br>4. El sistema actualiza el estado a Cancelado y registra la fecha/hora de cancelación.<br>5. Si la solicitud tenía conductor asignado, se le notifica la cancelación mediante push (FCM) y el viaje desaparece de su lista "Viajes del día". |
-| **Postcondiciones** | La solicitud queda en estado Cancelado; el conductor, si tenía uno asignado, queda liberado. |
+| **Flujo principal** | 1. El Solicitante abre el detalle de una solicitud propia.<br>2. Presiona el botón "Cancelar".<br>3. El sistema valida que el estado actual sea Pendiente o Asignado.<br>4. El sistema actualiza el estado a Cancelado y registra la fecha/hora de cancelación.<br>5. Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado Disponible y se notifica la cancelación al conductor mediante push (FCM); el viaje desaparece de su lista "Viajes del día".<br>6. Si la solicitud tenía un pago asociado, el sistema lo anula. |
+| **Postcondiciones** | La solicitud queda en estado Cancelado; el conductor y el vehículo, si tenían uno asignado, quedan liberados; el pago asociado, si existía, queda Anulado. |
 | **Flujos alternativos / excepciones** | Si el estado es En Curso o Finalizado, el botón "Cancelar" no está disponible y la cancelación se rechaza. |
+
+#### CU-09 — Registrar vehículo
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Registrar un vehículo de la flota para poder asignarlo a traslados. |
+| **Precondiciones** | El Administrador está autenticado en el sistema. |
+| **Flujo principal** | 1. El Administrador ingresa al formulario de registro de vehículo.<br>2. Ingresa patente y capacidad de pasajeros.<br>3. Ingresa el serial de GPS si el vehículo cuenta con uno propio (opcional, ya que el smartphone del conductor también reporta ubicación).<br>4. El sistema valida que la patente no exista.<br>5. El vehículo queda registrado en estado Disponible. |
+| **Postcondiciones** | Existe un vehículo activo, disponible para ser habilitado a un conductor y asignado a traslados. |
+| **Flujos alternativos / excepciones** | La patente ya existe o falta un campo obligatorio: el registro se rechaza. |
+
+#### CU-10 — Habilitar conductor para vehículo
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Habilitar a un conductor para operar un vehículo específico. |
+| **Precondiciones** | El conductor (CU-07) y el vehículo (CU-09) ya están registrados. |
+| **Flujo principal** | 1. El Administrador selecciona un conductor.<br>2. Selecciona uno o más vehículos a habilitar para ese conductor.<br>3. El sistema registra la relación conductor-vehículo. |
+| **Postcondiciones** | El conductor queda habilitado para operar el/los vehículo(s) seleccionado(s); la relación es M:N (un vehículo puede tener varios conductores habilitados y viceversa). |
+| **Flujos alternativos / excepciones** | La relación ya existe: el sistema la ignora sin duplicarla. |
+
+#### CU-11 — Registrar pago de un viaje
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Registrar el pago asociado a un viaje. |
+| **Precondiciones** | Existe un viaje en un estado distinto de Cancelado. |
+| **Flujo principal** | 1. El Administrador abre el viaje a facturar.<br>2. Ingresa monto, banco, medio de pago y tipo de recibo.<br>3. El sistema genera el pago en estado Pendiente y lo asocia al viaje. |
+| **Postcondiciones** | El viaje queda con un pago asociado en estado Pendiente. |
+| **Flujos alternativos / excepciones** | El viaje está Cancelado: no se puede registrar un pago nuevo. |
+
+#### CU-12 — Actualizar estado de un pago
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Objetivo** | Reflejar si un pago fue efectivamente cobrado, rechazado o anulado. |
+| **Precondiciones** | Existe un pago en estado Pendiente (o Pagado, para el caso de anulación). |
+| **Flujo principal** | 1. El Administrador selecciona un pago.<br>2. Marca el pago como Pagado o Rechazado. La transición a Anulado ocurre automáticamente al cancelarse el viaje asociado (ver CU-08) y no requiere esta acción manual. |
+| **Postcondiciones** | El pago queda en su nuevo estado (Pagado, Rechazado o Anulado). |
+| **Flujos alternativos / excepciones** | El pago ya está en estado terminal (Rechazado o Anulado): no se permite cambiarlo. |
 
 ## Requerimientos funcionales
 
-- **RF01:** El sistema debe permitir al Cliente corporativo/Solicitante registrarse y
-  autenticarse en la aplicación.
+- **RF01:** El sistema debe permitir al Cliente corporativo/Solicitante registrarse
+  (incluyendo los datos de su empresa — razón social y RUT, que crean o reutilizan
+  una fila en `EMPRESA`) y autenticarse en la aplicación.
 - **RF02:** El sistema debe permitir al Cliente corporativo/Solicitante registrar una
   solicitud de traslado indicando datos del pasajero, fecha, hora, dirección de
   origen, dirección de destino (seleccionadas mediante autocompletado de Google
@@ -182,8 +229,9 @@ despachar rutas a los choferes.
 - **RF04:** El sistema debe permitir al Recepcionista/Administrador visualizar las
   solicitudes pendientes de asignación.
 - **RF05:** El sistema debe permitir al Recepcionista/Administrador asignar un
-  conductor disponible a una solicitud de traslado, actualizando su estado a
-  "Asignado".
+  conductor disponible (junto con un vehículo habilitado para ese conductor) a una
+  solicitud de traslado, actualizando su estado a "Asignado" y marcando al conductor
+  y al vehículo como "Ocupado"/"En uso".
 - **RF06:** El sistema debe permitir al Conductor autenticarse mediante credenciales
   asignadas por el Administrador, sin permitir autorregistro.
 - **RF07:** El sistema debe permitir al Conductor visualizar en tiempo real los
@@ -191,7 +239,8 @@ despachar rutas a los choferes.
 - **RF08:** El sistema debe permitir al Conductor visualizar el detalle de un viaje
   asignado (datos del pasajero, dirección de origen y de destino).
 - **RF09:** El sistema debe permitir al Conductor actualizar el estado de un traslado
-  a "En Curso" y a "Finalizado".
+  a "En Curso" y a "Finalizado"; al finalizar, el sistema debe marcar al conductor y
+  al vehículo asignados como "Disponible" nuevamente.
 - **RF10:** El sistema debe integrar, mediante Intents del sistema operativo Android,
   una aplicación externa de navegación (Google Maps/Waze) para trazar la ruta hacia
   el destino a partir de las coordenadas georreferenciadas.
@@ -213,8 +262,24 @@ despachar rutas a los choferes.
   disponible de inmediato para autenticarse e iniciar sesión.
 - **RF15:** El sistema debe permitir al Cliente corporativo/Solicitante cancelar una
   solicitud de traslado propia mientras su estado sea "Pendiente" o "Asignado". Si la
-  solicitud ya tenía un conductor asignado, el sistema debe notificarle la
-  cancelación mediante push (FCM).
+  solicitud ya tenía un conductor y un vehículo asignados, el sistema debe liberarlos
+  (marcarlos como "Disponible"), anular el pago asociado si existía, y notificarle la
+  cancelación al conductor mediante push (FCM).
+- **RF16:** El sistema debe permitir al Recepcionista/Administrador registrar un
+  vehículo (móvil) de la flota indicando patente y capacidad de pasajeros. El serial
+  del dispositivo GPS es opcional, ya que la ubicación también se puede obtener del
+  GPS del smartphone del conductor.
+- **RF17:** El sistema debe permitir al Recepcionista/Administrador habilitar a uno o
+  más conductores para operar un vehículo específico.
+- **RF18:** El sistema debe permitir al Recepcionista/Administrador registrar el pago
+  de un viaje en cualquier estado previo a "Cancelado", indicando monto, banco, medio
+  de pago y tipo de recibo; el pago queda asociado al viaje en estado inicial
+  "Pendiente".
+- **RF19:** El sistema debe permitir al Recepcionista/Administrador actualizar el
+  estado de un pago a "Pagado" o "Rechazado". Si el viaje asociado se cancela (RF15),
+  el sistema debe anular automáticamente el pago.
+- **RF20:** El sistema debe permitir al Cliente corporativo/Solicitante visualizar el
+  estado de pago de sus viajes junto con el resto del detalle de la solicitud.
 
 ## Requisitos no funcionales
 
@@ -316,6 +381,18 @@ despachar rutas a los choferes.
   (RF14)
 - **HU16:** Como Solicitante, quiero cancelar una solicitud de traslado que ya no
   necesito, para liberar al conductor asignado y evitar un viaje innecesario. (RF15)
+- **HU17:** Como Administrador, quiero registrar un vehículo con su patente y
+  capacidad, para poder asignarlo a traslados. (RF16)
+- **HU18:** Como Administrador, quiero habilitar conductores para un vehículo
+  específico, para controlar quién puede operarlo. (RF17)
+- **HU19:** Como Administrador, quiero registrar el pago de un viaje en cualquier
+  momento antes de que se cancele, para no depender de que termine el servicio.
+  (RF18)
+- **HU20:** Como Administrador, quiero actualizar el estado de un pago, o que se
+  anule automáticamente si se cancela el viaje, para mantener la facturación al día.
+  (RF19)
+- **HU21:** Como Solicitante, quiero ver el estado de pago de mis viajes, para saber
+  si ya fueron cobrados. (RF20)
 
 > Los criterios de aceptación, prioridad y estimación de cada historia están
 > detallados en la tabla de [Backlog](#backlog).
@@ -324,15 +401,15 @@ despachar rutas a los choferes.
 
 | ID | Historia de usuario | Criterios de aceptación | Prioridad | Estimación (SP) |
 |----|---|---|---|---|
-| HU01 | Registro y login del Cliente corporativo/Solicitante | El registro se rechaza si el correo ya existe o falta algún campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Con credenciales válidas se accede a "Mis solicitudes"; con credenciales inválidas se muestra un error sin indicar cuál dato falló. | Alta | 3 |
+| HU01 | Registro y login del Cliente corporativo/Solicitante | El registro se rechaza si el correo ya existe o falta algún campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Con credenciales válidas se accede a "Mis solicitudes"; con credenciales inválidas se muestra un error sin indicar cuál dato falló.<br>El campo "empresa" (razón social + RUT) crea o reutiliza una fila en `EMPRESA`; solicitantes de la misma empresa comparten esa fila, no se duplica. | Alta | 3 |
 | HU02 | Registrar solicitud de traslado | El campo de origen y destino usa autocompletado (Google Places API): el Solicitante escribe y elige una dirección de una lista de sugerencias, nunca texto libre. Al seleccionar una dirección, la app captura automáticamente latitud y longitud junto con el texto. No se puede enviar el formulario si origen o destino no fueron seleccionados de la lista (evita direcciones sin coordenadas). El número de vuelo es opcional; pasajero, fecha, hora, origen y destino son obligatorios.| Alta | 5 |
 | HU03 | Ver historial y estado de mis solicitudes | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado reflejado corresponde al último cambio registrado por el Administrador o el Conductor. | Media | 3 |
 | HU04 | Panel de solicitudes pendientes | Solo se listan solicitudes en estado Pendiente.<br>Cada fila permite pasar directamente a la vista "Asignar conductor" de esa solicitud. | Alta | 3 |
-| HU05 | Asignar conductor a una solicitud | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a estado Asignado y queda visible en "Viajes del día" del conductor elegido. | Alta | 5 |
+| HU05 | Asignar conductor a una solicitud | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a estado Asignado y queda visible en "Viajes del día" del conductor elegido.<br>Al confirmar, también se asigna un vehículo habilitado para ese conductor; conductor y vehículo pasan a estado "Ocupado"/"En uso". | Alta | 5 |
 | HU06 | Login del Conductor (sin autorregistro) | La pantalla de login del Conductor no ofrece la opción "crear cuenta".<br>Con credenciales inválidas se muestra un error sin revelar si el correo existe. | Alta | 2 |
 | HU07 | Ver viajes del día | Solo se muestran los viajes del conductor autenticado, para la fecha actual, ordenados por hora.<br>Cada viaje muestra pasajero, hora y estado. | Alta | 3 |
 | HU08 | Ver detalle de un viaje asignado | Muestra pasajero, número de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
-| HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió. | Alta | 3 |
+| HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió.<br>Al finalizar, el conductor y el vehículo asignados vuelven a estado "Disponible". | Alta | 3 |
 | HU10 | Navegar con Google Maps/Waze | Al presionar "Navegar" se abre Google Maps o Waze con el destino precargado.<br>Si no hay ninguna app de navegación instalada, se muestra un aviso en vez de fallar silenciosamente. | Alta | 3 |
 | HU11 | Persistencia local y sincronización | Las solicitudes y viajes ya cargados se pueden seguir consultando sin conexión.
 Un cambio de estado hecho sin conexión (ej. "Finalizar viaje") se guarda en una cola local y se marca como "pendiente de sincronizar".
@@ -353,7 +430,13 @@ No existe una vista de "cambiar contraseña" para el Conductor: si necesita una 
 Criterios: el botón "Cancelar" solo está disponible si el estado es Pendiente o Asignado.
 Si el estado es En Curso o Finalizado, no se puede cancelar.
 Al cancelar, el estado pasa a "Cancelado" y queda registrada la fecha/hora de cancelación.
-Si la solicitud tenía conductor asignado, este recibe una notificación push de la cancelación (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".| Alta | 3 |
+Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado "Disponible", se notifica la cancelación al conductor mediante push (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".
+Si la solicitud tenía un pago asociado, este queda en estado "Anulado".| Alta | 3 |
+| HU17 | Registrar vehículo | La patente es obligatoria y única; la capacidad debe ser mayor a 0.<br>El GPS serial es opcional: el vehículo puede operar sin dispositivo propio, usando el GPS del smartphone del conductor.<br>El vehículo queda registrado en estado inicial "Disponible". | Media | 3 |
+| HU18 | Habilitar conductor para vehículo | Solo se pueden habilitar conductores ya registrados (HU15).<br>Un vehículo puede tener más de un conductor habilitado, y un conductor puede estar habilitado para más de un vehículo (relación M:N).<br>Habilitar una relación ya existente no la duplica. | Media | 2 |
+| HU19 | Registrar pago de un viaje | Se puede registrar un pago para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos existentes.<br>El pago queda en estado inicial "Pendiente". | Media | 5 |
+| HU20 | Actualizar estado de pago | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado.<br>"Anulado" es un estado terminal.<br>La anulación por cancelación del viaje (HU16) es automática, no requiere acción manual del Administrador. | Media | 3 |
+| HU21 | Ver estado de pago de mis viajes | El estado de pago se muestra en "Detalle de solicitud" (HU03) solo si el viaje tiene un pago asociado. | Baja | 2 |
 
 ## Modelamiento del problema
 
@@ -390,8 +473,8 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | ESTADO_MOVIL | id_estado_mov | NUMBER | PK | Identificador del estado del móvil. |
 | ESTADO_MOVIL | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
 | MOVIL | id_movil | NUMBER | PK | Identificador del vehículo. |
-| MOVIL | patente | VARCHAR2(6) | NOT NULL (UNIQUE junto a gps_serial) | Patente del vehículo. |
-| MOVIL | gps_serial | NUMBER | — (UNIQUE junto a patente) | Identificador del dispositivo GPS instalado, si aplica. |
+| MOVIL | patente | VARCHAR2(6) | UNIQUE, NOT NULL | Patente del vehículo. |
+| MOVIL | gps_serial | NUMBER | — | Identificador del dispositivo GPS instalado; opcional, ya que la ubicación también se obtiene del GPS del smartphone del conductor (RF16). |
 | MOVIL | ESTADO_MOVIL_id_estado_mov | NUMBER | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
 | MOVIL | capacidad | NUMBER | NOT NULL | Capacidad de pasajeros del vehículo. |
 | DETALLE_MOVIL_CONDUCTOR | id_movil | NUMBER | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
@@ -405,7 +488,7 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | BANCO | nombre | VARCHAR2(50) | NOT NULL (UNIQUE junto a cod_sbif) | Nombre del banco. |
 | BANCO | cod_sbif | NUMBER | NOT NULL (UNIQUE junto a nombre) | Código SBIF del banco. |
 | ESTADO_PAGO | id | NUMBER | PK | Identificador del estado de pago. |
-| ESTADO_PAGO | estado | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del estado del pago (p. ej. pendiente/pagado/rechazado). |
+| ESTADO_PAGO | estado | VARCHAR2(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
 | MEDIO_PAGO | id | NUMBER | PK | Identificador del medio de pago. |
 | MEDIO_PAGO | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del medio de pago (p. ej. transferencia, tarjeta). |
 | TIPO_RECIBO | id | NUMBER | PK | Identificador del tipo de recibo. |
@@ -440,11 +523,6 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 
 El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
 propios que persistir.
-
-> **Nota:** `BANCO`, `EMPRESA`, `ESTADO_PAGO`, `MEDIO_PAGO`, `PAGO`, `TIPO_RECIBO`,
-> `MOVIL`, `ESTADO_MOVIL`, `ESTADO_CONDUCTOR` y `DETALLE_MOVIL_CONDUCTOR` no tienen un
-> RF o HU asociado en este documento; conviene revisar si corresponde agregar esos
-> requerimientos o si son alcance futuro.
 
 > **Nota:** `CANCELADO` se añade a `ESTADO_SOLICITUD` más allá de los 4 estados del
 > Anexo de Requerimiento (§3.2: Pendiente, Asignado, En Curso, Finalizado). Se agrega

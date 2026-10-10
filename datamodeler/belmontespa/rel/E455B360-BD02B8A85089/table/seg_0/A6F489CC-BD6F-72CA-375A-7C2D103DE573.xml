@@ -85,7 +85,6 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="057AEB75-6766-B07F-8066-66ED65A69C50"/>
-<colUsage columnID="A720377C-D73F-866E-4116-93BB582CCB10"/>
 </indexColumnUsage>
 </ind_PK_UK>
 <ind_PK_UK id="FCD5E83D-8604-702F-AC88-F910B70FE0E3" name="MOVIL__IDX">
