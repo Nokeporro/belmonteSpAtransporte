@@ -1,4 +1,4 @@
-package com.belmontespa.transporte.repository;
+package repository;
 
 import java.util.List;
 
