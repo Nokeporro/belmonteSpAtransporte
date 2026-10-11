@@ -1,4 +1,4 @@
-package com.belmontespa.transporte.repository;
+package repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
