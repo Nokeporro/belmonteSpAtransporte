@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.belmontespa.transporte.model.EstadoSolicitud;
+import model.EstadoSolicitud;
 
 public interface EstadoSolicitudRepository extends JpaRepository<EstadoSolicitud, Long> {
 

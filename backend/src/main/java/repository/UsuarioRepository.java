@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.belmontespa.transporte.model.Usuario;
+import model.Usuario;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
