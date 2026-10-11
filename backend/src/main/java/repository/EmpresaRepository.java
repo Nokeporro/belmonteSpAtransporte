@@ -2,7 +2,7 @@ package repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.belmontespa.transporte.model.Empresa;
+import model.Empresa;
 
 public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 }

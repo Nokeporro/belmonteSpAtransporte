@@ -4,8 +4,8 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.belmontespa.transporte.model.DetalleMovilConductor;
-import com.belmontespa.transporte.model.DetalleMovilConductorId;
+import model.DetalleMovilConductor;
+import model.DetalleMovilConductorId;
 
 public interface DetalleMovilConductorRepository
         extends JpaRepository<DetalleMovilConductor, DetalleMovilConductorId> {

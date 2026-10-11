@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import com.belmontespa.transporte.model.Conductor;
+import model.Conductor;
 
 public interface ConductorRepository extends JpaRepository<Conductor, Long> {
 

@@ -4,7 +4,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.belmontespa.transporte.model.Ubicacion;
+import model.Ubicacion;
 
 public interface UbicacionRepository extends JpaRepository<Ubicacion, Long> {
 
