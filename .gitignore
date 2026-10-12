@@ -1,4 +1,3 @@
-SEC010V_Anexo_Requerimiento_Belmonte_DuocUC.pdf
 .env
 .env.*
 !.env.example
@@ -6,3 +5,4 @@ SEC010V_Anexo_Requerimiento_Belmonte_DuocUC.pdf
 .vscode
 docs/*.docx
 docs/*.pdf
+targets
