@@ -1,4 +1,4 @@
-package com.belmontespa.transporte;
+package cl.belmontespa.transporte;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
