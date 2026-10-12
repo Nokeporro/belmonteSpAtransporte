@@ -209,16 +209,42 @@ despachar rutas a los choferes.
 |---|---|
 | **Actor(es)** | ACT-03 — Recepcionista / Administrador |
 | **Objetivo** | Reflejar si un pago fue efectivamente cobrado, rechazado o anulado. |
-| **Precondiciones** | Existe un pago en estado Pendiente (o Pagado, para el caso de anulación). |
+| **Precondiciones** | Existe un pago en estado Pendiente. |
 | **Flujo principal** | 1. El Administrador selecciona un pago.<br>2. Marca el pago como Pagado o Rechazado. La transición a Anulado ocurre automáticamente al cancelarse el viaje asociado (ver CU-08) y no requiere esta acción manual. |
 | **Postcondiciones** | El pago queda en su nuevo estado (Pagado, Rechazado o Anulado). |
 | **Flujos alternativos / excepciones** | El pago ya está en estado terminal (Rechazado o Anulado): no se permite cambiarlo. |
+
+#### CU-13 — Recuperar contraseña
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador |
+| **Objetivo** | Recuperar el acceso a la cuenta sin depender de otra persona, cuando se olvida la contraseña. |
+| **Precondiciones** | El usuario tiene una cuenta de Solicitante o Administrador con correo registrado. |
+| **Flujo principal** | 1. El usuario ingresa su correo en "olvidé mi contraseña".<br>2. El sistema valida que el correo corresponda a una cuenta de Solicitante o Administrador.<br>3. El sistema genera una contraseña temporal aleatoria, la hashea y la guarda como `password_hash`, y fija `password_temporal_expira`.<br>4. El sistema envía la contraseña en texto plano solo al correo registrado (único momento en que existe en texto plano; nunca se persiste así — ver RNF01).<br>5. El usuario inicia sesión con la contraseña temporal antes de que expire (CU-14). |
+| **Postcondiciones** | El usuario puede autenticarse con la contraseña temporal hasta que expire. |
+| **Flujos alternativos / excepciones** | El correo no existe, o pertenece a un Conductor: el sistema responde el mismo mensaje genérico, sin revelar el motivo. La contraseña temporal expira sin usarse: debe solicitar una nueva recuperación. |
+
+> **Nota:** el Conductor queda fuera de este mecanismo a propósito — su contraseña
+> solo la reemplaza el Administrador (CU-07/RF14), para que una desvinculación no le
+> deje una vía de autoservicio para recuperar acceso por su cuenta.
+
+#### CU-14 — Iniciar sesión
+
+| Campo | Detalle |
+|---|---|
+| **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador; ACT-04 — Conductor |
+| **Objetivo** | Autenticar a un usuario y emitir el JWT que el resto del sistema usa para autorizar sus acciones por rol. |
+| **Precondiciones** | El usuario ya tiene una cuenta (autorregistrada si es Solicitante — RF01; creada por el Administrador si es Conductor — RF14; o por migración Flyway si es Administrador). |
+| **Flujo principal** | 1. El usuario ingresa correo y contraseña.<br>2. El sistema valida la contraseña contra `USUARIO.password_hash`, rechazando si `password_temporal_expira` no es nulo y ya pasó (RF21).<br>3. El sistema determina el rol consultando en cuál de `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` existe ese `id_usuario` (único por rol, garantizado por `USUARIO_ROL_ACTIVO`).<br>4. El sistema emite un JWT con `sub` = correo, `rol` = el rol encontrado, y `exp` = expiración (RNF01).<br>5. El sistema retorna el JWT, que el cliente adjunta en cada request posterior. |
+| **Postcondiciones** | El usuario queda autenticado; el JWT emitido es la credencial que el `SecurityFilterChain` valida en cada request y usa para aplicar el mapeo rol→endpoint (sección Backend). |
+| **Flujos alternativos / excepciones** | Correo inexistente o contraseña incorrecta: error genérico sin indicar cuál dato falló. Contraseña temporal expirada (RF21): mismo error genérico, debe pedir una recuperación nueva. |
 
 ## Requerimientos funcionales
 
 - **RF01:** El sistema debe permitir al Cliente corporativo/Solicitante registrarse
   (incluyendo los datos de su empresa — razón social y RUT, que crean o reutilizan
-  una fila en `EMPRESA`) y autenticarse en la aplicación.
+  una fila en `EMPRESA`) y autenticarse en la aplicación (ver CU-14).
 - **RF02:** El sistema debe permitir al Cliente corporativo/Solicitante registrar una
   solicitud de traslado indicando datos del pasajero, fecha, hora, dirección de
   origen, dirección de destino (seleccionadas mediante autocompletado de Google
@@ -233,7 +259,7 @@ despachar rutas a los choferes.
   solicitud de traslado, actualizando su estado a "Asignado" y marcando al conductor
   y al vehículo como "Ocupado"/"En uso".
 - **RF06:** El sistema debe permitir al Conductor autenticarse mediante credenciales
-  asignadas por el Administrador, sin permitir autorregistro.
+  asignadas por el Administrador, sin permitir autorregistro (ver CU-14).
 - **RF07:** El sistema debe permitir al Conductor visualizar en tiempo real los
   viajes asignados para el día.
 - **RF08:** El sistema debe permitir al Conductor visualizar el detalle de un viaje
@@ -280,14 +306,23 @@ despachar rutas a los choferes.
   el sistema debe anular automáticamente el pago.
 - **RF20:** El sistema debe permitir al Cliente corporativo/Solicitante visualizar el
   estado de pago de sus viajes junto con el resto del detalle de la solicitud.
+- **RF21:** El sistema debe permitir al Solicitante y al Administrador recuperar su
+  contraseña indicando su correo (CU-13); genera una contraseña temporal, la envía al
+  correo registrado, y esa contraseña deja de ser válida tras un plazo determinado. El
+  Conductor no cuenta con este mecanismo de autoservicio: su contraseña solo la
+  reemplaza el Administrador (RF14), para que un conductor desvinculado no recupere
+  acceso por sí mismo.
 
 ## Requisitos no funcionales
 
 - **RNF01 (Seguridad):** Las contraseñas se deben almacenar únicamente como hash
   (nunca en texto plano), y la autenticación entre la app y el backend debe usar JWT
-  con tiempo de expiración definido. El acceso a cada endpoint debe validarse por rol
-  (Solicitante, Administrador, Conductor) según el `SecurityFilterChain` centralizado
-  definido en la Arquitectura.
+  con tiempo de expiración definido (ver CU-14). El acceso a cada endpoint debe
+  validarse por rol (Solicitante, Administrador, Conductor) según el
+  `SecurityFilterChain` centralizado definido en la Arquitectura. La única excepción
+  de tránsito a "nunca en texto plano" es el envío puntual de una contraseña temporal
+  por correo al recuperarla (RF21): se genera, se hashea para `password_hash`, se
+  envía una vez, y no queda guardada en texto plano en ningún lugar.
 - **RNF02 (Conectividad continua con tolerancia a cortes breves):** El modo normal de
   operación requiere conectividad a Internet continua, según el Anexo de
   Requerimiento (§3.3); no es un diseño offline-first ni permite operar sin red por
@@ -393,6 +428,8 @@ despachar rutas a los choferes.
   (RF19)
 - **HU21:** Como Solicitante, quiero ver el estado de pago de mis viajes, para saber
   si ya fueron cobrados. (RF20)
+- **HU22:** Como Solicitante o Administrador, quiero recuperar mi contraseña si la
+  olvido, para volver a acceder sin depender de otra persona. (RF21)
 
 > Los criterios de aceptación, prioridad y estimación de cada historia están
 > detallados en la tabla de [Backlog](#backlog).
@@ -437,6 +474,7 @@ Si la solicitud tenía un pago asociado, este queda en estado "Anulado".| Alta |
 | HU19 | Registrar pago de un viaje | Se puede registrar un pago para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos existentes.<br>El pago queda en estado inicial "Pendiente". | Media | 5 |
 | HU20 | Actualizar estado de pago | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado.<br>"Anulado" es un estado terminal.<br>La anulación por cancelación del viaje (HU16) es automática, no requiere acción manual del Administrador. | Media | 3 |
 | HU21 | Ver estado de pago de mis viajes | El estado de pago se muestra en "Detalle de solicitud" (HU03) solo si el viaje tiene un pago asociado. | Baja | 2 |
+| HU22 | Recuperar contraseña | Solo para Solicitante y Administrador (no Conductor).<br>El correo debe ser de una cuenta de Solicitante o Administrador; si no, se responde el mismo mensaje genérico sin revelar el motivo.<br>La contraseña temporal generada expira tras un plazo determinado; si no se usa a tiempo, hay que solicitar una recuperación nueva. | Media | 3 |
 
 ## Modelamiento del problema
 
@@ -459,13 +497,15 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | USUARIO | correo | VARCHAR2(150) | UNIQUE, NOT NULL | Correo de acceso (login). |
 | USUARIO | telefono | VARCHAR2(20) | — | Teléfono de contacto. |
 | USUARIO | password_hash | VARCHAR2(200) | NOT NULL | Hash de la contraseña; nunca se almacena en texto plano. |
+| USUARIO | password_temporal_expira | TIMESTAMP | — | NULL si `password_hash` es una contraseña normal; con valor, `password_hash` es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR. |
 | USUARIO | fecha_registro | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Fecha de creación de la cuenta. |
+| USUARIO_ROL_ACTIVO | id_usuario | NUMBER | PK, FK → USUARIO | Garantiza que un usuario tenga un solo rol activo a la vez: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí antes de permitir su propio insert; la `PRIMARY KEY` rechaza un segundo rol para el mismo `id_usuario`. Sin columnas propias. |
 | EMPRESA | id_empresa | NUMBER | PK | Identificador de la empresa. |
-| EMPRESA | razon_social | VARCHAR2(50) | NOT NULL (UNIQUE junto a rut) | Razón social de la empresa cliente. |
-| EMPRESA | rut | VARCHAR2(15) | NOT NULL (UNIQUE junto a razon_social) | RUT de la empresa. |
+| EMPRESA | razon_social | VARCHAR2(50) | NOT NULL | Razón social de la empresa cliente. |
+| EMPRESA | rut | VARCHAR2(15) | UNIQUE, NOT NULL | RUT de la empresa (identificador legal único; ya no depende de `razon_social`). |
 | SOLICITANTE | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante (RF01). |
 | SOLICITANTE | EMPRESA_id_empresa | NUMBER | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
-| ADMINISTRADOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). |
+| ADMINISTRADOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). Se crea mediante una migración Flyway de carga inicial (`backend/src/main/resources/db/migration`); no existe autorregistro de administradores ni un endpoint para crearlos. |
 | ESTADO_CONDUCTOR | id_estado | NUMBER | PK | Identificador del estado del conductor. |
 | ESTADO_CONDUCTOR | estado | VARCHAR2(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
 | CONDUCTOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
@@ -480,13 +520,13 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | DETALLE_MOVIL_CONDUCTOR | id_movil | NUMBER | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
 | DETALLE_MOVIL_CONDUCTOR | id_usuario | NUMBER | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
 | PASAJERO | id_pasajero | NUMBER | PK | Identificador del pasajero. |
-| PASAJERO | rut_hash | VARCHAR2(50) | UNIQUE, NOT NULL | Hash del RUT de la persona transportada. |
+| PASAJERO | dni_hash | VARCHAR2(50) | UNIQUE, NOT NULL | Hash del documento de identidad de la persona transportada — RUT chileno o pasaporte extranjero. |
 | PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
 | ESTADO_SOLICITUD | id_estado | NUMBER | PK | Identificador del estado. |
 | ESTADO_SOLICITUD | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
 | BANCO | id | NUMBER | PK | Identificador del banco. |
-| BANCO | nombre | VARCHAR2(50) | NOT NULL (UNIQUE junto a cod_sbif) | Nombre del banco. |
-| BANCO | cod_sbif | NUMBER | NOT NULL (UNIQUE junto a nombre) | Código SBIF del banco. |
+| BANCO | nombre | VARCHAR2(50) | NOT NULL | Nombre del banco. |
+| BANCO | cod_sbif | NUMBER | UNIQUE, NOT NULL | Código SBIF del banco (identificador externo único; ya no depende de `nombre`). |
 | ESTADO_PAGO | id | NUMBER | PK | Identificador del estado de pago. |
 | ESTADO_PAGO | estado | VARCHAR2(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
 | MEDIO_PAGO | id | NUMBER | PK | Identificador del medio de pago. |
@@ -494,32 +534,37 @@ Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
 | TIPO_RECIBO | id | NUMBER | PK | Identificador del tipo de recibo. |
 | TIPO_RECIBO | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del tipo de recibo o comprobante. |
 | PAGO | id | NUMBER | PK | Identificador del pago. |
-| PAGO | hash | VARCHAR2(50 BYTE) | UNIQUE, NOT NULL | Hash único de la transacción de pago. |
+| PAGO | hash | VARCHAR2(50 BYTE) | UNIQUE, NOT NULL | Hash único de la transacción de pago, generado internamente por el backend al crear el pago (no proviene de una pasarela de pago externa). |
 | PAGO | monto | NUMBER | NOT NULL | Monto del pago. |
 | PAGO | ESTADO_PAGO_id | NUMBER | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
 | PAGO | BANCO_id | NUMBER | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
 | PAGO | EMPRESA_id_empresa | NUMBER | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
 | PAGO | MEDIO_PAGO_id | NUMBER | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
-| PAGO | TIPO_RECIBO_nombre | VARCHAR2(20) | FK → TIPO_RECIBO(nombre), NOT NULL | Tipo de recibo emitido para este pago. |
-| PAGO | FECHA_HORA_id | NUMBER | FK → FECHA_HORA, NOT NULL | Fecha y hora del pago. |
-| FECHA_HORA | id | NUMBER | PK | Identificador del instante de fecha/hora. |
-| FECHA_HORA | data | DATE | NOT NULL | Valor de fecha y hora; entidad extraída de VIAJE/PAGO para centralizar el tipo de dato (facilita un futuro cambio de tipo). |
+| PAGO | TIPO_RECIBO_id | NUMBER | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
+| PAGO | fecha_pago | TIMESTAMP | NOT NULL | Fecha y hora del pago. |
 | VIAJE | id_viaje | NUMBER | PK | Identificador del viaje. |
+| VIAJE | folio | VARCHAR2(20) | UNIQUE, NOT NULL | Identificador público del viaje, usado como clave de ruta en la API en vez de `id_viaje`; lo genera el backend al crearse el viaje y es inmutable después. |
 | VIAJE | id_solicitante | NUMBER | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
 | VIAJE | id_origen | NUMBER | FK → UBICACION, NOT NULL | Dirección de origen. |
 | VIAJE | id_destino | NUMBER | FK → UBICACION, NOT NULL | Dirección de destino. |
 | VIAJE | id_estado | NUMBER | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
 | VIAJE | MOVIL_id_movil | NUMBER | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
 | VIAJE | PAGO_id | NUMBER | FK → PAGO | Pago asociado al viaje, si existe. |
-| VIAJE | FH_creacion | NUMBER | FK → FECHA_HORA, NOT NULL | Momento en que se registró la solicitud. |
-| VIAJE | FH_agenda | NUMBER | FK → FECHA_HORA, NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
-| VIAJE | FH_asignacion | NUMBER | FK → FECHA_HORA | Momento en que se asignó un conductor. |
-| VIAJE | FH_inicio | NUMBER | FK → FECHA_HORA | Momento en que el viaje pasó a En Curso. |
-| VIAJE | FH_fin | NUMBER | FK → FECHA_HORA | Momento en que el viaje se marcó Finalizado. |
+| VIAJE | cantidad_pasajeros | NUMBER | NOT NULL, DEFAULT 0 | Conteo mantenido automáticamente desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
+| VIAJE | FH_creacion | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
+| VIAJE | FH_agenda | TIMESTAMP | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
+| VIAJE | FH_asignacion | TIMESTAMP | — | Momento en que se asignó un conductor. |
+| VIAJE | FH_inicio | TIMESTAMP | — | Momento en que el viaje pasó a En Curso. |
+| VIAJE | FH_fin | TIMESTAMP | — | Momento en que el viaje se marcó Finalizado. |
 | VIAJE | CONDUCTOR_id_usuario | NUMBER | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
 | VIAJE | numero_vuelo | VARCHAR2(20) | — | Opcional; solo si aplica a un vuelo. |
 | DETALLE_VIAJE_PASAJERO | id_viaje | NUMBER | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
 | DETALLE_VIAJE_PASAJERO | id_pasajero | NUMBER | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
+| HISTORIAL_VIAJE | id_historial | NUMBER | PK | Identificador de la fila de historial. |
+| HISTORIAL_VIAJE | id_viaje | NUMBER | FK → VIAJE, NOT NULL | Viaje al que pertenece el cambio. |
+| HISTORIAL_VIAJE | campo_modificado | VARCHAR2(30) | NOT NULL | Nombre del campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
+| HISTORIAL_VIAJE | valor | VARCHAR2(200) | NOT NULL | Valor nuevo de ese campo, como texto. |
+| HISTORIAL_VIAJE | fecha_cambio | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `FH_creacion` son inmutables y nunca generan fila aquí. |
 
 El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
 propios que persistir.
@@ -527,8 +572,15 @@ propios que persistir.
 > **Nota:** `CANCELADO` se añade a `ESTADO_SOLICITUD` más allá de los 4 estados del
 > Anexo de Requerimiento (§3.2: Pendiente, Asignado, En Curso, Finalizado). Se agrega
 > específicamente para generar auditoría: queda un registro con fecha/hora del evento
-> (vía `FECHA_HORA`) sin eliminar la solicitud ni perder trazabilidad, en vez de
-> reutilizar un estado existente o borrar la fila (RF15/CU-08).
+> sin eliminar la solicitud ni perder trazabilidad, en vez de reutilizar un estado
+> existente o borrar la fila (RF15/CU-08).
+
+> **Nota:** `HISTORIAL_VIAJE` se agrega por el mismo motivo, pero para los cambios de
+> un viaje a lo largo de todo su ciclo de vida, no solo su cancelación: conductor,
+> móvil, estado y cantidad de pasajeros pueden cambiar varias veces (p. ej. una
+> reasignación, HU05), y sin este historial se perdería el rastro de los valores
+> anteriores. `folio` y `FH_creacion` quedan inmutables a propósito, así que nunca
+> generan una fila aquí.
 
 Normalizado a 3FN:
 - `UBICACION` separada de `VIAJE`: latitud/longitud dependen funcionalmente de la
@@ -541,10 +593,13 @@ Normalizado a 3FN:
   `CHECK`; `ESTADO_SOLICITUD`, `ESTADO_CONDUCTOR`, `ESTADO_MOVIL`, `ESTADO_PAGO`,
   `MEDIO_PAGO` y `TIPO_RECIBO` sí pasan de `CHECK` a catálogo: no corrige una forma
   normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que
-  los usan.
-- `FECHA_HORA` centraliza los valores de fecha/hora usados por `VIAJE` (agenda,
-  creación, asignación, inicio, fin) y `PAGO`: tampoco corrige una forma normal, pero
-  permite cambiar el tipo de dato de fecha/hora en un solo lugar.
+  los usan. La tabla-por-subtipo, por sí sola, no impide que un mismo `id_usuario`
+  tenga fila en más de un rol a la vez; `USUARIO_ROL_ACTIVO` existe exactamente para
+  eso — no es una corrección de forma normal, es una restricción de exclusividad.
+- `VIAJE.cantidad_pasajeros` es una denormalización deliberada: duplica lo que ya
+  cuenta `DETALLE_VIAJE_PASAJERO`. Es aceptable porque la mantiene un trigger, no el
+  cliente, así que nunca queda desincronizada, y evita un `COUNT(*)` en cada consulta
+  de "viajes del día" (RNF03).
 - `COMUNA`/`REGION`: `id_comuna` es un atributo propio de `UBICACION` (no derivado de
   `direccion`, que ya no es `UNIQUE` por sí sola sino en conjunto con comuna y
   coordenadas), por lo que la referencia a `COMUNA` es una FK normal y no una
@@ -627,6 +682,28 @@ siguientes ventajas técnicas:
   dependa de recargar manualmente o de mantener una conexión persistente abierta.
   Cada usuario autenticado registra su token de dispositivo, que el backend actualiza
   al iniciar sesión.
+
+#### Mapeo de roles por endpoint
+
+El `SecurityFilterChain` (bullet anterior) necesita saber qué rol puede tocar cada
+recurso. Basado en las responsabilidades ya descritas en los casos de uso:
+
+| Recurso | Roles con acceso | Alcance |
+|---|---|---|
+| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo sobre su propia cuenta (RNF08). |
+| `administradores` | Administrador | Gestión de cuentas de Administrador. |
+| `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo sobre su propia cuenta. |
+| `solicitantes` | Solicitante (su propia cuenta); Administrador (lectura) | — |
+| `empresas` | Solicitante (crea/reutiliza al registrarse, RF01); Administrador (lectura) | — |
+| `moviles` | Administrador | Gestión de flota (CU-09, CU-10). |
+| `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus propios viajes (RF20). |
+| `pasajeros` | Solicitante (los registra, CU-01); Administrador (lectura) | — |
+| `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los propios asignados, RF07/RF08) | — |
+
+Los 9 catálogos (`bancos`, `comunas`, `estados-conductor`, `estados-movil`,
+`estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`, `tipos-recibo`) no
+entran en esta tabla porque ningún rol los toca vía API — se modifican solo desde la
+base de datos (ver "CRUD REST").
 
 ### Frontend
 
@@ -730,25 +807,14 @@ backend/
     │   │   ├── controller/
     │   │   │   ├── CrudController.java
     │   │   │   ├── AdministradorController.java
-    │   │   │   ├── BancoController.java
-    │   │   │   ├── ComunaController.java
     │   │   │   ├── ConductorController.java
     │   │   │   ├── DetalleMovilConductorController.java
     │   │   │   ├── DetalleViajePasajeroController.java
     │   │   │   ├── EmpresaController.java
-    │   │   │   ├── EstadoConductorController.java
-    │   │   │   ├── EstadoMovilController.java
-    │   │   │   ├── EstadoPagoController.java
-    │   │   │   ├── EstadoSolicitudController.java
-    │   │   │   ├── FechaHoraController.java
-    │   │   │   ├── MedioPagoController.java
     │   │   │   ├── MovilController.java
     │   │   │   ├── PagoController.java
     │   │   │   ├── PasajeroController.java
-    │   │   │   ├── RegionController.java
     │   │   │   ├── SolicitanteController.java
-    │   │   │   ├── TipoReciboController.java
-    │   │   │   ├── UbicacionController.java
     │   │   │   ├── UsuarioController.java
     │   │   │   └── ViajeController.java
     │   │   ├── dto/
@@ -769,7 +835,7 @@ backend/
     │   │   │   ├── EstadoMovil.java
     │   │   │   ├── EstadoPago.java
     │   │   │   ├── EstadoSolicitud.java
-    │   │   │   ├── FechaHora.java
+    │   │   │   ├── HistorialViaje.java
     │   │   │   ├── MedioPago.java
     │   │   │   ├── Movil.java
     │   │   │   ├── Pago.java
@@ -792,7 +858,7 @@ backend/
     │   │   │   ├── EstadoMovilRepository.java
     │   │   │   ├── EstadoPagoRepository.java
     │   │   │   ├── EstadoSolicitudRepository.java
-    │   │   │   ├── FechaHoraRepository.java
+    │   │   │   ├── HistorialViajeRepository.java
     │   │   │   ├── MedioPagoRepository.java
     │   │   │   ├── MovilRepository.java
     │   │   │   ├── PagoRepository.java
@@ -805,25 +871,15 @@ backend/
     │   │   │   └── ViajeRepository.java
     │   │   └── service/
     │   │       ├── AdministradorService.java
-    │   │       ├── BancoService.java
-    │   │       ├── ComunaService.java
     │   │       ├── ConductorService.java
     │   │       ├── CrudService.java
     │   │       ├── DetalleMovilConductorService.java
     │   │       ├── DetalleViajePasajeroService.java
     │   │       ├── EmpresaService.java
-    │   │       ├── EstadoConductorService.java
-    │   │       ├── EstadoMovilService.java
-    │   │       ├── EstadoPagoService.java
-    │   │       ├── EstadoSolicitudService.java
-    │   │       ├── FechaHoraService.java
-    │   │       ├── MedioPagoService.java
     │   │       ├── MovilService.java
     │   │       ├── PagoService.java
     │   │       ├── PasajeroService.java
-    │   │       ├── RegionService.java
     │   │       ├── SolicitanteService.java
-    │   │       ├── TipoReciboService.java
     │   │       ├── UbicacionService.java
     │   │       ├── UsuarioService.java
     │   │       └── ViajeService.java
@@ -836,7 +892,10 @@ backend/
         └── TransporteApplicationTests.java
 ```
 
-> En el árbol anterior, `repository/` y `service/` contienen una clase por entidad, además de sus clases base. Las dos tablas de relación M:N también tienen sus repositorios y servicios propios.
+> En el árbol anterior, `repository/` y `service/` contienen una clase por entidad, además de sus clases base. Las dos tablas de relación M:N también tienen sus repositorios y servicios propios. Tres excepciones a ese patrón:
+> - Los 9 catálogos (`Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`, `EstadoPago`, `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`) tienen `Model`/`Repository`, pero **no** `Controller` ni `Service` propios: no se exponen ni se modifican vía API, solo desde la base de datos directamente. Cuando otra entidad necesita validar que un valor de catálogo existe (p. ej. `PagoService` validando `BANCO_id`), lo hace con un `SELECT` (`existsById`) contra el `Repository` del catálogo.
+> - `Ubicacion` tiene `Model`/`Repository`/`Service`, pero **no** `Controller`: su única clave de negocio es compuesta (dirección + comuna + coordenadas), no sirve como clave de ruta, así que no tiene recurso propio; `UbicacionService` se usa internamente desde `ViajeService` al registrar o consultar un viaje.
+> - `HistorialViaje` tiene `Model`/`Repository`, pero **no** `Controller` ni `Service`: lo llenan los triggers de `VIAJE` directamente en la base de datos (ver `datamodeler/schema.sql`), no la capa de aplicación. Es intencional: si se expusiera con `POST`/`PUT`/`DELETE`, se podría falsear o borrar el historial.
 
 ## Responsabilidad de cada capa
 
@@ -854,24 +913,63 @@ backend/
 
 ## CRUD REST
 
-Los controladores CRUD usan el prefijo `/api/v1/` y ofrecen estas operaciones para las entidades con ID simple:
+Los controladores CRUD usan el prefijo `/api/v1/`. El `id` interno es un dato oculto
+para el frontend: las rutas de un solo recurso no usan `{id}`, usan la columna
+`UNIQUE` de negocio de cada entidad:
 
 | Método | Ruta | Acción |
 |---|---|---|
 | `GET` | `/api/v1/{recurso}` | Listar registros |
-| `GET` | `/api/v1/{recurso}/{id}` | Consultar un registro |
+| `GET` | `/api/v1/{recurso}/{valor_unique_key}` | Consultar un registro |
 | `POST` | `/api/v1/{recurso}` | Crear un registro |
-| `PUT` | `/api/v1/{recurso}/{id}` | Actualizar un registro; el ID del cuerpo debe coincidir con el de la ruta |
-| `DELETE` | `/api/v1/{recurso}/{id}` | Eliminar un registro |
+| `PUT` | `/api/v1/{recurso}/{valor_unique_key}` | Solo para `usuarios`, `conductores` y `solicitantes` (ver más abajo) |
 
-Recursos disponibles: `administradores`, `bancos`, `comunas`, `conductores`, `empresas`, `estados-conductor`, `estados-movil`, `estados-pago`, `estados-solicitud`, `fechas-horas`, `medios-pago`, `moviles`, `pagos`, `pasajeros`, `regiones`, `solicitantes`, `tipos-recibo`, `ubicaciones`, `usuarios` y `viajes`.
+No hay `DELETE` para ningún recurso — consistente con el resto del modelo (`CANCELADO`
+en vez de borrar una solicitud, `HISTORIAL_VIAJE` en vez de perder el valor anterior
+de un campo): ninguna fila se destruye por API, como mucho cambia de estado.
 
-Las tablas puente usan dos columnas como clave primaria y tienen rutas específicas:
+`valor_unique_key` por recurso:
 
-- `/api/v1/habilitaciones-movil-conductor/{movilId}/{conductorId}`
-- `/api/v1/pasajeros-viaje/{viajeId}/{pasajeroId}`
+| Recurso | Clave de ruta |
+|---|---|
+| `usuarios`, `administradores`, `conductores`, `solicitantes` | `correo` (de `USUARIO`) |
+| `empresas` | `rut` |
+| `moviles` | `patente` |
+| `pasajeros` | `dni_hash` |
+| `pagos` | `hash` |
+| `viajes` | `folio` |
 
-En estas tablas, la asociación se crea y elimina como unidad; no tiene una operación `PUT` porque no posee atributos propios que actualizar.
+**Restricción de verbos:** `PUT` genérico solo está disponible para `usuarios`,
+`conductores` y `solicitantes` (los que de verdad se editan vía API hoy, p. ej. el
+Administrador reemplazando la contraseña de un Conductor, CU-07). El resto de los
+recursos — `administradores`, `empresas`, `moviles`, `pagos`, `pasajeros`, `viajes` —
+solo tiene `GET`/`POST`. Para `viajes` en particular es intencional: conductor,
+móvil, estado y cantidad de pasajeros ya no se editan por un `PUT` directo sobre el
+recurso — cualquier mutación de esos campos la valida y audita la base de datos
+(triggers de `datamodeler/schema.sql`), no un endpoint CRUD genérico. Las acciones de
+negocio que sí deben seguir existiendo (asignar conductor/vehículo CU-04, cambiar
+estado CU-05, cancelar CU-08) se implementan como endpoints dedicados fuera del
+patrón CRUD genérico, no como un `PUT` sobre `/api/v1/viajes/{folio}`.
+
+Recursos disponibles: `administradores`, `conductores`, `empresas`, `moviles`,
+`pagos`, `pasajeros`, `solicitantes`, `usuarios` y `viajes`.
+
+Los 9 catálogos (`bancos`, `comunas`, `estados-conductor`, `estados-movil`,
+`estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`, `tipos-recibo`) y
+`ubicaciones` no son recursos de la API: los catálogos se modifican solo desde la
+base de datos (ver "Mapeo de roles por endpoint"), y `ubicaciones` no tiene una
+clave de ruta de una sola columna (su único `UNIQUE` es compuesto por dirección,
+comuna y coordenadas) — se crea y consulta solo como parte de `viajes`.
+
+Las tablas puente usan dos columnas como clave primaria y tienen rutas específicas,
+también con clave de negocio en vez de id:
+
+- `/api/v1/habilitaciones-movil-conductor/{patente}/{correo}`
+- `/api/v1/pasajeros-viaje/{folio}/{dni_hash}`
+
+En estas tablas, la asociación se crea como unidad; no tienen `PUT` ni `DELETE`
+porque no poseen atributos propios que actualizar y, como el resto del modelo, no se
+borran por API.
 
 ## Persistencia MariaDB
 
@@ -884,7 +982,9 @@ En estas tablas, la asociación se crea y elimina como unidad; no tiene una oper
 
 - La estructura sigue el patrón clásico global `Controller → Service → Repository`.
 - Los CRUD se implementaron como base genérica; no sustituyen reglas del negocio para asignación, cancelación, transiciones de viaje y pago.
-- La seguridad configurada usa HTTP Basic y requiere autenticación. JWT y autorización por rol todavía deben implementarse para cumplir el README.
+- La seguridad configurada usa HTTP Basic y requiere autenticación. Mientras no se implemente JWT (CU-14) con el `SecurityFilterChain` del mapeo rol→endpoint, RNF01 no se cumple.
+- Los CRUD devolviendo modelos directos (en vez de DTOs) filtran `password_hash` en las respuestas de `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo concreto de seguridad, no solo una brecha genérica de estilo.
+- La implementación actual expone `PUT`/`DELETE` genérico sobre todas las entidades; esto ya no coincide con la sección "CRUD REST" (sin `DELETE` en ningún recurso, y `PUT` solo para `usuarios`/`conductores`/`solicitantes`) — falta actualizar el backend para que el resto deje de aceptar esos verbos.
 - `FirebaseClient` es solo una interfaz; aún faltan la implementación/configuración de Firebase y la persistencia del token de dispositivo (RF13).
 - Faltan DTOs de petición/respuesta para dejar de exponer directamente las entidades en los CRUD.
 - `datamodeler/schema.sql` se conserva como referencia Oracle. La aplicación utiliza las migraciones MariaDB de `src/main/resources/db/migration`.

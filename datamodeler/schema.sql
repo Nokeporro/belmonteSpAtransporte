@@ -32,8 +32,8 @@ CREATE TABLE BANCO
 ALTER TABLE BANCO 
     ADD CONSTRAINT BANCO_PK PRIMARY KEY ( id ) ;
 
-ALTER TABLE BANCO 
-    ADD CONSTRAINT BANCO__UN UNIQUE ( nombre , cod_sbif ) ;
+ALTER TABLE BANCO
+    ADD CONSTRAINT BANCO_COD_SBIF_UN UNIQUE ( cod_sbif ) ;
 
 CREATE TABLE COMUNA 
     ( 
@@ -104,8 +104,8 @@ CREATE TABLE EMPRESA
 ALTER TABLE EMPRESA 
     ADD CONSTRAINT EMPRESA_PK PRIMARY KEY ( id_empresa ) ;
 
-ALTER TABLE EMPRESA 
-    ADD CONSTRAINT EMPRESA__UN UNIQUE ( razon_social , rut ) ;
+ALTER TABLE EMPRESA
+    ADD CONSTRAINT EMPRESA_RUT_UN UNIQUE ( rut ) ;
 
 CREATE TABLE ESTADO_CONDUCTOR 
     ( 
@@ -162,16 +162,6 @@ ALTER TABLE ESTADO_SOLICITUD
 ALTER TABLE ESTADO_SOLICITUD 
     ADD CONSTRAINT uk_estado_solicitud_nombre UNIQUE ( nombre_estado ) ;
 
-CREATE TABLE FECHA_HORA 
-    ( 
-     id   NUMBER  NOT NULL , 
-     data DATE  NOT NULL 
-    ) 
-;
-
-ALTER TABLE FECHA_HORA 
-    ADD CONSTRAINT FECHA_HORA_PK PRIMARY KEY ( id ) ;
-
 CREATE TABLE MEDIO_PAGO 
     ( 
      id     NUMBER  NOT NULL , 
@@ -207,18 +197,18 @@ ALTER TABLE MOVIL
 ALTER TABLE MOVIL 
     ADD CONSTRAINT MOVIL__UN UNIQUE ( patente ) ;
 
-CREATE TABLE PAGO 
-    ( 
-     id                 NUMBER  NOT NULL , 
-     hash               VARCHAR2 (50 BYTE)  NOT NULL , 
-     monto              NUMBER  NOT NULL , 
-     ESTADO_PAGO_id     NUMBER  NOT NULL , 
-     BANCO_id           NUMBER  NOT NULL , 
-     EMPRESA_id_empresa NUMBER  NOT NULL , 
-     MEDIO_PAGO_id      NUMBER  NOT NULL , 
-     TIPO_RECIBO_nombre VARCHAR2 (20 CHAR)  NOT NULL , 
-     FECHA_HORA_id      NUMBER  NOT NULL 
-    ) 
+CREATE TABLE PAGO
+    (
+     id                 NUMBER  NOT NULL ,
+     hash               VARCHAR2 (50 BYTE)  NOT NULL ,
+     monto              NUMBER  NOT NULL ,
+     ESTADO_PAGO_id     NUMBER  NOT NULL ,
+     BANCO_id           NUMBER  NOT NULL ,
+     EMPRESA_id_empresa NUMBER  NOT NULL ,
+     MEDIO_PAGO_id      NUMBER  NOT NULL ,
+     TIPO_RECIBO_id     NUMBER  NOT NULL ,
+     fecha_pago         TIMESTAMP  NOT NULL
+    )
 ;
 
 ALTER TABLE PAGO 
@@ -229,9 +219,9 @@ ALTER TABLE PAGO
 
 CREATE TABLE PASAJERO 
     ( 
-     id_pasajero NUMBER  NOT NULL , 
-     rut_hash    VARCHAR2 (50 CHAR)  NOT NULL , 
-     nombre      VARCHAR2 (120)  NOT NULL 
+     id_pasajero NUMBER  NOT NULL ,
+     dni_hash    VARCHAR2 (50 CHAR)  NOT NULL ,
+     nombre      VARCHAR2 (120)  NOT NULL
     ) 
 ;
 
@@ -241,8 +231,8 @@ COMMENT ON TABLE PASAJERO IS 'Personas transportadas; puede no coincidir con el 
 ALTER TABLE PASAJERO 
     ADD CONSTRAINT pk_pasajero PRIMARY KEY ( id_pasajero ) ;
 
-ALTER TABLE PASAJERO 
-    ADD CONSTRAINT pasajero__UN UNIQUE ( rut_hash ) ;
+ALTER TABLE PASAJERO
+    ADD CONSTRAINT PASAJERO_DNI_UN UNIQUE ( dni_hash ) ;
 
 CREATE TABLE REGION 
     ( 
@@ -305,21 +295,25 @@ ALTER TABLE UBICACION
 ALTER TABLE UBICACION 
     ADD CONSTRAINT uk_ubicacion_direccion UNIQUE ( direccion , id_comuna , latitud , longitud ) ;
 
-CREATE TABLE USUARIO 
-    ( 
-     id_usuario     NUMBER  NOT NULL , 
-     nombre         VARCHAR2 (120)  NOT NULL , 
-     correo         VARCHAR2 (150)  NOT NULL , 
-     telefono       VARCHAR2 (20) , 
-     password_hash  VARCHAR2 (200)  NOT NULL , 
-     fecha_registro TIMESTAMP DEFAULT SYSTIMESTAMP  NOT NULL 
-    ) 
+CREATE TABLE USUARIO
+    (
+     id_usuario                NUMBER  NOT NULL ,
+     nombre                    VARCHAR2 (120)  NOT NULL ,
+     correo                    VARCHAR2 (150)  NOT NULL ,
+     telefono                  VARCHAR2 (20) ,
+     password_hash             VARCHAR2 (200)  NOT NULL ,
+     password_temporal_expira  TIMESTAMP ,
+     fecha_registro            TIMESTAMP DEFAULT SYSTIMESTAMP  NOT NULL
+    )
 ;
 
 COMMENT ON TABLE USUARIO IS 'Cuentas de acceso de los tres roles con login (RF01, RF06).'
 ;
 
-COMMENT ON COLUMN USUARIO.password_hash IS 'Hash de la contraseña; nunca se almacena en texto plano.' 
+COMMENT ON COLUMN USUARIO.password_hash IS 'Hash de la contraseña; nunca se almacena en texto plano.'
+;
+
+COMMENT ON COLUMN USUARIO.password_temporal_expira IS 'NULL si password_hash es una contraseña normal; con valor, password_hash es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR, que no tiene este mecanismo de autoservicio.'
 ;
 CREATE INDEX USUARIO__IDX ON USUARIO 
     ( 
@@ -334,23 +328,25 @@ ALTER TABLE USUARIO
 ALTER TABLE USUARIO 
     ADD CONSTRAINT uk_usuario_correo UNIQUE ( correo ) ;
 
-CREATE TABLE VIAJE 
-    ( 
-     id_viaje             NUMBER  NOT NULL , 
-     id_solicitante       NUMBER  NOT NULL , 
-     id_origen            NUMBER  NOT NULL , 
-     id_destino           NUMBER  NOT NULL , 
-     id_estado            NUMBER  NOT NULL , 
-     MOVIL_id_movil       NUMBER , 
-     PAGO_id              NUMBER , 
-     FH_creacion          NUMBER  NOT NULL , 
-     FH_agenda            NUMBER  NOT NULL , 
-     FH_asignacion        NUMBER , 
-     FH_inicio            NUMBER , 
-     FH_fin               NUMBER , 
-     CONDUCTOR_id_usuario NUMBER , 
-     numero_vuelo         VARCHAR2 (20) 
-    ) 
+CREATE TABLE VIAJE
+    (
+     id_viaje             NUMBER  NOT NULL ,
+     folio                VARCHAR2 (20 CHAR)  NOT NULL ,
+     id_solicitante       NUMBER  NOT NULL ,
+     id_origen            NUMBER  NOT NULL ,
+     id_destino           NUMBER  NOT NULL ,
+     id_estado            NUMBER  NOT NULL ,
+     MOVIL_id_movil       NUMBER ,
+     PAGO_id              NUMBER ,
+     cantidad_pasajeros   NUMBER  DEFAULT 0  NOT NULL ,
+     FH_creacion          TIMESTAMP DEFAULT SYSTIMESTAMP  NOT NULL ,
+     FH_agenda            TIMESTAMP  NOT NULL ,
+     FH_asignacion        TIMESTAMP ,
+     FH_inicio            TIMESTAMP ,
+     FH_fin               TIMESTAMP ,
+     CONDUCTOR_id_usuario NUMBER ,
+     numero_vuelo         VARCHAR2 (20)
+    )
 ;
 
 COMMENT ON TABLE VIAJE IS 'Solicitud de traslado corporativo (RF02-RF10; casos de uso 1, 4 y 5).'
@@ -374,8 +370,11 @@ CREATE INDEX VIAJE__IDX ON VIAJE
     ) 
 ;
 
-ALTER TABLE VIAJE 
+ALTER TABLE VIAJE
     ADD CONSTRAINT pk_solicitud_traslado PRIMARY KEY ( id_viaje ) ;
+
+ALTER TABLE VIAJE
+    ADD CONSTRAINT VIAJE_FOLIO_UN UNIQUE ( folio ) ;
 
 ALTER TABLE CONDUCTOR 
     ADD CONSTRAINT conductor_ESTADO_CONDUCTOR_FK FOREIGN KEY 
@@ -407,61 +406,6 @@ ALTER TABLE DETALLE_MOVIL_CONDUCTOR
     REFERENCES MOVIL 
     ( 
      id_movil
-    ) 
-;
-
-ALTER TABLE VIAJE 
-    ADD CONSTRAINT FECHAHORA_agenda FOREIGN KEY 
-    ( 
-     FH_agenda
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
-    ) 
-;
-
-ALTER TABLE VIAJE 
-    ADD CONSTRAINT FECHAHORA_asignacion FOREIGN KEY 
-    ( 
-     FH_asignacion
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
-    ) 
-;
-
-ALTER TABLE VIAJE 
-    ADD CONSTRAINT FECHAHORA_creacion FOREIGN KEY 
-    ( 
-     FH_creacion
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
-    ) 
-;
-
-ALTER TABLE VIAJE 
-    ADD CONSTRAINT FECHAHORA_fin FOREIGN KEY 
-    ( 
-     FH_fin
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
-    ) 
-;
-
-ALTER TABLE VIAJE 
-    ADD CONSTRAINT FECHAHORA_inicio FOREIGN KEY 
-    ( 
-     FH_inicio
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
     ) 
 ;
 
@@ -631,17 +575,6 @@ ALTER TABLE PAGO
 ;
 
 ALTER TABLE PAGO 
-    ADD CONSTRAINT PAGO_FECHA_HORA_FK FOREIGN KEY 
-    ( 
-     FECHA_HORA_id
-    ) 
-    REFERENCES FECHA_HORA 
-    ( 
-     id
-    ) 
-;
-
-ALTER TABLE PAGO 
     ADD CONSTRAINT PAGO_MEDIO_PAGO_FK FOREIGN KEY 
     ( 
      MEDIO_PAGO_id
@@ -652,15 +585,15 @@ ALTER TABLE PAGO
     ) 
 ;
 
-ALTER TABLE PAGO 
-    ADD CONSTRAINT PAGO_TIPO_RECIBO_FK FOREIGN KEY 
-    ( 
-     TIPO_RECIBO_nombre
-    ) 
-    REFERENCES TIPO_RECIBO 
-    ( 
-     nombre
-    ) 
+ALTER TABLE PAGO
+    ADD CONSTRAINT PAGO_TIPO_RECIBO_FK FOREIGN KEY
+    (
+     TIPO_RECIBO_id
+    )
+    REFERENCES TIPO_RECIBO
+    (
+     id
+    )
 ;
 
 ALTER TABLE SOLICITANTE 
@@ -783,17 +716,220 @@ CREATE SEQUENCE VIAJE_id_viaje_SEQ
 START WITH 1 
     NOCACHE ;
 
-CREATE OR REPLACE TRIGGER VIAJE_id_viaje_TRG 
-BEFORE INSERT ON VIAJE 
-FOR EACH ROW 
-BEGIN 
-    :NEW.id_viaje := VIAJE_id_viaje_SEQ.NEXTVAL; 
+CREATE OR REPLACE TRIGGER VIAJE_id_viaje_TRG
+BEFORE INSERT ON VIAJE
+FOR EACH ROW
+BEGIN
+    :NEW.id_viaje := VIAJE_id_viaje_SEQ.NEXTVAL;
 END;
 /
 
 
 
--- Oracle SQL Developer Data Modeler Summary Report: 
+-- Correcciones manuales posteriores a la exportación de Data Modeler (ver README.md).
+
+CREATE TABLE USUARIO_ROL_ACTIVO
+    (
+     id_usuario NUMBER  NOT NULL
+    )
+;
+
+COMMENT ON TABLE USUARIO_ROL_ACTIVO IS 'Garantiza que un USUARIO tenga un solo rol activo (SOLICITANTE, ADMINISTRADOR o CONDUCTOR, nunca más de uno). Sin columnas propias: su unica funcion es la PRIMARY KEY.'
+;
+
+ALTER TABLE USUARIO_ROL_ACTIVO
+    ADD CONSTRAINT USUARIO_ROL_ACTIVO_PK PRIMARY KEY ( id_usuario ) ;
+
+ALTER TABLE USUARIO_ROL_ACTIVO
+    ADD CONSTRAINT USUARIO_ROL_ACTIVO_USUARIO_FK FOREIGN KEY
+    (
+     id_usuario
+    )
+    REFERENCES USUARIO
+    (
+     id_usuario
+    )
+;
+
+CREATE OR REPLACE TRIGGER SOLICITANTE_ROL_TRG
+BEFORE INSERT ON SOLICITANTE
+FOR EACH ROW
+BEGIN
+    INSERT INTO USUARIO_ROL_ACTIVO (id_usuario) VALUES (:NEW.id_usuario);
+END;
+/
+
+CREATE OR REPLACE TRIGGER ADMINISTRADOR_ROL_TRG
+BEFORE INSERT ON ADMINISTRADOR
+FOR EACH ROW
+BEGIN
+    INSERT INTO USUARIO_ROL_ACTIVO (id_usuario) VALUES (:NEW.id_usuario);
+END;
+/
+
+CREATE OR REPLACE TRIGGER CONDUCTOR_ROL_TRG
+BEFORE INSERT ON CONDUCTOR
+FOR EACH ROW
+BEGIN
+    INSERT INTO USUARIO_ROL_ACTIVO (id_usuario) VALUES (:NEW.id_usuario);
+END;
+/
+
+CREATE TABLE HISTORIAL_VIAJE
+    (
+     id_historial     NUMBER  NOT NULL ,
+     id_viaje         NUMBER  NOT NULL ,
+     campo_modificado VARCHAR2 (30 CHAR)  NOT NULL ,
+     valor            VARCHAR2 (200 CHAR)  NOT NULL ,
+     fecha_cambio     TIMESTAMP DEFAULT SYSTIMESTAMP  NOT NULL
+    )
+;
+
+COMMENT ON TABLE HISTORIAL_VIAJE IS 'Historial de cambios de VIAJE: una fila por cada campo mutable que cambia en cada UPDATE (conductor, movil, estado, cantidad de pasajeros, etc). folio y FH_creacion son inmutables y nunca generan fila aqui. Solo lo escriben los triggers de VIAJE; no tiene Controller/Service ni se expone por la API.'
+;
+
+ALTER TABLE HISTORIAL_VIAJE
+    ADD CONSTRAINT HISTORIAL_VIAJE_PK PRIMARY KEY ( id_historial ) ;
+
+ALTER TABLE HISTORIAL_VIAJE
+    ADD CONSTRAINT HISTORIAL_VIAJE_VIAJE_FK FOREIGN KEY
+    (
+     id_viaje
+    )
+    REFERENCES VIAJE
+    (
+     id_viaje
+    )
+;
+
+CREATE SEQUENCE HISTORIAL_VIAJE_id_historial_SEQ
+START WITH 1
+    NOCACHE ;
+
+CREATE OR REPLACE TRIGGER HISTORIAL_VIAJE_id_historial_TRG
+BEFORE INSERT ON HISTORIAL_VIAJE
+FOR EACH ROW
+BEGIN
+    :NEW.id_historial := HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL;
+END;
+/
+
+CREATE OR REPLACE TRIGGER VIAJE_INMUTABLES_TRG
+BEFORE UPDATE ON VIAJE
+FOR EACH ROW
+BEGIN
+    IF :NEW.folio != :OLD.folio THEN
+        RAISE_APPLICATION_ERROR(-20001, 'VIAJE.folio es inmutable, no se puede modificar.');
+    END IF;
+    IF :NEW.FH_creacion != :OLD.FH_creacion THEN
+        RAISE_APPLICATION_ERROR(-20002, 'VIAJE.FH_creacion es inmutable, no se puede modificar.');
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER HISTORIAL_VIAJE_TRG
+AFTER UPDATE ON VIAJE
+FOR EACH ROW
+BEGIN
+    IF NVL(:OLD.CONDUCTOR_id_usuario,-1) != NVL(:NEW.CONDUCTOR_id_usuario,-1) THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'CONDUCTOR_ID_USUARIO', TO_CHAR(:NEW.CONDUCTOR_id_usuario), SYSTIMESTAMP);
+    END IF;
+    IF NVL(:OLD.MOVIL_id_movil,-1) != NVL(:NEW.MOVIL_id_movil,-1) THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'MOVIL_ID_MOVIL', TO_CHAR(:NEW.MOVIL_id_movil), SYSTIMESTAMP);
+    END IF;
+    IF :OLD.id_estado != :NEW.id_estado THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'ID_ESTADO', TO_CHAR(:NEW.id_estado), SYSTIMESTAMP);
+    END IF;
+    IF :OLD.cantidad_pasajeros != :NEW.cantidad_pasajeros THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'CANTIDAD_PASAJEROS', TO_CHAR(:NEW.cantidad_pasajeros), SYSTIMESTAMP);
+    END IF;
+    IF NVL(:OLD.numero_vuelo,'#') != NVL(:NEW.numero_vuelo,'#') THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'NUMERO_VUELO', :NEW.numero_vuelo, SYSTIMESTAMP);
+    END IF;
+    IF :OLD.id_origen != :NEW.id_origen THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'ID_ORIGEN', TO_CHAR(:NEW.id_origen), SYSTIMESTAMP);
+    END IF;
+    IF :OLD.id_destino != :NEW.id_destino THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'ID_DESTINO', TO_CHAR(:NEW.id_destino), SYSTIMESTAMP);
+    END IF;
+    IF NVL(:OLD.FH_asignacion, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) != NVL(:NEW.FH_asignacion, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'FH_ASIGNACION', TO_CHAR(:NEW.FH_asignacion), SYSTIMESTAMP);
+    END IF;
+    IF NVL(:OLD.FH_inicio, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) != NVL(:NEW.FH_inicio, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'FH_INICIO', TO_CHAR(:NEW.FH_inicio), SYSTIMESTAMP);
+    END IF;
+    IF NVL(:OLD.FH_fin, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) != NVL(:NEW.FH_fin, TO_TIMESTAMP('0001-01-01','YYYY-MM-DD')) THEN
+        INSERT INTO HISTORIAL_VIAJE (id_historial, id_viaje, campo_modificado, valor, fecha_cambio)
+        VALUES (HISTORIAL_VIAJE_id_historial_SEQ.NEXTVAL, :NEW.id_viaje, 'FH_FIN', TO_CHAR(:NEW.FH_fin), SYSTIMESTAMP);
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER VIAJE_CAPACIDAD_MOVIL_TRG
+BEFORE UPDATE OF MOVIL_id_movil ON VIAJE
+FOR EACH ROW
+DECLARE
+    v_capacidad NUMBER;
+BEGIN
+    IF :NEW.MOVIL_id_movil IS NOT NULL THEN
+        SELECT capacidad INTO v_capacidad FROM MOVIL WHERE id_movil = :NEW.MOVIL_id_movil;
+        IF :NEW.cantidad_pasajeros > v_capacidad THEN
+            RAISE_APPLICATION_ERROR(-20011, 'El movil asignado no tiene capacidad suficiente para la cantidad de pasajeros del viaje.');
+        END IF;
+    END IF;
+END;
+/
+
+CREATE OR REPLACE TRIGGER DETALLE_VIAJE_PASAJERO_CANT_TRG
+FOR INSERT OR DELETE ON DETALLE_VIAJE_PASAJERO
+COMPOUND TRIGGER
+
+    TYPE t_viajes IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+    v_viajes_afectados t_viajes;
+    v_n PLS_INTEGER := 0;
+
+    AFTER EACH ROW IS
+    BEGIN
+        v_n := v_n + 1;
+        v_viajes_afectados(v_n) := COALESCE(:NEW.id_viaje, :OLD.id_viaje);
+    END AFTER EACH ROW;
+
+    AFTER STATEMENT IS
+        v_count     NUMBER;
+        v_movil     NUMBER;
+        v_capacidad NUMBER;
+    BEGIN
+        FOR i IN 1 .. v_n LOOP
+            SELECT COUNT(*) INTO v_count FROM DETALLE_VIAJE_PASAJERO
+             WHERE id_viaje = v_viajes_afectados(i);
+            SELECT MOVIL_id_movil INTO v_movil FROM VIAJE
+             WHERE id_viaje = v_viajes_afectados(i);
+            IF v_movil IS NOT NULL THEN
+                SELECT capacidad INTO v_capacidad FROM MOVIL WHERE id_movil = v_movil;
+                IF v_count > v_capacidad THEN
+                    RAISE_APPLICATION_ERROR(-20010,
+                        'La cantidad de pasajeros supera la capacidad del movil asignado a este viaje.');
+                END IF;
+            END IF;
+            UPDATE VIAJE SET cantidad_pasajeros = v_count WHERE id_viaje = v_viajes_afectados(i);
+        END LOOP;
+    END AFTER STATEMENT;
+
+END DETALLE_VIAJE_PASAJERO_CANT_TRG;
+/
+
+
+
+-- Oracle SQL Developer Data Modeler Summary Report:
 -- 
 -- CREATE TABLE                            22
 -- CREATE INDEX                             5
