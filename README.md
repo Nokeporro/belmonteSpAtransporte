@@ -15,9 +15,9 @@
   - [Casos de uso](#casos-de-uso)
 - [Requerimientos funcionales](#requerimientos-funcionales)
 - [Requisitos no funcionales](#requisitos-no-funcionales)
-- [Historias de usuario](#historias-de-usuario)
-- [Backlog](#backlog)
+- [Historias de usuario y Backlog](#historias-de-usuario-y-backlog)
 - [Modelamiento del problema](#modelamiento-del-problema)
+  - [Decisiones de modelo](#decisiones-de-modelo)
   - [Modelo relacional](#modelo-relacional)
 - [Arquitectura](#arquitectura)
   - [Base de datos MariaDB](#base-de-datos-mariadb)
@@ -36,58 +36,31 @@
 
 ## Introduccion
 
-Belmonte SpA es una empresa del rubro de transporte privado corporativo, enfocada en
-traslados ejecutivos y trayectos hacia/desde aeropuertos. Actualmente toda su gestión
-operativa es manual: las solicitudes de viaje se coordinan de forma dispersa por
-llamadas telefónicas, correos electrónicos y WhatsApp, transmitiendo de manera
-informal datos como direcciones, números de vuelo, nombres de pasajeros, fechas y
-horarios.
-
-Este proyecto busca desarrollar un Producto Mínimo Viable (MVP) de aplicación móvil
-que automatice y centralice el flujo completo de traslados en una plataforma
-unificada, integrando la captura de solicitudes, la asignación de viajes a
-conductores y el enlace directo con aplicaciones de navegación externa (Google Maps /
-Waze) para el trazado de rutas.
+Belmonte SpA hace transporte privado corporativo (traslados ejecutivos y aeropuerto).
+Este MVP móvil centraliza el flujo de traslados: captura de solicitudes, asignación a
+conductores y enlace con navegación externa (Google Maps/Waze).
 
 ### Descripcion de la problematica
 
-La dispersión de la información en múltiples canales informales genera:
-- Ineficiencias logísticas y lentitud en los tiempos de respuesta.
-- Riesgo de errores en datos críticos (horarios mal informados, direcciones
-  incorrectas).
-- Retrasos en que los conductores reciban sus rutas asignadas.
-- Lentitud en la confirmación del servicio de cara al cliente.
-
-El objetivo del proyecto es eliminar la pérdida de información por canales
-informales, lograr una confirmación de solicitudes ágil y reducir el error manual al
-despachar rutas a los choferes.
+Hoy las solicitudes se coordinan a mano por teléfono, correo y WhatsApp, lo que
+produce datos críticos erróneos (horarios, direcciones), respuestas lentas y retrasos
+en que el conductor reciba su ruta.
 
 ### Actores involucrados
 
-- **ACT-01 — Cliente corporativo / Solicitante:** Empresa o persona (ej. asistente,
-  área de RRHH) que agenda el traslado ingresando el formulario con los datos del
-  viaje (fecha, hora, origen, destino, número de vuelo si aplica) y los datos del
-  pasajero.
-- **ACT-02 — Pasajero:** Persona que efectivamente realiza el traslado; puede
-  coincidir o no con quien lo solicitó.
-- **ACT-03 — Recepcionista / Administrador:** Encargado de tomar y distribuir las
-  solicitudes de traslado entre los conductores disponibles; también gestiona la
-  flota (registrar vehículos y habilitar conductores para operarlos) y los pagos de
-  los viajes.
-- **ACT-04 — Conductor:** Ejecuta el transporte en terreno; visualiza en tiempo real
-  los viajes que tiene asignados para el día y utiliza la app para trazar la ruta en
-  navegadores externos.
-- **ACT-05 — Sistema de navegación externo (Google Maps / Waze):** Actor externo que
-  recibe las coordenadas georreferenciadas de origen y destino, y genera el trazado
-  de ruta óptima al ser invocado por el conductor mediante Intents del sistema
-  operativo.
+- **ACT-01 — Cliente corporativo / Solicitante:** agenda el traslado (datos del viaje
+  y del pasajero).
+- **ACT-02 — Pasajero:** quien viaja; puede no ser el solicitante.
+- **ACT-03 — Recepcionista / Administrador:** asigna solicitudes a conductores;
+  gestiona flota (vehículos y habilitaciones) y pagos.
+- **ACT-04 — Conductor:** ejecuta el traslado; ve sus viajes del día y abre la ruta en
+  un navegador externo.
+- **ACT-05 — Sistema de navegación externo (Google Maps / Waze):** recibe las
+  coordenadas por Intent y traza la ruta.
 
-> **Nota:** El Anexo de Requerimiento (§2.4) agrupa "Solicitantes / Pasajeros" en un
-> solo actor. Este proyecto los separa en `ACT-01` y `ACT-02` por dos razones: (a) el
-> Pasajero no tiene por qué estar asociado a la empresa que paga el traslado — en el
-> modelo de datos, `PASAJERO` no tiene FK a `EMPRESA`, a diferencia de `SOLICITANTE` —,
-> y (b) el Solicitante puede no ser quien viaja (p. ej. un asistente agenda el
-> traslado de un ejecutivo o de una visita).
+> **Nota:** el Anexo de Requerimiento (§2.4) agrupa Solicitante y Pasajero. Aquí se
+> separan porque el Pasajero no pertenece necesariamente a la empresa que paga
+> (`PASAJERO` no tiene FK a `EMPRESA`) y el Solicitante puede no viajar.
 
 ### Casos de uso
 
@@ -95,516 +68,361 @@ despachar rutas a los choferes.
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-01 — Cliente corporativo / Solicitante |
-| **Objetivo** | Registrar una solicitud de traslado mediante un formulario digital. |
-| **Precondiciones** | El solicitante dispone de acceso al formulario de solicitud. |
-| **Flujo principal** | 1. El solicitante ingresa al formulario.<br>2. Registra los datos del pasajero.<br>3. Registra fecha y hora del traslado.<br>4. Registra punto de origen y punto de destino.<br>5. Ingresa número de vuelo cuando corresponda.<br>6. El sistema registra la solicitud en estado Pendiente. |
+| **Actor(es)** | ACT-01 |
+| **Objetivo** | Registrar una solicitud de traslado por formulario. |
+| **Precondiciones** | Acceso al formulario. |
+| **Flujo principal** | 1. Ingresa pasajero, fecha/hora, origen, destino y n.º de vuelo (si aplica).<br>2. El sistema la registra en Pendiente. |
 | **Postcondiciones** | Solicitud almacenada y disponible para gestión. |
-| **Flujos alternativos / excepciones** | Datos incompletos o inválidos. Las reglas específicas de validación no están definidas en el alcance actual. |
+| **Alternativos / excepciones** | Datos incompletos o inválidos; las reglas de validación no están definidas en el alcance actual. |
 
 #### CU-02 — Visualizar viajes asignados
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-04 — Conductor |
-| **Objetivo** | Permitir al conductor consultar los viajes que tiene asignados para el día. |
-| **Precondiciones** | El conductor tiene viajes asignados y conectividad con el sistema. |
-| **Flujo principal** | 1. El conductor accede a la sección de viajes.<br>2. El sistema obtiene los viajes asignados.<br>3. El sistema presenta la lista de viajes correspondiente al conductor. |
-| **Postcondiciones** | El conductor dispone de la información actualizada de sus viajes. |
-| **Flujos alternativos / excepciones** | Sin conectividad o ausencia de viajes asignados. El comportamiento específico no está definido. |
+| **Actor(es)** | ACT-04 |
+| **Objetivo** | Consultar los viajes asignados del día. |
+| **Precondiciones** | Viajes asignados y conectividad. |
+| **Flujo principal** | 1. Accede a la sección de viajes.<br>2. El sistema lista los suyos. |
+| **Postcondiciones** | Información de viajes actualizada. |
+| **Alternativos / excepciones** | Sin conectividad o sin viajes; comportamiento no definido. |
 
 #### CU-03 — Navegar a la ruta del viaje
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-04 — Conductor |
-| **Objetivo** | Abrir una aplicación externa de navegación utilizando el origen y destino georreferenciados del viaje. |
-| **Precondiciones** | Existe un viaje asignado con coordenadas de origen y destino. |
-| **Flujo principal** | 1. El conductor selecciona un viaje.<br>2. Presiona la opción de navegación.<br>3. La aplicación genera un Intent con origen y destino.<br>4. El sistema operativo entrega la solicitud a una aplicación compatible de navegación.<br>5. La aplicación externa inicia la navegación. |
-| **Postcondiciones** | La aplicación de navegación externa recibe los puntos del viaje. |
-| **Flujos alternativos / excepciones** | No existe una aplicación compatible o el Intent no puede ser procesado. |
+| **Actor(es)** | ACT-04 |
+| **Objetivo** | Abrir una app de navegación externa con el origen y destino del viaje. |
+| **Precondiciones** | Viaje asignado con coordenadas. |
+| **Flujo principal** | 1. Selecciona un viaje y presiona "Navegar".<br>2. La app genera un Intent con origen y destino.<br>3. El SO lo entrega a una app compatible, que inicia la navegación. |
+| **Postcondiciones** | La app externa recibe los puntos del viaje. |
+| **Alternativos / excepciones** | No hay app compatible o el Intent no puede procesarse. |
 
 #### CU-04 — Gestionar y distribuir solicitudes
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
-| **Objetivo** | Recibir, revisar y asignar solicitudes de traslado a conductores disponibles. |
-| **Precondiciones** | Existen solicitudes registradas y conductores disponibles. |
-| **Flujo principal** | 1. El administrador consulta las solicitudes.<br>2. Selecciona una solicitud.<br>3. Selecciona un conductor disponible (el sistema sugiere los vehículos habilitados para ese conductor).<br>4. Confirma la asignación.<br>5. El sistema actualiza el estado del traslado a Asignado y marca al conductor y al vehículo como Ocupado/En uso. |
-| **Postcondiciones** | La solicitud queda asociada a un conductor y a un vehículo habilitado para él. |
-| **Flujos alternativos / excepciones** | No existen conductores disponibles. No se ha definido una regla de reasignación automática. |
+| **Actor(es)** | ACT-03 |
+| **Objetivo** | Revisar y asignar solicitudes a conductores disponibles. |
+| **Precondiciones** | Solicitudes registradas y conductores disponibles. |
+| **Flujo principal** | 1. Consulta las solicitudes y selecciona una.<br>2. Selecciona un conductor disponible (el sistema sugiere sus vehículos habilitados).<br>3. Confirma.<br>4. El sistema pasa el traslado a Asignado y marca conductor y vehículo como Ocupado/En uso. |
+| **Postcondiciones** | Solicitud asociada a un conductor y a un vehículo habilitado para él. |
+| **Alternativos / excepciones** | Sin conductores disponibles. No hay regla de reasignación automática. |
 
 #### CU-05 — Actualizar estado del traslado
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador; ACT-04 — Conductor |
-| **Objetivo** | Gestionar el ciclo de vida operativo del traslado mediante estados. |
-| **Precondiciones** | Existe una solicitud registrada. |
-| **Flujo principal** | 1. El traslado inicia en estado Pendiente.<br>2. Recepcionista / Administrador asigna un conductor → Asignado.<br>3. Conductor inicia el traslado → En Curso.<br>4. Conductor finaliza el traslado → Finalizado.<br>5. Al finalizar, el conductor y el vehículo asignados vuelven a estado Disponible. |
-| **Postcondiciones** | El estado representa la etapa actual del traslado. |
-| **Flujos alternativos / excepciones** | No se encuentran definidas reglas para retroceder estados, cancelar o reabrir un traslado. |
+| **Actor(es)** | ACT-03; ACT-04 |
+| **Objetivo** | Gestionar el ciclo de vida del traslado por estados. |
+| **Precondiciones** | Solicitud registrada. |
+| **Flujo principal** | Pendiente → (Administrador asigna) Asignado → (Conductor inicia) En Curso → (Conductor finaliza) Finalizado. Al finalizar, conductor y vehículo vuelven a Disponible. |
+| **Postcondiciones** | El estado refleja la etapa actual. |
+| **Alternativos / excepciones** | No hay reglas para retroceder o reabrir un traslado. La cancelación es CU-08. |
 
 #### CU-06 — Trazar ruta óptima hacia el destino
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-05 — Sistema de navegación externo |
-| **Objetivo** | Calcular y mostrar una ruta utilizando las coordenadas de origen y destino entregadas por la aplicación. |
-| **Precondiciones** | El sistema externo recibe coordenadas válidas de origen y destino. |
-| **Flujo principal** | 1. El sistema externo recibe origen y destino.<br>2. Procesa las coordenadas.<br>3. Calcula una ruta considerando la información de tráfico disponible.<br>4. Muestra el trazado al conductor. |
-| **Postcondiciones** | La ruta de navegación queda visualizada en la aplicación externa. |
-| **Flujos alternativos / excepciones** | El algoritmo de cálculo, proveedor de tráfico y criterios internos pertenecen al sistema externo. |
+| **Actor(es)** | ACT-05 |
+| **Objetivo** | Calcular y mostrar la ruta con las coordenadas recibidas. |
+| **Precondiciones** | Coordenadas válidas de origen y destino. |
+| **Flujo principal** | 1. Recibe origen y destino.<br>2. Calcula la ruta con el tráfico disponible.<br>3. Muestra el trazado al conductor. |
+| **Postcondiciones** | Ruta visible en la app externa. |
+| **Alternativos / excepciones** | Algoritmo, proveedor de tráfico y criterios pertenecen al sistema externo. |
 
 #### CU-07 — Registrar conductor
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
-| **Objetivo** | Crear una cuenta de Conductor con credenciales de acceso, para que pueda autenticarse sin autorregistrarse. |
-| **Precondiciones** | El Administrador está autenticado en el sistema. |
-| **Flujo principal** | 1. El Administrador ingresa al formulario de registro de conductor.<br>2. Ingresa nombre, correo, teléfono y una contraseña inicial.<br>3. El sistema valida que el correo no exista y que no falten campos obligatorios.<br>4. El sistema guarda la contraseña como hash (nunca en texto plano).<br>5. El conductor queda disponible de inmediato para autenticarse y para ser asignado en CU-04. |
-| **Postcondiciones** | Existe una cuenta de Conductor activa, lista para iniciar sesión y ser asignada a solicitudes. |
-| **Flujos alternativos / excepciones** | El correo ya existe o falta un campo obligatorio: el registro se rechaza. No existe una vista de "cambiar contraseña" para el Conductor; si necesita una nueva, el Administrador la reemplaza directamente en su ficha. |
+| **Actor(es)** | ACT-03 |
+| **Objetivo** | Crear una cuenta de Conductor con credenciales (no hay autorregistro). |
+| **Precondiciones** | Administrador autenticado. |
+| **Flujo principal** | 1. Ingresa nombre, correo, teléfono y contraseña inicial.<br>2. El sistema valida correo único y campos obligatorios.<br>3. Guarda la contraseña como hash.<br>4. El conductor queda disponible de inmediato para autenticarse y ser asignado (CU-04). |
+| **Postcondiciones** | Cuenta de Conductor activa. |
+| **Alternativos / excepciones** | Correo existente o campo faltante: rechazo. El Conductor no tiene vista de "cambiar contraseña"; el Administrador la reemplaza en su ficha. |
 
 #### CU-08 — Cancelar solicitud de traslado
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-01 — Cliente corporativo / Solicitante |
-| **Objetivo** | Cancelar una solicitud de traslado propia que ya no se necesita, liberando al conductor asignado si corresponde. |
-| **Precondiciones** | Existe una solicitud propia en estado Pendiente o Asignado. |
-| **Flujo principal** | 1. El Solicitante abre el detalle de una solicitud propia.<br>2. Presiona el botón "Cancelar".<br>3. El sistema valida que el estado actual sea Pendiente o Asignado.<br>4. El sistema actualiza el estado a Cancelado y registra la fecha/hora de cancelación.<br>5. Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado Disponible y se notifica la cancelación al conductor mediante push (FCM); el viaje desaparece de su lista "Viajes del día".<br>6. Si la solicitud tenía un pago asociado, el sistema lo anula. |
-| **Postcondiciones** | La solicitud queda en estado Cancelado; el conductor y el vehículo, si tenían uno asignado, quedan liberados; el pago asociado, si existía, queda Anulado. |
-| **Flujos alternativos / excepciones** | Si el estado es En Curso o Finalizado, el botón "Cancelar" no está disponible y la cancelación se rechaza. |
+| **Actor(es)** | ACT-01 |
+| **Objetivo** | Cancelar una solicitud propia, liberando al conductor si lo había. |
+| **Precondiciones** | Solicitud propia en Pendiente o Asignado. |
+| **Flujo principal** | 1. Abre el detalle y presiona "Cancelar".<br>2. El sistema valida que el estado sea Pendiente o Asignado.<br>3. Pasa a Cancelado y registra fecha/hora.<br>4. Si había conductor y vehículo: vuelven a Disponible, se notifica al conductor por push (FCM) y el viaje sale de su lista "Viajes del día".<br>5. Si había pago asociado, se anula. |
+| **Postcondiciones** | Solicitud Cancelada; conductor y vehículo liberados; pago Anulado. |
+| **Alternativos / excepciones** | En Curso o Finalizado: botón no disponible y cancelación rechazada. |
 
 #### CU-09 — Registrar vehículo
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
-| **Objetivo** | Registrar un vehículo de la flota para poder asignarlo a traslados. |
-| **Precondiciones** | El Administrador está autenticado en el sistema. |
-| **Flujo principal** | 1. El Administrador ingresa al formulario de registro de vehículo.<br>2. Ingresa patente y capacidad de pasajeros.<br>3. Ingresa el serial de GPS si el vehículo cuenta con uno propio (opcional, ya que el smartphone del conductor también reporta ubicación).<br>4. El sistema valida que la patente no exista.<br>5. El vehículo queda registrado en estado Disponible. |
-| **Postcondiciones** | Existe un vehículo activo, disponible para ser habilitado a un conductor y asignado a traslados. |
-| **Flujos alternativos / excepciones** | La patente ya existe o falta un campo obligatorio: el registro se rechaza. |
+| **Actor(es)** | ACT-03 |
+| **Objetivo** | Registrar un vehículo de la flota. |
+| **Precondiciones** | Administrador autenticado. |
+| **Flujo principal** | 1. Ingresa patente y capacidad; serial GPS opcional (el smartphone del conductor también reporta ubicación).<br>2. El sistema valida patente única.<br>3. El vehículo queda Disponible. |
+| **Postcondiciones** | Vehículo activo, habilitable a conductores y asignable. |
+| **Alternativos / excepciones** | Patente existente o campo faltante: rechazo. |
 
 #### CU-10 — Habilitar conductor para vehículo
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
-| **Objetivo** | Habilitar a un conductor para operar un vehículo específico. |
-| **Precondiciones** | El conductor (CU-07) y el vehículo (CU-09) ya están registrados. |
-| **Flujo principal** | 1. El Administrador selecciona un conductor.<br>2. Selecciona uno o más vehículos a habilitar para ese conductor.<br>3. El sistema registra la relación conductor-vehículo. |
-| **Postcondiciones** | El conductor queda habilitado para operar el/los vehículo(s) seleccionado(s); la relación es M:N (un vehículo puede tener varios conductores habilitados y viceversa). |
-| **Flujos alternativos / excepciones** | La relación ya existe: el sistema la ignora sin duplicarla. |
+| **Actor(es)** | ACT-03 |
+| **Objetivo** | Habilitar a un conductor para operar un vehículo. |
+| **Precondiciones** | Conductor (CU-07) y vehículo (CU-09) registrados. |
+| **Flujo principal** | 1. Selecciona un conductor y uno o más vehículos.<br>2. El sistema registra la relación. |
+| **Postcondiciones** | Conductor habilitado; relación M:N. |
+| **Alternativos / excepciones** | Relación ya existente: se ignora sin duplicar. |
 
 #### CU-11 — Registrar pago de un viaje
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
+| **Actor(es)** | ACT-03 |
 | **Objetivo** | Registrar el pago asociado a un viaje. |
-| **Precondiciones** | Existe un viaje en un estado distinto de Cancelado. |
-| **Flujo principal** | 1. El Administrador abre el viaje a facturar.<br>2. Ingresa monto, banco, medio de pago y tipo de recibo.<br>3. El sistema genera el pago en estado Pendiente y lo asocia al viaje. |
-| **Postcondiciones** | El viaje queda con un pago asociado en estado Pendiente. |
-| **Flujos alternativos / excepciones** | El viaje está Cancelado: no se puede registrar un pago nuevo. |
+| **Precondiciones** | Viaje en estado distinto de Cancelado. |
+| **Flujo principal** | 1. Abre el viaje e ingresa monto, banco, medio de pago y tipo de recibo.<br>2. El sistema crea el pago en Pendiente y lo asocia al viaje. |
+| **Postcondiciones** | Viaje con pago Pendiente. |
+| **Alternativos / excepciones** | Viaje Cancelado: no se registra pago. |
 
 #### CU-12 — Actualizar estado de un pago
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-03 — Recepcionista / Administrador |
-| **Objetivo** | Reflejar si un pago fue efectivamente cobrado, rechazado o anulado. |
-| **Precondiciones** | Existe un pago en estado Pendiente. |
-| **Flujo principal** | 1. El Administrador selecciona un pago.<br>2. Marca el pago como Pagado o Rechazado. La transición a Anulado ocurre automáticamente al cancelarse el viaje asociado (ver CU-08) y no requiere esta acción manual. |
-| **Postcondiciones** | El pago queda en su nuevo estado (Pagado, Rechazado o Anulado). |
-| **Flujos alternativos / excepciones** | El pago ya está en estado terminal (Rechazado o Anulado): no se permite cambiarlo. |
+| **Actor(es)** | ACT-03 |
+| **Objetivo** | Reflejar si un pago fue cobrado, rechazado o anulado. |
+| **Precondiciones** | Pago en Pendiente. |
+| **Flujo principal** | 1. Selecciona un pago.<br>2. Lo marca Pagado o Rechazado. Anulado es automático al cancelarse el viaje (CU-08), no manual. |
+| **Postcondiciones** | Pago en su nuevo estado (Pagado, Rechazado o Anulado). |
+| **Alternativos / excepciones** | Estado terminal (Rechazado o Anulado): no se puede cambiar. |
 
 #### CU-13 — Recuperar contraseña
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador |
-| **Objetivo** | Recuperar el acceso a la cuenta sin depender de otra persona, cuando se olvida la contraseña. |
-| **Precondiciones** | El usuario tiene una cuenta de Solicitante o Administrador con correo registrado. |
-| **Flujo principal** | 1. El usuario ingresa su correo en "olvidé mi contraseña".<br>2. El sistema valida que el correo corresponda a una cuenta de Solicitante o Administrador.<br>3. El sistema genera una contraseña temporal aleatoria, la hashea y la guarda como `password_hash`, y fija `password_temporal_expira`.<br>4. El sistema envía la contraseña en texto plano solo al correo registrado, mediante `EmailClient` (ver Backend, RNF07; único momento en que existe en texto plano; nunca se persiste así — ver RNF01).<br>5. El usuario inicia sesión con la contraseña temporal antes de que expire (CU-14). |
+| **Actor(es)** | ACT-01; ACT-03 |
+| **Objetivo** | Recuperar el acceso sin depender de otra persona. |
+| **Precondiciones** | Cuenta de Solicitante o Administrador con correo registrado. |
+| **Flujo principal** | 1. Ingresa su correo en "olvidé mi contraseña".<br>2. El sistema valida que sea de un Solicitante o Administrador.<br>3. Genera una contraseña temporal aleatoria, la guarda hasheada en `password_hash` y fija `password_temporal_expira`.<br>4. La envía en texto plano solo al correo registrado, vía `EmailClient` (único momento en que existe en texto plano; nunca se persiste así — RNF01).<br>5. El usuario inicia sesión con ella antes de que expire (CU-14). |
 | **Postcondiciones** | El usuario puede autenticarse con la contraseña temporal hasta que expire. |
-| **Flujos alternativos / excepciones** | El correo no existe, o pertenece a un Conductor: el sistema responde el mismo mensaje genérico, sin revelar el motivo. La contraseña temporal expira sin usarse: debe solicitar una nueva recuperación. |
+| **Alternativos / excepciones** | Correo inexistente o de un Conductor: mismo mensaje genérico, sin revelar el motivo. Si expira sin usarse, hay que pedir otra. |
 
-> **Nota:** el Conductor queda fuera de este mecanismo a propósito — su contraseña
-> solo la reemplaza el Administrador (CU-07/RF14), para que una desvinculación no le
-> deje una vía de autoservicio para recuperar acceso por su cuenta.
+> **Nota:** el Conductor queda fuera a propósito: su contraseña solo la reemplaza el
+> Administrador (CU-07/RF14), para que un desvinculado no recupere acceso por su cuenta.
 
 #### CU-14 — Iniciar sesión
 
 | Campo | Detalle |
 |---|---|
-| **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador; ACT-04 — Conductor |
-| **Objetivo** | Autenticar a un usuario y emitir el JWT que el resto del sistema usa para autorizar sus acciones por rol. |
-| **Precondiciones** | El usuario ya tiene una cuenta (autorregistrada si es Solicitante — RF01; creada por el Administrador si es Conductor — RF14; o por migración Flyway si es Administrador). |
-| **Flujo principal** | 1. El usuario ingresa correo y contraseña, y la app adjunta el token FCM del dispositivo si lo tiene (RF13/HU14).<br>2. El sistema valida la contraseña contra `USUARIO.password_hash`, rechazando si `password_temporal_expira` no es nulo y ya pasó (RF21).<br>3. El sistema determina el rol consultando en cuál de `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` existe ese `id_usuario` (único por rol, garantizado por `USUARIO_ROL_ACTIVO`).<br>4. El sistema guarda o reemplaza `USUARIO.token_fcm` con el token recibido, si vino alguno.<br>5. El sistema emite un JWT con `sub` = correo, `rol` = el rol encontrado, y `exp` = expiración (RNF01).<br>6. El sistema retorna el JWT, que el cliente adjunta en cada request posterior. |
-| **Postcondiciones** | El usuario queda autenticado; el JWT emitido es la credencial que el `SecurityFilterChain` valida en cada request y usa para aplicar el mapeo rol→endpoint (sección Backend). Si la app envió un token FCM, queda registrado en `USUARIO.token_fcm` (RF13). |
-| **Flujos alternativos / excepciones** | Correo inexistente o contraseña incorrecta: error genérico sin indicar cuál dato falló. Contraseña temporal expirada (RF21): mismo error genérico, debe pedir una recuperación nueva. |
+| **Actor(es)** | ACT-01; ACT-03; ACT-04 |
+| **Objetivo** | Autenticar al usuario y emitir el JWT que autoriza sus acciones por rol. |
+| **Precondiciones** | Cuenta existente: autorregistrada (Solicitante, RF01), creada por el Administrador (Conductor, RF14) o por migración Flyway (Administrador). |
+| **Flujo principal** | 1. Ingresa correo y contraseña; la app adjunta el token FCM del dispositivo si lo tiene (RF13).<br>2. El sistema valida contra `USUARIO.password_hash`; rechaza si `password_temporal_expira` no es nulo y ya pasó (RF21).<br>3. Determina el rol según en cuál de `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` existe el `id_usuario` (único, por `USUARIO_ROL_ACTIVO`).<br>4. Guarda o reemplaza `USUARIO.token_fcm` si vino un token.<br>5. Emite un JWT con `sub` = correo, `rol` y `exp` (RNF01).<br>6. Lo retorna; el cliente lo adjunta en cada request. |
+| **Postcondiciones** | Usuario autenticado; el `SecurityFilterChain` valida el JWT en cada request y aplica el mapeo rol→endpoint. |
+| **Alternativos / excepciones** | Correo inexistente, contraseña incorrecta o contraseña temporal expirada: mismo error genérico, sin indicar qué falló. |
 
 ## Requerimientos funcionales
 
-- **RF01:** El sistema debe permitir al Cliente corporativo/Solicitante registrarse
-  (incluyendo los datos de su empresa — razón social y RUT, que crean o reutilizan
-  una fila en `EMPRESA`) y autenticarse en la aplicación (ver CU-14).
-- **RF02:** El sistema debe permitir al Cliente corporativo/Solicitante registrar una
-  solicitud de traslado indicando datos del pasajero, fecha, hora, dirección de
-  origen, dirección de destino (seleccionadas mediante autocompletado de Google
-  Places, capturando sus coordenadas georreferenciadas) y número de vuelo (si
-  aplica).
-- **RF03:** El sistema debe permitir al Cliente corporativo/Solicitante visualizar el
-  historial y estado de sus solicitudes de traslado.
-- **RF04:** El sistema debe permitir al Recepcionista/Administrador visualizar las
-  solicitudes pendientes de asignación.
-- **RF05:** El sistema debe permitir al Recepcionista/Administrador asignar un
-  conductor disponible (junto con un vehículo habilitado para ese conductor) a una
-  solicitud de traslado, actualizando su estado a "Asignado" y marcando al conductor
-  y al vehículo como "Ocupado"/"En uso".
-- **RF06:** El sistema debe permitir al Conductor autenticarse mediante credenciales
-  asignadas por el Administrador, sin permitir autorregistro (ver CU-14).
-- **RF07:** El sistema debe permitir al Conductor visualizar en tiempo real los
-  viajes asignados para el día.
-- **RF08:** El sistema debe permitir al Conductor visualizar el detalle de un viaje
-  asignado (datos del pasajero, dirección de origen y de destino).
-- **RF09:** El sistema debe permitir al Conductor actualizar el estado de un traslado
-  a "En Curso" y a "Finalizado"; al finalizar, el sistema debe marcar al conductor y
-  al vehículo asignados como "Disponible" nuevamente.
-- **RF10:** El sistema debe integrar, mediante Intents del sistema operativo Android,
-  una aplicación externa de navegación (Google Maps/Waze) para trazar la ruta hacia
-  el destino a partir de las coordenadas georreferenciadas.
-- **RF11:** El sistema debe persistir localmente (Room/SQLite) las solicitudes y
-  viajes ya consultados, permitiendo su visualización sin conexión a internet. Los
-  cambios generados sin conexión (por ejemplo, un cambio de estado registrado por el
-  Conductor en terreno) deben quedar en una cola local y sincronizarse
-  automáticamente con el backend vía API REST al recuperar la conectividad.
-- **RF12:** El sistema debe notificar mediante mensajería push (Firebase Cloud
-  Messaging) a los actores afectados cuando ocurra un cambio relevante en una
-  solicitud de traslado (asignación de conductor, cambio de estado a En Curso o
-  Finalizado), de modo que la información se actualice sin que el usuario tenga que
-  recargar la app manualmente.
-- **RF13:** El sistema debe registrar y mantener actualizado el token de notificación
-  push (FCM) de cada usuario autenticado, para poder enviarle notificaciones
-  dirigidas.
-- **RF14:** El sistema debe permitir al Recepcionista/Administrador registrar una
-  cuenta de Conductor (nombre, correo, teléfono y contraseña inicial), quedando
-  disponible de inmediato para autenticarse e iniciar sesión.
-- **RF15:** El sistema debe permitir al Cliente corporativo/Solicitante cancelar una
-  solicitud de traslado propia mientras su estado sea "Pendiente" o "Asignado". Si la
-  solicitud ya tenía un conductor y un vehículo asignados, el sistema debe liberarlos
-  (marcarlos como "Disponible"), anular el pago asociado si existía, y notificarle la
-  cancelación al conductor mediante push (FCM).
-- **RF16:** El sistema debe permitir al Recepcionista/Administrador registrar un
-  vehículo (móvil) de la flota indicando patente y capacidad de pasajeros. El serial
-  del dispositivo GPS es opcional, ya que la ubicación también se puede obtener del
-  GPS del smartphone del conductor.
-- **RF17:** El sistema debe permitir al Recepcionista/Administrador habilitar a uno o
-  más conductores para operar un vehículo específico.
-- **RF18:** El sistema debe permitir al Recepcionista/Administrador registrar el pago
-  de un viaje en cualquier estado previo a "Cancelado", indicando monto, banco, medio
-  de pago y tipo de recibo; el pago queda asociado al viaje en estado inicial
-  "Pendiente".
-- **RF19:** El sistema debe permitir al Recepcionista/Administrador actualizar el
-  estado de un pago a "Pagado" o "Rechazado". Si el viaje asociado se cancela (RF15),
-  el sistema debe anular automáticamente el pago.
-- **RF20:** El sistema debe permitir al Cliente corporativo/Solicitante visualizar el
-  estado de pago de sus viajes junto con el resto del detalle de la solicitud.
-- **RF21:** El sistema debe permitir al Solicitante y al Administrador recuperar su
-  contraseña indicando su correo (CU-13); genera una contraseña temporal, la envía al
-  correo registrado, y esa contraseña deja de ser válida tras un plazo determinado. El
-  Conductor no cuenta con este mecanismo de autoservicio: su contraseña solo la
-  reemplaza el Administrador (RF14), para que un conductor desvinculado no recupere
-  acceso por sí mismo.
+"Sistema" indica un requisito sin actor que lo inicie.
+
+| ID | Actor | Requisito |
+|---|---|---|
+| **RF01** | Solicitante | Registrarse (con razón social y RUT de su empresa, que crean o reutilizan una fila en `EMPRESA`) y autenticarse (CU-14). |
+| **RF02** | Solicitante | Registrar una solicitud: pasajero, fecha, hora, origen y destino (autocompletado de Google Places, con coordenadas) y n.º de vuelo si aplica. |
+| **RF03** | Solicitante | Ver el historial y estado de sus solicitudes. |
+| **RF04** | Administrador | Ver las solicitudes pendientes de asignación. |
+| **RF05** | Administrador | Asignar un conductor disponible y un vehículo habilitado para él; la solicitud pasa a Asignado y ambos a Ocupado/En uso. |
+| **RF06** | Conductor | Autenticarse con credenciales asignadas por el Administrador, sin autorregistro (CU-14). |
+| **RF07** | Conductor | Ver en tiempo real los viajes asignados del día. |
+| **RF08** | Conductor | Ver el detalle de un viaje asignado (pasajero, origen, destino). |
+| **RF09** | Conductor | Pasar un traslado a En Curso y a Finalizado; al finalizar, conductor y vehículo vuelven a Disponible. |
+| **RF10** | Sistema | Integrar por Intents de Android una app de navegación externa (Google Maps/Waze) que trace la ruta desde las coordenadas. |
+| **RF11** | Sistema | Persistir localmente (Room/SQLite) solicitudes y viajes ya consultados para verlos sin conexión; los cambios hechos offline (p. ej. un cambio de estado) quedan en una cola local y se sincronizan por API REST al reconectar. |
+| **RF12** | Sistema | Notificar por push (FCM) a los actores afectados ante cambios relevantes (asignación, En Curso, Finalizado), sin recarga manual. |
+| **RF13** | Sistema | Registrar y mantener actualizado el token FCM de cada usuario autenticado. |
+| **RF14** | Administrador | Registrar una cuenta de Conductor (nombre, correo, teléfono, contraseña inicial), utilizable de inmediato. |
+| **RF15** | Solicitante | Cancelar una solicitud propia en Pendiente o Asignado; si tenía conductor y vehículo se liberan (Disponible), se anula el pago asociado y se notifica al conductor por push. |
+| **RF16** | Administrador | Registrar un vehículo con patente y capacidad; serial GPS opcional (la ubicación también viene del smartphone del conductor). |
+| **RF17** | Administrador | Habilitar uno o más conductores para un vehículo. |
+| **RF18** | Administrador | Registrar el pago de un viaje en cualquier estado previo a Cancelado (monto, banco, medio de pago, tipo de recibo); nace en Pendiente. |
+| **RF19** | Administrador | Marcar un pago como Pagado o Rechazado; si el viaje se cancela (RF15), se anula automáticamente. |
+| **RF20** | Solicitante | Ver el estado de pago de sus viajes en el detalle de la solicitud. |
+| **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): contraseña temporal enviada al correo, con expiración. El Conductor no tiene este autoservicio (solo RF14), para que un desvinculado no recupere acceso. |
 
 ## Requisitos no funcionales
 
-- **RNF01 (Seguridad):** Las contraseñas se deben almacenar únicamente como hash
-  (nunca en texto plano), y la autenticación entre la app y el backend debe usar JWT
-  con tiempo de expiración definido (ver CU-14). El acceso a cada endpoint debe
-  validarse por rol (Solicitante, Administrador, Conductor) según el
-  `SecurityFilterChain` centralizado definido en la Arquitectura. La única excepción
-  de tránsito a "nunca en texto plano" es el envío puntual de una contraseña temporal
-  por correo al recuperarla (RF21): se genera, se hashea para `password_hash`, se
-  envía una vez, y no queda guardada en texto plano en ningún lugar.
-- **RNF02 (Conectividad continua con tolerancia a cortes breves):** El modo normal de
-  operación requiere conectividad a Internet continua, según el Anexo de
-  Requerimiento (§3.3); no es un diseño offline-first ni permite operar sin red por
-  períodos largos — registrar o recibir una nueva solicitud de traslado requiere
-  conexión. Sobre esa base, la app tolera cortes breves de señal para datos ya
-  sincronizados (Room/SQLite) y para cambios de estado de un viaje ya asignado, que
-  quedan en una cola local y se reintentan automáticamente al recuperar la conexión
-  (RF11) — el mismo patrón que usan apps de despacho en tiempo real (p. ej. Uber: el
-  matching de una carrera nueva exige conexión en vivo, pero un viaje ya asignado
-  tolera cortes breves).
-- **RNF03 (Tiempo de respuesta):** Las operaciones de consulta (listar solicitudes,
-  viajes del día) deben responder en menos de 2 segundos bajo condiciones normales de
-  red 4G/Wi-Fi. Una notificación push (RF12/RF13) debe reflejarse en la app en un
-  plazo de segundos, no minutos, desde que ocurre el evento en el backend.
-- **RNF04 (Usabilidad para uso en terreno):** Las pantallas del Conductor (Viajes del
-  día, Detalle de viaje) deben priorizar botones grandes y de fácil lectura, ya que
-  se usan en contexto de movimiento (antes/después de conducir), minimizando la
-  cantidad de pasos para marcar "En Curso"/"Finalizado" o abrir la navegación
-  externa.
-- **RNF05 (Compatibilidad):** La aplicación Android debe ser compatible con Android
-  8.0 (API 26) en adelante, cubriendo la mayoría de dispositivos de gama media-baja
-  usados por conductores en terreno. El backend debe exponer únicamente contratos
-  JSON estándar (REST), sin acoplarse a un cliente específico.
-- **RNF06 (Mantenibilidad):** El backend y la app deben mantener una separación
-  estricta de capas (`Controller-Service-Repository` en Spring Boot,
-  `View-ViewModel-Repository` en Android/MVVM), de forma que una regla de negocio
-  (ej. transición de estados) se modifique en un único lugar sin tocar la capa de
-  presentación.
-- **RNF07 (Dependencia de servicios externos):** El sistema depende de tres servicios
-  externos con cuota gratuita limitada (Google Places API para autocompletado de
-  direcciones, Firebase Cloud Messaging para notificaciones push, y un servicio de
-  envío de correo —SMTP o un proveedor transaccional— para la contraseña temporal de
-  RF21/CU-13). El uso debe monitorearse para no exceder el nivel gratuito durante el
-  desarrollo y las pruebas del MVP.
-- **RNF08 (Privacidad de datos):** Los datos personales de pasajeros y solicitantes
-  (nombre, teléfono, dirección) no deben registrarse en logs de la aplicación ni del
-  backend, y solo deben ser visibles para los actores que participan directamente en
-  cada solicitud (el propio Solicitante, el Administrador y el Conductor asignado).
-- **RNF09 (Protección de datos académicos):** El desarrollo debe usar exclusivamente
-  datos ficticios, sintéticos, agregados o públicos anonimizados (sin nombres, RUT,
-  correos, teléfonos ni credenciales reales), según el Anexo de Requerimiento (§4) y
-  la Ley N.º 21.719 y la Ley N.º 19.628 de protección de datos personales. Los
-  antecedentes del proyecto se comparten solo por canales institucionales, con
-  acceso restringido a quienes participan en la gestión académica.
-- **RNF10 (Entregable):** El proyecto se colabora y documenta vía Git/GitHub, y el
-  ejecutable final se entrega como un APK firmado en modo release (no un build de
-  debug), según el Anexo de Requerimiento ("Alcance tecnológico comprometido").
+- **RNF01 (Seguridad):** contraseñas solo como hash; autenticación app↔backend con
+  JWT con expiración (CU-14); acceso a cada endpoint validado por rol en un
+  `SecurityFilterChain` centralizado. Única excepción de tránsito al "nunca en texto
+  plano": la contraseña temporal de RF21, que se envía una vez por correo y no se
+  guarda en claro.
+- **RNF02 (Conectividad):** requiere Internet continuo (Anexo §3.3); no es
+  offline-first, y crear o recibir una solicitud nueva exige conexión. Tolera cortes
+  breves para datos ya sincronizados (Room/SQLite) y para cambios de estado de un
+  viaje ya asignado, que se encolan y reintentan al reconectar (RF11).
+- **RNF03 (Tiempo de respuesta):** consultas (listar solicitudes, viajes del día) en
+  menos de 2 s con 4G/Wi-Fi. Un push (RF12/RF13) se refleja en segundos, no minutos.
+- **RNF04 (Usabilidad en terreno):** pantallas del Conductor con botones grandes y
+  legibles y mínimos pasos para marcar En Curso/Finalizado o abrir la navegación.
+- **RNF05 (Compatibilidad):** Android 8.0 (API 26) o superior. El backend expone solo
+  contratos JSON REST, sin acoplarse a un cliente.
+- **RNF06 (Mantenibilidad):** capas estrictas (`Controller-Service-Repository` en
+  Spring Boot, `View-ViewModel-Repository` en Android), de modo que una regla de
+  negocio se cambie en un solo lugar.
+- **RNF07 (Servicios externos):** tres dependencias con cuota gratuita limitada —
+  Google Places API (autocompletado), Firebase Cloud Messaging (push) y un servicio
+  de correo, SMTP o proveedor transaccional (contraseña temporal, RF21/CU-13). El uso
+  debe monitorearse para no exceder el nivel gratuito.
+- **RNF08 (Privacidad):** nombre, teléfono y dirección de pasajeros y solicitantes no
+  van a logs, y solo los ven el Solicitante, el Administrador y el Conductor asignado
+  de cada solicitud.
+- **RNF09 (Datos académicos):** solo datos ficticios, sintéticos, agregados o públicos
+  anonimizados (Anexo §4; Ley N.º 21.719 y Ley N.º 19.628). Los antecedentes se
+  comparten por canales institucionales con acceso restringido.
+- **RNF10 (Entregable):** colaboración y documentación en Git/GitHub; el ejecutable
+  final es un APK firmado en modo release (Anexo, "Alcance tecnológico comprometido").
 
-## Historias de usuario
+## Historias de usuario y Backlog
 
-- **HU01:** Como Cliente corporativo/Solicitante, quiero registrarme y autenticarme
-  en la aplicación, para acceder de forma segura a mis solicitudes de traslado.
-  (RF01)
-- **HU02:** Como Cliente corporativo/Solicitante, quiero registrar una solicitud de
-  traslado seleccionando origen y destino con autocompletado de Google Places, para
-  coordinar el viaje con datos exactos sin depender de llamadas o WhatsApp. (RF02)
-- **HU03:** Como Cliente corporativo/Solicitante, quiero ver el historial y el estado
-  de mis solicitudes de traslado, para saber en todo momento si mi viaje ya fue
-  asignado. (RF03)
-- **HU04:** Como Recepcionista/Administrador, quiero visualizar las solicitudes
-  pendientes de asignación, para distribuirlas rápidamente entre los conductores
-  disponibles. (RF04)
-- **HU05:** Como Recepcionista/Administrador, quiero asignar o reasignar un conductor
-  disponible a una solicitud de traslado, para confirmar el viaje y mantenerlo
-  cubierto ante un imprevisto. (RF05)
-- **HU06:** Como Conductor, quiero autenticarme con las credenciales que me entrega
-  el Administrador, para acceder a mis viajes sin tener que registrarme yo mismo.
-  (RF06)
-- **HU07:** Como Conductor, quiero visualizar en tiempo real los viajes que tengo
-  asignados para el día, para organizar mi jornada de traslados. (RF07)
-- **HU08:** Como Conductor, quiero ver el detalle de un viaje asignado (pasajero,
-  origen y destino), para confirmar los datos antes de iniciar el traslado. (RF08)
-- **HU09:** Como Conductor, quiero actualizar el estado de un traslado a En Curso y a
-  Finalizado, para reflejar el avance real del viaje. (RF09)
-- **HU10:** Como Conductor, quiero abrir la ruta del viaje directamente en Google
-  Maps o Waze desde la app, para no tener que copiar direcciones manualmente y llegar
-  más rápido. (RF10)
-- **HU11:** Como Conductor, quiero seguir consultando mis viajes sin conexión y que
-  los cambios se sincronicen automáticamente al recuperarla, para no perder
-  información mientras estoy en terreno. (RF11)
-- **HU12:** Como Solicitante, quiero recibir una notificación push cuando cambie el
-  estado de mi traslado, para enterarme sin tener que recargar la app manualmente.
-  (RF12)
-- **HU13:** Como Conductor, quiero recibir una notificación push cuando se me asigna
-  un nuevo viaje, para enterarme de inmediato sin estar revisando la app
-  constantemente. (RF12)
-- **HU14:** Como usuario autenticado (Solicitante, Administrador o Conductor), quiero
-  que la app registre mi token de notificaciones al iniciar sesión, para poder
-  recibir avisos dirigidos a mi cuenta. (RF13)
-- **HU15:** Como Recepcionista/Administrador, quiero registrar una cuenta de
-  Conductor con sus credenciales, para que pueda autenticarse sin autorregistrarse.
-  (RF14)
-- **HU16:** Como Solicitante, quiero cancelar una solicitud de traslado que ya no
-  necesito, para liberar al conductor asignado y evitar un viaje innecesario. (RF15)
-- **HU17:** Como Administrador, quiero registrar un vehículo con su patente y
-  capacidad, para poder asignarlo a traslados. (RF16)
-- **HU18:** Como Administrador, quiero habilitar conductores para un vehículo
-  específico, para controlar quién puede operarlo. (RF17)
-- **HU19:** Como Administrador, quiero registrar el pago de un viaje en cualquier
-  momento antes de que se cancele, para no depender de que termine el servicio.
-  (RF18)
-- **HU20:** Como Administrador, quiero actualizar el estado de un pago, o que se
-  anule automáticamente si se cancela el viaje, para mantener la facturación al día.
-  (RF19)
-- **HU21:** Como Solicitante, quiero ver el estado de pago de mis viajes, para saber
-  si ya fueron cobrados. (RF20)
-- **HU22:** Como Solicitante o Administrador, quiero recuperar mi contraseña si la
-  olvido, para volver a acceder sin depender de otra persona. (RF21)
-
-> Los criterios de aceptación, prioridad y estimación de cada historia están
-> detallados en la tabla de [Backlog](#backlog).
-
-## Backlog
-
-| ID | Historia de usuario | Criterios de aceptación | Prioridad | Estimación (SP) |
-|----|---|---|---|---|
-| HU01 | Registro y login del Cliente corporativo/Solicitante | El registro se rechaza si el correo ya existe o falta algún campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Con credenciales válidas se accede a "Mis solicitudes"; con credenciales inválidas se muestra un error sin indicar cuál dato falló.<br>El campo "empresa" (razón social + RUT) crea o reutiliza una fila en `EMPRESA`; solicitantes de la misma empresa comparten esa fila, no se duplica. | Alta | 3 |
-| HU02 | Registrar solicitud de traslado | El campo de origen y destino usa autocompletado (Google Places API): el Solicitante escribe y elige una dirección de una lista de sugerencias, nunca texto libre. Al seleccionar una dirección, la app captura automáticamente latitud y longitud junto con el texto. No se puede enviar el formulario si origen o destino no fueron seleccionados de la lista (evita direcciones sin coordenadas). El número de vuelo es opcional; pasajero, fecha, hora, origen y destino son obligatorios.| Alta | 5 |
-| HU03 | Ver historial y estado de mis solicitudes | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado reflejado corresponde al último cambio registrado por el Administrador o el Conductor. | Media | 3 |
-| HU04 | Panel de solicitudes pendientes | Solo se listan solicitudes en estado Pendiente.<br>Cada fila permite pasar directamente a la vista "Asignar conductor" de esa solicitud. | Alta | 3 |
-| HU05 | Asignar conductor a una solicitud | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a estado Asignado y queda visible en "Viajes del día" del conductor elegido.<br>Al confirmar, también se asigna un vehículo habilitado para ese conductor; conductor y vehículo pasan a estado "Ocupado"/"En uso". | Alta | 5 |
-| HU06 | Login del Conductor (sin autorregistro) | La pantalla de login del Conductor no ofrece la opción "crear cuenta".<br>Con credenciales inválidas se muestra un error sin revelar si el correo existe. | Alta | 2 |
-| HU07 | Ver viajes del día | Solo se muestran los viajes del conductor autenticado, para la fecha actual, ordenados por hora.<br>Cada viaje muestra pasajero, hora y estado. | Alta | 3 |
-| HU08 | Ver detalle de un viaje asignado | Muestra pasajero, número de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
-| HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió.<br>Al finalizar, el conductor y el vehículo asignados vuelven a estado "Disponible". | Alta | 3 |
-| HU10 | Navegar con Google Maps/Waze | Al presionar "Navegar" se abre Google Maps o Waze con el destino precargado.<br>Si no hay ninguna app de navegación instalada, se muestra un aviso en vez de fallar silenciosamente. | Alta | 3 |
-| HU11 | Persistencia local y sincronización | Las solicitudes y viajes ya cargados se pueden seguir consultando sin conexión.<br>Un cambio de estado hecho sin conexión (ej. "Finalizar viaje") se guarda en una cola local y se marca como "pendiente de sincronizar".<br>Al recuperar la conexión, la cola se envía automáticamente al backend sin intervención del usuario. | Media | 8 |
-| HU12 | Recibir notificación al cambiar el estado de mi traslado | Como Solicitante, cuando mi traslado pasa a "Asignado", "En Curso" o "Finalizado", recibo una notificación push.<br>Al abrir la notificación (o la pantalla "Mis solicitudes"), el estado mostrado ya está actualizado sin necesidad de recargar manualmente. | Media | 5 |
-| HU13 | Recibir notificación de un nuevo viaje asignado | Como Conductor, cuando el Administrador me asigna una solicitud, recibo una notificación push.<br>Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
-| HU14 | Registro del token de notificaciones | Como usuario autenticado (Solicitante, Administrador o Conductor), al iniciar sesión la app registra o actualiza mi token FCM en el backend.<br>Si el token cambia (reinstalación, cambio de dispositivo), se reemplaza el anterior sin duplicar registros. | Alta | 3 |
-| HU15 | Registrar conductor | Como Administrador, quiero crear una cuenta de Conductor con nombre, correo, teléfono y contraseña, para que pueda autenticarse sin autorregistrarse.<br>Criterios: el registro se rechaza si el correo ya existe o falta un campo obligatorio.<br>El Administrador define la contraseña directamente en el formulario (no se genera automáticamente).<br>La contraseña se guarda como hash (password_hash), nunca en texto plano.<br>Al crearse, el conductor queda disponible de inmediato en "Asignar conductor" (HU05).<br>No existe una vista de "cambiar contraseña" para el Conductor: si necesita una nueva, el Administrador la reemplaza directamente en su ficha. | Alta | 3 |
-| HU16 | Cancelar solicitud de traslado | Como Solicitante, quiero cancelar un traslado que ya no necesito, para liberar al conductor y que no se presente a un viaje que no va a ocurrir.<br>Criterios: el botón "Cancelar" solo está disponible si el estado es Pendiente o Asignado.<br>Si el estado es En Curso o Finalizado, no se puede cancelar.<br>Al cancelar, el estado pasa a "Cancelado" y queda registrada la fecha/hora de cancelación.<br>Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado "Disponible", se notifica la cancelación al conductor mediante push (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".<br>Si la solicitud tenía un pago asociado, este queda en estado "Anulado". | Alta | 3 |
-| HU17 | Registrar vehículo | La patente es obligatoria y única; la capacidad debe ser mayor a 0.<br>El GPS serial es opcional: el vehículo puede operar sin dispositivo propio, usando el GPS del smartphone del conductor.<br>El vehículo queda registrado en estado inicial "Disponible". | Media | 3 |
-| HU18 | Habilitar conductor para vehículo | Solo se pueden habilitar conductores ya registrados (HU15).<br>Un vehículo puede tener más de un conductor habilitado, y un conductor puede estar habilitado para más de un vehículo (relación M:N).<br>Habilitar una relación ya existente no la duplica. | Media | 2 |
-| HU19 | Registrar pago de un viaje | Se puede registrar un pago para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos existentes.<br>El pago queda en estado inicial "Pendiente". | Media | 5 |
-| HU20 | Actualizar estado de pago | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado.<br>"Anulado" es un estado terminal.<br>La anulación por cancelación del viaje (HU16) es automática, no requiere acción manual del Administrador. | Media | 3 |
-| HU21 | Ver estado de pago de mis viajes | El estado de pago se muestra en "Detalle de solicitud" (HU03) solo si el viaje tiene un pago asociado. | Baja | 2 |
-| HU22 | Recuperar contraseña | Solo para Solicitante y Administrador (no Conductor).<br>El correo debe ser de una cuenta de Solicitante o Administrador; si no, se responde el mismo mensaje genérico sin revelar el motivo.<br>La contraseña temporal generada expira tras un plazo determinado; si no se usa a tiempo, hay que solicitar una recuperación nueva. | Media | 3 |
+| ID | Historia | Criterios de aceptación | Prioridad | SP |
+|---|---|---|---|---|
+| HU01 | Como Solicitante, quiero registrarme y autenticarme, para acceder de forma segura a mis solicitudes. (RF01) | El registro se rechaza si el correo existe o falta un campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Credenciales válidas llevan a "Mis solicitudes"; inválidas muestran un error sin indicar qué dato falló.<br>"Empresa" (razón social + RUT) crea o reutiliza una fila en `EMPRESA`; no se duplica. | Alta | 3 |
+| HU02 | Como Solicitante, quiero registrar una solicitud eligiendo origen y destino con autocompletado de Google Places, para coordinar el viaje con datos exactos. (RF02) | Origen y destino se eligen de la lista de sugerencias, nunca texto libre; al elegir se capturan latitud y longitud.<br>No se puede enviar si origen o destino no vienen de la lista.<br>N.º de vuelo opcional; pasajero, fecha, hora, origen y destino obligatorios. | Alta | 5 |
+| HU03 | Como Solicitante, quiero ver el historial y estado de mis solicitudes, para saber si mi viaje ya fue asignado. (RF03) | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado corresponde al último cambio registrado. | Media | 3 |
+| HU04 | Como Administrador, quiero ver las solicitudes pendientes de asignación, para distribuirlas rápido. (RF04) | Solo se listan solicitudes en Pendiente.<br>Cada fila lleva a "Asignar conductor" de esa solicitud. | Alta | 3 |
+| HU05 | Como Administrador, quiero asignar o reasignar un conductor disponible a una solicitud, para confirmar el viaje y mantenerlo cubierto. (RF05) | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a Asignado y aparece en "Viajes del día" del conductor.<br>También se asigna un vehículo habilitado para él; conductor y vehículo pasan a Ocupado/En uso. | Alta | 5 |
+| HU06 | Como Conductor, quiero autenticarme con las credenciales que me entrega el Administrador, para acceder a mis viajes sin registrarme. (RF06) | El login del Conductor no ofrece "crear cuenta".<br>Credenciales inválidas muestran un error sin revelar si el correo existe. | Alta | 2 |
+| HU07 | Como Conductor, quiero ver en tiempo real mis viajes del día, para organizar mi jornada. (RF07) | Solo viajes del conductor autenticado, de la fecha actual, ordenados por hora.<br>Cada viaje muestra pasajero, hora y estado. | Alta | 3 |
+| HU08 | Como Conductor, quiero ver el detalle de un viaje asignado, para confirmar los datos antes de iniciar. (RF08) | Muestra pasajero, n.º de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
+| HU09 | Como Conductor, quiero pasar un traslado a En Curso y a Finalizado, para reflejar el avance real. (RF09) | "Iniciar viaje" solo habilitado en Asignado; "Finalizar viaje" solo en En Curso.<br>Cada cambio registra su fecha/hora.<br>Al finalizar, conductor y vehículo vuelven a Disponible. | Alta | 3 |
+| HU10 | Como Conductor, quiero abrir la ruta en Google Maps o Waze desde la app, para no copiar direcciones a mano. (RF10) | "Navegar" abre Google Maps o Waze con el destino precargado.<br>Sin app de navegación instalada, se muestra un aviso en vez de fallar en silencio. | Alta | 3 |
+| HU11 | Como Conductor, quiero seguir consultando mis viajes sin conexión y que los cambios se sincronicen al recuperarla, para no perder información en terreno. (RF11) | Solicitudes y viajes ya cargados se consultan sin conexión.<br>Un cambio de estado offline se guarda en una cola local, marcado "pendiente de sincronizar".<br>Al reconectar, la cola se envía sola al backend. | Media | 8 |
+| HU12 | Como Solicitante, quiero recibir un push cuando cambie el estado de mi traslado, para enterarme sin recargar la app. (RF12) | Push al pasar a Asignado, En Curso o Finalizado.<br>Al abrir la notificación o "Mis solicitudes", el estado ya está actualizado. | Media | 5 |
+| HU13 | Como Conductor, quiero recibir un push cuando se me asigna un viaje, para enterarme de inmediato. (RF12) | Push cuando el Administrador me asigna una solicitud.<br>Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
+| HU14 | Como usuario autenticado (cualquier rol), quiero que la app registre mi token de notificaciones al iniciar sesión, para recibir avisos dirigidos. (RF13) | Al iniciar sesión, la app registra o actualiza mi token FCM en el backend.<br>Si el token cambia (reinstalación, otro dispositivo), reemplaza al anterior sin duplicar registros. | Alta | 3 |
+| HU15 | Como Administrador, quiero registrar una cuenta de Conductor con sus credenciales, para que se autentique sin autorregistrarse. (RF14) | Se rechaza si el correo existe o falta un campo obligatorio.<br>El Administrador define la contraseña en el formulario (no se genera sola); se guarda como hash.<br>El conductor queda disponible de inmediato en "Asignar conductor" (HU05).<br>No hay vista de "cambiar contraseña" para el Conductor: el Administrador la reemplaza en su ficha. | Alta | 3 |
+| HU16 | Como Solicitante, quiero cancelar una solicitud que ya no necesito, para liberar al conductor y evitar un viaje innecesario. (RF15) | "Cancelar" solo disponible en Pendiente o Asignado; no en En Curso ni Finalizado.<br>Al cancelar pasa a Cancelado y se registra la fecha/hora.<br>Si tenía conductor y vehículo, vuelven a Disponible, se notifica al conductor por push (RF12) y el viaje sale de "Viajes del día".<br>Si tenía pago asociado, queda Anulado. | Alta | 3 |
+| HU17 | Como Administrador, quiero registrar un vehículo con patente y capacidad, para poder asignarlo. (RF16) | Patente obligatoria y única; capacidad mayor a 0.<br>GPS serial opcional (se puede usar el GPS del smartphone del conductor).<br>Queda en estado inicial Disponible. | Media | 3 |
+| HU18 | Como Administrador, quiero habilitar conductores para un vehículo, para controlar quién lo opera. (RF17) | Solo conductores ya registrados (HU15).<br>Relación M:N entre vehículos y conductores.<br>Habilitar una relación existente no la duplica. | Media | 2 |
+| HU19 | Como Administrador, quiero registrar el pago de un viaje en cualquier momento antes de que se cancele, para no depender de que termine el servicio. (RF18) | Se puede registrar para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos.<br>Nace en Pendiente. | Media | 5 |
+| HU20 | Como Administrador, quiero actualizar el estado de un pago, o que se anule solo si se cancela el viaje, para mantener la facturación al día. (RF19) | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado.<br>Anulado es terminal.<br>La anulación por cancelación del viaje (HU16) es automática. | Media | 3 |
+| HU21 | Como Solicitante, quiero ver el estado de pago de mis viajes, para saber si ya fueron cobrados. (RF20) | Se muestra en "Detalle de solicitud" (HU03) solo si el viaje tiene pago asociado. | Baja | 2 |
+| HU22 | Como Solicitante o Administrador, quiero recuperar mi contraseña si la olvido, para volver a acceder sin depender de otra persona. (RF21) | Solo Solicitante y Administrador; para cualquier otro correo se responde el mismo mensaje genérico.<br>La contraseña temporal expira tras un plazo; si no se usa, hay que pedir otra. | Media | 3 |
 
 ## Modelamiento del problema
 
-Motor de base de datos: **MariaDB** (ver migraciones Flyway en
-`backend/src/main/resources/db/migration`).
+Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
+`backend/src/main/resources/db/migration`. Las PK simples usan `AUTO_INCREMENT`.
 
 | Entidad | Atributo | Tipo de dato | Clave | Descripción |
 |---|---|---|---|---|
-| REGION | id_region | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la región. |
-| REGION | nombre | VARCHAR(60) | UNIQUE, NOT NULL | Nombre de la región. |
-| COMUNA | id_comuna | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la comuna. |
-| COMUNA | nombre | VARCHAR(80) | NOT NULL (UNIQUE junto a id_region) | Nombre de la comuna. |
-| COMUNA | id_region | BIGINT UNSIGNED | FK → REGION, NOT NULL | Región a la que pertenece. |
-| UBICACION | id_ubicacion | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la ubicación. |
+| REGION | id_region | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| REGION | nombre | VARCHAR(60) | UNIQUE, NOT NULL | |
+| COMUNA | id_comuna | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| COMUNA | nombre | VARCHAR(80) | NOT NULL (UNIQUE junto a id_region) | |
+| COMUNA | id_region | BIGINT UNSIGNED | FK → REGION, NOT NULL | |
+| UBICACION | id_ubicacion | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | UBICACION | direccion | VARCHAR(200) | NOT NULL (UNIQUE junto a id_comuna, latitud, longitud) | Dirección georreferenciada reutilizable como origen o destino (RF10). |
-| UBICACION | id_comuna | BIGINT UNSIGNED | FK → COMUNA, NOT NULL | Comuna de la dirección. |
-| UBICACION | latitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, longitud) | Coordenada geográfica (RF10). |
-| UBICACION | longitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, latitud) | Coordenada geográfica (RF10). |
-| USUARIO | id_usuario | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la cuenta. |
-| USUARIO | nombre | VARCHAR(120) | NOT NULL | Nombre del usuario. |
-| USUARIO | correo | VARCHAR(150) | UNIQUE, NOT NULL | Correo de acceso (login). |
-| USUARIO | telefono | VARCHAR(20) | — | Teléfono de contacto. |
-| USUARIO | password_hash | VARCHAR(200) | NOT NULL | Hash de la contraseña; nunca se almacena en texto plano. |
-| USUARIO | password_temporal_expira | DATETIME | — | NULL si `password_hash` es una contraseña normal; con valor, `password_hash` es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR. |
-| USUARIO | fecha_registro | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de creación de la cuenta. |
-| USUARIO | token_fcm | VARCHAR(255) | — | Token de notificación push (FCM) del dispositivo actual; NULL hasta el primer login desde la app. Se reemplaza en cada inicio de sesión, no se duplica (RF13/HU14). |
-| USUARIO_ROL_ACTIVO | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Garantiza que un usuario tenga un solo rol activo a la vez: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí antes de permitir su propio insert; la `PRIMARY KEY` rechaza un segundo rol para el mismo `id_usuario`. Sin columnas propias. |
-| EMPRESA | id_empresa | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la empresa. |
-| EMPRESA | razon_social | VARCHAR(50) | NOT NULL | Razón social de la empresa cliente. |
-| EMPRESA | rut | VARCHAR(15) | UNIQUE, NOT NULL | RUT de la empresa (identificador legal único; ya no depende de `razon_social`). |
-| SOLICITANTE | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante (RF01). |
-| SOLICITANTE | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
-| ADMINISTRADOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). Se crea mediante una migración Flyway de carga inicial (`backend/src/main/resources/db/migration`); no existe autorregistro de administradores ni un endpoint para crearlos. |
-| ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del conductor. |
-| ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
-| CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
-| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.conductor_id_usuario solo referencie usuarios con este rol. |
-| ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del móvil. |
-| ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
-| MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del vehículo. |
-| MOVIL | patente | VARCHAR(6) | UNIQUE, NOT NULL | Patente del vehículo. |
-| MOVIL | gps_serial | INT | — | Identificador del dispositivo GPS instalado; opcional, ya que la ubicación también se obtiene del GPS del smartphone del conductor (RF16). |
-| MOVIL | estado_movil_id_estado_mov | BIGINT UNSIGNED | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
-| MOVIL | capacidad | INT | NOT NULL | Capacidad de pasajeros del vehículo. |
-| DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
-| DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
-| PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del pasajero. |
-| PASAJERO | dni_hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash del documento de identidad de la persona transportada — RUT chileno o pasaporte extranjero. |
-| PASAJERO | nombre | VARCHAR(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
-| ESTADO_SOLICITUD | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado. |
+| UBICACION | id_comuna | BIGINT UNSIGNED | FK → COMUNA, NOT NULL | |
+| UBICACION | latitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, longitud) | |
+| UBICACION | longitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, latitud) | |
+| USUARIO | id_usuario | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| USUARIO | nombre | VARCHAR(120) | NOT NULL | |
+| USUARIO | correo | VARCHAR(150) | UNIQUE, NOT NULL | Login. |
+| USUARIO | telefono | VARCHAR(20) | — | |
+| USUARIO | password_hash | VARCHAR(200) | NOT NULL | Nunca texto plano. |
+| USUARIO | password_temporal_expira | DATETIME | — | NULL: contraseña normal. Con valor: `password_hash` es una contraseña temporal válida hasta ese instante (RF21). Siempre NULL para CONDUCTOR. |
+| USUARIO | fecha_registro | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
+| USUARIO | token_fcm | VARCHAR(255) | — | Token push del dispositivo actual; NULL hasta el primer login desde la app. Se reemplaza en cada login, no se duplica (RF13). |
+| USUARIO_ROL_ACTIVO | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Exclusividad de rol: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí primero; la PK rechaza un segundo rol. Sin columnas propias. |
+| EMPRESA | id_empresa | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| EMPRESA | razon_social | VARCHAR(50) | NOT NULL | |
+| EMPRESA | rut | VARCHAR(15) | UNIQUE, NOT NULL | Identificador legal único. |
+| SOLICITANTE | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 (RF01). |
+| SOLICITANTE | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | |
+| ADMINISTRADOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1, sin atributos propios. Se crea por migración Flyway de carga inicial; no hay autorregistro ni endpoint que lo cree. |
+| ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | P. ej. disponible/ocupado; sin NOT NULL en el DDL. |
+| CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1. |
+| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Hace que `VIAJE.conductor_id_usuario` solo referencie usuarios con este rol. |
+| ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | P. ej. disponible/en mantención. |
+| MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| MOVIL | patente | VARCHAR(6) | UNIQUE, NOT NULL | |
+| MOVIL | gps_serial | INT | — | Opcional (RF16). |
+| MOVIL | estado_movil_id_estado_mov | BIGINT UNSIGNED | FK → ESTADO_MOVIL, NOT NULL | |
+| MOVIL | capacidad | INT | NOT NULL | Pasajeros. |
+| DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | PK, FK → MOVIL | Habilitación vehículo↔conductor. |
+| DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → CONDUCTOR | |
+| PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| PASAJERO | dni_hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash del documento de identidad: RUT chileno o pasaporte extranjero. |
+| PASAJERO | nombre | VARCHAR(120) | NOT NULL | Puede no coincidir con el solicitante (CU-01). |
+| ESTADO_SOLICITUD | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | ESTADO_SOLICITUD | nombre_estado | VARCHAR(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
-| BANCO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del banco. |
-| BANCO | nombre | VARCHAR(50) | NOT NULL | Nombre del banco. |
-| BANCO | cod_sbif | INT | UNIQUE, NOT NULL | Código SBIF del banco (identificador externo único; ya no depende de `nombre`). |
-| ESTADO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado de pago. |
+| BANCO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| BANCO | nombre | VARCHAR(50) | NOT NULL | |
+| BANCO | cod_sbif | INT | UNIQUE, NOT NULL | Código SBIF; identificador externo único. |
+| ESTADO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | ESTADO_PAGO | estado | VARCHAR(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
-| MEDIO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del medio de pago. |
-| MEDIO_PAGO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del medio de pago (p. ej. transferencia, tarjeta). |
-| TIPO_RECIBO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del tipo de recibo. |
-| TIPO_RECIBO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del tipo de recibo o comprobante. |
-| PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del pago. |
-| PAGO | hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash único de la transacción de pago, generado internamente por el backend al crear el pago (no proviene de una pasarela de pago externa). |
-| PAGO | monto | INT | NOT NULL | Monto del pago. |
-| PAGO | estado_pago_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
-| PAGO | banco_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
-| PAGO | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
-| PAGO | medio_pago_id | BIGINT UNSIGNED | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
-| PAGO | tipo_recibo_id | BIGINT UNSIGNED | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
-| PAGO | fecha_pago | DATETIME | NOT NULL | Fecha y hora del pago. |
-| VIAJE | id_viaje | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del viaje. |
-| VIAJE | folio | VARCHAR(20) | UNIQUE, NOT NULL | Identificador público del viaje, usado como clave de ruta en la API en vez de `id_viaje`; lo genera el backend al crearse el viaje y es inmutable después. |
-| VIAJE | id_solicitante | BIGINT UNSIGNED | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
-| VIAJE | id_origen | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de origen. |
-| VIAJE | id_destino | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de destino. |
-| VIAJE | id_estado | BIGINT UNSIGNED | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
-| VIAJE | movil_id_movil | BIGINT UNSIGNED | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
-| VIAJE | pago_id | BIGINT UNSIGNED | FK → PAGO | Pago asociado al viaje, si existe. |
-| VIAJE | cantidad_pasajeros | INT | NOT NULL, DEFAULT 0 | Conteo mantenido automáticamente desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
-| VIAJE | fh_creacion | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
-| VIAJE | fh_agenda | DATETIME | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `fh_creacion`. |
-| VIAJE | fh_asignacion | DATETIME | — | Momento en que se asignó un conductor. |
-| VIAJE | fh_inicio | DATETIME | — | Momento en que el viaje pasó a En Curso. |
-| VIAJE | fh_fin | DATETIME | — | Momento en que el viaje se marcó Finalizado. |
-| VIAJE | conductor_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
-| VIAJE | numero_vuelo | VARCHAR(20) | — | Opcional; solo si aplica a un vuelo. |
-| DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
-| DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
-| HISTORIAL_VIAJE | id_historial | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la fila de historial. |
-| HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | FK → VIAJE, NOT NULL | Viaje al que pertenece el cambio. |
-| HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | Nombre del campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
-| HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | Valor nuevo de ese campo, como texto. |
-| HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `fh_creacion` son inmutables y nunca generan fila aquí. |
+| MEDIO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| MEDIO_PAGO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | P. ej. transferencia, tarjeta. |
+| TIPO_RECIBO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| TIPO_RECIBO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | |
+| PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| PAGO | hash | VARCHAR(50) | UNIQUE, NOT NULL | Generado por el backend al crear el pago; no viene de una pasarela externa. |
+| PAGO | monto | INT | NOT NULL | |
+| PAGO | estado_pago_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | |
+| PAGO | banco_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | |
+| PAGO | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga. |
+| PAGO | medio_pago_id | BIGINT UNSIGNED | FK → MEDIO_PAGO, NOT NULL | |
+| PAGO | tipo_recibo_id | BIGINT UNSIGNED | FK → TIPO_RECIBO, NOT NULL | |
+| PAGO | fecha_pago | DATETIME | NOT NULL | |
+| VIAJE | id_viaje | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| VIAJE | folio | VARCHAR(20) | UNIQUE, NOT NULL | Identificador público y clave de ruta en la API; lo genera el backend al crear el viaje. Inmutable. |
+| VIAJE | id_solicitante | BIGINT UNSIGNED | FK → SOLICITANTE, NOT NULL | |
+| VIAJE | id_origen | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | |
+| VIAJE | id_destino | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | |
+| VIAJE | id_estado | BIGINT UNSIGNED | FK → ESTADO_SOLICITUD, NOT NULL | |
+| VIAJE | movil_id_movil | BIGINT UNSIGNED | FK → MOVIL | NULL hasta la asignación. |
+| VIAJE | pago_id | BIGINT UNSIGNED | FK → PAGO | NULL si no hay pago. |
+| VIAJE | cantidad_pasajeros | INT | NOT NULL, DEFAULT 0 | Mantenido por trigger desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
+| VIAJE | fh_creacion | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Registro de la solicitud. Inmutable. |
+| VIAJE | fh_agenda | DATETIME | NOT NULL | Fecha y hora agendada del traslado (RF02), ingresada por el Solicitante. |
+| VIAJE | fh_asignacion | DATETIME | — | |
+| VIAJE | fh_inicio | DATETIME | — | Paso a En Curso. |
+| VIAJE | fh_fin | DATETIME | — | Paso a Finalizado. |
+| VIAJE | conductor_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta la asignación (RF05). |
+| VIAJE | numero_vuelo | VARCHAR(20) | — | Opcional. |
+| DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | PK, FK → VIAJE | |
+| DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, FK → PASAJERO | |
+| HISTORIAL_VIAJE | id_historial | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
+| HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | FK → VIAJE, NOT NULL | |
+| HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | Campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
+| HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | Valor nuevo, como texto. |
+| HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
 
-El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
-propios que persistir.
+El actor ACT-05 no tiene tabla: no hay datos propios que persistir.
 
-> **Nota:** `CANCELADO` se añade a `ESTADO_SOLICITUD` más allá de los 4 estados del
-> Anexo de Requerimiento (§3.2: Pendiente, Asignado, En Curso, Finalizado). Se agrega
-> específicamente para generar auditoría: queda un registro con fecha/hora del evento
-> sin eliminar la solicitud ni perder trazabilidad, en vez de reutilizar un estado
-> existente o borrar la fila (RF15/CU-08).
+### Decisiones de modelo
 
-> **Nota:** `HISTORIAL_VIAJE` se agrega por el mismo motivo, pero para los cambios de
-> un viaje a lo largo de todo su ciclo de vida, no solo su cancelación: conductor,
-> móvil, estado y cantidad de pasajeros pueden cambiar varias veces (p. ej. una
-> reasignación, HU05), y sin este historial se perdería el rastro de los valores
-> anteriores. `folio` y `fh_creacion` quedan inmutables a propósito, así que nunca
-> generan una fila aquí.
-
-> **Nota:** las PK usan `AUTO_INCREMENT`: MariaDB asigna el siguiente valor
-> automáticamente al insertar, sin necesitar una secuencia ni un trigger aparte.
-
-Normalizado a 3FN:
-- `UBICACION` separada de `VIAJE`: latitud/longitud dependen funcionalmente de la
-  dirección, no del viaje (dependencia transitiva).
-- `PASAJERO` + `DETALLE_VIAJE_PASAJERO` separados de `VIAJE`: una columna única de
-  pasajero sería un grupo repetitivo en cuanto hay más de un pasajero por viaje
-  (viola 1FN).
-- Los roles (`SOLICITANTE`, `ADMINISTRADOR`, `CONDUCTOR`) se modelan como extensiones
-  1:1 de `USUARIO` (tabla por subtipo) en vez de un catálogo `TIPO_USUARIO` con
-  `CHECK`; `ESTADO_SOLICITUD`, `ESTADO_CONDUCTOR`, `ESTADO_MOVIL`, `ESTADO_PAGO`,
-  `MEDIO_PAGO` y `TIPO_RECIBO` sí pasan de `CHECK` a catálogo: no corrige una forma
-  normal, pero permite agregar/renombrar valores sin alterar el DDL de las tablas que
-  los usan. La tabla-por-subtipo, por sí sola, no impide que un mismo `id_usuario`
-  tenga fila en más de un rol a la vez; `USUARIO_ROL_ACTIVO` existe exactamente para
-  eso — no es una corrección de forma normal, es una restricción de exclusividad.
-- `VIAJE.cantidad_pasajeros` es una denormalización deliberada: duplica lo que ya
-  cuenta `DETALLE_VIAJE_PASAJERO`. Es aceptable porque la mantiene un trigger, no el
-  cliente, así que nunca queda desincronizada, y evita un `COUNT(*)` en cada consulta
-  de "viajes del día" (RNF03).
-- `COMUNA`/`REGION`: `id_comuna` es un atributo propio de `UBICACION` (no derivado de
-  `direccion`, que ya no es `UNIQUE` por sí sola sino en conjunto con comuna y
-  coordenadas), por lo que la referencia a `COMUNA` es una FK normal y no una
-  dependencia transitiva; es una descomposición normal de jerarquía geográfica, no
-  una corrección de anomalía.
+- **`CANCELADO`** se suma a los 4 estados del Anexo (§3.2) para dejar auditoría: la
+  solicitud no se borra ni se reutiliza otro estado (RF15/CU-08).
+- **`HISTORIAL_VIAJE`** guarda una fila por cada campo que cambia en cada `UPDATE` de
+  `VIAJE` (conductor, móvil, estado, cantidad de pasajeros; p. ej. una reasignación,
+  HU05). La escriben los triggers de `VIAJE`, no la aplicación. `folio` y
+  `fh_creacion` son inmutables y nunca generan fila.
+- **Roles como tabla por subtipo** (extensiones 1:1 de `USUARIO`) en vez de un
+  `TIPO_USUARIO` con `CHECK`. Como eso no impide que un `id_usuario` tenga dos roles,
+  `USUARIO_ROL_ACTIVO` impone la exclusividad.
+- **Catálogos en vez de `CHECK`** (`ESTADO_SOLICITUD`, `ESTADO_CONDUCTOR`,
+  `ESTADO_MOVIL`, `ESTADO_PAGO`, `MEDIO_PAGO`, `TIPO_RECIBO`): agregar o renombrar un
+  valor no altera el DDL de las tablas que lo usan.
+- **`VIAJE.cantidad_pasajeros`** es una denormalización deliberada: la mantiene un
+  trigger y evita un `COUNT(*)` en cada consulta de "viajes del día" (RNF03).
+- **3FN:** `UBICACION` separada de `VIAJE` (las coordenadas dependen de la dirección,
+  no del viaje); `PASAJERO` + `DETALLE_VIAJE_PASAJERO` separados (varios pasajeros por
+  viaje serían un grupo repetitivo); `id_comuna` es atributo propio de `UBICACION`,
+  por lo que `COMUNA`/`REGION` es una jerarquía geográfica normal.
 
 ### Modelo relacional
 
@@ -736,32 +554,15 @@ erDiagram
     TIPO_RECIBO ||--o{ PAGO : emite
 ```
 
-Solo se listan columnas PK/FK/UK en el diagrama; el resto de los atributos de cada
-entidad está detallado en la tabla de la sección anterior.
+El diagrama solo lista columnas PK/FK/UK; el resto está en la tabla anterior.
 
 ## Arquitectura
 
-> **Decisión de implementación:** MariaDB es la base de datos oficial de la
-> aplicación. El esquema que usa la aplicación se crea con las migraciones Flyway en
-> `backend/src/main/resources/db/migration`.
-
 ### Base de datos **MariaDB**
 
-* **Integridad Transaccional (ACID):** Utiliza el motor de almacenamiento `InnoDB`,
-  garantizando la consistencia y atomicidad de los datos en procesos críticos de
-  logística (como la asignación de vehículos, registro de mantenimientos y estados de
-  viaje).
-* **Compatibilidad Total con el Ecosistema Spring:** Cuenta con dialectos oficiales
-  en Hibernate (`MariaDBDialect`) y un driver JDBC oficial (`mariadb-java-client`)
-  ligero y eficiente, permitiendo la generación y migración automática de tablas
-  desde Java.
-* **Filosofía Open Source:** Es un sistema de gestión de bases de datos 100% libre y
-  comunitario (Licencia GPL v2), asegurando estabilidad sin depender de licencias
-  comerciales.
-* **Eficiencia de Recursos en Desarrollo:** Presenta un consumo optimizado de memoria
-  y CPU en entornos de desarrollo local, permitiendo ejecutar simultáneamente el
-  entorno de Android Studio, la base de datos y la API de Spring Boot sin sobrecargar
-  el equipo.
+Base de datos oficial. Motor `InnoDB` (ACID), soporte directo en Spring
+(`MariaDBDialect`, `mariadb-java-client`), licencia GPL v2 y bajo consumo en
+desarrollo local junto a Android Studio y la API.
 
 #### Iniciar la base de datos local
 
@@ -772,285 +573,123 @@ Copy-Item .env.example .env
 docker compose up -d mariadb
 ```
 
-La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD`; sus valores locales están en
-`.env.example`. Flyway aplica las migraciones al iniciar el backend. `.env` está
-excluido de Git: cambia las credenciales para cualquier entorno compartido o
-desplegado.
-
-Para detener MariaDB conservando sus datos: `docker compose down`. Para borrar
-también los datos locales: `docker compose down -v`.
+La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD` (valores locales en `.env.example`) y
+Flyway migra al iniciar el backend. `.env` está fuera de Git: cambia las credenciales
+en cualquier entorno compartido. `docker compose down` detiene conservando datos;
+`docker compose down -v` también los borra.
 
 ### Backend
 
-**Spring Boot** como el framework principal para la capa del backend debido a las
-siguientes ventajas técnicas:
+**Spring Boot**:
 
-* **Arquitectura REST Nativa para Clientes Móviles:** Permite estructurar y exponer
-  endpoints HTTP en formato JSON estandarizado. Esto facilita la integración
-  transparente con la aplicación móvil Android utilizando librerías de red como
-  Retrofit o Volley.
-* **Seguridad Stateless mediante JWT:** A través de **Spring Security**, la
-  aplicación implementa autenticación basada en tokens **JWT (JSON Web Tokens)**. Al
-  ser una API sin estado (*stateless*), es el enfoque óptimo para dispositivos
-  móviles. El control de acceso por rol (Solicitante, Administrador, Conductor) se
-  centraliza en un único `SecurityFilterChain`, que mapea cada ruta a los roles
-  permitidos y rechaza por defecto (`denyAll`) cualquier endpoint no listado
-  explícitamente. La única excepción explícita es `/api/v1/auth/**` (ver
-  "Autenticación"): no puede exigir un JWT que todavía no existe.
-* **Diseño Modular y Separación de Capas:** Impone un patrón de diseño claro
-  (`Controller` ➔ `Service` ➔ `Repository`), lo que garantiza un código limpio,
-  mantenible, fácil de auditar y preparado para futuras ampliaciones de lógica de
-  negocio.
-* **Productividad con Spring Data JPA:** Automatiza la persistencia de datos mediante
-  el mapeo objeto-relacional (ORM), eliminando la necesidad de escribir código SQL
-  manual redundante para las operaciones estándar (CRUD).
-* **Notificaciones push con Firebase Cloud Messaging:** Ante cambios relevantes en
-  una solicitud (asignación, cambio de estado, cancelación), la capa `Service` invoca
-  el SDK de Firebase Admin para notificar al actor afectado, evitando que la app
-  dependa de recargar manualmente o de mantener una conexión persistente abierta.
-  Cada usuario autenticado registra su token de dispositivo, que el backend actualiza
-  al iniciar sesión.
+* **API REST JSON** para el cliente Android (Retrofit o Volley).
+* **Seguridad stateless con JWT** (Spring Security). Un único `SecurityFilterChain`
+  mapea cada ruta a sus roles y rechaza por defecto (`denyAll`) todo endpoint no
+  listado. Única excepción: `/api/v1/auth/**`, que no puede exigir un JWT que aún no
+  existe.
+* **Capas** `Controller` ➔ `Service` ➔ `Repository`.
+* **Spring Data JPA** para la persistencia.
+* **Push con Firebase Cloud Messaging:** ante asignación, cambio de estado o
+  cancelación, la capa `Service` notifica al actor afectado con el SDK de Firebase
+  Admin. El token de dispositivo se actualiza en cada login.
 
 #### Mapeo de roles por endpoint
 
-El `SecurityFilterChain` (bullet anterior) necesita saber qué rol puede tocar cada
-recurso. Basado en las responsabilidades ya descritas en los casos de uso:
-
 | Recurso | Roles con acceso | Alcance |
 |---|---|---|
-| `auth` | Público (sin autenticación previa) | Login (CU-14) y recuperación de contraseña (CU-13/RF21); único recurso accesible sin JWT. |
-| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo sobre su propia cuenta (RNF08). |
+| `auth` | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21); único recurso accesible sin JWT. |
+| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo su propia cuenta (RNF08). |
 | `administradores` | Administrador | Gestión de cuentas de Administrador. |
-| `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo sobre su propia cuenta. |
-| `solicitantes` | Solicitante (su propia cuenta); Administrador (lectura) | — |
+| `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo su propia cuenta. |
+| `solicitantes` | Solicitante (su cuenta); Administrador (lectura) | — |
 | `empresas` | Solicitante (crea/reutiliza al registrarse, RF01); Administrador (lectura) | — |
 | `moviles` | Administrador | Gestión de flota (CU-09, CU-10). |
-| `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus propios viajes (RF20). Actualizar estado (CU-12) va por "Acciones de negocio", no por `PUT`. |
+| `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus viajes (RF20). |
 | `pasajeros` | Solicitante (los registra, CU-01); Administrador (lectura) | — |
-| `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los propios asignados, RF07/RF08) | Asignar (CU-04), cambiar estado (CU-05) y cancelar (CU-08) van por "Acciones de negocio", no por `PUT`. |
+| `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los asignados, RF07/RF08) | — |
 
-Los 9 catálogos (`bancos`, `comunas`, `estados-conductor`, `estados-movil`,
-`estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`, `tipos-recibo`) no
-entran en esta tabla porque ningún rol los toca vía API — se modifican solo desde la
-base de datos (ver "CRUD REST").
+Los catálogos y `ubicaciones` no son recursos de la API (ver "CRUD REST").
 
 ### Frontend
 
 ![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
 
-Vistas propuestas para el MVP, agrupadas por actor:
+Vistas del MVP por actor:
 
 **Transversal**
-- **Login:** autenticación para los tres actores con app móvil (Cliente
-  corporativo/Solicitante, Recepcionista/Administrador, Conductor).
-- **Perfil / Cierre de sesión:** datos del usuario logueado.
+- **Login:** para los tres actores con app.
+- **Perfil / Cierre de sesión.**
 
 **Cliente corporativo / Solicitante**
-- **Registro:** creación de cuenta propia. El Conductor no se autorregistra: sus
-  credenciales son asignadas por el Administrador, por lo que solo usa la vista de
-  Login.
-- **Registrar solicitud de traslado:** formulario con datos del pasajero, fecha,
-  hora, origen, destino y n.º de vuelo (si aplica). Cubre CU-01.
-- **Mis solicitudes (historial):** lista de traslados agendados con su estado actual
-  (Pendiente/Asignado/En Curso/Finalizado).
-- **Detalle de solicitud:** vista de una solicitud puntual con los datos ingresados,
-  estado, y datos del conductor una vez asignado.
+- **Registro:** cuenta propia (el Conductor no se autorregistra).
+- **Registrar solicitud de traslado:** CU-01.
+- **Mis solicitudes (historial):** traslados con su estado.
+- **Detalle de solicitud:** datos, estado y conductor una vez asignado.
 
 **Recepcionista / Administrador**
-- **Panel de solicitudes pendientes:** listado de solicitudes sin asignar. Entrada a
-  CU-04.
-- **Asignar conductor:** vista para elegir un conductor disponible para una solicitud
-  puntual. Cubre CU-04.
-- **Panel general / dashboard** *(segunda iteración)*: resumen operativo con conteo
-  de viajes por estado.
-- **Sistema de distribución de solicitudes** *(mejora futura, no evaluada para el
-  MVP)*: automatizar la asignación de conductor (hoy manual, RF05/CU-04) y dejar al
-  Administrador enfocado en administración de usuarios y el dashboard. No tiene RF ni
-  HU que lo respalde en el anexo de requerimiento ni en este documento; evaluar recién
-  si se amplía el alcance más allá del MVP académico.
+- **Panel de solicitudes pendientes:** entrada a CU-04.
+- **Asignar conductor:** CU-04.
+- **Panel general / dashboard** *(segunda iteración)*: conteo de viajes por estado.
+- **Sistema de distribución de solicitudes** *(mejora futura, fuera del MVP)*:
+  asignación automática de conductor (hoy manual, RF05/CU-04). Sin RF ni HU que lo
+  respalde.
 
 **Conductor**
-- **Viajes del día:** lista de viajes asignados para la fecha actual, ordenados por
-  hora. Cubre CU-02.
-- **Detalle de viaje asignado:** datos del pasajero, origen, destino, control para
-  marcar "En Curso"/"Finalizado" y botón que dispara el Intent hacia Google
-  Maps/Waze. Cubre CU-03 y CU-05.
-- **Historial de viajes realizados** *(segunda iteración)*: viajes ya finalizados por
-  el conductor.
-
+- **Viajes del día:** asignados para hoy, por hora. CU-02.
+- **Detalle de viaje asignado:** datos, control En Curso/Finalizado y botón de
+  navegación. CU-03 y CU-05.
+- **Historial de viajes realizados** *(segunda iteración)*.
 
 ### Frontend (Android)
 
-**MVVM (Model-View-ViewModel)** como arquitectura del lado móvil, en línea con el
-patrón de capas ya definido en el backend:
+**MVVM**, alineado con las capas del backend:
 
-* **Separación View / ViewModel:** las pantallas en Jetpack Compose (`View`) solo
-  dibujan estado y envían eventos de usuario; toda la lógica de presentación
-  (validaciones de formulario, qué mostrar según el estado) vive en el `ViewModel`,
-  que expone el estado observable a la UI. Esto evita lógica de negocio mezclada con
-  composables, igual que el backend separa `Controller` de `Service`.
-* **Repository como única fuente de verdad:** cada `ViewModel` no habla directo con
-  Retrofit ni con Room; consulta a un `Repository`, que decide si los datos vienen de
-  la base local (Room) o se piden al backend (Retrofit), y aplica ahí la lógica de
-  sincronización offline definida en RF11.
-* **Dos fuentes de datos por Repository:** un `DataSource` local (Room/SQLite) y uno
-  remoto (Retrofit), ambos detrás de la misma interfaz de `Repository`, para que el
-  resto de la app no dependa de saber de dónde vino el dato.
-* **Inyección de dependencias con Hilt:** para armar `ViewModel → Repository →
-  DataSources` sin que cada pantalla tenga que construir sus propias dependencias a
-  mano, y para poder reemplazar fácilmente el `DataSource` remoto por uno falso en
-  pruebas.
-* **Un ViewModel por pantalla, agrupado por actor:** siguiendo la misma agrupación
-  que ya existe en "Frontend" (Solicitante, Administrador, Conductor), cada pantalla
-  del wireframe tiene su `ViewModel` correspondiente (ej.
-  `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`,
-  `AsignarConductorViewModel`).
+* **View / ViewModel:** las pantallas en Jetpack Compose solo dibujan estado y emiten
+  eventos; la lógica de presentación vive en el `ViewModel`.
+* **Repository como única fuente de verdad:** el `ViewModel` no habla con Retrofit ni
+  Room; el `Repository` decide entre el `DataSource` local (Room/SQLite) y el remoto
+  (Retrofit) y aplica la sincronización offline de RF11.
+* **Hilt** para inyectar `ViewModel → Repository → DataSources` y poder sustituir el
+  `DataSource` remoto por uno falso en pruebas.
+* **Un ViewModel por pantalla**, agrupado por actor (p. ej.
+  `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`, `AsignarConductorViewModel`).
 
 # Estructura del backend
 
 ## Propósito
 
-El backend de Belmonte está organizado como un monolito Spring Boot con
-separación clásica por capas. Cada capa existe una sola vez y reúne las clases
-de todas las entidades del sistema. La aplicación expone una API REST JSON y
-persiste datos en MariaDB mediante Spring Data JPA y migraciones Flyway. El
-sistema de build es **Gradle** (Groovy DSL), con wrapper
-`gradlew`/`gradlew.bat`.
-
-Paquete base Java: `cl.belmontespa.transporte`.
+Monolito Spring Boot por capas; cada capa existe una sola vez y reúne las clases de
+todas las entidades. API REST JSON sobre MariaDB con Spring Data JPA y Flyway. Build
+con **Gradle** (Groovy DSL, wrapper `gradlew`/`gradlew.bat`). Paquete base:
+`cl.belmontespa.transporte`.
 
 ## Árbol de carpetas
 
 ```text
 backend/
-├── .gitattributes
-├── .gitignore
+├── .gitattributes, .gitignore
 ├── gradle/wrapper/gradle-wrapper.properties
-├── gradlew
-├── gradlew.bat
+├── gradlew, gradlew.bat
 ├── settings.gradle
-├── build.gradle                   # Dependencias y configuración Gradle
+├── build.gradle
 └── src/
     ├── main/
     │   ├── java/cl/belmontespa/transporte/
     │   │   ├── TransporteApplication.java
-    │   │   ├── client/
-    │   │   │   ├── EmailClient.java
-    │   │   │   └── FirebaseClient.java
-    │   │   ├── config/
-    │   │   │   ├── JwtProvider.java
-    │   │   │   └── SecurityConfig.java
-    │   │   ├── controller/
-    │   │   │   ├── CrudController.java
-    │   │   │   ├── AuthController.java
-    │   │   │   ├── AdministradorController.java
-    │   │   │   ├── ConductorController.java
-    │   │   │   ├── DetalleMovilConductorController.java
-    │   │   │   ├── DetalleViajePasajeroController.java
-    │   │   │   ├── EmpresaController.java
-    │   │   │   ├── MovilController.java
-    │   │   │   ├── PagoController.java
-    │   │   │   ├── PasajeroController.java
-    │   │   │   ├── SolicitanteController.java
-    │   │   │   ├── UsuarioController.java
-    │   │   │   └── ViajeController.java
+    │   │   ├── client/       EmailClient, FirebaseClient
+    │   │   ├── config/       JwtProvider, SecurityConfig
+    │   │   ├── controller/   CrudController, AuthController, {E}Controller
     │   │   ├── dto/
-    │   │   │   ├── request/
-    │   │   │   │   ├── AsignarViajeDTORequest.java
-    │   │   │   │   ├── CambiarEstadoPagoDTORequest.java
-    │   │   │   │   ├── CambiarEstadoViajeDTORequest.java
-    │   │   │   │   ├── LoginDTORequest.java
-    │   │   │   │   ├── RecuperarPasswordDTORequest.java
-    │   │   │   │   ├── AdministradorDTORequest.java
-    │   │   │   │   ├── ConductorDTORequest.java
-    │   │   │   │   ├── DetalleMovilConductorDTORequest.java
-    │   │   │   │   ├── DetalleViajePasajeroDTORequest.java
-    │   │   │   │   ├── EmpresaDTORequest.java
-    │   │   │   │   ├── MovilDTORequest.java
-    │   │   │   │   ├── PagoDTORequest.java
-    │   │   │   │   ├── PasajeroDTORequest.java
-    │   │   │   │   ├── SolicitanteDTORequest.java
-    │   │   │   │   ├── UsuarioDTORequest.java
-    │   │   │   │   └── ViajeDTORequest.java
-    │   │   │   └── response/
-    │   │   │       ├── ApiError.java
-    │   │   │       ├── LoginDTOResponse.java
-    │   │   │       ├── AdministradorDTOResponse.java
-    │   │   │       ├── ConductorDTOResponse.java
-    │   │   │       ├── DetalleMovilConductorDTOResponse.java
-    │   │   │       ├── DetalleViajePasajeroDTOResponse.java
-    │   │   │       ├── EmpresaDTOResponse.java
-    │   │   │       ├── MovilDTOResponse.java
-    │   │   │       ├── PagoDTOResponse.java
-    │   │   │       ├── PasajeroDTOResponse.java
-    │   │   │       ├── SolicitanteDTOResponse.java
-    │   │   │       ├── UsuarioDTOResponse.java
-    │   │   │       └── ViajeDTOResponse.java
-    │   │   ├── exception/
-    │   │   │   └── ApiExceptionHandler.java
-    │   │   ├── model/
-    │   │   │   ├── Administrador.java
-    │   │   │   ├── Banco.java
-    │   │   │   ├── Comuna.java
-    │   │   │   ├── Conductor.java
-    │   │   │   ├── DetalleMovilConductor.java
-    │   │   │   ├── DetalleMovilConductorId.java
-    │   │   │   ├── DetalleViajePasajero.java
-    │   │   │   ├── DetalleViajePasajeroId.java
-    │   │   │   ├── Empresa.java
-    │   │   │   ├── EstadoConductor.java
-    │   │   │   ├── EstadoMovil.java
-    │   │   │   ├── EstadoPago.java
-    │   │   │   ├── EstadoSolicitud.java
-    │   │   │   ├── HistorialViaje.java
-    │   │   │   ├── MedioPago.java
-    │   │   │   ├── Movil.java
-    │   │   │   ├── Pago.java
-    │   │   │   ├── Pasajero.java
-    │   │   │   ├── Region.java
-    │   │   │   ├── Solicitante.java
-    │   │   │   ├── TipoRecibo.java
-    │   │   │   ├── Ubicacion.java
-    │   │   │   ├── Usuario.java
-    │   │   │   └── Viaje.java
-    │   │   ├── repository/
-    │   │   │   ├── AdministradorRepository.java
-    │   │   │   ├── BancoRepository.java
-    │   │   │   ├── ComunaRepository.java
-    │   │   │   ├── ConductorRepository.java
-    │   │   │   ├── DetalleMovilConductorRepository.java
-    │   │   │   ├── DetalleViajePasajeroRepository.java
-    │   │   │   ├── EmpresaRepository.java
-    │   │   │   ├── EstadoConductorRepository.java
-    │   │   │   ├── EstadoMovilRepository.java
-    │   │   │   ├── EstadoPagoRepository.java
-    │   │   │   ├── EstadoSolicitudRepository.java
-    │   │   │   ├── HistorialViajeRepository.java
-    │   │   │   ├── MedioPagoRepository.java
-    │   │   │   ├── MovilRepository.java
-    │   │   │   ├── PagoRepository.java
-    │   │   │   ├── PasajeroRepository.java
-    │   │   │   ├── RegionRepository.java
-    │   │   │   ├── SolicitanteRepository.java
-    │   │   │   ├── TipoReciboRepository.java
-    │   │   │   ├── UbicacionRepository.java
-    │   │   │   ├── UsuarioRepository.java
-    │   │   │   └── ViajeRepository.java
-    │   │   └── service/
-    │   │       ├── AdministradorService.java
-    │   │       ├── AuthService.java
-    │   │       ├── ConductorService.java
-    │   │       ├── CrudService.java
-    │   │       ├── DetalleMovilConductorService.java
-    │   │       ├── DetalleViajePasajeroService.java
-    │   │       ├── EmpresaService.java
-    │   │       ├── MovilService.java
-    │   │       ├── PagoService.java
-    │   │       ├── PasajeroService.java
-    │   │       ├── SolicitanteService.java
-    │   │       ├── UbicacionService.java
-    │   │       ├── UsuarioService.java
-    │   │       └── ViajeService.java
+    │   │   │   ├── request/  {E}DTORequest, LoginDTORequest,
+    │   │   │   │             RecuperarPasswordDTORequest, AsignarViajeDTORequest,
+    │   │   │   │             CambiarEstadoViajeDTORequest, CambiarEstadoPagoDTORequest
+    │   │   │   └── response/ {E}DTOResponse, LoginDTOResponse, ApiError
+    │   │   ├── exception/    ApiExceptionHandler
+    │   │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje,
+    │   │   │                 DetalleMovilConductorId, DetalleViajePasajeroId
+    │   │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository,
+    │   │   │                 HistorialViajeRepository
+    │   │   └── service/      CrudService, AuthService, {E}Service, UbicacionService
     │   └── resources/
     │       ├── application.properties
     │       └── db/migration/
@@ -1060,69 +699,50 @@ backend/
         └── TransporteApplicationTests.java
 ```
 
-> En el árbol anterior, `repository/` y `service/` contienen una clase por
-> entidad, además de sus clases base. Las dos tablas de relación M:N también
-> tienen sus repositorios y servicios propios. Tres excepciones a ese patrón:
-> - Los 9 catálogos (`Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`,
->   `EstadoPago`, `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`)
->   tienen `Model`/`Repository`, pero **no** `Controller` ni `Service` propios:
->   no se exponen ni se modifican vía API, solo desde la base de datos
->   directamente. Cuando otra entidad necesita validar que un valor de catálogo
->   existe (p. ej. `PagoService` validando `banco_id`), lo hace con un `SELECT`
->   (`existsById`) contra el `Repository` del catálogo.
-> - `Ubicacion` tiene `Model`/`Repository`/`Service`, pero **no** `Controller`:
->   su única clave de negocio es compuesta (dirección + comuna + coordenadas),
->   no sirve como clave de ruta, así que no tiene recurso propio;
->   `UbicacionService` se usa internamente desde `ViajeService` al registrar o
->   consultar un viaje.
-> - `HistorialViaje` tiene `Model`/`Repository`, pero **no** `Controller` ni
->   `Service`: lo llenan los triggers de `VIAJE` directamente en la base de
->   datos (ver `datamodeler/schema.sql`), no la capa de aplicación. Es
->   intencional: si se expusiera con `POST`/`PUT`/`DELETE`, se podría falsear o
->   borrar el historial.
-> - Cada controlador de entidad usa su propio par
->   `{Entidad}DTORequest`/`{Entidad}DTOResponse` (carpeta `dto/`); las
->   entidades sin `Controller` (los 9 catálogos, `Ubicacion`, `HistorialViaje`)
->   tampoco tienen DTO. El `DTORequest` solo acepta los campos que el cliente
->   puede escribir (nunca `id`, ni `password_hash` en
->   `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE`); el `DTOResponse`
->   expone la clave de negocio de la entidad (ver "CRUD REST") en vez del `id`
->   interno, y nunca incluye `password_hash`. `CrudController`/`CrudService`
->   operan sobre estos tipos de forma genérica, sin conocer los campos
->   concretos de cada entidad.
+- **`{E}`** — las 11 entidades con recurso en la API: `Administrador`, `Conductor`,
+  `DetalleMovilConductor`, `DetalleViajePasajero`, `Empresa`, `Movil`, `Pago`,
+  `Pasajero`, `Solicitante`, `Usuario`, `Viaje`. Cada una tiene `Model`, `Repository`,
+  `Service`, `Controller`, `DTORequest` y `DTOResponse`.
+- **`{C}`** — los 9 catálogos: `Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`,
+  `EstadoPago`, `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`. Solo `Model` y
+  `Repository`: no se exponen ni se modifican por API, solo desde la base de datos.
+  Quien necesita validar un valor (p. ej. `PagoService` con `banco_id`) usa
+  `existsById` del `Repository` del catálogo.
+- **`Ubicacion`** — sin `Controller` ni DTO: su única clave de negocio es compuesta
+  (dirección + comuna + coordenadas) y no sirve como clave de ruta. `UbicacionService`
+  se usa solo desde `ViajeService`.
+- **`HistorialViaje`** — solo `Model` y `Repository`: lo llenan los triggers de `VIAJE`
+  (ver `datamodeler/schema.sql`). Exponerlo permitiría falsear o borrar el historial.
+- **DTO** — el `DTORequest` solo acepta campos que el cliente puede escribir (nunca
+  `id` ni `password_hash`); el `DTOResponse` expone la clave de negocio en vez del `id`
+  y nunca incluye `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
+  `CrudController`/`CrudService` operan sobre estos tipos de forma genérica.
 
 ## Responsabilidad de cada capa
 
 | Carpeta | Responsabilidad |
 |---|---|
-| `model` | Entidades JPA que representan las tablas MariaDB. Las relaciones M:N usan clases ID compuestas. |
-| `repository` | Interfaces Spring Data JPA para consultar y persistir entidades. |
-| `service` | Operaciones CRUD comunes y lógica de aplicación. `CrudService` concentra las operaciones repetidas; `AuthService` valida credenciales y coordina la recuperación de contraseña. |
-| `controller` | Endpoints REST. `CrudController` comparte los endpoints CRUD entre controladores; `AuthController` expone login y recuperación de contraseña fuera de ese patrón (ver "Autenticación"). |
-| `dto` | Contratos de entrada y salida de la API: un `{Entidad}DTORequest`/`{Entidad}DTOResponse` por cada entidad con `Controller`, más `LoginDTORequest`/`LoginDTOResponse`/`RecuperarPasswordDTORequest` para `auth`, `AsignarViajeDTORequest`/`CambiarEstadoViajeDTORequest`/`CambiarEstadoPagoDTORequest` para "Acciones de negocio", y `ApiError` para errores. Ningún `Controller` recibe ni devuelve un `Model` directamente. |
+| `model` | Entidades JPA; las relaciones M:N usan clases ID compuestas. |
+| `repository` | Interfaces Spring Data JPA. |
+| `service` | Lógica de aplicación. `CrudService` concentra el CRUD repetido; `AuthService` valida credenciales y coordina la recuperación de contraseña. |
+| `controller` | Endpoints REST. `CrudController` comparte el CRUD entre controladores; `AuthController` expone login y recuperación. |
+| `dto` | Contratos de entrada y salida de la API, y `ApiError` para errores. |
 | `exception` | Manejo centralizado de excepciones y respuestas de error HTTP. |
-| `config` | Configuración transversal de Spring: `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14). |
-| `client` | Contratos para integrar servicios externos: `FirebaseClient` (notificaciones push, RF12/RF13) y `EmailClient` (envío de la contraseña temporal, RF21). |
-| `resources/db/migration` | Migraciones SQL versionadas que Flyway aplica sobre MariaDB. |
+| `config` | `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14). |
+| `client` | Contratos de servicios externos: `FirebaseClient` (push, RF12/RF13) y `EmailClient` (contraseña temporal, RF21). |
+| `resources/db/migration` | Migraciones SQL versionadas de Flyway. |
 
 ## CRUD REST
 
-Los controladores CRUD usan el prefijo `/api/v1/`. El `id` interno es un dato oculto
-para el frontend: las rutas de un solo recurso no usan `{id}`, usan la columna
-`UNIQUE` de negocio de cada entidad:
+Prefijo `/api/v1/`. El `id` interno no se expone: las rutas usan la columna `UNIQUE`
+de negocio de cada entidad.
 
 | Método | Ruta | Acción |
 |---|---|---|
-| `GET` | `/api/v1/{recurso}` | Listar registros |
-| `GET` | `/api/v1/{recurso}/{valor_unique_key}` | Consultar un registro |
-| `POST` | `/api/v1/{recurso}` | Crear un registro |
-| `PUT` | `/api/v1/{recurso}/{valor_unique_key}` | Solo para `usuarios`, `conductores` y `solicitantes` (ver más abajo) |
-
-No hay `DELETE` para ningún recurso — consistente con el resto del modelo (`CANCELADO`
-en vez de borrar una solicitud, `HISTORIAL_VIAJE` en vez de perder el valor anterior
-de un campo): ninguna fila se destruye por API, como mucho cambia de estado.
-
-`valor_unique_key` por recurso:
+| `GET` | `/api/v1/{recurso}` | Listar |
+| `GET` | `/api/v1/{recurso}/{valor_unique_key}` | Consultar uno |
+| `POST` | `/api/v1/{recurso}` | Crear |
+| `PUT` | `/api/v1/{recurso}/{valor_unique_key}` | Solo `usuarios`, `conductores` y `solicitantes` |
 
 | Recurso | Clave de ruta |
 |---|---|
@@ -1133,54 +753,33 @@ de un campo): ninguna fila se destruye por API, como mucho cambia de estado.
 | `pagos` | `hash` |
 | `viajes` | `folio` |
 
-**Restricción de verbos:** `PUT` genérico solo está disponible para `usuarios`,
-`conductores` y `solicitantes` (los que de verdad se editan vía API hoy, p. ej. el
-Administrador reemplazando la contraseña de un Conductor, CU-07). El resto de los
-recursos — `administradores`, `empresas`, `moviles`, `pagos`, `pasajeros`, `viajes` —
-solo tiene `GET`/`POST`. Para `viajes` y `pagos` esto es intencional: conductor,
-móvil, estado y cantidad de pasajeros de `VIAJE`, y el estado de `PAGO`, ya no se
-editan por un `PUT` directo sobre el recurso — cualquier mutación de esos campos la
-valida y audita la base de datos (triggers de `datamodeler/schema.sql`), no un
-endpoint CRUD genérico. Las acciones de negocio que sí deben seguir existiendo
-(asignar conductor/vehículo CU-04, cambiar estado de un viaje CU-05, cancelar CU-08,
-actualizar estado de un pago CU-12) se implementan como endpoints dedicados fuera
-del patrón CRUD genérico — ver "Acciones de negocio" — no como un `PUT` sobre
-`/api/v1/viajes/{folio}` o `/api/v1/pagos/{hash}`.
-
-Recursos disponibles: `administradores`, `conductores`, `empresas`, `moviles`,
-`pagos`, `pasajeros`, `solicitantes`, `usuarios` y `viajes`.
-
-Los 9 catálogos (`bancos`, `comunas`, `estados-conductor`, `estados-movil`,
-`estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`, `tipos-recibo`) y
-`ubicaciones` no son recursos de la API: los catálogos se modifican solo desde la
-base de datos (ver "Mapeo de roles por endpoint"), y `ubicaciones` no tiene una
-clave de ruta de una sola columna (su único `UNIQUE` es compuesto por dirección,
-comuna y coordenadas) — se crea y consulta solo como parte de `viajes`.
-
-Las tablas puente usan dos columnas como clave primaria y tienen rutas específicas,
-también con clave de negocio en vez de id:
-
-- `/api/v1/habilitaciones-movil-conductor/{patente}/{correo}`
-- `/api/v1/pasajeros-viaje/{folio}/{dni_hash}`
-
-En estas tablas, la asociación se crea como unidad; no tienen `PUT` ni `DELETE`
-porque no poseen atributos propios que actualizar y, como el resto del modelo, no se
-borran por API.
+- **Sin `DELETE`** en ningún recurso: ninguna fila se destruye por API, a lo más
+  cambia de estado (`CANCELADO`, `HISTORIAL_VIAJE`).
+- **`PUT`** solo en `usuarios`, `conductores` y `solicitantes` (p. ej. el Administrador
+  reemplazando la contraseña de un Conductor, CU-07). El resto solo tiene `GET`/`POST`.
+- **`viajes` y `pagos`** no se mutan por `PUT`: conductor, móvil, estado y cantidad de
+  pasajeros de `VIAJE`, y el estado de `PAGO`, los valida y audita la base de datos
+  (triggers de `datamodeler/schema.sql`) y se cambian solo por "Acciones de negocio".
+- **No son recursos:** los 9 catálogos (`bancos`, `comunas`, `estados-conductor`,
+  `estados-movil`, `estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`,
+  `tipos-recibo`) y `ubicaciones`, que se crea y consulta solo como parte de `viajes`.
+- **Tablas puente:** clave de dos columnas, también de negocio; se crean como unidad
+  y no tienen `PUT`.
+  - `/api/v1/habilitaciones-movil-conductor/{patente}/{correo}`
+  - `/api/v1/pasajeros-viaje/{folio}/{dni_hash}`
 
 ## Acciones de negocio
 
 | Método | Ruta | Acción |
 |---|---|---|
-| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; pasa el viaje a Asignado (CU-04/RF05). Administrador. |
-| `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sobre sus propios viajes. |
+| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; el viaje pasa a Asignado (CU-04/RF05). Administrador. |
+| `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sus viajes. |
 | `POST` | `/api/v1/viajes/{folio}/cancelar` | Cancelar el viaje propio (CU-08/RF15). Solicitante. |
-| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. La transición a Anulado sigue siendo automática (cancelación del viaje), no pasa por esta ruta. |
+| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. Anulado sigue siendo automático y no pasa por esta ruta. |
 
-Estas rutas no usan `CrudController`: viven en `ViajeController`/`PagoController`
-como métodos adicionales a su CRUD genérico. Cada una usa su propio DTO de request
-(`AsignarViajeDTORequest`, `CambiarEstadoViajeDTORequest`, `CambiarEstadoPagoDTORequest`)
-y devuelve el mismo `ViajeDTOResponse`/`PagoDTOResponse` que el resto de las rutas de
-ese recurso — no hay DTO de respuesta nuevo.
+Son métodos adicionales de `ViajeController`/`PagoController`, fuera de
+`CrudController`. Usan `AsignarViajeDTORequest`, `CambiarEstadoViajeDTORequest` y
+`CambiarEstadoPagoDTORequest`, y devuelven `ViajeDTOResponse`/`PagoDTOResponse`.
 
 ## Autenticación
 
@@ -1189,39 +788,29 @@ ese recurso — no hay DTO de respuesta nuevo.
 | `POST` | `/api/v1/auth/login` | Autenticar con correo/contraseña y emitir el JWT (CU-14). |
 | `POST` | `/api/v1/auth/recuperar-password` | Solicitar una contraseña temporal por correo (CU-13/RF21). |
 
-Estas dos rutas son el único punto de entrada antes de tener un JWT, por lo que no
-requieren autenticación previa (ver "Mapeo de roles por endpoint") ni siguen el
-patrón CRUD genérico de la sección anterior: no usan `CrudController`, no tienen
-`GET`/`PUT`/`DELETE`, y cada una usa su propio DTO (`LoginDTORequest`/
-`LoginDTOResponse`, `RecuperarPasswordDTORequest`) en vez de los DTO por entidad.
+Único punto de entrada sin JWT. Las atiende `AuthController` con `LoginDTORequest`/
+`LoginDTOResponse` y `RecuperarPasswordDTORequest`.
 
 ## Persistencia MariaDB
 
-`application.properties` obtiene conexión desde `DB_URL`, `DB_USER` y
-`DB_PASSWORD`, con valores locales de desarrollo como respaldo. Hibernate
-valida el esquema y Flyway administra los cambios:
+`application.properties` toma la conexión de `DB_URL`, `DB_USER` y `DB_PASSWORD`, con
+valores locales de desarrollo como respaldo. Hibernate valida el esquema; Flyway lo
+administra:
 
-- `V1__crear_esquema_inicial.sql` crea el esquema MariaDB inicial.
-- `V2__completar_modelo_belmonte.sql` amplía el esquema hasta completar el
-  modelo descrito en este documento.
+- `V1__crear_esquema_inicial.sql`: esquema inicial.
+- `V2__completar_modelo_belmonte.sql`: completa el modelo de este documento.
 
 ## Estado y alcance actual
 
-- La estructura sigue el patrón clásico global `Controller → Service →
-  Repository`.
-- La seguridad configurada usa HTTP Basic y requiere autenticación. Mientras no
-  se implemente JWT (CU-14) con el `SecurityFilterChain` del mapeo
-  rol→endpoint, RNF01 no se cumple.
-- Los `{Entidad}DTORequest`/`{Entidad}DTOResponse` definidos en "Árbol de
-  carpetas" todavía no existen en el código; mientras tanto, los CRUD reciben y
-  devuelven `Model` directos, filtrando `password_hash` en las respuestas de
-  `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo concreto de
-  seguridad, no solo una brecha genérica de estilo.
-- `FirebaseClient` es solo una interfaz; aún faltan la
-  implementación/configuración de Firebase y la persistencia del token de
-  dispositivo (RF13).
-- `AuthController`/`AuthService`/`JwtProvider`, `EmailClient` y los endpoints de
-  "Acciones de negocio" (`/asignar`, `/estado`, `/cancelar`) están definidos en este
-  documento pero tampoco existen todavía en el código: hoy no hay login, ni emisión
-  de JWT, ni envío de correo de recuperación, ni una forma real de asignar un
-  conductor, cambiar el estado de un viaje/pago o cancelarlo salvo el CRUD genérico.
+Lo definido en este documento que todavía no existe en el código:
+
+- **JWT:** la seguridad configurada es HTTP Basic. Sin `AuthController`/`AuthService`/
+  `JwtProvider` no hay login ni emisión de JWT, y RNF01 no se cumple.
+- **DTO:** los `{E}DTORequest`/`{E}DTOResponse` no existen; los CRUD reciben y
+  devuelven `Model`, filtrando `password_hash` en las respuestas de
+  `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo de seguridad concreto.
+- **Acciones de negocio:** no existen `/asignar`, `/estado` ni `/cancelar`; hoy solo
+  hay CRUD genérico.
+- **Push:** `FirebaseClient` es solo una interfaz; faltan su implementación y
+  configuración, y la persistencia del token de dispositivo (RF13).
+- **Correo:** `EmailClient` no existe; no hay envío de la contraseña temporal.
