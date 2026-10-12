@@ -29,6 +29,7 @@
   - [Árbol de carpetas](#árbol-de-carpetas)
   - [Responsabilidad de cada capa](#responsabilidad-de-cada-capa)
   - [CRUD REST](#crud-rest)
+  - [Acciones de negocio](#acciones-de-negocio)
   - [Autenticación](#autenticación)
   - [Persistencia MariaDB](#persistencia-mariadb)
   - [Estado y alcance actual](#estado-y-alcance-actual)
@@ -824,9 +825,9 @@ recurso. Basado en las responsabilidades ya descritas en los casos de uso:
 | `solicitantes` | Solicitante (su propia cuenta); Administrador (lectura) | — |
 | `empresas` | Solicitante (crea/reutiliza al registrarse, RF01); Administrador (lectura) | — |
 | `moviles` | Administrador | Gestión de flota (CU-09, CU-10). |
-| `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus propios viajes (RF20). |
+| `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus propios viajes (RF20). Actualizar estado (CU-12) va por "Acciones de negocio", no por `PUT`. |
 | `pasajeros` | Solicitante (los registra, CU-01); Administrador (lectura) | — |
-| `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los propios asignados, RF07/RF08) | — |
+| `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los propios asignados, RF07/RF08) | Asignar (CU-04), cambiar estado (CU-05) y cancelar (CU-08) van por "Acciones de negocio", no por `PUT`. |
 
 Los 9 catálogos (`bancos`, `comunas`, `estados-conductor`, `estados-movil`,
 `estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`, `tipos-recibo`) no
@@ -955,6 +956,9 @@ backend/
     │   │   │   └── ViajeController.java
     │   │   ├── dto/
     │   │   │   ├── request/
+    │   │   │   │   ├── AsignarViajeDTORequest.java
+    │   │   │   │   ├── CambiarEstadoPagoDTORequest.java
+    │   │   │   │   ├── CambiarEstadoViajeDTORequest.java
     │   │   │   │   ├── LoginDTORequest.java
     │   │   │   │   ├── RecuperarPasswordDTORequest.java
     │   │   │   │   ├── AdministradorDTORequest.java
@@ -1095,7 +1099,7 @@ backend/
 | `repository` | Interfaces Spring Data JPA para consultar y persistir entidades. |
 | `service` | Operaciones CRUD comunes y lógica de aplicación. `CrudService` concentra las operaciones repetidas; `AuthService` valida credenciales y coordina la recuperación de contraseña. |
 | `controller` | Endpoints REST. `CrudController` comparte los endpoints CRUD entre controladores; `AuthController` expone login y recuperación de contraseña fuera de ese patrón (ver "Autenticación"). |
-| `dto` | Contratos de entrada y salida de la API: un `{Entidad}DTORequest`/`{Entidad}DTOResponse` por cada entidad con `Controller`, más `LoginDTORequest`/`LoginDTOResponse`/`RecuperarPasswordDTORequest` para `auth` y `ApiError` para errores. Ningún `Controller` recibe ni devuelve un `Model` directamente. |
+| `dto` | Contratos de entrada y salida de la API: un `{Entidad}DTORequest`/`{Entidad}DTOResponse` por cada entidad con `Controller`, más `LoginDTORequest`/`LoginDTOResponse`/`RecuperarPasswordDTORequest` para `auth`, `AsignarViajeDTORequest`/`CambiarEstadoViajeDTORequest`/`CambiarEstadoPagoDTORequest` para "Acciones de negocio", y `ApiError` para errores. Ningún `Controller` recibe ni devuelve un `Model` directamente. |
 | `exception` | Manejo centralizado de excepciones y respuestas de error HTTP. |
 | `config` | Configuración transversal de Spring: `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14). |
 | `client` | Contratos para integrar servicios externos: `FirebaseClient` (notificaciones push, RF12/RF13) y `EmailClient` (envío de la contraseña temporal, RF21). |
@@ -1133,13 +1137,15 @@ de un campo): ninguna fila se destruye por API, como mucho cambia de estado.
 `conductores` y `solicitantes` (los que de verdad se editan vía API hoy, p. ej. el
 Administrador reemplazando la contraseña de un Conductor, CU-07). El resto de los
 recursos — `administradores`, `empresas`, `moviles`, `pagos`, `pasajeros`, `viajes` —
-solo tiene `GET`/`POST`. Para `viajes` en particular es intencional: conductor,
-móvil, estado y cantidad de pasajeros ya no se editan por un `PUT` directo sobre el
-recurso — cualquier mutación de esos campos la valida y audita la base de datos
-(triggers de `datamodeler/schema.sql`), no un endpoint CRUD genérico. Las acciones de
-negocio que sí deben seguir existiendo (asignar conductor/vehículo CU-04, cambiar
-estado CU-05, cancelar CU-08) se implementan como endpoints dedicados fuera del
-patrón CRUD genérico, no como un `PUT` sobre `/api/v1/viajes/{folio}`.
+solo tiene `GET`/`POST`. Para `viajes` y `pagos` esto es intencional: conductor,
+móvil, estado y cantidad de pasajeros de `VIAJE`, y el estado de `PAGO`, ya no se
+editan por un `PUT` directo sobre el recurso — cualquier mutación de esos campos la
+valida y audita la base de datos (triggers de `datamodeler/schema.sql`), no un
+endpoint CRUD genérico. Las acciones de negocio que sí deben seguir existiendo
+(asignar conductor/vehículo CU-04, cambiar estado de un viaje CU-05, cancelar CU-08,
+actualizar estado de un pago CU-12) se implementan como endpoints dedicados fuera
+del patrón CRUD genérico — ver "Acciones de negocio" — no como un `PUT` sobre
+`/api/v1/viajes/{folio}` o `/api/v1/pagos/{hash}`.
 
 Recursos disponibles: `administradores`, `conductores`, `empresas`, `moviles`,
 `pagos`, `pasajeros`, `solicitantes`, `usuarios` y `viajes`.
@@ -1160,6 +1166,21 @@ también con clave de negocio en vez de id:
 En estas tablas, la asociación se crea como unidad; no tienen `PUT` ni `DELETE`
 porque no poseen atributos propios que actualizar y, como el resto del modelo, no se
 borran por API.
+
+## Acciones de negocio
+
+| Método | Ruta | Acción |
+|---|---|---|
+| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; pasa el viaje a Asignado (CU-04/RF05). Administrador. |
+| `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sobre sus propios viajes. |
+| `POST` | `/api/v1/viajes/{folio}/cancelar` | Cancelar el viaje propio (CU-08/RF15). Solicitante. |
+| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. La transición a Anulado sigue siendo automática (cancelación del viaje), no pasa por esta ruta. |
+
+Estas rutas no usan `CrudController`: viven en `ViajeController`/`PagoController`
+como métodos adicionales a su CRUD genérico. Cada una usa su propio DTO de request
+(`AsignarViajeDTORequest`, `CambiarEstadoViajeDTORequest`, `CambiarEstadoPagoDTORequest`)
+y devuelve el mismo `ViajeDTOResponse`/`PagoDTOResponse` que el resto de las rutas de
+ese recurso — no hay DTO de respuesta nuevo.
 
 ## Autenticación
 
@@ -1199,3 +1220,8 @@ valida el esquema y Flyway administra los cambios:
 - `FirebaseClient` es solo una interfaz; aún faltan la
   implementación/configuración de Firebase y la persistencia del token de
   dispositivo (RF13).
+- `AuthController`/`AuthService`/`JwtProvider`, `EmailClient` y los endpoints de
+  "Acciones de negocio" (`/asignar`, `/estado`, `/cancelar`) están definidos en este
+  documento pero tampoco existen todavía en el código: hoy no hay login, ni emisión
+  de JWT, ni envío de correo de recuperación, ni una forma real de asignar un
+  conductor, cambiar el estado de un viaje/pago o cancelarlo salvo el CRUD genérico.
