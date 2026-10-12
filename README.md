@@ -505,18 +505,18 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | EMPRESA | razon_social | VARCHAR(50) | NOT NULL | Razón social de la empresa cliente. |
 | EMPRESA | rut | VARCHAR(15) | UNIQUE, NOT NULL | RUT de la empresa (identificador legal único; ya no depende de `razon_social`). |
 | SOLICITANTE | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante (RF01). |
-| SOLICITANTE | EMPRESA_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
+| SOLICITANTE | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
 | ADMINISTRADOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). Se crea mediante una migración Flyway de carga inicial (`backend/src/main/resources/db/migration`); no existe autorregistro de administradores ni un endpoint para crearlos. |
 | ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del conductor. |
 | ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
 | CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
-| CONDUCTOR | ESTADO_CONDUCTOR_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.CONDUCTOR_id_usuario solo referencie usuarios con este rol. |
+| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.CONDUCTOR_id_usuario solo referencie usuarios con este rol. |
 | ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del móvil. |
 | ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
 | MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del vehículo. |
 | MOVIL | patente | VARCHAR(6) | UNIQUE, NOT NULL | Patente del vehículo. |
 | MOVIL | gps_serial | INT | — | Identificador del dispositivo GPS instalado; opcional, ya que la ubicación también se obtiene del GPS del smartphone del conductor (RF16). |
-| MOVIL | ESTADO_MOVIL_id_estado_mov | BIGINT UNSIGNED | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
+| MOVIL | estado_movil_id_estado_mov | BIGINT UNSIGNED | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
 | MOVIL | capacidad | INT | NOT NULL | Capacidad de pasajeros del vehículo. |
 | DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
 | DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
@@ -537,11 +537,11 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del pago. |
 | PAGO | hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash único de la transacción de pago, generado internamente por el backend al crear el pago (no proviene de una pasarela de pago externa). |
 | PAGO | monto | INT | NOT NULL | Monto del pago. |
-| PAGO | ESTADO_PAGO_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
-| PAGO | BANCO_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
-| PAGO | EMPRESA_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
-| PAGO | MEDIO_PAGO_id | BIGINT UNSIGNED | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
-| PAGO | TIPO_RECIBO_id | BIGINT UNSIGNED | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
+| PAGO | estado_pago_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
+| PAGO | banco_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
+| PAGO | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
+| PAGO | medio_pago_id | BIGINT UNSIGNED | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
+| PAGO | tipo_recibo_id | BIGINT UNSIGNED | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
 | PAGO | fecha_pago | DATETIME | NOT NULL | Fecha y hora del pago. |
 | VIAJE | id_viaje | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del viaje. |
 | VIAJE | folio | VARCHAR(20) | UNIQUE, NOT NULL | Identificador público del viaje, usado como clave de ruta en la API en vez de `id_viaje`; lo genera el backend al crearse el viaje y es inmutable después. |
@@ -549,15 +549,15 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | VIAJE | id_origen | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de origen. |
 | VIAJE | id_destino | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de destino. |
 | VIAJE | id_estado | BIGINT UNSIGNED | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
-| VIAJE | MOVIL_id_movil | BIGINT UNSIGNED | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
-| VIAJE | PAGO_id | BIGINT UNSIGNED | FK → PAGO | Pago asociado al viaje, si existe. |
+| VIAJE | movil_id_movil | BIGINT UNSIGNED | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
+| VIAJE | pago_id | BIGINT UNSIGNED | FK → PAGO | Pago asociado al viaje, si existe. |
 | VIAJE | cantidad_pasajeros | INT | NOT NULL, DEFAULT 0 | Conteo mantenido automáticamente desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
-| VIAJE | FH_creacion | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
-| VIAJE | FH_agenda | DATETIME | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
-| VIAJE | FH_asignacion | DATETIME | — | Momento en que se asignó un conductor. |
-| VIAJE | FH_inicio | DATETIME | — | Momento en que el viaje pasó a En Curso. |
-| VIAJE | FH_fin | DATETIME | — | Momento en que el viaje se marcó Finalizado. |
-| VIAJE | CONDUCTOR_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
+| VIAJE | fh_creacion | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
+| VIAJE | fh_agenda | DATETIME | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `fh_creacion`. |
+| VIAJE | fh_asignacion | DATETIME | — | Momento en que se asignó un conductor. |
+| VIAJE | fh_inicio | DATETIME | — | Momento en que el viaje pasó a En Curso. |
+| VIAJE | fh_fin | DATETIME | — | Momento en que el viaje se marcó Finalizado. |
+| VIAJE | conductor_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
 | VIAJE | numero_vuelo | VARCHAR(20) | — | Opcional; solo si aplica a un vuelo. |
 | DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
 | DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
@@ -565,7 +565,7 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | FK → VIAJE, NOT NULL | Viaje al que pertenece el cambio. |
 | HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | Nombre del campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
 | HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | Valor nuevo de ese campo, como texto. |
-| HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `FH_creacion` son inmutables y nunca generan fila aquí. |
+| HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `fh_creacion` son inmutables y nunca generan fila aquí. |
 
 El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
 propios que persistir.
@@ -580,7 +580,7 @@ propios que persistir.
 > un viaje a lo largo de todo su ciclo de vida, no solo su cancelación: conductor,
 > móvil, estado y cantidad de pasajeros pueden cambiar varias veces (p. ej. una
 > reasignación, HU05), y sin este historial se perdería el rastro de los valores
-> anteriores. `folio` y `FH_creacion` quedan inmutables a propósito, así que nunca
+> anteriores. `folio` y `fh_creacion` quedan inmutables a propósito, así que nunca
 > generan una fila aquí.
 
 > **Nota:** las PK usan `AUTO_INCREMENT`: MariaDB asigna el siguiente valor
