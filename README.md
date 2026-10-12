@@ -478,93 +478,94 @@ Si la solicitud tenía un pago asociado, este queda en estado "Anulado".| Alta |
 
 ## Modelamiento del problema
 
-Script DDL (Oracle XE 21c): [datamodeler/schema.sql](datamodeler/schema.sql)
+Motor de base de datos: **MariaDB** (ver migraciones Flyway en
+`backend/src/main/resources/db/migration`).
 
 | Entidad | Atributo | Tipo de dato | Clave | Descripción |
 |---|---|---|---|---|
-| REGION | id_region | NUMBER | PK | Identificador de la región. |
-| REGION | nombre | VARCHAR2(60) | UNIQUE, NOT NULL | Nombre de la región. |
-| COMUNA | id_comuna | NUMBER | PK | Identificador de la comuna. |
-| COMUNA | nombre | VARCHAR2(80) | NOT NULL (UNIQUE junto a id_region) | Nombre de la comuna. |
-| COMUNA | id_region | NUMBER | FK → REGION, NOT NULL | Región a la que pertenece. |
-| UBICACION | id_ubicacion | NUMBER | PK | Identificador de la ubicación. |
-| UBICACION | direccion | VARCHAR2(200) | NOT NULL (UNIQUE junto a id_comuna, latitud, longitud) | Dirección georreferenciada reutilizable como origen o destino (RF10). |
-| UBICACION | id_comuna | NUMBER | FK → COMUNA, NOT NULL | Comuna de la dirección. |
-| UBICACION | latitud | NUMBER(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, longitud) | Coordenada geográfica (RF10). |
-| UBICACION | longitud | NUMBER(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, latitud) | Coordenada geográfica (RF10). |
-| USUARIO | id_usuario | NUMBER | PK | Identificador de la cuenta. |
-| USUARIO | nombre | VARCHAR2(120) | NOT NULL | Nombre del usuario. |
-| USUARIO | correo | VARCHAR2(150) | UNIQUE, NOT NULL | Correo de acceso (login). |
-| USUARIO | telefono | VARCHAR2(20) | — | Teléfono de contacto. |
-| USUARIO | password_hash | VARCHAR2(200) | NOT NULL | Hash de la contraseña; nunca se almacena en texto plano. |
-| USUARIO | password_temporal_expira | TIMESTAMP | — | NULL si `password_hash` es una contraseña normal; con valor, `password_hash` es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR. |
-| USUARIO | fecha_registro | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Fecha de creación de la cuenta. |
-| USUARIO_ROL_ACTIVO | id_usuario | NUMBER | PK, FK → USUARIO | Garantiza que un usuario tenga un solo rol activo a la vez: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí antes de permitir su propio insert; la `PRIMARY KEY` rechaza un segundo rol para el mismo `id_usuario`. Sin columnas propias. |
-| EMPRESA | id_empresa | NUMBER | PK | Identificador de la empresa. |
-| EMPRESA | razon_social | VARCHAR2(50) | NOT NULL | Razón social de la empresa cliente. |
-| EMPRESA | rut | VARCHAR2(15) | UNIQUE, NOT NULL | RUT de la empresa (identificador legal único; ya no depende de `razon_social`). |
-| SOLICITANTE | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante (RF01). |
-| SOLICITANTE | EMPRESA_id_empresa | NUMBER | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
-| ADMINISTRADOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). Se crea mediante una migración Flyway de carga inicial (`backend/src/main/resources/db/migration`); no existe autorregistro de administradores ni un endpoint para crearlos. |
-| ESTADO_CONDUCTOR | id_estado | NUMBER | PK | Identificador del estado del conductor. |
-| ESTADO_CONDUCTOR | estado | VARCHAR2(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
-| CONDUCTOR | id_usuario | NUMBER | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
-| CONDUCTOR | ESTADO_CONDUCTOR_id_estado | NUMBER | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.CONDUCTOR_id_usuario solo referencie usuarios con este rol. |
-| ESTADO_MOVIL | id_estado_mov | NUMBER | PK | Identificador del estado del móvil. |
-| ESTADO_MOVIL | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
-| MOVIL | id_movil | NUMBER | PK | Identificador del vehículo. |
-| MOVIL | patente | VARCHAR2(6) | UNIQUE, NOT NULL | Patente del vehículo. |
-| MOVIL | gps_serial | NUMBER | — | Identificador del dispositivo GPS instalado; opcional, ya que la ubicación también se obtiene del GPS del smartphone del conductor (RF16). |
-| MOVIL | ESTADO_MOVIL_id_estado_mov | NUMBER | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
-| MOVIL | capacidad | NUMBER | NOT NULL | Capacidad de pasajeros del vehículo. |
-| DETALLE_MOVIL_CONDUCTOR | id_movil | NUMBER | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
-| DETALLE_MOVIL_CONDUCTOR | id_usuario | NUMBER | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
-| PASAJERO | id_pasajero | NUMBER | PK | Identificador del pasajero. |
-| PASAJERO | dni_hash | VARCHAR2(50) | UNIQUE, NOT NULL | Hash del documento de identidad de la persona transportada — RUT chileno o pasaporte extranjero. |
-| PASAJERO | nombre | VARCHAR2(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
-| ESTADO_SOLICITUD | id_estado | NUMBER | PK | Identificador del estado. |
-| ESTADO_SOLICITUD | nombre_estado | VARCHAR2(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
-| BANCO | id | NUMBER | PK | Identificador del banco. |
-| BANCO | nombre | VARCHAR2(50) | NOT NULL | Nombre del banco. |
-| BANCO | cod_sbif | NUMBER | UNIQUE, NOT NULL | Código SBIF del banco (identificador externo único; ya no depende de `nombre`). |
-| ESTADO_PAGO | id | NUMBER | PK | Identificador del estado de pago. |
-| ESTADO_PAGO | estado | VARCHAR2(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
-| MEDIO_PAGO | id | NUMBER | PK | Identificador del medio de pago. |
-| MEDIO_PAGO | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del medio de pago (p. ej. transferencia, tarjeta). |
-| TIPO_RECIBO | id | NUMBER | PK | Identificador del tipo de recibo. |
-| TIPO_RECIBO | nombre | VARCHAR2(20) | UNIQUE, NOT NULL | Nombre del tipo de recibo o comprobante. |
-| PAGO | id | NUMBER | PK | Identificador del pago. |
-| PAGO | hash | VARCHAR2(50 BYTE) | UNIQUE, NOT NULL | Hash único de la transacción de pago, generado internamente por el backend al crear el pago (no proviene de una pasarela de pago externa). |
-| PAGO | monto | NUMBER | NOT NULL | Monto del pago. |
-| PAGO | ESTADO_PAGO_id | NUMBER | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
-| PAGO | BANCO_id | NUMBER | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
-| PAGO | EMPRESA_id_empresa | NUMBER | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
-| PAGO | MEDIO_PAGO_id | NUMBER | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
-| PAGO | TIPO_RECIBO_id | NUMBER | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
-| PAGO | fecha_pago | TIMESTAMP | NOT NULL | Fecha y hora del pago. |
-| VIAJE | id_viaje | NUMBER | PK | Identificador del viaje. |
-| VIAJE | folio | VARCHAR2(20) | UNIQUE, NOT NULL | Identificador público del viaje, usado como clave de ruta en la API en vez de `id_viaje`; lo genera el backend al crearse el viaje y es inmutable después. |
-| VIAJE | id_solicitante | NUMBER | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
-| VIAJE | id_origen | NUMBER | FK → UBICACION, NOT NULL | Dirección de origen. |
-| VIAJE | id_destino | NUMBER | FK → UBICACION, NOT NULL | Dirección de destino. |
-| VIAJE | id_estado | NUMBER | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
-| VIAJE | MOVIL_id_movil | NUMBER | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
-| VIAJE | PAGO_id | NUMBER | FK → PAGO | Pago asociado al viaje, si existe. |
-| VIAJE | cantidad_pasajeros | NUMBER | NOT NULL, DEFAULT 0 | Conteo mantenido automáticamente desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
-| VIAJE | FH_creacion | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
-| VIAJE | FH_agenda | TIMESTAMP | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
-| VIAJE | FH_asignacion | TIMESTAMP | — | Momento en que se asignó un conductor. |
-| VIAJE | FH_inicio | TIMESTAMP | — | Momento en que el viaje pasó a En Curso. |
-| VIAJE | FH_fin | TIMESTAMP | — | Momento en que el viaje se marcó Finalizado. |
-| VIAJE | CONDUCTOR_id_usuario | NUMBER | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
-| VIAJE | numero_vuelo | VARCHAR2(20) | — | Opcional; solo si aplica a un vuelo. |
-| DETALLE_VIAJE_PASAJERO | id_viaje | NUMBER | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
-| DETALLE_VIAJE_PASAJERO | id_pasajero | NUMBER | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
-| HISTORIAL_VIAJE | id_historial | NUMBER | PK | Identificador de la fila de historial. |
-| HISTORIAL_VIAJE | id_viaje | NUMBER | FK → VIAJE, NOT NULL | Viaje al que pertenece el cambio. |
-| HISTORIAL_VIAJE | campo_modificado | VARCHAR2(30) | NOT NULL | Nombre del campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
-| HISTORIAL_VIAJE | valor | VARCHAR2(200) | NOT NULL | Valor nuevo de ese campo, como texto. |
-| HISTORIAL_VIAJE | fecha_cambio | TIMESTAMP | NOT NULL, DEFAULT SYSTIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `FH_creacion` son inmutables y nunca generan fila aquí. |
+| REGION | id_region | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la región. |
+| REGION | nombre | VARCHAR(60) | UNIQUE, NOT NULL | Nombre de la región. |
+| COMUNA | id_comuna | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la comuna. |
+| COMUNA | nombre | VARCHAR(80) | NOT NULL (UNIQUE junto a id_region) | Nombre de la comuna. |
+| COMUNA | id_region | BIGINT UNSIGNED | FK → REGION, NOT NULL | Región a la que pertenece. |
+| UBICACION | id_ubicacion | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la ubicación. |
+| UBICACION | direccion | VARCHAR(200) | NOT NULL (UNIQUE junto a id_comuna, latitud, longitud) | Dirección georreferenciada reutilizable como origen o destino (RF10). |
+| UBICACION | id_comuna | BIGINT UNSIGNED | FK → COMUNA, NOT NULL | Comuna de la dirección. |
+| UBICACION | latitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, longitud) | Coordenada geográfica (RF10). |
+| UBICACION | longitud | DECIMAL(9,6) | NOT NULL (UNIQUE junto a direccion, id_comuna, latitud) | Coordenada geográfica (RF10). |
+| USUARIO | id_usuario | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la cuenta. |
+| USUARIO | nombre | VARCHAR(120) | NOT NULL | Nombre del usuario. |
+| USUARIO | correo | VARCHAR(150) | UNIQUE, NOT NULL | Correo de acceso (login). |
+| USUARIO | telefono | VARCHAR(20) | — | Teléfono de contacto. |
+| USUARIO | password_hash | VARCHAR(200) | NOT NULL | Hash de la contraseña; nunca se almacena en texto plano. |
+| USUARIO | password_temporal_expira | DATETIME | — | NULL si `password_hash` es una contraseña normal; con valor, `password_hash` es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR. |
+| USUARIO | fecha_registro | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de creación de la cuenta. |
+| USUARIO_ROL_ACTIVO | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Garantiza que un usuario tenga un solo rol activo a la vez: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí antes de permitir su propio insert; la `PRIMARY KEY` rechaza un segundo rol para el mismo `id_usuario`. Sin columnas propias. |
+| EMPRESA | id_empresa | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la empresa. |
+| EMPRESA | razon_social | VARCHAR(50) | NOT NULL | Razón social de la empresa cliente. |
+| EMPRESA | rut | VARCHAR(15) | UNIQUE, NOT NULL | RUT de la empresa (identificador legal único; ya no depende de `razon_social`). |
+| SOLICITANTE | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Cliente corporativo/Solicitante (RF01). |
+| SOLICITANTE | EMPRESA_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa a la que pertenece el solicitante. |
+| ADMINISTRADOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Recepcionista/Administrador (sin atributos propios aún). Se crea mediante una migración Flyway de carga inicial (`backend/src/main/resources/db/migration`); no existe autorregistro de administradores ni un endpoint para crearlos. |
+| ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del conductor. |
+| ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
+| CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
+| CONDUCTOR | ESTADO_CONDUCTOR_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.CONDUCTOR_id_usuario solo referencie usuarios con este rol. |
+| ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del móvil. |
+| ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
+| MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del vehículo. |
+| MOVIL | patente | VARCHAR(6) | UNIQUE, NOT NULL | Patente del vehículo. |
+| MOVIL | gps_serial | INT | — | Identificador del dispositivo GPS instalado; opcional, ya que la ubicación también se obtiene del GPS del smartphone del conductor (RF16). |
+| MOVIL | ESTADO_MOVIL_id_estado_mov | BIGINT UNSIGNED | FK → ESTADO_MOVIL, NOT NULL | Estado actual del vehículo. |
+| MOVIL | capacidad | INT | NOT NULL | Capacidad de pasajeros del vehículo. |
+| DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | PK, FK → MOVIL | Vehículo habilitado para el conductor. |
+| DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → CONDUCTOR | Conductor habilitado para ese vehículo. |
+| PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del pasajero. |
+| PASAJERO | dni_hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash del documento de identidad de la persona transportada — RUT chileno o pasaporte extranjero. |
+| PASAJERO | nombre | VARCHAR(120) | NOT NULL | Nombre de la persona transportada; puede no coincidir con el solicitante (CU-01). |
+| ESTADO_SOLICITUD | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado. |
+| ESTADO_SOLICITUD | nombre_estado | VARCHAR(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
+| BANCO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del banco. |
+| BANCO | nombre | VARCHAR(50) | NOT NULL | Nombre del banco. |
+| BANCO | cod_sbif | INT | UNIQUE, NOT NULL | Código SBIF del banco (identificador externo único; ya no depende de `nombre`). |
+| ESTADO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado de pago. |
+| ESTADO_PAGO | estado | VARCHAR(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
+| MEDIO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del medio de pago. |
+| MEDIO_PAGO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del medio de pago (p. ej. transferencia, tarjeta). |
+| TIPO_RECIBO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del tipo de recibo. |
+| TIPO_RECIBO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del tipo de recibo o comprobante. |
+| PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del pago. |
+| PAGO | hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash único de la transacción de pago, generado internamente por el backend al crear el pago (no proviene de una pasarela de pago externa). |
+| PAGO | monto | INT | NOT NULL | Monto del pago. |
+| PAGO | ESTADO_PAGO_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | Estado actual del pago. |
+| PAGO | BANCO_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | Banco involucrado en el pago. |
+| PAGO | EMPRESA_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga el viaje. |
+| PAGO | MEDIO_PAGO_id | BIGINT UNSIGNED | FK → MEDIO_PAGO, NOT NULL | Medio utilizado para pagar. |
+| PAGO | TIPO_RECIBO_id | BIGINT UNSIGNED | FK → TIPO_RECIBO, NOT NULL | Tipo de recibo emitido para este pago. |
+| PAGO | fecha_pago | DATETIME | NOT NULL | Fecha y hora del pago. |
+| VIAJE | id_viaje | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del viaje. |
+| VIAJE | folio | VARCHAR(20) | UNIQUE, NOT NULL | Identificador público del viaje, usado como clave de ruta en la API en vez de `id_viaje`; lo genera el backend al crearse el viaje y es inmutable después. |
+| VIAJE | id_solicitante | BIGINT UNSIGNED | FK → SOLICITANTE, NOT NULL | Quién agenda el traslado. |
+| VIAJE | id_origen | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de origen. |
+| VIAJE | id_destino | BIGINT UNSIGNED | FK → UBICACION, NOT NULL | Dirección de destino. |
+| VIAJE | id_estado | BIGINT UNSIGNED | FK → ESTADO_SOLICITUD, NOT NULL | Ciclo de vida del traslado (RF05/RF09). |
+| VIAJE | MOVIL_id_movil | BIGINT UNSIGNED | FK → MOVIL | Vehículo asignado al viaje; NULL hasta la asignación. |
+| VIAJE | PAGO_id | BIGINT UNSIGNED | FK → PAGO | Pago asociado al viaje, si existe. |
+| VIAJE | cantidad_pasajeros | INT | NOT NULL, DEFAULT 0 | Conteo mantenido automáticamente desde `DETALLE_VIAJE_PASAJERO` (nunca lo escribe el cliente); no puede superar la capacidad del móvil asignado. |
+| VIAJE | FH_creacion | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento en que se registró la solicitud; inmutable después de creado el viaje. |
+| VIAJE | FH_agenda | DATETIME | NOT NULL | Fecha y hora solicitada/agendada del traslado (RF02), ingresada por el Solicitante; distinta de `FH_creacion`. |
+| VIAJE | FH_asignacion | DATETIME | — | Momento en que se asignó un conductor. |
+| VIAJE | FH_inicio | DATETIME | — | Momento en que el viaje pasó a En Curso. |
+| VIAJE | FH_fin | DATETIME | — | Momento en que el viaje se marcó Finalizado. |
+| VIAJE | CONDUCTOR_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta que el Administrador asigna un conductor (RF05). |
+| VIAJE | numero_vuelo | VARCHAR(20) | — | Opcional; solo si aplica a un vuelo. |
+| DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | PK, FK → VIAJE | Traslado en el que viaja el pasajero. |
+| DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, FK → PASAJERO | Pasajero que viaja en ese traslado. |
+| HISTORIAL_VIAJE | id_historial | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la fila de historial. |
+| HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | FK → VIAJE, NOT NULL | Viaje al que pertenece el cambio. |
+| HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | Nombre del campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
+| HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | Valor nuevo de ese campo, como texto. |
+| HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Momento del cambio. Una fila por cada campo que cambia en cada `UPDATE` de `VIAJE`; la escriben los triggers de `VIAJE`, no la capa de aplicación — no tiene Controller/Service ni se expone por la API. `folio` y `FH_creacion` son inmutables y nunca generan fila aquí. |
 
 El "Sistema de navegación externo" no tiene tabla: es un actor externo sin datos
 propios que persistir.
@@ -581,6 +582,9 @@ propios que persistir.
 > reasignación, HU05), y sin este historial se perdería el rastro de los valores
 > anteriores. `folio` y `FH_creacion` quedan inmutables a propósito, así que nunca
 > generan una fila aquí.
+
+> **Nota:** las PK usan `AUTO_INCREMENT`: MariaDB asigna el siguiente valor
+> automáticamente al insertar, sin necesitar una secuencia ni un trigger aparte.
 
 Normalizado a 3FN:
 - `UBICACION` separada de `VIAJE`: latitud/longitud dependen funcionalmente de la
@@ -608,14 +612,141 @@ Normalizado a 3FN:
 
 ### Modelo relacional
 
-![modelo relacional](img_README/Relational_1.svg)
+```mermaid
+erDiagram
+    REGION {
+        bigint id_region PK
+        varchar nombre UK
+    }
+    COMUNA {
+        bigint id_comuna PK
+        bigint id_region FK
+    }
+    UBICACION {
+        bigint id_ubicacion PK
+        bigint id_comuna FK
+    }
+    USUARIO {
+        bigint id_usuario PK
+        varchar correo UK
+    }
+    USUARIO_ROL_ACTIVO {
+        bigint id_usuario "PK, FK"
+    }
+    EMPRESA {
+        bigint id_empresa PK
+        varchar rut UK
+    }
+    SOLICITANTE {
+        bigint id_usuario "PK, FK"
+        bigint EMPRESA_id_empresa FK
+    }
+    ADMINISTRADOR {
+        bigint id_usuario "PK, FK"
+    }
+    ESTADO_CONDUCTOR {
+        bigint id_estado PK
+    }
+    CONDUCTOR {
+        bigint id_usuario "PK, FK"
+        bigint ESTADO_CONDUCTOR_id_estado FK
+    }
+    ESTADO_MOVIL {
+        bigint id_estado_mov PK
+    }
+    MOVIL {
+        bigint id_movil PK
+        varchar patente UK
+        bigint ESTADO_MOVIL_id_estado_mov FK
+    }
+    DETALLE_MOVIL_CONDUCTOR {
+        bigint id_movil "PK, FK"
+        bigint id_usuario "PK, FK"
+    }
+    PASAJERO {
+        bigint id_pasajero PK
+        varchar dni_hash UK
+    }
+    ESTADO_SOLICITUD {
+        bigint id_estado PK
+    }
+    BANCO {
+        bigint id PK
+        int cod_sbif UK
+    }
+    ESTADO_PAGO {
+        bigint id PK
+    }
+    MEDIO_PAGO {
+        bigint id PK
+    }
+    TIPO_RECIBO {
+        bigint id PK
+    }
+    PAGO {
+        bigint id PK
+        varchar hash UK
+        bigint ESTADO_PAGO_id FK
+        bigint BANCO_id FK
+        bigint EMPRESA_id_empresa FK
+        bigint MEDIO_PAGO_id FK
+        bigint TIPO_RECIBO_id FK
+    }
+    VIAJE {
+        bigint id_viaje PK
+        varchar folio UK
+        bigint id_solicitante FK
+        bigint id_origen FK
+        bigint id_destino FK
+        bigint id_estado FK
+        bigint MOVIL_id_movil FK
+        bigint PAGO_id FK
+        bigint CONDUCTOR_id_usuario FK
+    }
+    DETALLE_VIAJE_PASAJERO {
+        bigint id_viaje "PK, FK"
+        bigint id_pasajero "PK, FK"
+    }
+    HISTORIAL_VIAJE {
+        bigint id_historial PK
+        bigint id_viaje FK
+    }
+
+    REGION ||--o{ COMUNA : tiene
+    COMUNA ||--o{ UBICACION : tiene
+    USUARIO ||--o| SOLICITANTE : extiende
+    USUARIO ||--o| ADMINISTRADOR : extiende
+    USUARIO ||--o| CONDUCTOR : extiende
+    USUARIO ||--o| USUARIO_ROL_ACTIVO : "tiene rol activo"
+    EMPRESA ||--o{ SOLICITANTE : emplea
+    EMPRESA ||--o{ PAGO : paga
+    ESTADO_CONDUCTOR ||--o{ CONDUCTOR : clasifica
+    ESTADO_MOVIL ||--o{ MOVIL : clasifica
+    MOVIL ||--o{ DETALLE_MOVIL_CONDUCTOR : habilita
+    CONDUCTOR ||--o{ DETALLE_MOVIL_CONDUCTOR : habilita
+    ESTADO_SOLICITUD ||--o{ VIAJE : clasifica
+    SOLICITANTE ||--o{ VIAJE : agenda
+    UBICACION ||--o{ VIAJE : origen
+    UBICACION ||--o{ VIAJE : destino
+    MOVIL |o--o{ VIAJE : asignado
+    CONDUCTOR |o--o{ VIAJE : asignado
+    PAGO |o--o{ VIAJE : asociado
+    VIAJE ||--o{ DETALLE_VIAJE_PASAJERO : incluye
+    PASAJERO ||--o{ DETALLE_VIAJE_PASAJERO : viaja
+    VIAJE ||--o{ HISTORIAL_VIAJE : registra
+    ESTADO_PAGO ||--o{ PAGO : clasifica
+    BANCO ||--o{ PAGO : interviene
+    MEDIO_PAGO ||--o{ PAGO : utiliza
+    TIPO_RECIBO ||--o{ PAGO : emite
+```
+
+Solo se listan columnas PK/FK/UK en el diagrama; el resto de los atributos de cada
+entidad está detallado en la tabla de la sección anterior.
 
 ## Arquitectura
 
 > **Decisión de implementación:** MariaDB es la base de datos oficial de la
-> aplicación. El archivo `datamodeler/schema.sql` conserva el DDL generado para
-> Oracle Data Modeler y sirve como referencia del modelo; no se ejecuta contra
-> MariaDB. El esquema que usa la aplicación se crea con las migraciones Flyway en
+> aplicación. El esquema que usa la aplicación se crea con las migraciones Flyway en
 > `backend/src/main/resources/db/migration`.
 
 ### Base de datos **MariaDB**
@@ -781,9 +912,9 @@ patrón de capas ya definido en el backend:
 
 ## Propósito
 
-El backend de Belmonte está organizado como un monolito Spring Boot con separación clásica por capas. Cada capa existe una sola vez y reúne las clases de todas las entidades del sistema. La aplicación expone una API REST JSON y persiste datos en MariaDB mediante Spring Data JPA y migraciones Flyway.
+El backend de Belmonte está organizado como un monolito Spring Boot con separación clásica por capas. Cada capa existe una sola vez y reúne las clases de todas las entidades del sistema. La aplicación expone una API REST JSON y persiste datos en MariaDB mediante Spring Data JPA y migraciones Flyway. El sistema de build es **Gradle** (Groovy DSL), con wrapper `gradlew`/`gradlew.bat`.
 
-Paquete base Java: `com.belmontespa.transporte`.
+Paquete base Java: `cl.belmontespa.transporte`.
 
 ## Árbol de carpetas
 
@@ -791,14 +922,15 @@ Paquete base Java: `com.belmontespa.transporte`.
 backend/
 ├── .gitattributes
 ├── .gitignore
-├── .mvn/wrapper/maven-wrapper.properties
-├── mvnw
-├── mvnw.cmd
-├── pom.xml                        # Dependencias y configuración Maven
+├── gradle/wrapper/gradle-wrapper.properties
+├── gradlew
+├── gradlew.bat
+├── settings.gradle
+├── build.gradle                   # Dependencias y configuración Gradle
 ├── ESTRUCTURA_BACKEND.md          # Este documento
 └── src/
     ├── main/
-    │   ├── java/com/belmontespa/transporte/
+    │   ├── java/cl/belmontespa/transporte/
     │   │   ├── TransporteApplication.java
     │   │   ├── client/
     │   │   │   └── FirebaseClient.java
@@ -888,7 +1020,7 @@ backend/
     │       └── db/migration/
     │           ├── V1__crear_esquema_inicial.sql
     │           └── V2__completar_modelo_belmonte.sql
-    └── test/java/com/belmontespa/transporte/
+    └── test/java/cl/belmontespa/transporte/
         └── TransporteApplicationTests.java
 ```
 
@@ -976,7 +1108,7 @@ borran por API.
 `application.properties` obtiene conexión desde `DB_URL`, `DB_USER` y `DB_PASSWORD`, con valores locales de desarrollo como respaldo. Hibernate valida el esquema y Flyway administra los cambios:
 
 - `V1__crear_esquema_inicial.sql` crea el esquema MariaDB inicial.
-- `V2__completar_modelo_belmonte.sql` amplía el esquema hacia el modelo de Data Modeler, que se usa como referencia funcional y no como DDL Oracle ejecutable.
+- `V2__completar_modelo_belmonte.sql` amplía el esquema hasta completar el modelo descrito en este documento.
 
 ## Estado y alcance actual
 
@@ -987,4 +1119,3 @@ borran por API.
 - La implementación actual expone `PUT`/`DELETE` genérico sobre todas las entidades; esto ya no coincide con la sección "CRUD REST" (sin `DELETE` en ningún recurso, y `PUT` solo para `usuarios`/`conductores`/`solicitantes`) — falta actualizar el backend para que el resto deje de aceptar esos verbos.
 - `FirebaseClient` es solo una interfaz; aún faltan la implementación/configuración de Firebase y la persistencia del token de dispositivo (RF13).
 - Faltan DTOs de petición/respuesta para dejar de exponer directamente las entidades en los CRUD.
-- `datamodeler/schema.sql` se conserva como referencia Oracle. La aplicación utiliza las migraciones MariaDB de `src/main/resources/db/migration`.
