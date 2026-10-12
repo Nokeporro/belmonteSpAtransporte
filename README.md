@@ -24,6 +24,14 @@
   - [Backend](#backend)
   - [Frontend](#frontend)
   - [Frontend (Android)](#frontend-android)
+- [Estructura del backend](#estructura-del-backend)
+  - [Propósito](#propósito)
+  - [Árbol de carpetas](#árbol-de-carpetas)
+  - [Responsabilidad de cada capa](#responsabilidad-de-cada-capa)
+  - [CRUD REST](#crud-rest)
+  - [Autenticación](#autenticación)
+  - [Persistencia MariaDB](#persistencia-mariadb)
+  - [Estado y alcance actual](#estado-y-alcance-actual)
 
 ## Introduccion
 
@@ -221,7 +229,7 @@ despachar rutas a los choferes.
 | **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador |
 | **Objetivo** | Recuperar el acceso a la cuenta sin depender de otra persona, cuando se olvida la contraseña. |
 | **Precondiciones** | El usuario tiene una cuenta de Solicitante o Administrador con correo registrado. |
-| **Flujo principal** | 1. El usuario ingresa su correo en "olvidé mi contraseña".<br>2. El sistema valida que el correo corresponda a una cuenta de Solicitante o Administrador.<br>3. El sistema genera una contraseña temporal aleatoria, la hashea y la guarda como `password_hash`, y fija `password_temporal_expira`.<br>4. El sistema envía la contraseña en texto plano solo al correo registrado (único momento en que existe en texto plano; nunca se persiste así — ver RNF01).<br>5. El usuario inicia sesión con la contraseña temporal antes de que expire (CU-14). |
+| **Flujo principal** | 1. El usuario ingresa su correo en "olvidé mi contraseña".<br>2. El sistema valida que el correo corresponda a una cuenta de Solicitante o Administrador.<br>3. El sistema genera una contraseña temporal aleatoria, la hashea y la guarda como `password_hash`, y fija `password_temporal_expira`.<br>4. El sistema envía la contraseña en texto plano solo al correo registrado, mediante `EmailClient` (ver Backend, RNF07; único momento en que existe en texto plano; nunca se persiste así — ver RNF01).<br>5. El usuario inicia sesión con la contraseña temporal antes de que expire (CU-14). |
 | **Postcondiciones** | El usuario puede autenticarse con la contraseña temporal hasta que expire. |
 | **Flujos alternativos / excepciones** | El correo no existe, o pertenece a un Conductor: el sistema responde el mismo mensaje genérico, sin revelar el motivo. La contraseña temporal expira sin usarse: debe solicitar una nueva recuperación. |
 
@@ -236,8 +244,8 @@ despachar rutas a los choferes.
 | **Actor(es)** | ACT-01 — Cliente corporativo/Solicitante; ACT-03 — Recepcionista/Administrador; ACT-04 — Conductor |
 | **Objetivo** | Autenticar a un usuario y emitir el JWT que el resto del sistema usa para autorizar sus acciones por rol. |
 | **Precondiciones** | El usuario ya tiene una cuenta (autorregistrada si es Solicitante — RF01; creada por el Administrador si es Conductor — RF14; o por migración Flyway si es Administrador). |
-| **Flujo principal** | 1. El usuario ingresa correo y contraseña.<br>2. El sistema valida la contraseña contra `USUARIO.password_hash`, rechazando si `password_temporal_expira` no es nulo y ya pasó (RF21).<br>3. El sistema determina el rol consultando en cuál de `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` existe ese `id_usuario` (único por rol, garantizado por `USUARIO_ROL_ACTIVO`).<br>4. El sistema emite un JWT con `sub` = correo, `rol` = el rol encontrado, y `exp` = expiración (RNF01).<br>5. El sistema retorna el JWT, que el cliente adjunta en cada request posterior. |
-| **Postcondiciones** | El usuario queda autenticado; el JWT emitido es la credencial que el `SecurityFilterChain` valida en cada request y usa para aplicar el mapeo rol→endpoint (sección Backend). |
+| **Flujo principal** | 1. El usuario ingresa correo y contraseña, y la app adjunta el token FCM del dispositivo si lo tiene (RF13/HU14).<br>2. El sistema valida la contraseña contra `USUARIO.password_hash`, rechazando si `password_temporal_expira` no es nulo y ya pasó (RF21).<br>3. El sistema determina el rol consultando en cuál de `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` existe ese `id_usuario` (único por rol, garantizado por `USUARIO_ROL_ACTIVO`).<br>4. El sistema guarda o reemplaza `USUARIO.token_fcm` con el token recibido, si vino alguno.<br>5. El sistema emite un JWT con `sub` = correo, `rol` = el rol encontrado, y `exp` = expiración (RNF01).<br>6. El sistema retorna el JWT, que el cliente adjunta en cada request posterior. |
+| **Postcondiciones** | El usuario queda autenticado; el JWT emitido es la credencial que el `SecurityFilterChain` valida en cada request y usa para aplicar el mapeo rol→endpoint (sección Backend). Si la app envió un token FCM, queda registrado en `USUARIO.token_fcm` (RF13). |
 | **Flujos alternativos / excepciones** | Correo inexistente o contraseña incorrecta: error genérico sin indicar cuál dato falló. Contraseña temporal expirada (RF21): mismo error genérico, debe pedir una recuperación nueva. |
 
 ## Requerimientos funcionales
@@ -351,11 +359,12 @@ despachar rutas a los choferes.
   `View-ViewModel-Repository` en Android/MVVM), de forma que una regla de negocio
   (ej. transición de estados) se modifique en un único lugar sin tocar la capa de
   presentación.
-- **RNF07 (Dependencia de servicios externos):** El sistema depende de dos servicios
+- **RNF07 (Dependencia de servicios externos):** El sistema depende de tres servicios
   externos con cuota gratuita limitada (Google Places API para autocompletado de
-  direcciones, Firebase Cloud Messaging para notificaciones push). El uso debe
-  monitorearse para no exceder el nivel gratuito durante el desarrollo y las pruebas
-  del MVP.
+  direcciones, Firebase Cloud Messaging para notificaciones push, y un servicio de
+  envío de correo —SMTP o un proveedor transaccional— para la contraseña temporal de
+  RF21/CU-13). El uso debe monitorearse para no exceder el nivel gratuito durante el
+  desarrollo y las pruebas del MVP.
 - **RNF08 (Privacidad de datos):** Los datos personales de pasajeros y solicitantes
   (nombre, teléfono, dirección) no deben registrarse en logs de la aplicación ni del
   backend, y solo deben ser visibles para los actores que participan directamente en
@@ -448,27 +457,12 @@ despachar rutas a los choferes.
 | HU08 | Ver detalle de un viaje asignado | Muestra pasajero, número de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
 | HU09 | Actualizar estado del viaje (En Curso / Finalizado) | "Iniciar viaje" solo está habilitado si el estado actual es Asignado.<br>"Finalizar viaje" solo está habilitado si el estado actual es En Curso.<br>Cada cambio de estado registra la fecha/hora en que ocurrió.<br>Al finalizar, el conductor y el vehículo asignados vuelven a estado "Disponible". | Alta | 3 |
 | HU10 | Navegar con Google Maps/Waze | Al presionar "Navegar" se abre Google Maps o Waze con el destino precargado.<br>Si no hay ninguna app de navegación instalada, se muestra un aviso en vez de fallar silenciosamente. | Alta | 3 |
-| HU11 | Persistencia local y sincronización | Las solicitudes y viajes ya cargados se pueden seguir consultando sin conexión.
-Un cambio de estado hecho sin conexión (ej. "Finalizar viaje") se guarda en una cola local y se marca como "pendiente de sincronizar".
-Al recuperar la conexión, la cola se envía automáticamente al backend sin intervención del usuario. | Media | 8 |
-| HU12 | Recibir notificación al cambiar el estado de mi traslado | Como Solicitante, cuando mi traslado pasa a "Asignado", "En Curso" o "Finalizado", recibo una notificación push.
-Al abrir la notificación (o la pantalla "Mis solicitudes"), el estado mostrado ya está actualizado sin necesidad de recargar manualmente. | Media | 5 |
-| HU13 | Recibir notificación de un nuevo viaje asignado| Como Conductor, cuando el Administrador me asigna una solicitud, recibo una notificación push.
-Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
-| HU14 | Registro del token de notificaciones|Como usuario autenticado (Solicitante, Administrador o Conductor), al iniciar sesión la app registra o actualiza mi token FCM en el backend.
-Si el token cambia (reinstalación, cambio de dispositivo), se reemplaza el anterior sin duplicar registros.| Alta | 3 |
-| HU15 |Registrar conductor|Como Administrador, quiero crear una cuenta de Conductor con nombre, correo, teléfono y contraseña, para que pueda autenticarse sin autorregistrarse.
-Criterios: el registro se rechaza si el correo ya existe o falta un campo obligatorio.
-El Administrador define la contraseña directamente en el formulario (no se genera automáticamente).
-La contraseña se guarda como hash (password_hash), nunca en texto plano.
-Al crearse, el conductor queda disponible de inmediato en "Asignar conductor" (HU05).
-No existe una vista de "cambiar contraseña" para el Conductor: si necesita una nueva, el Administrador la reemplaza directamente en su ficha.| Alta | 3 |
-| HU16 |Cancelar solicitud de traslado|Como Solicitante, quiero cancelar un traslado que ya no necesito, para liberar al conductor y que no se presente a un viaje que no va a ocurrir.
-Criterios: el botón "Cancelar" solo está disponible si el estado es Pendiente o Asignado.
-Si el estado es En Curso o Finalizado, no se puede cancelar.
-Al cancelar, el estado pasa a "Cancelado" y queda registrada la fecha/hora de cancelación.
-Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado "Disponible", se notifica la cancelación al conductor mediante push (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".
-Si la solicitud tenía un pago asociado, este queda en estado "Anulado".| Alta | 3 |
+| HU11 | Persistencia local y sincronización | Las solicitudes y viajes ya cargados se pueden seguir consultando sin conexión.<br>Un cambio de estado hecho sin conexión (ej. "Finalizar viaje") se guarda en una cola local y se marca como "pendiente de sincronizar".<br>Al recuperar la conexión, la cola se envía automáticamente al backend sin intervención del usuario. | Media | 8 |
+| HU12 | Recibir notificación al cambiar el estado de mi traslado | Como Solicitante, cuando mi traslado pasa a "Asignado", "En Curso" o "Finalizado", recibo una notificación push.<br>Al abrir la notificación (o la pantalla "Mis solicitudes"), el estado mostrado ya está actualizado sin necesidad de recargar manualmente. | Media | 5 |
+| HU13 | Recibir notificación de un nuevo viaje asignado | Como Conductor, cuando el Administrador me asigna una solicitud, recibo una notificación push.<br>Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
+| HU14 | Registro del token de notificaciones | Como usuario autenticado (Solicitante, Administrador o Conductor), al iniciar sesión la app registra o actualiza mi token FCM en el backend.<br>Si el token cambia (reinstalación, cambio de dispositivo), se reemplaza el anterior sin duplicar registros. | Alta | 3 |
+| HU15 | Registrar conductor | Como Administrador, quiero crear una cuenta de Conductor con nombre, correo, teléfono y contraseña, para que pueda autenticarse sin autorregistrarse.<br>Criterios: el registro se rechaza si el correo ya existe o falta un campo obligatorio.<br>El Administrador define la contraseña directamente en el formulario (no se genera automáticamente).<br>La contraseña se guarda como hash (password_hash), nunca en texto plano.<br>Al crearse, el conductor queda disponible de inmediato en "Asignar conductor" (HU05).<br>No existe una vista de "cambiar contraseña" para el Conductor: si necesita una nueva, el Administrador la reemplaza directamente en su ficha. | Alta | 3 |
+| HU16 | Cancelar solicitud de traslado | Como Solicitante, quiero cancelar un traslado que ya no necesito, para liberar al conductor y que no se presente a un viaje que no va a ocurrir.<br>Criterios: el botón "Cancelar" solo está disponible si el estado es Pendiente o Asignado.<br>Si el estado es En Curso o Finalizado, no se puede cancelar.<br>Al cancelar, el estado pasa a "Cancelado" y queda registrada la fecha/hora de cancelación.<br>Si la solicitud tenía conductor y vehículo asignados, ambos vuelven a estado "Disponible", se notifica la cancelación al conductor mediante push (mismo mecanismo de RF12) y el viaje desaparece de su lista "Viajes del día".<br>Si la solicitud tenía un pago asociado, este queda en estado "Anulado". | Alta | 3 |
 | HU17 | Registrar vehículo | La patente es obligatoria y única; la capacidad debe ser mayor a 0.<br>El GPS serial es opcional: el vehículo puede operar sin dispositivo propio, usando el GPS del smartphone del conductor.<br>El vehículo queda registrado en estado inicial "Disponible". | Media | 3 |
 | HU18 | Habilitar conductor para vehículo | Solo se pueden habilitar conductores ya registrados (HU15).<br>Un vehículo puede tener más de un conductor habilitado, y un conductor puede estar habilitado para más de un vehículo (relación M:N).<br>Habilitar una relación ya existente no la duplica. | Media | 2 |
 | HU19 | Registrar pago de un viaje | Se puede registrar un pago para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos existentes.<br>El pago queda en estado inicial "Pendiente". | Media | 5 |
@@ -500,6 +494,7 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | USUARIO | password_hash | VARCHAR(200) | NOT NULL | Hash de la contraseña; nunca se almacena en texto plano. |
 | USUARIO | password_temporal_expira | DATETIME | — | NULL si `password_hash` es una contraseña normal; con valor, `password_hash` es una contraseña temporal de recuperación válida solo hasta este instante (RF21). Siempre NULL para CONDUCTOR. |
 | USUARIO | fecha_registro | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Fecha de creación de la cuenta. |
+| USUARIO | token_fcm | VARCHAR(255) | — | Token de notificación push (FCM) del dispositivo actual; NULL hasta el primer login desde la app. Se reemplaza en cada inicio de sesión, no se duplica (RF13/HU14). |
 | USUARIO_ROL_ACTIVO | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Garantiza que un usuario tenga un solo rol activo a la vez: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí antes de permitir su propio insert; la `PRIMARY KEY` rechaza un segundo rol para el mismo `id_usuario`. Sin columnas propias. |
 | EMPRESA | id_empresa | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador de la empresa. |
 | EMPRESA | razon_social | VARCHAR(50) | NOT NULL | Razón social de la empresa cliente. |
@@ -510,7 +505,7 @@ Motor de base de datos: **MariaDB** (ver migraciones Flyway en
 | ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del conductor. |
 | ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | Nombre del estado (p. ej. disponible/ocupado); sin NOT NULL en el DDL. |
 | CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1 del Conductor. |
-| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.CONDUCTOR_id_usuario solo referencie usuarios con este rol. |
+| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado actual del conductor; permite que VIAJE.conductor_id_usuario solo referencie usuarios con este rol. |
 | ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del estado del móvil. |
 | ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | Nombre del estado del vehículo (p. ej. disponible/en mantención). |
 | MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | Identificador del vehículo. |
@@ -639,7 +634,7 @@ erDiagram
     }
     SOLICITANTE {
         bigint id_usuario "PK, FK"
-        bigint EMPRESA_id_empresa FK
+        bigint empresa_id_empresa FK
     }
     ADMINISTRADOR {
         bigint id_usuario "PK, FK"
@@ -649,7 +644,7 @@ erDiagram
     }
     CONDUCTOR {
         bigint id_usuario "PK, FK"
-        bigint ESTADO_CONDUCTOR_id_estado FK
+        bigint estado_conductor_id_estado FK
     }
     ESTADO_MOVIL {
         bigint id_estado_mov PK
@@ -657,7 +652,7 @@ erDiagram
     MOVIL {
         bigint id_movil PK
         varchar patente UK
-        bigint ESTADO_MOVIL_id_estado_mov FK
+        bigint estado_movil_id_estado_mov FK
     }
     DETALLE_MOVIL_CONDUCTOR {
         bigint id_movil "PK, FK"
@@ -686,11 +681,11 @@ erDiagram
     PAGO {
         bigint id PK
         varchar hash UK
-        bigint ESTADO_PAGO_id FK
-        bigint BANCO_id FK
-        bigint EMPRESA_id_empresa FK
-        bigint MEDIO_PAGO_id FK
-        bigint TIPO_RECIBO_id FK
+        bigint estado_pago_id FK
+        bigint banco_id FK
+        bigint empresa_id_empresa FK
+        bigint medio_pago_id FK
+        bigint tipo_recibo_id FK
     }
     VIAJE {
         bigint id_viaje PK
@@ -699,9 +694,9 @@ erDiagram
         bigint id_origen FK
         bigint id_destino FK
         bigint id_estado FK
-        bigint MOVIL_id_movil FK
-        bigint PAGO_id FK
-        bigint CONDUCTOR_id_usuario FK
+        bigint movil_id_movil FK
+        bigint pago_id FK
+        bigint conductor_id_usuario FK
     }
     DETALLE_VIAJE_PASAJERO {
         bigint id_viaje "PK, FK"
@@ -799,7 +794,8 @@ siguientes ventajas técnicas:
   móviles. El control de acceso por rol (Solicitante, Administrador, Conductor) se
   centraliza en un único `SecurityFilterChain`, que mapea cada ruta a los roles
   permitidos y rechaza por defecto (`denyAll`) cualquier endpoint no listado
-  explícitamente.
+  explícitamente. La única excepción explícita es `/api/v1/auth/**` (ver
+  "Autenticación"): no puede exigir un JWT que todavía no existe.
 * **Diseño Modular y Separación de Capas:** Impone un patrón de diseño claro
   (`Controller` ➔ `Service` ➔ `Repository`), lo que garantiza un código limpio,
   mantenible, fácil de auditar y preparado para futuras ampliaciones de lógica de
@@ -821,6 +817,7 @@ recurso. Basado en las responsabilidades ya descritas en los casos de uso:
 
 | Recurso | Roles con acceso | Alcance |
 |---|---|---|
+| `auth` | Público (sin autenticación previa) | Login (CU-14) y recuperación de contraseña (CU-13/RF21); único recurso accesible sin JWT. |
 | `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo sobre su propia cuenta (RNF08). |
 | `administradores` | Administrador | Gestión de cuentas de Administrador. |
 | `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo sobre su propia cuenta. |
@@ -912,7 +909,12 @@ patrón de capas ya definido en el backend:
 
 ## Propósito
 
-El backend de Belmonte está organizado como un monolito Spring Boot con separación clásica por capas. Cada capa existe una sola vez y reúne las clases de todas las entidades del sistema. La aplicación expone una API REST JSON y persiste datos en MariaDB mediante Spring Data JPA y migraciones Flyway. El sistema de build es **Gradle** (Groovy DSL), con wrapper `gradlew`/`gradlew.bat`.
+El backend de Belmonte está organizado como un monolito Spring Boot con
+separación clásica por capas. Cada capa existe una sola vez y reúne las clases
+de todas las entidades del sistema. La aplicación expone una API REST JSON y
+persiste datos en MariaDB mediante Spring Data JPA y migraciones Flyway. El
+sistema de build es **Gradle** (Groovy DSL), con wrapper
+`gradlew`/`gradlew.bat`.
 
 Paquete base Java: `cl.belmontespa.transporte`.
 
@@ -927,17 +929,19 @@ backend/
 ├── gradlew.bat
 ├── settings.gradle
 ├── build.gradle                   # Dependencias y configuración Gradle
-├── ESTRUCTURA_BACKEND.md          # Este documento
 └── src/
     ├── main/
     │   ├── java/cl/belmontespa/transporte/
     │   │   ├── TransporteApplication.java
     │   │   ├── client/
+    │   │   │   ├── EmailClient.java
     │   │   │   └── FirebaseClient.java
     │   │   ├── config/
+    │   │   │   ├── JwtProvider.java
     │   │   │   └── SecurityConfig.java
     │   │   ├── controller/
     │   │   │   ├── CrudController.java
+    │   │   │   ├── AuthController.java
     │   │   │   ├── AdministradorController.java
     │   │   │   ├── ConductorController.java
     │   │   │   ├── DetalleMovilConductorController.java
@@ -950,7 +954,34 @@ backend/
     │   │   │   ├── UsuarioController.java
     │   │   │   └── ViajeController.java
     │   │   ├── dto/
-    │   │   │   └── response/ApiError.java
+    │   │   │   ├── request/
+    │   │   │   │   ├── LoginDTORequest.java
+    │   │   │   │   ├── RecuperarPasswordDTORequest.java
+    │   │   │   │   ├── AdministradorDTORequest.java
+    │   │   │   │   ├── ConductorDTORequest.java
+    │   │   │   │   ├── DetalleMovilConductorDTORequest.java
+    │   │   │   │   ├── DetalleViajePasajeroDTORequest.java
+    │   │   │   │   ├── EmpresaDTORequest.java
+    │   │   │   │   ├── MovilDTORequest.java
+    │   │   │   │   ├── PagoDTORequest.java
+    │   │   │   │   ├── PasajeroDTORequest.java
+    │   │   │   │   ├── SolicitanteDTORequest.java
+    │   │   │   │   ├── UsuarioDTORequest.java
+    │   │   │   │   └── ViajeDTORequest.java
+    │   │   │   └── response/
+    │   │   │       ├── ApiError.java
+    │   │   │       ├── LoginDTOResponse.java
+    │   │   │       ├── AdministradorDTOResponse.java
+    │   │   │       ├── ConductorDTOResponse.java
+    │   │   │       ├── DetalleMovilConductorDTOResponse.java
+    │   │   │       ├── DetalleViajePasajeroDTOResponse.java
+    │   │   │       ├── EmpresaDTOResponse.java
+    │   │   │       ├── MovilDTOResponse.java
+    │   │   │       ├── PagoDTOResponse.java
+    │   │   │       ├── PasajeroDTOResponse.java
+    │   │   │       ├── SolicitanteDTOResponse.java
+    │   │   │       ├── UsuarioDTOResponse.java
+    │   │   │       └── ViajeDTOResponse.java
     │   │   ├── exception/
     │   │   │   └── ApiExceptionHandler.java
     │   │   ├── model/
@@ -1003,6 +1034,7 @@ backend/
     │   │   │   └── ViajeRepository.java
     │   │   └── service/
     │   │       ├── AdministradorService.java
+    │   │       ├── AuthService.java
     │   │       ├── ConductorService.java
     │   │       ├── CrudService.java
     │   │       ├── DetalleMovilConductorService.java
@@ -1024,10 +1056,36 @@ backend/
         └── TransporteApplicationTests.java
 ```
 
-> En el árbol anterior, `repository/` y `service/` contienen una clase por entidad, además de sus clases base. Las dos tablas de relación M:N también tienen sus repositorios y servicios propios. Tres excepciones a ese patrón:
-> - Los 9 catálogos (`Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`, `EstadoPago`, `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`) tienen `Model`/`Repository`, pero **no** `Controller` ni `Service` propios: no se exponen ni se modifican vía API, solo desde la base de datos directamente. Cuando otra entidad necesita validar que un valor de catálogo existe (p. ej. `PagoService` validando `BANCO_id`), lo hace con un `SELECT` (`existsById`) contra el `Repository` del catálogo.
-> - `Ubicacion` tiene `Model`/`Repository`/`Service`, pero **no** `Controller`: su única clave de negocio es compuesta (dirección + comuna + coordenadas), no sirve como clave de ruta, así que no tiene recurso propio; `UbicacionService` se usa internamente desde `ViajeService` al registrar o consultar un viaje.
-> - `HistorialViaje` tiene `Model`/`Repository`, pero **no** `Controller` ni `Service`: lo llenan los triggers de `VIAJE` directamente en la base de datos (ver `datamodeler/schema.sql`), no la capa de aplicación. Es intencional: si se expusiera con `POST`/`PUT`/`DELETE`, se podría falsear o borrar el historial.
+> En el árbol anterior, `repository/` y `service/` contienen una clase por
+> entidad, además de sus clases base. Las dos tablas de relación M:N también
+> tienen sus repositorios y servicios propios. Tres excepciones a ese patrón:
+> - Los 9 catálogos (`Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`,
+>   `EstadoPago`, `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`)
+>   tienen `Model`/`Repository`, pero **no** `Controller` ni `Service` propios:
+>   no se exponen ni se modifican vía API, solo desde la base de datos
+>   directamente. Cuando otra entidad necesita validar que un valor de catálogo
+>   existe (p. ej. `PagoService` validando `banco_id`), lo hace con un `SELECT`
+>   (`existsById`) contra el `Repository` del catálogo.
+> - `Ubicacion` tiene `Model`/`Repository`/`Service`, pero **no** `Controller`:
+>   su única clave de negocio es compuesta (dirección + comuna + coordenadas),
+>   no sirve como clave de ruta, así que no tiene recurso propio;
+>   `UbicacionService` se usa internamente desde `ViajeService` al registrar o
+>   consultar un viaje.
+> - `HistorialViaje` tiene `Model`/`Repository`, pero **no** `Controller` ni
+>   `Service`: lo llenan los triggers de `VIAJE` directamente en la base de
+>   datos (ver `datamodeler/schema.sql`), no la capa de aplicación. Es
+>   intencional: si se expusiera con `POST`/`PUT`/`DELETE`, se podría falsear o
+>   borrar el historial.
+> - Cada controlador de entidad usa su propio par
+>   `{Entidad}DTORequest`/`{Entidad}DTOResponse` (carpeta `dto/`); las
+>   entidades sin `Controller` (los 9 catálogos, `Ubicacion`, `HistorialViaje`)
+>   tampoco tienen DTO. El `DTORequest` solo acepta los campos que el cliente
+>   puede escribir (nunca `id`, ni `password_hash` en
+>   `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE`); el `DTOResponse`
+>   expone la clave de negocio de la entidad (ver "CRUD REST") en vez del `id`
+>   interno, y nunca incluye `password_hash`. `CrudController`/`CrudService`
+>   operan sobre estos tipos de forma genérica, sin conocer los campos
+>   concretos de cada entidad.
 
 ## Responsabilidad de cada capa
 
@@ -1035,12 +1093,12 @@ backend/
 |---|---|
 | `model` | Entidades JPA que representan las tablas MariaDB. Las relaciones M:N usan clases ID compuestas. |
 | `repository` | Interfaces Spring Data JPA para consultar y persistir entidades. |
-| `service` | Operaciones CRUD comunes y lógica de aplicación. `CrudService` concentra las operaciones repetidas. |
-| `controller` | Endpoints REST. `CrudController` comparte los endpoints CRUD entre controladores. |
-| `dto` | Objetos para contratos de entrada y salida de la API. Actualmente contiene `ApiError`; los CRUD todavía reciben y devuelven modelos. |
+| `service` | Operaciones CRUD comunes y lógica de aplicación. `CrudService` concentra las operaciones repetidas; `AuthService` valida credenciales y coordina la recuperación de contraseña. |
+| `controller` | Endpoints REST. `CrudController` comparte los endpoints CRUD entre controladores; `AuthController` expone login y recuperación de contraseña fuera de ese patrón (ver "Autenticación"). |
+| `dto` | Contratos de entrada y salida de la API: un `{Entidad}DTORequest`/`{Entidad}DTOResponse` por cada entidad con `Controller`, más `LoginDTORequest`/`LoginDTOResponse`/`RecuperarPasswordDTORequest` para `auth` y `ApiError` para errores. Ningún `Controller` recibe ni devuelve un `Model` directamente. |
 | `exception` | Manejo centralizado de excepciones y respuestas de error HTTP. |
-| `config` | Configuración transversal de Spring; actualmente contiene la cadena de seguridad. |
-| `client` | Contrato para integrar servicios externos; actualmente define la interfaz `FirebaseClient`. |
+| `config` | Configuración transversal de Spring: `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14). |
+| `client` | Contratos para integrar servicios externos: `FirebaseClient` (notificaciones push, RF12/RF13) y `EmailClient` (envío de la contraseña temporal, RF21). |
 | `resources/db/migration` | Migraciones SQL versionadas que Flyway aplica sobre MariaDB. |
 
 ## CRUD REST
@@ -1103,19 +1161,41 @@ En estas tablas, la asociación se crea como unidad; no tienen `PUT` ni `DELETE`
 porque no poseen atributos propios que actualizar y, como el resto del modelo, no se
 borran por API.
 
+## Autenticación
+
+| Método | Ruta | Acción |
+|---|---|---|
+| `POST` | `/api/v1/auth/login` | Autenticar con correo/contraseña y emitir el JWT (CU-14). |
+| `POST` | `/api/v1/auth/recuperar-password` | Solicitar una contraseña temporal por correo (CU-13/RF21). |
+
+Estas dos rutas son el único punto de entrada antes de tener un JWT, por lo que no
+requieren autenticación previa (ver "Mapeo de roles por endpoint") ni siguen el
+patrón CRUD genérico de la sección anterior: no usan `CrudController`, no tienen
+`GET`/`PUT`/`DELETE`, y cada una usa su propio DTO (`LoginDTORequest`/
+`LoginDTOResponse`, `RecuperarPasswordDTORequest`) en vez de los DTO por entidad.
+
 ## Persistencia MariaDB
 
-`application.properties` obtiene conexión desde `DB_URL`, `DB_USER` y `DB_PASSWORD`, con valores locales de desarrollo como respaldo. Hibernate valida el esquema y Flyway administra los cambios:
+`application.properties` obtiene conexión desde `DB_URL`, `DB_USER` y
+`DB_PASSWORD`, con valores locales de desarrollo como respaldo. Hibernate
+valida el esquema y Flyway administra los cambios:
 
 - `V1__crear_esquema_inicial.sql` crea el esquema MariaDB inicial.
-- `V2__completar_modelo_belmonte.sql` amplía el esquema hasta completar el modelo descrito en este documento.
+- `V2__completar_modelo_belmonte.sql` amplía el esquema hasta completar el
+  modelo descrito en este documento.
 
 ## Estado y alcance actual
 
-- La estructura sigue el patrón clásico global `Controller → Service → Repository`.
-- Los CRUD se implementaron como base genérica; no sustituyen reglas del negocio para asignación, cancelación, transiciones de viaje y pago.
-- La seguridad configurada usa HTTP Basic y requiere autenticación. Mientras no se implemente JWT (CU-14) con el `SecurityFilterChain` del mapeo rol→endpoint, RNF01 no se cumple.
-- Los CRUD devolviendo modelos directos (en vez de DTOs) filtran `password_hash` en las respuestas de `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo concreto de seguridad, no solo una brecha genérica de estilo.
-- La implementación actual expone `PUT`/`DELETE` genérico sobre todas las entidades; esto ya no coincide con la sección "CRUD REST" (sin `DELETE` en ningún recurso, y `PUT` solo para `usuarios`/`conductores`/`solicitantes`) — falta actualizar el backend para que el resto deje de aceptar esos verbos.
-- `FirebaseClient` es solo una interfaz; aún faltan la implementación/configuración de Firebase y la persistencia del token de dispositivo (RF13).
-- Faltan DTOs de petición/respuesta para dejar de exponer directamente las entidades en los CRUD.
+- La estructura sigue el patrón clásico global `Controller → Service →
+  Repository`.
+- La seguridad configurada usa HTTP Basic y requiere autenticación. Mientras no
+  se implemente JWT (CU-14) con el `SecurityFilterChain` del mapeo
+  rol→endpoint, RNF01 no se cumple.
+- Los `{Entidad}DTORequest`/`{Entidad}DTOResponse` definidos en "Árbol de
+  carpetas" todavía no existen en el código; mientras tanto, los CRUD reciben y
+  devuelven `Model` directos, filtrando `password_hash` en las respuestas de
+  `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo concreto de
+  seguridad, no solo una brecha genérica de estilo.
+- `FirebaseClient` es solo una interfaz; aún faltan la
+  implementación/configuración de Firebase y la persistencia del token de
+  dispositivo (RF13).
