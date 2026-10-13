@@ -12,10 +12,11 @@ Paquete base Java: `com.belmontespa.transporte`.
 backend/
 ├── .gitattributes
 ├── .gitignore
-├── .mvn/wrapper/maven-wrapper.properties
-├── mvnw
-├── mvnw.cmd
-├── pom.xml                        # Dependencias y configuración Maven
+├── gradle/wrapper/                # Archivos del Gradle Wrapper
+├── gradlew
+├── gradlew.bat
+├── build.gradle                   # Dependencias y configuración Gradle
+├── settings.gradle
 ├── ESTRUCTURA_BACKEND.md          # Este documento
 └── src/
     ├── main/
