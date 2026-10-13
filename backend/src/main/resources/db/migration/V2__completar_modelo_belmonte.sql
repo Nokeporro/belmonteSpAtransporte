@@ -161,5 +161,5 @@ CREATE TABLE detalle_viaje_pasajero (
   id_pasajero BIGINT NOT NULL,
   PRIMARY KEY (id_viaje, id_pasajero),
   CONSTRAINT fk_detalle_viaje FOREIGN KEY (id_viaje) REFERENCES viaje(id_viaje),
-  CONSTRAINT fk_detalle_pasajero FOREIGN KEY (id_pasajero) REFERENCES pasajero(id_pasajero)
+  CONSTRAINT fk_detalle_viaje_pasajero FOREIGN KEY (id_pasajero) REFERENCES pasajero(id_pasajero)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

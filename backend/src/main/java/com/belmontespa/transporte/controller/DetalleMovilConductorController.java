@@ -13,5 +13,4 @@ public class DetalleMovilConductorController {
     @GetMapping public List<DetalleMovilConductor> findAll() { return service.findAll(); }
     @GetMapping("/{movilId}/{conductorId}") public DetalleMovilConductor findById(@PathVariable Long movilId, @PathVariable Long conductorId) { return service.findById(new DetalleMovilConductorId(movilId, conductorId)); }
     @PostMapping @ResponseStatus(HttpStatus.CREATED) public DetalleMovilConductor create(@RequestBody DetalleMovilConductor entity) { return service.create(entity); }
-    @DeleteMapping("/{movilId}/{conductorId}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable Long movilId, @PathVariable Long conductorId) { service.delete(new DetalleMovilConductorId(movilId, conductorId)); }
 }

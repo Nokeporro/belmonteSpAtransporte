@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -15,6 +16,10 @@ public class Viaje {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_viaje", nullable = false)
     private Long idViaje;
+    @Column(name = "folio", length = 20, nullable = false, updatable = false)
+    private String folio;
+    @Column(name = "cantidad_pasajeros", nullable = false)
+    private Integer cantidadPasajeros = 0;
     @Column(name = "id_solicitante", nullable = false)
     private Long idSolicitante;
     @Column(name = "id_origen", nullable = false)
@@ -41,4 +46,12 @@ public class Viaje {
     private Long conductorIdUsuario;
     @Column(name = "numero_vuelo", length = 20)
     private String numeroVuelo;
+
+    @PrePersist
+    private void generarCamposPublicos() {
+        if (folio == null || folio.isBlank()) {
+            folio = "VJ" + UUID.randomUUID().toString().replace("-", "").substring(0, 18).toUpperCase();
+        }
+        if (cantidadPasajeros == null) cantidadPasajeros = 0;
+    }
 }

@@ -30,4 +30,8 @@ public class Usuario {
     @CreationTimestamp
     @Column(name = "fecha_registro", nullable = false, updatable = false)
     private LocalDateTime fechaRegistro;
+    @Column(name = "password_temporal_expira")
+    private LocalDateTime passwordTemporalExpira;
+    @Column(name = "token_fcm", length = 255)
+    private String tokenFcm;
 }
