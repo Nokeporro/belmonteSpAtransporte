@@ -1,20 +1,28 @@
 package cl.belmontespa.transporte.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
+import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.time.Instant;
-import java.util.Date;
+import java.util.Base64;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.stereotype.Component;
 
-// Emite y valida el JWT de CU-14: sub = correo, rol y exp.
+// Emite (JwtEncoder) y valida (JwtDecoder) el JWT de CU-14: sub = correo, rol y exp.
+// Firma HS256 con app.jwt.secret.
 @Component
 public class JwtProvider {
 
-	private final SecretKey signingKey;
+	private final SecretKey key;
+	private final JwtEncoder encoder;
 	private final long expirationSeconds;
 
 	public JwtProvider(
@@ -23,25 +31,26 @@ public class JwtProvider {
 		if (expirationSeconds < 1) {
 			throw new IllegalArgumentException("La expiración del JWT debe ser positiva");
 		}
-		this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(base64Secret));
+		this.key = new SecretKeySpec(Base64.getDecoder().decode(base64Secret), "HmacSHA256");
+		this.encoder = new NimbusJwtEncoder(new ImmutableSecret<>(key));
 		this.expirationSeconds = expirationSeconds;
 	}
 
 	public String generar(String correo, String rol) {
 		Instant ahora = Instant.now();
-		return Jwts.builder()
+		JwtClaimsSet claims = JwtClaimsSet.builder()
 				.subject(correo)
 				.claim("rol", rol)
-				.issuedAt(Date.from(ahora))
-				.expiration(Date.from(ahora.plusSeconds(expirationSeconds)))
-				.signWith(signingKey)
-				.compact();
+				.issuedAt(ahora)
+				.expiresAt(ahora.plusSeconds(expirationSeconds))
+				.build();
+		JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+		return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 	}
 
-	// Lanza io.jsonwebtoken.JwtException si la firma no es válida o el token expiró.
-	public Claims leerClaims(String token) {
-		return Jwts.parser().verifyWith(signingKey).build()
-				.parseSignedClaims(token).getPayload();
+	// Verifica firma y expiración; lo usa el resource server de SecurityConfig.
+	public JwtDecoder decoder() {
+		return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
 	}
 
 	public long getExpirationSeconds() {
