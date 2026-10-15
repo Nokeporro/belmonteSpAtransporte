@@ -12,7 +12,6 @@
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 13:56:37 UTC</createdTime>
 <ownerDesignName>belmontespa</ownerDesignName>
-<nullsAllowed>true</nullsAllowed>
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT019</logicalDatatype>
@@ -26,11 +25,23 @@
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT024</logicalDatatype>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
+<dataTypeSize>20 CHAR</dataTypeSize>
+<ownDataTypeParameters>20 CHAR,,</ownDataTypeParameters>
 <autoIncrementCycle>false</autoIncrementCycle>
 </Column>
 </columns>
 <indexes itemClass="oracle.dbtools.crest.model.design.relational.Index">
+<ind_PK_UK id="174029D2-14C4-536F-EB50-AA04FAF50E25" name="TIPO_RECIBO_PK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 14:44:44 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<pk>true</pk>
+<indexState>Primary Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="80B34C82-FCFC-7356-0091-D35CEE686B4B"/>
+</indexColumnUsage>
+</ind_PK_UK>
 <ind_PK_UK id="D6096ABD-9398-CDBA-B56E-E0C348B23CBA" name="TIPO_RECIBO__UN">
 <createdBy>demr</createdBy>
 <createdTime>2026-10-10 13:57:12 UTC</createdTime>

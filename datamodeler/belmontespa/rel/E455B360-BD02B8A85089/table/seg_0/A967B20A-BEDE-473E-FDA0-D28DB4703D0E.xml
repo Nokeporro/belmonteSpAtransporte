@@ -26,7 +26,8 @@
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT024</logicalDatatype>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
+<dataTypeSize>20 CHAR</dataTypeSize>
+<ownDataTypeParameters>20 CHAR,,</ownDataTypeParameters>
 <autoIncrementCycle>false</autoIncrementCycle>
 </Column>
 </columns>
@@ -40,6 +41,16 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="BC242587-94D1-D7AC-FDC8-C20496467B7E"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="3B7EF7DE-E236-8322-3049-554AE53EFD7C" name="ESTADO_CONDUCTOR__UN">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 14:50:48 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Unique Constraint</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="130D304E-8FDE-662B-6888-B6F1D2FD9537"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>

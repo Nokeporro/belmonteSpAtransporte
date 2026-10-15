@@ -114,6 +114,15 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="345E3ED4-CAF0-7F3B-F891-70A40CB6CBDE"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="A5E5DF39-AA95-9806-F61F-D8B3CD9138F5" name="USUARIO__IDX">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:02:52 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="345E3ED4-CAF0-7F3B-F891-70A40CB6CBDE"/>
 <colUsage columnID="3E54B474-378E-A2BB-B6DA-D3C23FEA32A0"/>
 </indexColumnUsage>
 </ind_PK_UK>

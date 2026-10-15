@@ -25,17 +25,8 @@
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT024</logicalDatatype>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
-<autoIncrementCycle>false</autoIncrementCycle>
-</Column>
-<Column name="fecha_hora" id="8ECE02CA-7787-1624-41F5-F4B30012EDCF">
-<createdBy>demr</createdBy>
-<createdTime>2026-10-10 13:29:34 UTC</createdTime>
-<ownerDesignName>belmontespa</ownerDesignName>
-<useDomainConstraints>false</useDomainConstraints>
-<use>1</use>
-<logicalDatatype>LOGDT015</logicalDatatype>
-<ownDataTypeParameters>,,</ownDataTypeParameters>
+<dataTypeSize>50 BYTE</dataTypeSize>
+<ownDataTypeParameters>50 BYTE,,</ownDataTypeParameters>
 <autoIncrementCycle>false</autoIncrementCycle>
 </Column>
 <Column name="monto" id="1A1CF535-9145-5A3E-C075-1B24A8E28A52">
@@ -111,11 +102,26 @@
 <useDomainConstraints>false</useDomainConstraints>
 <use>1</use>
 <logicalDatatype>LOGDT024</logicalDatatype>
+<dataTypeSize>20 CHAR</dataTypeSize>
 <ownDataTypeParameters>,,</ownDataTypeParameters>
 <previousColumn>false</previousColumn>
 <autoIncrementCycle>false</autoIncrementCycle>
 <associations>
 <colAssociation fkAssociation="7A083603-A3C9-521E-6487-62D778875A8E" referredColumn="5328CA29-2984-E587-0219-510CDAEDB7BA"/>
+</associations>
+</Column>
+<Column name="FECHA_HORA_id" id="A2656896-E1BD-B363-8BDE-2FB8F2BFBEA5">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:23:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<useDomainConstraints>false</useDomainConstraints>
+<use>1</use>
+<logicalDatatype>LOGDT019</logicalDatatype>
+<ownDataTypeParameters>,,</ownDataTypeParameters>
+<previousColumn>false</previousColumn>
+<autoIncrementCycle>false</autoIncrementCycle>
+<associations>
+<colAssociation fkAssociation="0D21AFFB-2541-C697-D132-D16BFF9EDAF5" referredColumn="51C6BADC-1C95-2CE9-E628-975BF5FADDB9"/>
 </associations>
 </Column>
 </columns>
@@ -189,6 +195,16 @@
 <isSurrogateKey>false</isSurrogateKey>
 <indexColumnUsage>
 <colUsage columnID="32980E5F-D602-3CDC-74AE-011A105A2B62"/>
+</indexColumnUsage>
+</ind_PK_UK>
+<ind_PK_UK id="2AEABB44-A41A-E480-B297-73D01E08CD5B" name="PAGO_FECHA_HORA_FK">
+<createdBy>demr</createdBy>
+<createdTime>2026-10-10 15:23:36 UTC</createdTime>
+<ownerDesignName>belmontespa</ownerDesignName>
+<indexState>Foreign Key</indexState>
+<isSurrogateKey>false</isSurrogateKey>
+<indexColumnUsage>
+<colUsage columnID="A2656896-E1BD-B363-8BDE-2FB8F2BFBEA5"/>
 </indexColumnUsage>
 </ind_PK_UK>
 </indexes>
