@@ -712,7 +712,7 @@ backend/
   (dirección + comuna + coordenadas) y no sirve como clave de ruta. `UbicacionService`
   se usa solo desde `ViajeService`.
 - **`HistorialViaje`** — solo `Model` y `Repository`: lo llenan los triggers de `VIAJE`
-  (ver `datamodeler/schema.sql`). Exponerlo permitiría falsear o borrar el historial.
+  (ver `db/migration`). Exponerlo permitiría falsear o borrar el historial.
 - **DTO** — el `DTORequest` solo acepta campos que el cliente puede escribir (nunca
   `id` ni `password_hash`); el `DTOResponse` expone la clave de negocio en vez del `id`
   y nunca incluye `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
@@ -759,7 +759,7 @@ de negocio de cada entidad.
   reemplazando la contraseña de un Conductor, CU-07). El resto solo tiene `GET`/`POST`.
 - **`viajes` y `pagos`** no se mutan por `PUT`: conductor, móvil, estado y cantidad de
   pasajeros de `VIAJE`, y el estado de `PAGO`, los valida y audita la base de datos
-  (triggers de `datamodeler/schema.sql`) y se cambian solo por "Acciones de negocio".
+  (triggers de `db/migration`) y se cambian solo por "Acciones de negocio".
 - **No son recursos:** los 9 catálogos (`bancos`, `comunas`, `estados-conductor`,
   `estados-movil`, `estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`,
   `tipos-recibo`) y `ubicaciones`, que se crea y consulta solo como parte de `viajes`.
