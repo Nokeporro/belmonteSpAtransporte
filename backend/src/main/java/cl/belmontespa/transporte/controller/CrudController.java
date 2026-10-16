@@ -37,6 +37,7 @@ public abstract class CrudController<Q, R> {
 
 	@GetMapping("/{clave}")
 	public R obtener(@PathVariable String clave, Authentication auth) {
+		exigirAccesoPrevio(clave, auth);
 		R recurso = service().obtener(clave);
 		exigirAcceso(clave, recurso, auth);
 		return recurso;
@@ -50,6 +51,11 @@ public abstract class CrudController<Q, R> {
 
 	protected List<R> listarPara(Authentication auth, Map<String, String> filtros) {
 		return service().listar();
+	}
+
+	// Se ejecuta antes de buscar el recurso: sirve cuando la regla depende solo de la clave,
+	// para responder 403 igual si existe o no y no revelar qué claves están registradas.
+	protected void exigirAccesoPrevio(String clave, Authentication auth) {
 	}
 
 	protected void exigirAcceso(String clave, R recurso, Authentication auth) {

@@ -30,7 +30,7 @@ public class SolicitanteController extends CrudController<SolicitanteDTORequest,
 	}
 
 	@Override
-	protected void exigirAcceso(String correo, SolicitanteDTOResponse solicitante, Authentication auth) {
+	protected void exigirAccesoPrevio(String correo, Authentication auth) {
 		if (tieneRol(auth, SOL)) {
 			exigirPropio(correo, auth);
 		}

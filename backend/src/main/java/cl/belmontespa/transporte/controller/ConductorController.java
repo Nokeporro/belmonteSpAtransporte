@@ -29,7 +29,7 @@ public class ConductorController extends CrudController<ConductorDTORequest, Con
 	}
 
 	@Override
-	protected void exigirAcceso(String correo, ConductorDTOResponse conductor, Authentication auth) {
+	protected void exigirAccesoPrevio(String correo, Authentication auth) {
 		if (tieneRol(auth, CON)) {
 			exigirPropio(correo, auth);
 		}

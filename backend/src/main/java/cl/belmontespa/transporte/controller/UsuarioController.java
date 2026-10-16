@@ -37,7 +37,7 @@ public class UsuarioController extends CrudController<UsuarioDTORequest, Usuario
 	}
 
 	@Override
-	protected void exigirAcceso(String correo, UsuarioDTOResponse usuario, Authentication auth) {
+	protected void exigirAccesoPrevio(String correo, Authentication auth) {
 		exigirPropio(correo, auth);
 	}
 
