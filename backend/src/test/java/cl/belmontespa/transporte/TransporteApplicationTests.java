@@ -1,10 +1,9 @@
 package cl.belmontespa.transporte;
 
+import cl.belmontespa.transporte.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class TransporteApplicationTests {
+class TransporteApplicationTests extends IntegrationTest {
 
 	@Test
 	void contextLoads() {
