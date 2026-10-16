@@ -19,3 +19,6 @@ src2/
 
 # Claude Code
 .claude
+
+# Carpeta de archivos subidos en clases
+templates/
