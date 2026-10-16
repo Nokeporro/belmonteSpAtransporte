@@ -28,11 +28,18 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.springframework.boot:spring-boot-starter-flyway'
 	implementation 'org.flywaydb:flyway-mysql'
+<<<<<<< HEAD
 
 	implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
 	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
 	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
 	implementation 'com.google.firebase:firebase-admin:9.4.1'
+=======
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-mail'
+	implementation 'com.google.firebase:firebase-admin:9.11.0'
+	compileOnly 'org.projectlombok:lombok'
+>>>>>>> backend
 	runtimeOnly 'org.mariadb.jdbc:mariadb-java-client'
 
 	compileOnly 'org.projectlombok:lombok'
@@ -42,6 +49,7 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'com.icegreen:greenmail-junit5:2.1.14'
 	testCompileOnly 'org.projectlombok:lombok'
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }

@@ -1,8 +1,21 @@
+# Variables de entonrno
 .env
 .env.*
 !.env.example
+
+# Intellij Idea
 .idea
+
+# Vscode
 .vscode
+
+# Archivos de documentacion
 docs/*.docx
 docs/*.pdf
+
+# Archivos genericos ignorados
 targets
+src2/
+
+# Claude Code
+.claude
