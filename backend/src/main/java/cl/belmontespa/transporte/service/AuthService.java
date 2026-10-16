@@ -75,7 +75,7 @@ public class AuthService {
 					String passwordTemporal = passwordTemporal();
 					usuario.setPasswordHash(passwordEncoder.encode(passwordTemporal));
 					usuario.setPasswordTemporalExpira(LocalDateTime.now().plusMinutes(minutosPasswordTemporal));
-					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal);
+					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal, minutosPasswordTemporal);
 				});
 	}
 

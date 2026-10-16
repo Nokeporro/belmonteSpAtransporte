@@ -19,6 +19,7 @@ import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -138,8 +139,11 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setFhAsignacion(LocalDateTime.now());
 		conductorService.cambiarEstado(conductor, ConductorService.OCUPADO);
 		movilService.cambiarEstado(movil, MovilService.EN_USO);
+		Map<String, String> datos = Map.of("folio", viaje.getFolio());
 		firebaseClient.notificar(conductor.getUsuario().getTokenFcm(),
-				"Nuevo viaje asignado", "Viaje " + viaje.getFolio() + " para " + viaje.getFhAgenda());
+				"Nuevo viaje asignado", "Viaje " + viaje.getFolio() + " para " + viaje.getFhAgenda(), datos);
+		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
+				"Viaje asignado", "Tu viaje " + viaje.getFolio() + " ya tiene conductor y vehículo", datos);
 		return aResponse(viaje);
 	}
 
@@ -164,7 +168,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		}
 		viaje.setEstado(estado(nuevo));
 		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
-				"Viaje " + viaje.getFolio(), "Estado: " + nuevo);
+				"Viaje " + viaje.getFolio(), "Estado: " + nuevo, Map.of("folio", viaje.getFolio()));
 		return aResponse(viaje);
 	}
 
@@ -184,7 +188,8 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		}
 		if (viaje.getConductor() != null) {
 			firebaseClient.notificar(viaje.getConductor().getUsuario().getTokenFcm(),
-					"Viaje cancelado", "El viaje " + viaje.getFolio() + " fue cancelado");
+					"Viaje cancelado", "El viaje " + viaje.getFolio() + " fue cancelado",
+					Map.of("folio", viaje.getFolio()));
 		}
 		return aResponse(viaje);
 	}

@@ -102,6 +102,18 @@ public class Api {
 				{"correo":"%s","password":"%s"}""".formatted(correo, clave));
 	}
 
+	public Resp iniciarSesion(String correo, String clave, String tokenFcm) {
+		return post("/auth/login", null, """
+				{"correo":"%s","password":"%s","tokenFcm":"%s"}""".formatted(correo, clave, tokenFcm));
+	}
+
+	/** Registra el token FCM del dispositivo (RF13) al iniciar sesión y lo devuelve. */
+	public String dispositivo(Cuenta cuenta) {
+		String tokenFcm = "fcm-" + cuenta.correo();
+		exigir(iniciarSesion(cuenta.correo(), CLAVE, tokenFcm), "registrar dispositivo de " + cuenta.correo(), 200);
+		return tokenFcm;
+	}
+
 	public String login(String correo, String clave) {
 		return exigir(iniciarSesion(correo, clave), "login " + correo, 200).texto("$.accessToken");
 	}
