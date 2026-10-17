@@ -1,6 +1,6 @@
 # Aplicacion de Belmonte Spa
 
-**Ultima modificacion:** 16-10-2026
+**Ultima modificacion:** 17-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -75,7 +75,7 @@ en que el conductor reciba su ruta.
 | **Actor(es)** | ACT-01 |
 | **Objetivo** | Registrar una solicitud de traslado por formulario. |
 | **Precondiciones** | Acceso al formulario. |
-| **Flujo principal** | 1. Ingresa pasajero, fecha/hora, origen, destino y n.º de vuelo (si aplica).<br>2. El sistema la registra en Pendiente. |
+| **Flujo principal** | 1. Ingresa pasajero(s), fecha/hora, origen, destino y n.º de vuelo (si aplica).<br>2. El sistema registra el viaje en Pendiente y asocia a él los pasajeros (el cliente lo hace en tres llamadas; ver "Flujo de una solicitud"). |
 | **Postcondiciones** | Solicitud almacenada y disponible para gestión. |
 | **Alternativos / excepciones** | Datos incompletos o inválidos; las reglas de validación no están definidas en el alcance actual. |
 
@@ -110,7 +110,7 @@ en que el conductor reciba su ruta.
 | **Precondiciones** | Solicitudes registradas y conductores disponibles. |
 | **Flujo principal** | 1. Consulta las solicitudes y selecciona una.<br>2. Selecciona un conductor disponible (el sistema sugiere sus vehículos habilitados).<br>3. Confirma.<br>4. El sistema pasa el traslado a Asignado y marca conductor y vehículo como Ocupado/En uso. |
 | **Postcondiciones** | Solicitud asociada a un conductor y a un vehículo habilitado para él. |
-| **Alternativos / excepciones** | Sin conductores disponibles. No hay regla de reasignación automática. |
+| **Alternativos / excepciones** | Sin conductores disponibles. No hay regla de reasignación automática. La reasignación manual de una solicitud Asignado sigue el mismo flujo (RF22). |
 
 #### CU-05 — Actualizar estado del traslado
 
@@ -121,7 +121,7 @@ en que el conductor reciba su ruta.
 | **Precondiciones** | Solicitud registrada. |
 | **Flujo principal** | Pendiente → (Administrador asigna) Asignado → (Conductor inicia) En Curso → (Conductor finaliza) Finalizado. Al finalizar, conductor y vehículo vuelven a Disponible. |
 | **Postcondiciones** | El estado refleja la etapa actual. |
-| **Alternativos / excepciones** | No hay reglas para retroceder o reabrir un traslado. La cancelación es CU-08. |
+| **Alternativos / excepciones** | No hay reglas para retroceder o reabrir un traslado. La cancelación es CU-08 (o la anulación de su pago, CU-12). |
 
 #### CU-06 — Trazar ruta óptima hacia el destino
 
@@ -141,7 +141,7 @@ en que el conductor reciba su ruta.
 | **Actor(es)** | ACT-03 |
 | **Objetivo** | Crear una cuenta de Conductor con credenciales (no hay autorregistro). |
 | **Precondiciones** | Administrador autenticado. |
-| **Flujo principal** | 1. Ingresa nombre, correo, teléfono y contraseña inicial.<br>2. El sistema valida correo único y campos obligatorios.<br>3. Guarda la contraseña como hash.<br>4. El conductor queda disponible de inmediato para autenticarse y ser asignado (CU-04). |
+| **Flujo principal** | 1. Ingresa nombre, correo y contraseña inicial, y opcionalmente teléfono.<br>2. El sistema valida correo único y campos obligatorios.<br>3. Guarda la contraseña como hash.<br>4. El conductor queda disponible de inmediato para autenticarse y ser asignado (CU-04). |
 | **Postcondiciones** | Cuenta de Conductor activa. |
 | **Alternativos / excepciones** | Correo existente o campo faltante: rechazo. El Conductor no tiene vista de "cambiar contraseña"; el Administrador la reemplaza en su ficha. |
 
@@ -152,8 +152,8 @@ en que el conductor reciba su ruta.
 | **Actor(es)** | ACT-01 |
 | **Objetivo** | Cancelar una solicitud propia, liberando al conductor si lo había. |
 | **Precondiciones** | Solicitud propia en Pendiente o Asignado. |
-| **Flujo principal** | 1. Abre el detalle y presiona "Cancelar".<br>2. El sistema valida que el estado sea Pendiente o Asignado.<br>3. Pasa a Cancelado y registra fecha/hora.<br>4. Si había conductor y vehículo: vuelven a Disponible, se notifica al conductor por push (FCM) y el viaje sale de su lista "Viajes del día".<br>5. Si había pago asociado, se anula. |
-| **Postcondiciones** | Solicitud Cancelada; conductor y vehículo liberados; pago Anulado. |
+| **Flujo principal** | 1. Abre el detalle y presiona "Cancelar".<br>2. El sistema valida que el estado sea Pendiente o Asignado.<br>3. Pasa a Cancelado y registra fecha/hora.<br>4. Si había conductor y vehículo: vuelven a Disponible, se notifica al conductor por push (FCM) y el viaje sale de su lista "Viajes del día".<br>5. Si el pago asociado está Pagado, pasa a Reembolsado y se devuelve el 50 % de su monto; en otro estado el pago no cambia. |
+| **Postcondiciones** | Solicitud Cancelada; conductor y vehículo liberados; un pago Pagado queda Reembolsado. |
 | **Alternativos / excepciones** | En Curso o Finalizado: botón no disponible y cancelación rechazada. |
 
 #### CU-09 — Registrar vehículo
@@ -195,10 +195,10 @@ en que el conductor reciba su ruta.
 |---|---|
 | **Actor(es)** | ACT-03 |
 | **Objetivo** | Reflejar si un pago fue cobrado, rechazado o anulado. |
-| **Precondiciones** | Pago en Pendiente. |
-| **Flujo principal** | 1. Selecciona un pago.<br>2. Lo marca Pagado o Rechazado. Anulado es automático al cancelarse el viaje (CU-08), no manual. |
-| **Postcondiciones** | Pago en su nuevo estado (Pagado, Rechazado o Anulado). |
-| **Alternativos / excepciones** | Estado terminal (Rechazado o Anulado): no se puede cambiar. |
+| **Precondiciones** | Pago en Pendiente (o Pagado, solo para anularlo). |
+| **Flujo principal** | 1. Selecciona un pago.<br>2. Lo marca Pagado, Rechazado o Anulado (este último por un problema con el banco u otro motivo). Reembolsado es automático al cancelarse el viaje (CU-08), no manual.<br>3. Si lo anula, el viaje en Pendiente o Asignado pasa a Cancelado (conductor y vehículo vuelven a Disponible). |
+| **Postcondiciones** | Pago en su nuevo estado (Pagado, Rechazado o Anulado); con Anulado, el viaje queda Cancelado. |
+| **Alternativos / excepciones** | Estado terminal (Rechazado, Anulado o Reembolsado): no se puede cambiar. |
 
 #### CU-13 — Recuperar contraseña
 
@@ -244,14 +244,15 @@ en que el conductor reciba su ruta.
 | **RF11** | Sistema | Persistir localmente (Room/SQLite) solicitudes y viajes ya consultados para verlos sin conexión; los cambios hechos offline (p. ej. un cambio de estado) quedan en una cola local y se sincronizan por API REST al reconectar. |
 | **RF12** | Sistema | Notificar por push (FCM) a los actores afectados ante cambios relevantes (asignación, En Curso, Finalizado), sin recarga manual. |
 | **RF13** | Sistema | Registrar y mantener actualizado el token FCM de cada usuario autenticado. |
-| **RF14** | Administrador | Registrar una cuenta de Conductor (nombre, correo, teléfono, contraseña inicial), utilizable de inmediato. |
-| **RF15** | Solicitante | Cancelar una solicitud propia en Pendiente o Asignado; si tenía conductor y vehículo se liberan (Disponible), se anula el pago asociado y se notifica al conductor por push. |
+| **RF14** | Administrador | Registrar una cuenta de Conductor (nombre, correo y contraseña inicial; teléfono opcional), utilizable de inmediato. |
+| **RF15** | Solicitante | Cancelar una solicitud propia en Pendiente o Asignado; si tenía conductor y vehículo se liberan (Disponible) y se notifica al conductor por push; si el pago asociado está Pagado, pasa a Reembolsado y se le devuelve el 50 % de su monto. |
 | **RF16** | Administrador | Registrar un vehículo con patente y capacidad; serial GPS opcional (la ubicación también viene del smartphone del conductor). |
 | **RF17** | Administrador | Habilitar uno o más conductores para un vehículo. |
 | **RF18** | Administrador | Registrar el pago de un viaje en cualquier estado previo a Cancelado (monto, banco, medio de pago, tipo de recibo); nace en Pendiente. |
-| **RF19** | Administrador | Marcar un pago como Pagado o Rechazado; si el viaje se cancela (RF15), se anula automáticamente. |
+| **RF19** | Administrador | Marcar un pago como Pagado, Rechazado o Anulado (p. ej. por un problema con el banco); un pago Anulado cancela el viaje en Pendiente o Asignado. Reembolsado lo fija el sistema al cancelar el Solicitante (RF15). |
 | **RF20** | Solicitante | Ver el estado de pago de sus viajes en el detalle de la solicitud. |
 | **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): contraseña temporal enviada al correo, con expiración. El Conductor no tiene este autoservicio (solo RF14), para que un desvinculado no recupere acceso. |
+| **RF22** | Administrador | Reasignar una solicitud Asignado a un conductor disponible y a un vehículo habilitado para él (puede cambiar uno solo de los dos); la solicitud se mantiene como Asignado, los nuevos pasan a Ocupado/En uso y los anteriores vuelven a Disponible. Se avisa por push al nuevo conductor y al solicitante (RF12). |
 
 ## Requisitos no funcionales
 
@@ -290,11 +291,11 @@ en que el conductor reciba su ruta.
 
 | ID | Historia | Criterios de aceptación | Prioridad | SP |
 |---|---|---|---|---|
-| HU01 | Como Solicitante, quiero registrarme y autenticarme, para acceder de forma segura a mis solicitudes. (RF01) | El registro se rechaza si el correo existe o falta un campo obligatorio (empresa, contacto, correo, teléfono, contraseña).<br>Credenciales válidas llevan a "Mis solicitudes"; inválidas muestran un error sin indicar qué dato falló.<br>"Empresa" (razón social + RUT) crea o reutiliza una fila en `EMPRESA`; no se duplica. | Alta | 3 |
-| HU02 | Como Solicitante, quiero registrar una solicitud eligiendo origen y destino con autocompletado de Google Places, para coordinar el viaje con datos exactos. (RF02) | Origen y destino se eligen de la lista de sugerencias, nunca texto libre; al elegir se capturan latitud y longitud.<br>No se puede enviar si origen o destino no vienen de la lista.<br>N.º de vuelo opcional; pasajero, fecha, hora, origen y destino obligatorios. | Alta | 5 |
+| HU01 | Como Solicitante, quiero registrarme y autenticarme, para acceder de forma segura a mis solicitudes. (RF01) | El registro se rechaza si el correo existe o falta un campo obligatorio (empresa, contacto, correo, contraseña); el teléfono es opcional.<br>Credenciales válidas llevan a "Mis solicitudes"; inválidas muestran un error sin indicar qué dato falló.<br>"Empresa" (razón social + RUT) crea o reutiliza una fila en `EMPRESA`; no se duplica. | Alta | 3 |
+| HU02 | Como Solicitante, quiero registrar una solicitud eligiendo origen y destino con autocompletado de Google Places, para coordinar el viaje con datos exactos. (RF02) | Origen y destino se eligen de la lista de sugerencias, nunca texto libre; al elegir se capturan latitud y longitud.<br>No se puede enviar si origen o destino no vienen de la lista.<br>N.º de vuelo opcional; pasajero (al menos uno), fecha, hora, origen y destino obligatorios: la app lo exige antes de enviar y registra el viaje y sus pasajeros en llamadas separadas (ver "Flujo de una solicitud"). | Alta | 5 |
 | HU03 | Como Solicitante, quiero ver el historial y estado de mis solicitudes, para saber si mi viaje ya fue asignado. (RF03) | La lista muestra pasajero, fecha/hora, ruta (origen→destino) y estado de cada solicitud propia.<br>El estado corresponde al último cambio registrado. | Media | 3 |
 | HU04 | Como Administrador, quiero ver las solicitudes pendientes de asignación, para distribuirlas rápido. (RF04) | Solo se listan solicitudes en Pendiente.<br>Cada fila lleva a "Asignar conductor" de esa solicitud. | Alta | 3 |
-| HU05 | Como Administrador, quiero asignar o reasignar un conductor disponible a una solicitud, para confirmar el viaje y mantenerlo cubierto. (RF05) | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a Asignado y aparece en "Viajes del día" del conductor.<br>También se asigna un vehículo habilitado para él; conductor y vehículo pasan a Ocupado/En uso. | Alta | 5 |
+| HU05 | Como Administrador, quiero asignar un conductor disponible a una solicitud, para confirmar el viaje. (RF05) | Solo se listan conductores disponibles (sin viaje en curso).<br>Al confirmar, la solicitud pasa a Asignado y aparece en "Viajes del día" del conductor.<br>También se asigna un vehículo habilitado para él; conductor y vehículo pasan a Ocupado/En uso. | Alta | 5 |
 | HU06 | Como Conductor, quiero autenticarme con las credenciales que me entrega el Administrador, para acceder a mis viajes sin registrarme. (RF06) | El login del Conductor no ofrece "crear cuenta".<br>Credenciales inválidas muestran un error sin revelar si el correo existe. | Alta | 2 |
 | HU07 | Como Conductor, quiero ver en tiempo real mis viajes del día, para organizar mi jornada. (RF07) | Solo viajes del conductor autenticado, de la fecha actual, ordenados por hora.<br>Cada viaje muestra pasajero, hora y estado. | Alta | 3 |
 | HU08 | Como Conductor, quiero ver el detalle de un viaje asignado, para confirmar los datos antes de iniciar. (RF08) | Muestra pasajero, n.º de vuelo (si aplica), origen y destino completos.<br>Incluye el botón "Navegar" y los controles de cambio de estado. | Alta | 3 |
@@ -304,14 +305,15 @@ en que el conductor reciba su ruta.
 | HU12 | Como Solicitante, quiero recibir un push cuando cambie el estado de mi traslado, para enterarme sin recargar la app. (RF12) | Push al pasar a Asignado, En Curso o Finalizado.<br>Al abrir la notificación o "Mis solicitudes", el estado ya está actualizado. | Media | 5 |
 | HU13 | Como Conductor, quiero recibir un push cuando se me asigna un viaje, para enterarme de inmediato. (RF12) | Push cuando el Administrador me asigna una solicitud.<br>Al abrirla, el viaje aparece en "Viajes del día" con sus datos completos. | Alta | 5 |
 | HU14 | Como usuario autenticado (cualquier rol), quiero que la app registre mi token de notificaciones al iniciar sesión, para recibir avisos dirigidos. (RF13) | Al iniciar sesión, la app registra o actualiza mi token FCM en el backend.<br>Si el token cambia (reinstalación, otro dispositivo), reemplaza al anterior sin duplicar registros. | Alta | 3 |
-| HU15 | Como Administrador, quiero registrar una cuenta de Conductor con sus credenciales, para que se autentique sin autorregistrarse. (RF14) | Se rechaza si el correo existe o falta un campo obligatorio.<br>El Administrador define la contraseña en el formulario (no se genera sola); se guarda como hash.<br>El conductor queda disponible de inmediato en "Asignar conductor" (HU05).<br>No hay vista de "cambiar contraseña" para el Conductor: el Administrador la reemplaza en su ficha. | Alta | 3 |
-| HU16 | Como Solicitante, quiero cancelar una solicitud que ya no necesito, para liberar al conductor y evitar un viaje innecesario. (RF15) | "Cancelar" solo disponible en Pendiente o Asignado; no en En Curso ni Finalizado.<br>Al cancelar pasa a Cancelado y se registra la fecha/hora.<br>Si tenía conductor y vehículo, vuelven a Disponible, se notifica al conductor por push (RF12) y el viaje sale de "Viajes del día".<br>Si tenía pago asociado, queda Anulado. | Alta | 3 |
+| HU15 | Como Administrador, quiero registrar una cuenta de Conductor con sus credenciales, para que se autentique sin autorregistrarse. (RF14) | Se rechaza si el correo existe o falta un campo obligatorio; el teléfono es opcional.<br>El Administrador define la contraseña en el formulario (no se genera sola); se guarda como hash.<br>El conductor queda disponible de inmediato en "Asignar conductor" (HU05).<br>No hay vista de "cambiar contraseña" para el Conductor: el Administrador la reemplaza en su ficha. | Alta | 3 |
+| HU16 | Como Solicitante, quiero cancelar una solicitud que ya no necesito, para liberar al conductor y evitar un viaje innecesario. (RF15) | "Cancelar" solo disponible en Pendiente o Asignado; no en En Curso ni Finalizado.<br>Al cancelar pasa a Cancelado y se registra la fecha/hora.<br>Si tenía conductor y vehículo, vuelven a Disponible, se notifica al conductor por push (RF12) y el viaje sale de "Viajes del día".<br>Si el pago asociado está Pagado, queda Reembolsado y se devuelve el 50 % del monto; en otro estado no cambia. | Alta | 3 |
 | HU17 | Como Administrador, quiero registrar un vehículo con patente y capacidad, para poder asignarlo. (RF16) | Patente obligatoria y única; capacidad mayor a 0.<br>GPS serial opcional (se puede usar el GPS del smartphone del conductor).<br>Queda en estado inicial Disponible. | Media | 3 |
 | HU18 | Como Administrador, quiero habilitar conductores para un vehículo, para controlar quién lo opera. (RF17) | Solo conductores ya registrados (HU15).<br>Relación M:N entre vehículos y conductores.<br>Habilitar una relación existente no la duplica. | Media | 2 |
 | HU19 | Como Administrador, quiero registrar el pago de un viaje en cualquier momento antes de que se cancele, para no depender de que termine el servicio. (RF18) | Se puede registrar para un viaje en cualquier estado distinto de Cancelado.<br>El hash del pago es único.<br>Banco, medio de pago y tipo de recibo se eligen de catálogos.<br>Nace en Pendiente. | Media | 5 |
-| HU20 | Como Administrador, quiero actualizar el estado de un pago, o que se anule solo si se cancela el viaje, para mantener la facturación al día. (RF19) | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado.<br>Anulado es terminal.<br>La anulación por cancelación del viaje (HU16) es automática. | Media | 3 |
+| HU20 | Como Administrador, quiero actualizar el estado de un pago, para mantener la facturación al día. (RF19) | Transiciones válidas: Pendiente→Pagado, Pendiente→Rechazado, (Pendiente\|Pagado)→Anulado y Pagado→Reembolsado (automática al cancelar el Solicitante, HU16).<br>Rechazado, Anulado y Reembolsado son terminales.<br>Al anular un pago, el viaje en Pendiente o Asignado pasa a Cancelado (efectos de HU16 sobre conductor y vehículo). | Media | 3 |
 | HU21 | Como Solicitante, quiero ver el estado de pago de mis viajes, para saber si ya fueron cobrados. (RF20) | Se muestra en "Detalle de solicitud" (HU03) solo si el viaje tiene pago asociado. | Baja | 2 |
 | HU22 | Como Solicitante o Administrador, quiero recuperar mi contraseña si la olvido, para volver a acceder sin depender de otra persona. (RF21) | Solo Solicitante y Administrador; para cualquier otro correo se responde el mismo mensaje genérico.<br>La contraseña temporal expira tras un plazo; si no se usa, hay que pedir otra. | Media | 3 |
+| HU23 | Como Administrador, quiero reasignar una solicitud ya Asignada a otro conductor y/o vehículo, para mantenerla cubierta si el original no puede realizarla. (RF22) | Solo disponible en Asignado: En Curso y Finalizado no se reasignan.<br>Puede cambiarse solo el conductor, solo el vehículo o ambos, con las mismas reglas de disponibilidad y habilitación que HU05.<br>El viaje sigue en Asignado; el conductor y el vehículo anteriores vuelven a Disponible y los nuevos pasan a Ocupado/En uso.<br>Se avisa por push al nuevo conductor y al solicitante (RF12).<br>El cambio queda registrado en `HISTORIAL_VIAJE`. | Media | 3 |
 
 ## Modelamiento del problema
 
@@ -333,7 +335,7 @@ Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
 | USUARIO | id_usuario | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | USUARIO | nombre | VARCHAR(120) | NOT NULL | |
 | USUARIO | correo | VARCHAR(150) | UNIQUE, NOT NULL | Login. |
-| USUARIO | telefono | VARCHAR(20) | — | |
+| USUARIO | telefono | VARCHAR(20) | — | Opcional, para todos los roles. |
 | USUARIO | password_hash | VARCHAR(200) | NOT NULL | Nunca texto plano. |
 | USUARIO | password_temporal_expira | DATETIME | — | NULL: contraseña normal. Con valor: `password_hash` es una contraseña temporal válida hasta ese instante (RF21). Siempre NULL para CONDUCTOR. |
 | USUARIO | fecha_registro | DATETIME | NOT NULL, DEFAULT CURRENT_TIMESTAMP | |
@@ -348,7 +350,7 @@ Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
 | ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | ESTADO_CONDUCTOR | estado | VARCHAR(20) | UNIQUE | P. ej. disponible/ocupado; sin NOT NULL en el DDL. |
 | CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → USUARIO | Extensión 1:1. |
-| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Hace que `VIAJE.conductor_id_usuario` solo referencie usuarios con este rol. |
+| CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | FK → ESTADO_CONDUCTOR, NOT NULL | Estado operativo del Conductor (Disponible u Ocupado); nace Disponible (CU-07). |
 | ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | ESTADO_MOVIL | nombre | VARCHAR(20) | UNIQUE, NOT NULL | P. ej. disponible/en mantención. |
 | MOVIL | id_movil | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
@@ -367,14 +369,14 @@ Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
 | BANCO | nombre | VARCHAR(50) | NOT NULL | |
 | BANCO | cod_sbif | INT | UNIQUE, NOT NULL | Código SBIF; identificador externo único. |
 | ESTADO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
-| ESTADO_PAGO | estado | VARCHAR(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado o Anulado (RF18/RF19). |
+| ESTADO_PAGO | estado | VARCHAR(20) | UNIQUE, NOT NULL | Pendiente, Pagado, Rechazado, Anulado o Reembolsado (RF18/RF19). Anulado lo genera el pago (banco u otro motivo) y cancela el viaje (RF19); Reembolsado es automático cuando el Solicitante cancela con el pago Pagado (RF15). |
 | MEDIO_PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | MEDIO_PAGO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | P. ej. transferencia, tarjeta. |
 | TIPO_RECIBO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | TIPO_RECIBO | nombre | VARCHAR(20) | UNIQUE, NOT NULL | |
 | PAGO | id | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | PAGO | hash | VARCHAR(50) | UNIQUE, NOT NULL | Generado por el backend al crear el pago; no viene de una pasarela externa. |
-| PAGO | monto | INT | NOT NULL | |
+| PAGO | monto | INT | NOT NULL | Monto cobrado. En un pago Reembolsado se devolvió el 50 % de este monto. |
 | PAGO | estado_pago_id | BIGINT UNSIGNED | FK → ESTADO_PAGO, NOT NULL | |
 | PAGO | banco_id | BIGINT UNSIGNED | FK → BANCO, NOT NULL | |
 | PAGO | empresa_id_empresa | BIGINT UNSIGNED | FK → EMPRESA, NOT NULL | Empresa que paga. |
@@ -395,7 +397,7 @@ Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
 | VIAJE | fh_asignacion | DATETIME | — | |
 | VIAJE | fh_inicio | DATETIME | — | Paso a En Curso. |
 | VIAJE | fh_fin | DATETIME | — | Paso a Finalizado. |
-| VIAJE | conductor_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta la asignación (RF05). |
+| VIAJE | conductor_id_usuario | BIGINT UNSIGNED | FK → CONDUCTOR | NULL hasta la asignación (RF05). Por ser FK a `CONDUCTOR`, solo referencia usuarios con ese rol. |
 | VIAJE | numero_vuelo | VARCHAR(20) | — | Opcional. |
 | DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | PK, FK → VIAJE | |
 | DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, FK → PASAJERO | |
@@ -595,7 +597,9 @@ docker compose --env-file .env -f database/docker-compose.yaml up -d
 ```
 
 La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD` (valores locales en `.env.example`) y Flyway
-migra al iniciar el backend; cambia las credenciales en cualquier entorno compartido. Para
+migra al iniciar el backend. El `.env` solo lo lee Docker Compose; la API recibe esas
+variables del entorno o de la configuración de ejecución del IDE. Cambia las credenciales
+en cualquier entorno compartido. Para
 detener los contenedores, `docker compose -f database/docker-compose.yaml down` conserva los
 datos de MariaDB; con `down -v` también se borran.
 
@@ -603,7 +607,7 @@ datos de MariaDB; con `down -v` también se borran.
 
 **Spring Boot**:
 
-* **API REST JSON** para el cliente Android (Retrofit o Volley).
+* **API REST JSON** para el cliente Android (Retrofit).
 * **Seguridad stateless con JWT** (Spring Security como *resource server*, firma HS256). Un
   único `SecurityFilterChain` mapea cada ruta a sus roles y rechaza por defecto (`denyAll`)
   todo endpoint no listado. Rutas sin JWT: `/api/v1/auth/**` (login y recuperación de
@@ -625,14 +629,16 @@ datos de MariaDB; con `down -v` también se borran.
 | Recurso | Roles con acceso | Alcance |
 |---|---|---|
 | `auth` | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21); junto con `POST /solicitantes`, lo único accesible sin JWT. |
-| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo su propia cuenta (RNF08). `POST` (crear una cuenta sin rol): solo Administrador. |
-| `administradores` | Administrador | Gestión de cuentas de Administrador. |
+| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo su propia cuenta (RNF08). `POST` (crear una cuenta sin rol): solo Administrador. El Conductor solo la consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
+| `administradores` | Administrador | Consulta de cuentas de Administrador (se crean por migración, no por API). |
 | `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo su propia cuenta. |
 | `solicitantes` | Público (`POST`, autorregistro RF01); Solicitante (su cuenta: lectura y `PUT`); Administrador (lectura) | El Solicitante solo su propia cuenta. |
 | `empresas` | Solicitante (crea/reutiliza al registrarse, RF01); Administrador (lectura) | — |
 | `moviles` | Administrador | Gestión de flota (CU-09, CU-10). |
+| `habilitaciones-movil-conductor` | Administrador | Habilitar conductores para un vehículo (CU-10). |
 | `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus viajes (RF20). |
 | `pasajeros` | Solicitante (los registra, CU-01); Administrador (lectura) | — |
+| `pasajeros-viaje` | Solicitante (asocia pasajeros a su viaje, CU-01); Administrador (lectura) | El Solicitante solo en viajes propios (ver "Flujo de una solicitud"). |
 | `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los asignados, RF07/RF08) | — |
 
 Los catálogos y `ubicaciones` no son recursos de la API (ver "CRUD REST").
@@ -647,18 +653,25 @@ corresponde, o en una ruta o método que no figura en esta matriz, 403 (ver "Err
 Vistas del MVP por actor:
 
 **Transversal**
-- **Login:** para los tres actores con app.
+- **Login:** para los tres actores con app. Incluye "Olvidé mi contraseña" (solo Solicitante
+  y Administrador, CU-13).
 - **Perfil / Cierre de sesión.**
 
 **Cliente corporativo / Solicitante**
 - **Registro:** cuenta propia (el Conductor no se autorregistra).
 - **Registrar solicitud de traslado:** CU-01.
 - **Mis solicitudes (historial):** traslados con su estado.
-- **Detalle de solicitud:** datos, estado y conductor una vez asignado.
+- **Detalle de solicitud:** datos, estado y conductor una vez asignado; estado de pago si
+  existe (RF20) y botón "Cancelar" en Pendiente o Asignado (CU-08/RF15).
 
 **Recepcionista / Administrador**
 - **Panel de solicitudes pendientes:** entrada a CU-04.
-- **Asignar conductor:** CU-04.
+- **Asignar conductor:** CU-04. Incluye elegir el vehículo habilitado y reasignar una
+  solicitud Asignada (RF22).
+- **Registrar conductor:** CU-07/RF14.
+- **Registrar vehículo:** CU-09/RF16.
+- **Habilitar conductores para un vehículo:** CU-10/RF17.
+- **Pagos:** registrar el pago de un viaje y actualizar su estado (CU-11/CU-12, RF18/RF19).
 - **Panel general / dashboard** *(segunda iteración)*: conteo de viajes por estado.
 - **Sistema de distribución de solicitudes** *(mejora futura, fuera del MVP)*:
   asignación automática de conductor (hoy manual, RF05/CU-04). Sin RF ni HU que lo
@@ -684,16 +697,16 @@ Vistas del MVP por actor:
 * **Un ViewModel por pantalla**, agrupado por actor (p. ej.
   `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`, `AsignarConductorViewModel`).
 
-# Estructura del backend
+## Estructura del backend
 
-## Propósito
+### Propósito
 
 Monolito Spring Boot por capas; cada capa existe una sola vez y reúne las clases de
 todas las entidades. API REST JSON sobre MariaDB con Spring Data JPA y Flyway, en Java 21 y
 Spring Boot 4.1. Build con **Gradle** (Groovy DSL, wrapper `gradlew`/`gradlew.bat`). Paquete base:
 `cl.belmontespa.transporte`.
 
-## Árbol de carpetas
+### Árbol de carpetas
 
 ```text
 backend/
@@ -735,7 +748,7 @@ backend/
         │   ├── config/       JwtProviderTest, FirebaseConfigTest
         │   ├── service/      PasajeroServiceTest
         │   └── support/      IntegrationTest, Api, ReiniciarEsquemaConfig,
-        │                     NotificacionesTestConfig, FcmGrabador
+        │                     ReiniciarEsquemaConfigTest, NotificacionesTestConfig, FcmGrabador
         └── resources/application-test.properties
 ```
 
@@ -758,7 +771,7 @@ backend/
   y nunca incluye `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
   `CrudController`/`CrudService` operan sobre estos tipos de forma genérica.
 
-## Responsabilidad de cada capa
+### Responsabilidad de cada capa
 
 | Carpeta | Responsabilidad |
 |---|---|
@@ -773,7 +786,7 @@ backend/
 | `resources/db/migration` | Migraciones SQL versionadas de Flyway. |
 | `src/test` | Pruebas unitarias y de integración (ver "Pruebas"). |
 
-## CRUD REST
+### CRUD REST
 
 Prefijo `/api/v1/`. El `id` interno no se expone: las rutas usan la columna `UNIQUE`
 de negocio de cada entidad.
@@ -824,21 +837,37 @@ de negocio de cada entidad.
 - `POST /pasajeros` recibe el documento en `dni` y el backend calcula el `dni_hash` (ver
   "Configuración"); si el documento ya existe, devuelve ese pasajero en vez de duplicarlo.
 
-## Acciones de negocio
+#### Flujo de una solicitud (CU-01 / RF02)
+
+Registrar una solicitud son tres llamadas, porque viaje, pasajero y su asociación son recursos
+distintos. Las hace el Solicitante autenticado.
+
+| Paso | Llamada | Cuerpo | Resultado |
+|---|---|---|---|
+| 1 | `POST /api/v1/pasajeros` | `dni`, `nombre` | Devuelve el pasajero con su `dniHash`; si el documento ya existe, devuelve el existente. Se repite por cada pasajero. |
+| 2 | `POST /api/v1/viajes` | `fhAgenda` (futura), `origen` y `destino` (`direccion`, `comuna`, `region`, `latitud`, `longitud`), `numeroVuelo` opcional | Crea el viaje en Pendiente a nombre del Solicitante del JWT y devuelve su `folio`. |
+| 3 | `POST /api/v1/pasajeros-viaje` | `folio`, `dniHash` | Asocia el pasajero al viaje; repetir una asociación existente no la duplica. |
+
+Los pasos 1 y 2 son independientes; el 3 necesita el `dniHash` del 1 y el `folio` del 2. Solo el
+Solicitante dueño del viaje agrega pasajeros, y solo mientras esté Pendiente o Asignado (409 si
+no). Con vehículo asignado, no se admiten más pasajeros que su capacidad (409). Cada asociación
+suma 1 a `VIAJE.cantidad_pasajeros` por trigger.
+
+### Acciones de negocio
 
 | Método | Ruta | Acción | Cuerpo |
 |---|---|---|---|
-| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; el viaje pasa a Asignado (CU-04/RF05). Administrador. | `correoConductor`, `patente` |
+| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; el viaje pasa a Asignado (CU-04/RF05; reasignar, RF22). Administrador. | `correoConductor`, `patente` |
 | `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sus viajes. | `estado`: `EN_CURSO` o `FINALIZADO` |
 | `POST` | `/api/v1/viajes/{folio}/cancelar` | Cancelar el viaje propio (CU-08/RF15). Solicitante. | — |
-| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. Anulado sigue siendo automático y no pasa por esta ruta. | `estado`: `PAGADO` o `RECHAZADO` |
+| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado, Rechazado o Anulado (CU-12/RF19). Administrador. Reembolsado es automático al cancelar el viaje y no pasa por esta ruta. | `estado`: `PAGADO`, `RECHAZADO` o `ANULADO` |
 
 Son métodos adicionales de `ViajeController`/`PagoController`, fuera de
 `CrudController`. Usan `AsignarViajeDTORequest`, `CambiarEstadoViajeDTORequest` y
 `CambiarEstadoPagoDTORequest`, y devuelven `ViajeDTOResponse`/`PagoDTOResponse`. Las
 transiciones inválidas responden 409; los triggers de `db/migration` las vuelven a validar.
 
-- **Asignar** (viaje Pendiente o Asignado; reasignar está permitido): el conductor debe estar
+- **Asignar** (viaje Pendiente o Asignado; la reasignación, RF22, está permitida): el conductor debe estar
   Disponible y habilitado para el vehículo, el vehículo Disponible y los pasajeros no pueden
   superar su capacidad. El viaje pasa a Asignado con su fecha de asignación, el conductor a
   Ocupado y el vehículo a En uso; al reasignar se liberan los anteriores. Avisa por push al
@@ -846,11 +875,14 @@ transiciones inválidas responden 409; los triggers de `db/migration` las vuelve
 - **Estado:** solo el conductor asignado. Asignado → En Curso (fecha de inicio) y En Curso →
   Finalizado (fecha de fin, conductor y vehículo vuelven a Disponible). Avisa al solicitante.
 - **Cancelar:** solo el solicitante dueño y con el viaje Pendiente o Asignado. Pasa a
-  Cancelado con fecha de fin, libera conductor y vehículo y anula el pago si estaba
-  Pendiente o Pagado (uno Rechazado no cambia). Avisa al conductor si ya había uno.
-- **Estado de un pago:** solo un pago Pendiente pasa a Pagado o Rechazado.
+  Cancelado, libera conductor y vehículo y avisa al conductor si ya había uno. Si el pago
+  está Pagado, pasa a Reembolsado y se devuelve el 50 % del monto; en otro estado no cambia.
+  No modifica `fh_fin`: el momento de la cancelación queda en `HISTORIAL_VIAJE`.
+- **Estado de un pago:** un pago Pendiente pasa a Pagado, Rechazado o Anulado; uno Pagado, a
+  Anulado (manual) o a Reembolsado (automático al cancelar el Solicitante). Al anularlo, el
+  viaje en Pendiente o Asignado se cancela como en **Cancelar**, sin devolución del 50 %.
 
-## Autenticación
+### Autenticación
 
 | Método | Ruta | Acción |
 |---|---|---|
@@ -880,7 +912,7 @@ RF01). Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse` y
   temporal de desarrollo (indicada en el comentario de la migración) que vence a los 30 días;
   hay que reemplazarla en cualquier entorno compartido.
 
-## Errores
+### Errores
 
 Los errores de la aplicación responden JSON con el formato `ApiError`:
 
@@ -896,10 +928,10 @@ Los errores de la aplicación responden JSON con el formato `ApiError`:
 | `403` | Rol que no corresponde a la ruta, o ruta o método que no figura en la matriz de roles (cabecera `WWW-Authenticate`). También un recurso o cuenta ajena. | Vacío en los dos primeros casos; `ApiError` en el recurso ajeno |
 | `404` | El recurso no existe. | `ApiError` |
 | `405` | El método no existe en un recurso permitido (p. ej. `PUT /moviles/{patente}`). | `ApiError` |
-| `409` | Regla de negocio o restricción: correo, RUT o patente repetidos, transición de estado inválida, capacidad superada, o un rechazo de los triggers ("La operación viola una restricción de datos"). | `ApiError` |
+| `409` | Regla de negocio o restricción: correo o patente repetidos, transición de estado inválida, capacidad superada, o un rechazo de los triggers ("La operación viola una restricción de datos"). | `ApiError` |
 | `500` | Error inesperado; el mensaje es genérico ("Error interno") y el detalle queda solo en el log. | `ApiError` |
 
-## Persistencia MariaDB
+### Persistencia MariaDB
 
 `application.properties` toma la conexión de `DB_URL`, `DB_USER` y `DB_PASSWORD`, con valores
 locales de desarrollo como respaldo. Hibernate solo valida el esquema (`ddl-auto=validate`) y
@@ -915,7 +947,7 @@ Cada sesión de la base usa la hora de Chile (`DB_TIME_ZONE`, por defecto `Ameri
 para que `NOW()`/`CURRENT_TIMESTAMP` coincidan con los `LocalDateTime` de la aplicación; el
 servidor debe tener cargadas las zonas horarias (la imagen oficial de MariaDB las trae).
 
-## Configuración
+### Configuración
 
 Todo se define por variables de entorno; `application.properties` trae valores de desarrollo
 como respaldo. La tabla muestra solo lo que cambia entre entornos.
@@ -941,7 +973,7 @@ Fuera de desarrollo hay que definir `JWT_SECRET` y `DNI_SECRET`, y las credencia
 Cambiar `DNI_SECRET` después invalida los `dni_hash` ya guardados, así que se fija una vez.
 El JSON de Firebase nunca va dentro del repositorio.
 
-## Notificaciones externas
+### Notificaciones externas
 
 El backend avisa por correo y por push. Los dos funcionan igual:
 
@@ -962,7 +994,7 @@ mensaje incluye `data.folio` para que la app abra el viaje.
 | Asignar o reasignar | Conductor | Nuevo viaje asignado | Viaje `{folio}` para `{fecha}` |
 | Asignar o reasignar | Solicitante | Viaje asignado | Tu viaje `{folio}` ya tiene conductor y vehículo |
 | Pasar a En Curso o Finalizado | Solicitante | Viaje `{folio}` | Estado: `EN_CURSO` o `FINALIZADO` |
-| Cancelar un viaje con conductor | Conductor | Viaje cancelado | El viaje `{folio}` fue cancelado |
+| Cancelar un viaje con conductor (por el Solicitante o por la anulación de su pago) | Conductor | Viaje cancelado | El viaje `{folio}` fue cancelado |
 
 **Correo (RF21).** Un mensaje de texto con el asunto "Belmonte SpA: tu contraseña temporal", la
 contraseña y su vigencia.
@@ -978,7 +1010,7 @@ SPRING_MAIL_HOST=localhost SPRING_MAIL_PORT=1025 \
 SPRING_MAIL_USERNAME=dev SPRING_MAIL_PASSWORD=dev ./gradlew bootRun
 ```
 
-## Pruebas
+### Pruebas
 
 ```bash
 cd backend
@@ -1012,7 +1044,7 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión) y push de cada evento. |
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 
-## Estado y alcance actual
+### Estado y alcance actual
 
 **Backend implementado:** autenticación con JWT y matriz de roles con rechazo por defecto;
 DTO en todos los contratos (sin exponer `password_hash`); CRUD de las 11 entidades, acciones
@@ -1035,3 +1067,12 @@ Lo que falta o no está verificado:
 - **Frontend Android:** todavía no está en este repositorio. RF10 (navegación externa), RF11
   (modo sin conexión), la recepción de push y el autocompletado de Google Places son del
   cliente.
+- **Reglas de este documento que el backend aún no cumple:**
+  - Estado `REEMBOLSADO` y devolución del 50 % al cancelar el Solicitante con el pago Pagado
+    (requiere una migración nueva que agregue el estado y la transición Pagado→Reembolsado).
+  - Un pago Anulado debe cancelar el viaje, y `POST /pagos/{hash}/estado` debe aceptar
+    `ANULADO`. Hoy es al revés: cancelar el viaje anula el pago y `ANULADO` se rechaza con 400.
+  - `POST /administradores` no debería existir (hoy lo permite el Administrador).
+  - El Conductor no debería poder cambiar su contraseña con `PUT /usuarios/{correo}`.
+  - `POST /empresas` debería reutilizar la empresa por RUT (hoy responde 409).
+  - Cancelar un viaje no debería escribir `fh_fin`.
