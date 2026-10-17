@@ -1,6 +1,6 @@
 # Aplicacion de Belmonte Spa
 
-**Ultima modificacion:** 26-09-2026
+**Ultima modificacion:** 16-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -31,7 +31,11 @@
   - [CRUD REST](#crud-rest)
   - [Acciones de negocio](#acciones-de-negocio)
   - [Autenticación](#autenticación)
+  - [Errores](#errores)
   - [Persistencia MariaDB](#persistencia-mariadb)
+  - [Configuración](#configuración)
+  - [Notificaciones externas](#notificaciones-externas)
+  - [Pruebas](#pruebas)
   - [Estado y alcance actual](#estado-y-alcance-actual)
 
 ## Introduccion
@@ -355,7 +359,7 @@ Motor: **MariaDB**. El esquema se crea con las migraciones Flyway de
 | DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | PK, FK → MOVIL | Habilitación vehículo↔conductor. |
 | DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | PK, FK → CONDUCTOR | |
 | PASAJERO | id_pasajero | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
-| PASAJERO | dni_hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash del documento de identidad: RUT chileno o pasaporte extranjero. |
+| PASAJERO | dni_hash | VARCHAR(50) | UNIQUE, NOT NULL | Hash del documento de identidad: RUT chileno o pasaporte extranjero. Es el HMAC-SHA256 del documento normalizado (sin puntos, guion ni espacios, en mayúsculas), en Base64url sin relleno (43 caracteres). El cliente envía el documento en `dni` y el backend calcula el hash; nunca se guarda en claro. |
 | PASAJERO | nombre | VARCHAR(120) | NOT NULL | Puede no coincidir con el solicitante (CU-01). |
 | ESTADO_SOLICITUD | id_estado | BIGINT UNSIGNED | PK, AUTO_INCREMENT | |
 | ESTADO_SOLICITUD | nombre_estado | VARCHAR(20) | UNIQUE, NOT NULL | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
@@ -564,44 +568,67 @@ Base de datos oficial. Motor `InnoDB` (ACID), soporte directo en Spring
 (`MariaDBDialect`, `mariadb-java-client`), licencia GPL v2 y bajo consumo en
 desarrollo local junto a Android Studio y la API.
 
-#### Iniciar la base de datos local
+#### Iniciar los servicios locales
 
-Requiere Docker Compose. Desde la raíz del repositorio, en PowerShell:
+Requiere Docker Compose. El archivo está en `database/docker-compose.yaml` y define dos
+servicios:
 
-```powershell
-Copy-Item .env.example .env
-docker compose up -d mariadb
+| Servicio | Contenedor | Puertos en la máquina | Para qué sirve |
+|---|---|---|---|
+| `mariadb` | `belmonte-mariadb` | `3307` | Base de datos de la API. |
+| `mailpit` | `belmonte-mailpit` | `1025` (SMTP) y `8025` (interfaz web) | Servidor SMTP de desarrollo: recibe los correos del backend (contraseña temporal, RF21) y los muestra en <http://localhost:8025> sin entregarlos a nadie. |
+
+Los puertos de `mailpit` solo escuchan en `127.0.0.1` porque el servidor no tiene contraseña.
+Desde la raíz del repositorio:
+
+```bash
+docker compose -f database/docker-compose.yaml up -d
 ```
 
-La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD` (valores locales en `.env.example`) y
-Flyway migra al iniciar el backend. `.env` está fuera de Git: cambia las credenciales
-en cualquier entorno compartido. `docker compose down` detiene conservando datos;
-`docker compose down -v` también los borra.
+Los valores por defecto sirven para desarrollo. Para cambiarlos (puertos, credenciales de la
+base) copia `.env.example` a `.env` (fuera de Git) y pásalo con `--env-file`: como el compose
+está en `database/`, Docker Compose no encuentra por sí solo el `.env` de la raíz.
+
+```bash
+cp .env.example .env            # en PowerShell: Copy-Item .env.example .env
+docker compose --env-file .env -f database/docker-compose.yaml up -d
+```
+
+La API usa `DB_URL`, `DB_USER` y `DB_PASSWORD` (valores locales en `.env.example`) y Flyway
+migra al iniciar el backend; cambia las credenciales en cualquier entorno compartido. Para
+detener los contenedores, `docker compose -f database/docker-compose.yaml down` conserva los
+datos de MariaDB; con `down -v` también se borran.
 
 ### Backend
 
 **Spring Boot**:
 
 * **API REST JSON** para el cliente Android (Retrofit o Volley).
-* **Seguridad stateless con JWT** (Spring Security). Un único `SecurityFilterChain`
-  mapea cada ruta a sus roles y rechaza por defecto (`denyAll`) todo endpoint no
-  listado. Única excepción: `/api/v1/auth/**`, que no puede exigir un JWT que aún no
-  existe.
+* **Seguridad stateless con JWT** (Spring Security como *resource server*, firma HS256). Un
+  único `SecurityFilterChain` mapea cada ruta a sus roles y rechaza por defecto (`denyAll`)
+  todo endpoint no listado. Rutas sin JWT: `/api/v1/auth/**` (login y recuperación de
+  contraseña) y `POST /api/v1/solicitantes` (autorregistro, RF01); no pueden exigir un JWT
+  que aún no existe.
 * **Capas** `Controller` ➔ `Service` ➔ `Repository`.
 * **Spring Data JPA** para la persistencia.
-* **Push con Firebase Cloud Messaging:** ante asignación, cambio de estado o
-  cancelación, la capa `Service` notifica al actor afectado con el SDK de Firebase
-  Admin. El token de dispositivo se actualiza en cada login.
+* **Push con Firebase Cloud Messaging:** ante asignación, cambio de estado o cancelación,
+  la capa `Service` notifica al actor afectado con el SDK de Firebase Admin. El token de
+  dispositivo se actualiza en cada login.
+* **Correo por SMTP:** la contraseña temporal de RF21 se envía con `spring-boot-starter-mail`
+  a cualquier servidor SMTP configurado por variables de entorno.
+* Push y correo salen después de confirmar la operación y en otro hilo; si fallan, solo se
+  registra un aviso y la operación de negocio no se ve afectada (ver "Notificaciones
+  externas").
 
 #### Mapeo de roles por endpoint
 
 | Recurso | Roles con acceso | Alcance |
 |---|---|---|
-| `auth` | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21); único recurso accesible sin JWT. |
-| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo su propia cuenta (RNF08). |
+| `auth` | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21); junto con `POST /solicitantes`, lo único accesible sin JWT. |
+| `usuarios` | Solicitante, Administrador, Conductor | Cada uno solo su propia cuenta (RNF08). `POST` (crear una cuenta sin rol): solo Administrador. |
 | `administradores` | Administrador | Gestión de cuentas de Administrador. |
 | `conductores` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo su propia cuenta. |
-| `solicitantes` | Solicitante (su cuenta); Administrador (lectura) | — |
+| `solicitantes` | Público (`POST`, autorregistro RF01); Solicitante (su cuenta: lectura y `PUT`); Administrador (lectura) | El Solicitante solo su propia cuenta. |
 | `empresas` | Solicitante (crea/reutiliza al registrarse, RF01); Administrador (lectura) | — |
 | `moviles` | Administrador | Gestión de flota (CU-09, CU-10). |
 | `pagos` | Administrador (gestión, CU-11/CU-12); Solicitante (lectura) | El Solicitante solo los pagos de sus viajes (RF20). |
@@ -609,6 +636,9 @@ en cualquier entorno compartido. `docker compose down` detiene conservando datos
 | `viajes` | Solicitante (los propios, RF02/RF03); Administrador (todos, CU-04); Conductor (los asignados, RF07/RF08) | — |
 
 Los catálogos y `ubicaciones` no son recursos de la API (ver "CRUD REST").
+
+Sin token, o con un token alterado o vencido, la API responde 401; con un rol que no
+corresponde, o en una ruta o método que no figura en esta matriz, 403 (ver "Errores").
 
 ### Frontend
 
@@ -659,8 +689,8 @@ Vistas del MVP por actor:
 ## Propósito
 
 Monolito Spring Boot por capas; cada capa existe una sola vez y reúne las clases de
-todas las entidades. API REST JSON sobre MariaDB con Spring Data JPA y Flyway. Build
-con **Gradle** (Groovy DSL, wrapper `gradlew`/`gradlew.bat`). Paquete base:
+todas las entidades. API REST JSON sobre MariaDB con Spring Data JPA y Flyway, en Java 21 y
+Spring Boot 4.1. Build con **Gradle** (Groovy DSL, wrapper `gradlew`/`gradlew.bat`). Paquete base:
 `cl.belmontespa.transporte`.
 
 ## Árbol de carpetas
@@ -676,8 +706,9 @@ backend/
     ├── main/
     │   ├── java/cl/belmontespa/transporte/
     │   │   ├── TransporteApplication.java
-    │   │   ├── client/       EmailClient, FirebaseClient
-    │   │   ├── config/       JwtProvider, SecurityConfig
+    │   │   ├── client/       EmailClient, FirebaseClient, FcmSender,
+    │   │   │                 FirebaseFcmSender, EnvioDiferido
+    │   │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig
     │   │   ├── controller/   CrudController, AuthController, {E}Controller
     │   │   ├── dto/
     │   │   │   ├── request/  {E}DTORequest, LoginDTORequest,
@@ -693,10 +724,19 @@ backend/
     │   └── resources/
     │       ├── application.properties
     │       └── db/migration/
-    │           ├── V1__crear_esquema_inicial.sql
-    │           └── V2__completar_modelo_belmonte.sql
-    └── test/java/cl/belmontespa/transporte/
-        └── TransporteApplicationTests.java
+    │           ├── V1__esquema.sql
+    │           ├── V2__triggers.sql
+    │           └── V3__datos_iniciales.sql
+    └── test/
+        ├── java/cl/belmontespa/transporte/
+        │   ├── SeguridadIT, CuentasIT, FlotaIT, PasajeroIT, ViajeIT, PagoIT,
+        │   │   NotificacionesIT, TransporteApplicationTests
+        │   ├── client/       EmailClientTest, FirebaseClientTest
+        │   ├── config/       JwtProviderTest, FirebaseConfigTest
+        │   ├── service/      PasajeroServiceTest
+        │   └── support/      IntegrationTest, Api, ReiniciarEsquemaConfig,
+        │                     NotificacionesTestConfig, FcmGrabador
+        └── resources/application-test.properties
 ```
 
 - **`{E}`** — las 11 entidades con recurso en la API: `Administrador`, `Conductor`,
@@ -712,7 +752,7 @@ backend/
   (dirección + comuna + coordenadas) y no sirve como clave de ruta. `UbicacionService`
   se usa solo desde `ViajeService`.
 - **`HistorialViaje`** — solo `Model` y `Repository`: lo llenan los triggers de `VIAJE`
-  (ver `datamodeler/schema.sql`). Exponerlo permitiría falsear o borrar el historial.
+  (ver `db/migration`). Exponerlo permitiría falsear o borrar el historial.
 - **DTO** — el `DTORequest` solo acepta campos que el cliente puede escribir (nunca
   `id` ni `password_hash`); el `DTOResponse` expone la clave de negocio en vez del `id`
   y nunca incluye `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
@@ -724,13 +764,14 @@ backend/
 |---|---|
 | `model` | Entidades JPA; las relaciones M:N usan clases ID compuestas. |
 | `repository` | Interfaces Spring Data JPA. |
-| `service` | Lógica de aplicación. `CrudService` concentra el CRUD repetido; `AuthService` valida credenciales y coordina la recuperación de contraseña. |
-| `controller` | Endpoints REST. `CrudController` comparte el CRUD entre controladores; `AuthController` expone login y recuperación. |
+| `service` | Lógica de aplicación. `CrudService` concentra el CRUD repetido; `AuthService` valida credenciales y coordina la recuperación de contraseña; `ViajeService` y `PagoService` llevan las reglas de asignación, estados, cancelación y pagos. |
+| `controller` | Endpoints REST. `CrudController` comparte el CRUD entre controladores y ofrece los puntos de extensión del alcance "solo lo propio"; `AuthController` expone login y recuperación; `ViajeController` y `PagoController` suman las acciones de negocio. |
 | `dto` | Contratos de entrada y salida de la API, y `ApiError` para errores. |
 | `exception` | Manejo centralizado de excepciones y respuestas de error HTTP. |
-| `config` | `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14). |
-| `client` | Contratos de servicios externos: `FirebaseClient` (push, RF12/RF13) y `EmailClient` (contraseña temporal, RF21). |
+| `config` | `SecurityConfig` define la cadena de seguridad; `JwtProvider` emite y valida el JWT (CU-14); `FirebaseConfig` crea el envío por FCM cuando hay credenciales. |
+| `client` | Integraciones externas: `EmailClient` (contraseña temporal por SMTP, RF21) y `FirebaseClient` (push por FCM, RF12/RF13, sobre `FcmSender`). `EnvioDiferido` los ejecuta después del commit y fuera de la transacción. |
 | `resources/db/migration` | Migraciones SQL versionadas de Flyway. |
+| `src/test` | Pruebas unitarias y de integración (ver "Pruebas"). |
 
 ## CRUD REST
 
@@ -759,7 +800,7 @@ de negocio de cada entidad.
   reemplazando la contraseña de un Conductor, CU-07). El resto solo tiene `GET`/`POST`.
 - **`viajes` y `pagos`** no se mutan por `PUT`: conductor, móvil, estado y cantidad de
   pasajeros de `VIAJE`, y el estado de `PAGO`, los valida y audita la base de datos
-  (triggers de `datamodeler/schema.sql`) y se cambian solo por "Acciones de negocio".
+  (triggers de `db/migration`) y se cambian solo por "Acciones de negocio".
 - **No son recursos:** los 9 catálogos (`bancos`, `comunas`, `estados-conductor`,
   `estados-movil`, `estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`,
   `tipos-recibo`) y `ubicaciones`, que se crea y consulta solo como parte de `viajes`.
@@ -768,18 +809,46 @@ de negocio de cada entidad.
   - `/api/v1/habilitaciones-movil-conductor/{patente}/{correo}`
   - `/api/v1/pasajeros-viaje/{folio}/{dni_hash}`
 
+**Respuestas y alcance por rol**
+
+- `POST` responde `201` con el recurso creado; `PUT` y las acciones de negocio, `200`.
+- `GET /usuarios` devuelve solo la cuenta propia. En `usuarios`, `conductores` (Conductor) y
+  `solicitantes` (Solicitante), consultar la cuenta de otra persona responde 403 exista o no,
+  para no revelar qué correos están registrados.
+- `GET /viajes` depende del rol: el Administrador ve todos, o solo los pendientes con
+  `?estado=PENDIENTE` (RF04); el Solicitante, los propios (RF03); el Conductor, su agenda del
+  día o la de otra fecha con `?fecha=AAAA-MM-DD` (RF07). `GET /pagos` del Solicitante trae
+  solo los de sus viajes (RF20).
+- `POST /pagos` (CU-11/RF18): 409 si el viaje está cancelado o ya tiene pago; 400 si el banco
+  (`codSbif`), el medio de pago o el tipo de recibo no existen en su catálogo.
+- `POST /pasajeros` recibe el documento en `dni` y el backend calcula el `dni_hash` (ver
+  "Configuración"); si el documento ya existe, devuelve ese pasajero en vez de duplicarlo.
+
 ## Acciones de negocio
 
-| Método | Ruta | Acción |
-|---|---|---|
-| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; el viaje pasa a Asignado (CU-04/RF05). Administrador. |
-| `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sus viajes. |
-| `POST` | `/api/v1/viajes/{folio}/cancelar` | Cancelar el viaje propio (CU-08/RF15). Solicitante. |
-| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. Anulado sigue siendo automático y no pasa por esta ruta. |
+| Método | Ruta | Acción | Cuerpo |
+|---|---|---|---|
+| `POST` | `/api/v1/viajes/{folio}/asignar` | Asignar conductor y vehículo; el viaje pasa a Asignado (CU-04/RF05). Administrador. | `correoConductor`, `patente` |
+| `POST` | `/api/v1/viajes/{folio}/estado` | Marcar En Curso o Finalizado (CU-05/RF09). Conductor, solo sus viajes. | `estado`: `EN_CURSO` o `FINALIZADO` |
+| `POST` | `/api/v1/viajes/{folio}/cancelar` | Cancelar el viaje propio (CU-08/RF15). Solicitante. | — |
+| `POST` | `/api/v1/pagos/{hash}/estado` | Marcar Pagado o Rechazado (CU-12/RF19). Administrador. Anulado sigue siendo automático y no pasa por esta ruta. | `estado`: `PAGADO` o `RECHAZADO` |
 
 Son métodos adicionales de `ViajeController`/`PagoController`, fuera de
 `CrudController`. Usan `AsignarViajeDTORequest`, `CambiarEstadoViajeDTORequest` y
-`CambiarEstadoPagoDTORequest`, y devuelven `ViajeDTOResponse`/`PagoDTOResponse`.
+`CambiarEstadoPagoDTORequest`, y devuelven `ViajeDTOResponse`/`PagoDTOResponse`. Las
+transiciones inválidas responden 409; los triggers de `db/migration` las vuelven a validar.
+
+- **Asignar** (viaje Pendiente o Asignado; reasignar está permitido): el conductor debe estar
+  Disponible y habilitado para el vehículo, el vehículo Disponible y los pasajeros no pueden
+  superar su capacidad. El viaje pasa a Asignado con su fecha de asignación, el conductor a
+  Ocupado y el vehículo a En uso; al reasignar se liberan los anteriores. Avisa por push al
+  conductor y al solicitante.
+- **Estado:** solo el conductor asignado. Asignado → En Curso (fecha de inicio) y En Curso →
+  Finalizado (fecha de fin, conductor y vehículo vuelven a Disponible). Avisa al solicitante.
+- **Cancelar:** solo el solicitante dueño y con el viaje Pendiente o Asignado. Pasa a
+  Cancelado con fecha de fin, libera conductor y vehículo y anula el pago si estaba
+  Pendiente o Pagado (uno Rechazado no cambia). Avisa al conductor si ya había uno.
+- **Estado de un pago:** solo un pago Pendiente pasa a Pagado o Rechazado.
 
 ## Autenticación
 
@@ -788,29 +857,181 @@ Son métodos adicionales de `ViajeController`/`PagoController`, fuera de
 | `POST` | `/api/v1/auth/login` | Autenticar con correo/contraseña y emitir el JWT (CU-14). |
 | `POST` | `/api/v1/auth/recuperar-password` | Solicitar una contraseña temporal por correo (CU-13/RF21). |
 
-Único punto de entrada sin JWT. Las atiende `AuthController` con `LoginDTORequest`/
-`LoginDTOResponse` y `RecuperarPasswordDTORequest`.
+Sin JWT se puede llamar a estas dos rutas y a `POST /api/v1/solicitantes` (autorregistro,
+RF01). Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse` y
+`RecuperarPasswordDTORequest`.
+
+- **Login:** recibe `correo`, `password` y, opcional, `tokenFcm` del dispositivo (RF13; se
+  guarda en `USUARIO.token_fcm` y reemplaza al anterior). Responde `accessToken`,
+  `tokenType` (`Bearer`), `expiresIn` (segundos), `correo` y `rol`. Cualquier fallo (correo
+  desconocido, contraseña incorrecta, contraseña temporal vencida o usuario sin rol) da el
+  mismo 401 "Credenciales inválidas", sin indicar qué falló.
+- **JWT:** firmado con HS256 (`JWT_SECRET`); lleva `sub` (el correo), `rol` y `exp` (vigencia
+  `JWT_EXPIRATION_SECONDS`, 3600 s por defecto). Se envía en cada petición como
+  `Authorization: Bearer <token>`.
+- **Contraseñas:** se guardan con BCrypt.
+- **Recuperar contraseña:** solo para Solicitante y Administrador (el Conductor la recupera
+  con el Administrador, CU-07/RF14). Responde siempre `204`, exista o no el correo. Genera una
+  contraseña temporal de 12 caracteres que reemplaza a la actual y vence a los
+  `PASSWORD_TEMPORAL_MINUTOS` (30); se envía por correo (ver "Notificaciones externas") y no se
+  registra en los logs. Cambiar la contraseña con `PUT /api/v1/usuarios/{correo}` anula la
+  expiración.
+- **Administrador inicial:** la migración `V3` crea `admin@belmontespa.cl` con una contraseña
+  temporal de desarrollo (indicada en el comentario de la migración) que vence a los 30 días;
+  hay que reemplazarla en cualquier entorno compartido.
+
+## Errores
+
+Los errores de la aplicación responden JSON con el formato `ApiError`:
+
+```json
+{"timestamp": "2026-10-16T18:30:00Z", "status": 409, "error": "Conflict",
+ "message": "El correo ya está registrado", "path": "/api/v1/conductores"}
+```
+
+| Código | Cuándo | Cuerpo |
+|---|---|---|
+| `400` | Validación del cuerpo (`message` lista `campo: motivo`), JSON ilegible ("Cuerpo inválido"), parámetro mal formado (p. ej. `fecha`) o un dato que no existe en su catálogo o geografía. | `ApiError` |
+| `401` | Sin token, o token alterado o vencido (cabecera `WWW-Authenticate: Bearer`). También el login fallido. | Vacío; el login fallido lleva `ApiError` |
+| `403` | Rol que no corresponde a la ruta, o ruta o método que no figura en la matriz de roles (cabecera `WWW-Authenticate`). También un recurso o cuenta ajena. | Vacío en los dos primeros casos; `ApiError` en el recurso ajeno |
+| `404` | El recurso no existe. | `ApiError` |
+| `405` | El método no existe en un recurso permitido (p. ej. `PUT /moviles/{patente}`). | `ApiError` |
+| `409` | Regla de negocio o restricción: correo, RUT o patente repetidos, transición de estado inválida, capacidad superada, o un rechazo de los triggers ("La operación viola una restricción de datos"). | `ApiError` |
+| `500` | Error inesperado; el mensaje es genérico ("Error interno") y el detalle queda solo en el log. | `ApiError` |
 
 ## Persistencia MariaDB
 
-`application.properties` toma la conexión de `DB_URL`, `DB_USER` y `DB_PASSWORD`, con
-valores locales de desarrollo como respaldo. Hibernate valida el esquema; Flyway lo
-administra:
+`application.properties` toma la conexión de `DB_URL`, `DB_USER` y `DB_PASSWORD`, con valores
+locales de desarrollo como respaldo. Hibernate solo valida el esquema (`ddl-auto=validate`) y
+Flyway lo administra al iniciar:
 
-- `V1__crear_esquema_inicial.sql`: esquema inicial.
-- `V2__completar_modelo_belmonte.sql`: completa el modelo de este documento.
+| Migración | Contenido |
+|---|---|
+| `V1__esquema.sql` | Tablas, claves y restricciones del modelo de este documento. |
+| `V2__triggers.sql` | Reglas que vigila la base: rol exclusivo por usuario, folio de `VIAJE`, transiciones de estado de viaje y de pago, conductor habilitado para el vehículo, capacidad del vehículo, `cantidad_pasajeros` e `HISTORIAL_VIAJE`. |
+| `V3__datos_iniciales.sql` | Catálogos, bancos, regiones y comunas, y el Administrador inicial. |
+
+Cada sesión de la base usa la hora de Chile (`DB_TIME_ZONE`, por defecto `America/Santiago`)
+para que `NOW()`/`CURRENT_TIMESTAMP` coincidan con los `LocalDateTime` de la aplicación; el
+servidor debe tener cargadas las zonas horarias (la imagen oficial de MariaDB las trae).
+
+## Configuración
+
+Todo se define por variables de entorno; `application.properties` trae valores de desarrollo
+como respaldo. La tabla muestra solo lo que cambia entre entornos.
+
+| Variable | Por defecto | Descripción |
+|---|---|---|
+| `DB_URL` | `jdbc:mariadb://localhost:3307/belmonte` | Conexión a MariaDB. |
+| `DB_USER`, `DB_PASSWORD` | `belmonte`, `belmonte_dev` | Credenciales de la base. |
+| `DB_TIME_ZONE` | `America/Santiago` | Zona horaria de cada sesión de la base. |
+| `JWT_SECRET` | valor de desarrollo | Clave Base64 de al menos 256 bits con la que se firma el JWT. |
+| `JWT_EXPIRATION_SECONDS` | `3600` | Vigencia del JWT. |
+| `DNI_SECRET` | valor de desarrollo | Clave del HMAC-SHA256 con que se calcula `PASAJERO.dni_hash`. |
+| `PASSWORD_TEMPORAL_MINUTOS` | `30` | Vigencia de la contraseña temporal (RF21). |
+| `SPRING_MAIL_HOST` | sin valor | Servidor SMTP. Sin él el correo queda desactivado. |
+| `SPRING_MAIL_PORT` | `25` (valor de Spring) | Puerto SMTP. |
+| `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | sin valor | Credenciales SMTP. |
+| `MAIL_FROM` | `no-reply@belmontespa.cl` | Remitente de los correos. |
+| `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS` | `true`, `true` | Autenticación y STARTTLS; ponlos en `false` solo para un relay interno sin credenciales. |
+| `FIREBASE_CREDENTIALS_FILE` | sin valor | Ruta del JSON de la cuenta de servicio de Firebase. Sin ella el push queda desactivado. |
+| `TEST_DB_URL`, `TEST_DB_USER`, `TEST_DB_PASSWORD` | `jdbc:mariadb://localhost:3307/belmonte_test`, `belmonte`, `belmonte_dev` | Base de las pruebas de integración (ver "Pruebas"). |
+
+Fuera de desarrollo hay que definir `JWT_SECRET` y `DNI_SECRET`, y las credenciales de la base.
+Cambiar `DNI_SECRET` después invalida los `dni_hash` ya guardados, así que se fija una vez.
+El JSON de Firebase nunca va dentro del repositorio.
+
+## Notificaciones externas
+
+El backend avisa por correo y por push. Los dos funcionan igual:
+
+- **Sin configurar** (sin `SPRING_MAIL_HOST` o sin `FIREBASE_CREDENTIALS_FILE`) la aplicación
+  arranca y solo registra en el log que no envió nada. La contraseña temporal nunca se
+  escribe en el log. Si se indica un archivo de Firebase que no existe o no es una cuenta de servicio, la
+  aplicación no arranca.
+- **Después de confirmar la operación y en otro hilo:** si una transacción se revierte, no sale
+  ningún aviso, y si el envío falla solo queda un aviso en el log: nunca afecta la respuesta.
+- **Sin datos personales:** los push llevan el folio y la fecha agendada, no nombres ni
+  direcciones (RNF08).
+
+**Push (RF12/RF13).** Solo se envía a quien registró un token FCM al iniciar sesión. Cada
+mensaje incluye `data.folio` para que la app abra el viaje.
+
+| Evento | Destinatario | Título | Mensaje |
+|---|---|---|---|
+| Asignar o reasignar | Conductor | Nuevo viaje asignado | Viaje `{folio}` para `{fecha}` |
+| Asignar o reasignar | Solicitante | Viaje asignado | Tu viaje `{folio}` ya tiene conductor y vehículo |
+| Pasar a En Curso o Finalizado | Solicitante | Viaje `{folio}` | Estado: `EN_CURSO` o `FINALIZADO` |
+| Cancelar un viaje con conductor | Conductor | Viaje cancelado | El viaje `{folio}` fue cancelado |
+
+**Correo (RF21).** Un mensaje de texto con el asunto "Belmonte SpA: tu contraseña temporal", la
+contraseña y su vigencia.
+
+**Probar el correo en local con Mailpit.** El servicio `mailpit` del compose recibe los
+correos sin entregarlos. Con él arriba, arranca la API con estas variables (el usuario y la
+clave pueden ser cualesquiera, pero deben estar definidos porque la API autentica por
+defecto), pide "olvidé mi contraseña" y lee el correo en <http://localhost:8025>. Desde
+`backend/`:
+
+```bash
+SPRING_MAIL_HOST=localhost SPRING_MAIL_PORT=1025 \
+SPRING_MAIL_USERNAME=dev SPRING_MAIL_PASSWORD=dev ./gradlew bootRun
+```
+
+## Pruebas
+
+```bash
+cd backend
+./gradlew test          # en Windows: gradlew.bat test
+```
+
+Las pruebas de integración levantan la aplicación completa detrás de MockMvc y usan la
+MariaDB real del compose, porque los triggers de `V2` llevan parte de las reglas de negocio.
+Necesitan el contenedor `mariadb` arriba y un esquema aparte, `belmonte_test`, que se crea una
+sola vez:
+
+```bash
+mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS belmonte_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON belmonte_test.* TO 'belmonte'@'%';"
+```
+
+- **El esquema se reinicia en cada ejecución** (Flyway `clean` y `migrate`), con una guarda que
+  solo lo permite si el nombre del esquema termina en `_test`: las pruebas no pueden borrar
+  `belmonte`.
+- **No salen avisos reales:** el correo va a un servidor SMTP en memoria (GreenMail) y el push
+  a un grabador que reemplaza a Firebase.
+- Cada prueba crea sus propios datos por la API real, así que no dependen del orden.
+
+| Pruebas | Cubren |
+|---|---|
+| `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y errores de validación. |
+| `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña y el 403 en cuentas ajenas. |
+| `FlotaIT` | Vehículos y habilitación de conductores. |
+| `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
+| `ViajeIT` | Creación, ciclo Pendiente → Finalizado, asignación y reasignación, cancelación, historial (trigger) y consultas por rol. |
+| `PagoIT` | Registro, estados y anulación al cancelar el viaje. |
+| `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión) y push de cada evento. |
+| Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 
 ## Estado y alcance actual
 
-Lo definido en este documento que todavía no existe en el código:
+**Backend implementado:** autenticación con JWT y matriz de roles con rechazo por defecto;
+DTO en todos los contratos (sin exponer `password_hash`); CRUD de las 11 entidades, acciones
+de negocio de viajes y pagos con las reglas de asignación, estados y cancelación; recuperación
+de contraseña por correo SMTP; push por FCM; migraciones `V1` a `V3`; y la suite de pruebas
+descrita arriba.
 
-- **JWT:** la seguridad configurada es HTTP Basic. Sin `AuthController`/`AuthService`/
-  `JwtProvider` no hay login ni emisión de JWT, y RNF01 no se cumple.
-- **DTO:** los `{E}DTORequest`/`{E}DTOResponse` no existen; los CRUD reciben y
-  devuelven `Model`, filtrando `password_hash` en las respuestas de
-  `USUARIO`/`CONDUCTOR`/`ADMINISTRADOR`/`SOLICITANTE` — un riesgo de seguridad concreto.
-- **Acciones de negocio:** no existen `/asignar`, `/estado` ni `/cancelar`; hoy solo
-  hay CRUD genérico.
-- **Push:** `FirebaseClient` es solo una interfaz; faltan su implementación y
-  configuración, y la persistencia del token de dispositivo (RF13).
-- **Correo:** `EmailClient` no existe; no hay envío de la contraseña temporal.
+Lo que falta o no está verificado:
+
+- **Entrega real de push y de correo:** probada con un servidor SMTP de desarrollo y con
+  credenciales de Firebase sintéticas, pero no con un proveedor de correo real ni con una
+  cuenta de Firebase y un dispositivo reales; hacen falta esas credenciales.
+- **Tokens FCM inválidos:** si Firebase informa que un token ya no existe, solo se registra un
+  aviso; el token guardado en `USUARIO.token_fcm` no se limpia.
+- **SDK de Firebase:** marca `Message.Builder.setToken` como obsoleto y ofrece `setFid` (ID de
+  instalación). Se usa `setToken` porque la app guarda el token de registro FCM (RF13); si
+  pasara a IDs de instalación habría que cambiarlo.
+- **RF07 "en tiempo real":** el backend entrega la agenda del día por consulta
+  (`GET /api/v1/viajes`) y avisa los cambios por push; no hay un canal de empuje de la lista.
+- **Frontend Android:** todavía no está en este repositorio. RF10 (navegación externa), RF11
+  (modo sin conexión), la recepción de push y el autocompletado de Google Places son del
+  cliente.

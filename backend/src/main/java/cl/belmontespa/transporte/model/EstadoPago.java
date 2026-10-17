@@ -1,0 +1,24 @@
+package cl.belmontespa.transporte.model;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "estado_pago")
+public class EstadoPago {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id", nullable = false)
+	private Long id;
+
+	// Pendiente, Pagado, Rechazado o Anulado.
+	@Column(name = "estado", length = 20, nullable = false, unique = true)
+	private String estado;
+
+}

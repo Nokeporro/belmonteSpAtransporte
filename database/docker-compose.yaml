@@ -18,5 +18,25 @@ services:
       timeout: 3s
       retries: 20
 
+  # Servidor SMTP de desarrollo: captura los correos que envía el backend (p. ej. la
+  # contraseña temporal, RF21) y los muestra en http://localhost:8025 sin entregarlos.
+  # No exige autenticación: la app puede usar cualquier usuario y clave, así se configura
+  # igual que en producción.
+  # Solo escucha en localhost: no tiene contraseña ni debe exponerse a la red.
+  mailpit:
+    image: axllent/mailpit:v1.31
+    container_name: belmonte-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 500
+    ports:
+      - "127.0.0.1:${SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${SMTP_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
 volumes:
   belmonte_mariadb_data:
