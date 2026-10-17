@@ -22,3 +22,8 @@ src2/
 
 # Carpeta de archivos subidos en clases
 templates/
+
+# Patch files
+*.rej
+*.diff
+*.orig
