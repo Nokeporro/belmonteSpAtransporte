@@ -1,4 +1,5 @@
-# Aplicacion de Belmonte Spa
+# Aplicacion de Belmonte Spa.
+## Especificaciones del proyecto.
 
 **Ultima modificacion:** 17-10-2026
 
@@ -25,7 +26,6 @@
   - [Frontend](#frontend)
   - [Frontend (Android)](#frontend-android)
     - [Arquitectura y responsabilidades](#arquitectura-y-responsabilidades)
-    - [Tecnologías y estado de incorporación](#tecnologías-y-estado-de-incorporación)
     - [Organización prevista del código](#organización-prevista-del-código)
     - [Estado de pantalla y navegación](#estado-de-pantalla-y-navegación)
     - [API y sesión](#api-y-sesión)
@@ -33,7 +33,7 @@
     - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
     - [Entornos y compilación](#entornos-y-compilación)
     - [Pruebas previstas](#pruebas-previstas)
-    - [Pendientes antes de integrar las pantallas](#pendientes-antes-de-integrar-las-pantallas)
+    - [Decisiones abiertas](#decisiones-abiertas)
 - [Estructura del backend](#estructura-del-backend)
   - [Propósito](#propósito)
   - [Árbol de carpetas](#árbol-de-carpetas)
@@ -46,7 +46,6 @@
   - [Configuración](#configuración)
   - [Notificaciones externas](#notificaciones-externas)
   - [Pruebas](#pruebas)
-  - [Estado y alcance actual](#estado-y-alcance-actual)
 
 ## Introduccion
 
@@ -696,12 +695,15 @@ Vistas del MVP por actor:
 ### Frontend (Android)
 
 La aplicación móvil se desarrolla en **Android Studio**, con **Kotlin y Jetpack Compose**.
-El proyecto Android se encuentra en `android/MyApplication/` y utiliza Gradle con Kotlin DSL.
+El build usa Gradle con Kotlin DSL.
 
 La infraestructura seguirá **MVVM con Repository y fuentes de datos locales y remotas**.
-Se comenzará con un único módulo `app`, organizado por responsabilidades. La estructura
-descrita a continuación es el objetivo de implementación; todavía no está construida por
-completo.
+Se comenzará con un único módulo `app`, organizado por responsabilidades.
+
+Las decisiones de presentación y separación de datos siguen las
+[recomendaciones oficiales de arquitectura Android](https://developer.android.com/topic/architecture/recommendations).
+La gestión de notificaciones se implementará según la
+[documentación de FCM para Android](https://firebase.google.com/docs/cloud-messaging/android/get-started).
 
 #### Arquitectura y responsabilidades
 
@@ -738,42 +740,9 @@ pero no reemplazarán las reglas del servidor.
 No se añadirá inicialmente una capa obligatoria de casos de uso. Podrá incorporarse para
 operaciones complejas o compartidas si el desarrollo lo requiere.
 
-#### Tecnologías y estado de incorporación
-
-“Incorporada” significa que la dependencia o configuración está presente; no implica que
-la funcionalidad esté terminada.
-
-| Tecnología | Uso previsto | Estado actual |
-|---|---|---|
-| Android Studio | Desarrollo, depuración, emuladores y compilación. | Entorno de trabajo utilizado. |
-| Kotlin | Lenguaje de la aplicación. | Incorporado. |
-| Gradle Kotlin DSL y catálogo de versiones | Configuración del build y administración de dependencias. | Incorporados. |
-| Jetpack Compose | Construcción de las pantallas. | Incorporado. |
-| Material 3 | Tema y componentes visuales. | Incorporado. |
-| Navigation Compose | Navegación entre pantallas y flujos por rol. | Dependencia incorporada; flujo completo pendiente. |
-| AndroidX ViewModel | Estado y lógica de presentación por pantalla. | Existe un `LoginViewModel` inicial. |
-| Kotlin Coroutines y Flow / StateFlow | Operaciones asíncronas y observación del estado y los datos. | Uso completo pendiente de implementación. |
-| Room / SQLite | Caché de viajes y solicitudes, y cola de cambios pendientes. | Dependencias, entidad y DAO iniciales; infraestructura completa pendiente. |
-| KSP | Procesamiento de anotaciones de Room y de las herramientas que lo requieran. | Configurado para Room; compatibilidad del conjunto por validar. |
-| Retrofit y convertidor JSON con Kotlin Serialization | Consumo de la API REST y conversión de DTO. | Planificados. |
-| OkHttp | Transporte HTTP, configuración de conexión e incorporación del JWT a las peticiones. | Planificado. |
-| Hilt | Inyección de dependencias. | Planificado. |
-| WorkManager | Sincronización persistente de operaciones pendientes cuando haya conexión. | Planificado. |
-| DataStore | Preferencias y metadatos pequeños de la aplicación. | Planificado. |
-| Android Keystore | Protección de las claves utilizadas para cifrar la sesión persistida. | Planificado. |
-| Firebase Cloud Messaging | Recepción de notificaciones y obtención del token del dispositivo. | Planificado en Android. |
-| Google Places SDK for Android | Selección de origen y destino con coordenadas. | Planificado. |
-| Intents de Android | Apertura de rutas en Google Maps o Waze. | Planificados. |
-| JUnit, AndroidX Test, Espresso y Compose UI Test | Pruebas unitarias y de interfaz. | Dependencias iniciales incorporadas; cobertura funcional pendiente. |
-
-Las versiones actuales se consultan en `gradle/libs.versions.toml` y en los archivos Gradle
-del proyecto Android. Las nuevas versiones se fijarán al incorporar cada tecnología y
-comprobar su compatibilidad.
-
 #### Organización prevista del código
 
-Se propone utilizar el paquete base `cl.belmontespa.transporte`. El proyecto conserva
-actualmente `com.example.myapplication`; su cambio se realizará posteriormente.
+El paquete base es `cl.belmontespa.transporte`.
 
 ```text
 cl/belmontespa/transporte/
@@ -833,7 +802,7 @@ No se guardarán contraseñas en Room, DataStore ni logs. La sesión persistida 
 cifrada con una clave protegida por Android Keystore. DataStore no se considerará un
 mecanismo de cifrado por sí mismo.
 
-El backend actual no ofrece un endpoint para renovar el JWT. Cuando la sesión expire, la
+El backend no ofrece un endpoint para renovar el JWT. Cuando la sesión expire, la
 aplicación solicitará iniciar sesión nuevamente.
 
 Los errores HTTP se traducirán a mensajes comprensibles. Los errores de autenticación,
@@ -868,8 +837,8 @@ obtener información actualizada.
 La aplicación gestionará los canales y el permiso de notificaciones cuando corresponda.
 Obtendrá el token FCM y lo enviará durante el login.
 
-La actualización de un token FCM que cambie durante una sesión queda pendiente de definir
-con el backend, porque actualmente se registra mediante el login.
+Cómo actualizar el token si cambia durante una sesión es una decisión abierta (ver
+«Decisiones abiertas»).
 
 Google Places se utilizará para seleccionar direcciones y obtener coordenadas. La clave
 del SDK tendrá restricciones de aplicación y API.
@@ -880,15 +849,8 @@ mapa embebido.
 
 #### Entornos y compilación
 
-Android Studio debe abrir la carpeta `android/MyApplication/`.
-
-La configuración actual utiliza Gradle 8.13 y Android Gradle Plugin 8.13.2. Se utilizará
-JDK 21 para ejecutar Gradle; el destino de compilación Java/Kotlin está actualmente
-configurado en 11.
-
-El proyecto tiene `compileSdk = 36`, `targetSdk = 36` y `minSdk = 36`. El requisito
-documentado sigue siendo Android 8.0/API 26 o superior. Antes de desarrollar las funciones
-se deberá ajustar el mínimo y verificar las dependencias contra ese requisito.
+Se utilizará JDK 21 para ejecutar Gradle. `compileSdk` y `targetSdk` son 36, y `minSdk` es
+26 (Android 8.0), según RNF05; las dependencias deben ser compatibles con ese mínimo.
 
 La URL del backend se configurará por entorno. En el emulador estándar, `10.0.2.2` permite
 acceder al servidor de la máquina anfitriona. Un dispositivo físico utilizará una dirección
@@ -908,24 +870,14 @@ Se cubrirán:
 - Cola de sincronización, reintentos y conflictos.
 - Flujos completos por rol contra el backend.
 
-Las dependencias de pruebas existentes no representan todavía cobertura funcional del MVP.
+#### Decisiones abiertas
 
-#### Pendientes antes de integrar las pantallas
-
-- Sustituir el login con credenciales fijas por autenticación real.
-- Ajustar el paquete base y la compatibilidad mínima con API 26.
-- Incorporar y validar las dependencias planificadas.
-- Definir cómo Android obtendrá los catálogos necesarios, porque actualmente no se exponen
+- Definir cómo Android obtendrá los catálogos necesarios, porque el backend no los expone
   como recursos de la API.
-- Resolver la actualización del token FCM durante una sesión.
+- Definir cómo se actualiza el token FCM si cambia durante una sesión, porque el backend lo
+  registra en el login (RF13).
 - Definir el tratamiento de un reintento cuyo cambio ya fue aplicado por el servidor,
   evitando duplicaciones o conflictos incorrectos.
-- Configurar Firebase y Google Places para los entornos de desarrollo y entrega.
-
-Las decisiones de presentación y separación de datos siguen las
-[recomendaciones oficiales de arquitectura Android](https://developer.android.com/topic/architecture/recommendations).
-La gestión de notificaciones se implementará según la
-[documentación de FCM para Android](https://firebase.google.com/docs/cloud-messaging/android/get-started).
 
 ## Estructura del backend
 
@@ -1274,35 +1226,3 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión) y push de cada evento. |
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 
-### Estado y alcance actual
-
-**Backend implementado:** autenticación con JWT y matriz de roles con rechazo por defecto;
-DTO en todos los contratos (sin exponer `password_hash`); CRUD de las 11 entidades, acciones
-de negocio de viajes y pagos con las reglas de asignación, estados y cancelación; recuperación
-de contraseña por correo SMTP; push por FCM; migraciones `V1` a `V3`; y la suite de pruebas
-descrita arriba.
-
-Lo que falta o no está verificado:
-
-- **Entrega real de push y de correo:** probada con un servidor SMTP de desarrollo y con
-  credenciales de Firebase sintéticas, pero no con un proveedor de correo real ni con una
-  cuenta de Firebase y un dispositivo reales; hacen falta esas credenciales.
-- **Tokens FCM inválidos:** si Firebase informa que un token ya no existe, solo se registra un
-  aviso; el token guardado en `USUARIO.token_fcm` no se limpia.
-- **SDK de Firebase:** marca `Message.Builder.setToken` como obsoleto y ofrece `setFid` (ID de
-  instalación). Se usa `setToken` porque la app guarda el token de registro FCM (RF13); si
-  pasara a IDs de instalación habría que cambiarlo.
-- **RF07 "en tiempo real":** el backend entrega la agenda del día por consulta
-  (`GET /api/v1/viajes`) y avisa los cambios por push; no hay un canal de empuje de la lista.
-- **Frontend Android:** todavía no está en este repositorio. RF10 (navegación externa), RF11
-  (modo sin conexión), la recepción de push y el autocompletado de Google Places son del
-  cliente.
-- **Reglas de este documento que el backend aún no cumple:**
-  - Estado `REEMBOLSADO` y devolución del 50 % al cancelar el Solicitante con el pago Pagado
-    (requiere una migración nueva que agregue el estado y la transición Pagado→Reembolsado).
-  - Un pago Anulado debe cancelar el viaje, y `POST /pagos/{hash}/estado` debe aceptar
-    `ANULADO`. Hoy es al revés: cancelar el viaje anula el pago y `ANULADO` se rechaza con 400.
-  - `POST /administradores` no debería existir (hoy lo permite el Administrador).
-  - El Conductor no debería poder cambiar su contraseña con `PUT /usuarios/{correo}`.
-  - `POST /empresas` debería reutilizar la empresa por RUT (hoy responde 409).
-  - Cancelar un viaje no debería escribir `fh_fin`.
