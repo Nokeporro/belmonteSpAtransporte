@@ -24,6 +24,16 @@
   - [Backend](#backend)
   - [Frontend](#frontend)
   - [Frontend (Android)](#frontend-android)
+    - [Arquitectura y responsabilidades](#arquitectura-y-responsabilidades)
+    - [Tecnologías y estado de incorporación](#tecnologías-y-estado-de-incorporación)
+    - [Organización prevista del código](#organización-prevista-del-código)
+    - [Estado de pantalla y navegación](#estado-de-pantalla-y-navegación)
+    - [API y sesión](#api-y-sesión)
+    - [Persistencia y conectividad](#persistencia-y-conectividad)
+    - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
+    - [Entornos y compilación](#entornos-y-compilación)
+    - [Pruebas previstas](#pruebas-previstas)
+    - [Pendientes antes de integrar las pantallas](#pendientes-antes-de-integrar-las-pantallas)
 - [Estructura del backend](#estructura-del-backend)
   - [Propósito](#propósito)
   - [Árbol de carpetas](#árbol-de-carpetas)
@@ -685,17 +695,237 @@ Vistas del MVP por actor:
 
 ### Frontend (Android)
 
-**MVVM**, alineado con las capas del backend:
+La aplicación móvil se desarrolla en **Android Studio**, con **Kotlin y Jetpack Compose**.
+El proyecto Android se encuentra en `android/MyApplication/` y utiliza Gradle con Kotlin DSL.
 
-* **View / ViewModel:** las pantallas en Jetpack Compose solo dibujan estado y emiten
-  eventos; la lógica de presentación vive en el `ViewModel`.
-* **Repository como única fuente de verdad:** el `ViewModel` no habla con Retrofit ni
-  Room; el `Repository` decide entre el `DataSource` local (Room/SQLite) y el remoto
-  (Retrofit) y aplica la sincronización offline de RF11.
-* **Hilt** para inyectar `ViewModel → Repository → DataSources` y poder sustituir el
-  `DataSource` remoto por uno falso en pruebas.
-* **Un ViewModel por pantalla**, agrupado por actor (p. ej.
-  `RegistrarSolicitudViewModel`, `ViajesDelDiaViewModel`, `AsignarConductorViewModel`).
+La infraestructura seguirá **MVVM con Repository y fuentes de datos locales y remotas**.
+Se comenzará con un único módulo `app`, organizado por responsabilidades. La estructura
+descrita a continuación es el objetivo de implementación; todavía no está construida por
+completo.
+
+#### Arquitectura y responsabilidades
+
+El flujo principal será:
+
+```text
+Pantalla Compose
+      ↓ eventos       ↑ estado
+   ViewModel
+      ↓               ↑
+   Repository
+      ↓               ↑
+Fuente local       Fuente remota
+Room / SQLite      Retrofit / API REST
+```
+
+| Componente | Responsabilidad |
+|---|---|
+| View / Screen | Dibujar la interfaz y enviar las acciones del usuario al ViewModel. |
+| ViewModel | Validar entradas de presentación, ejecutar operaciones del Repository y exponer el estado de la pantalla. |
+| Repository | Coordinar las fuentes locales y remotas, actualizar la caché y gestionar operaciones pendientes. |
+| Remote DataSource | Comunicarse con la API REST mediante Retrofit. |
+| Local DataSource | Consultar y guardar datos mediante Room y sus DAO. |
+| Modelos y mapeadores | Separar los contratos JSON, las entidades locales y los datos que consume la aplicación. |
+| Inyección de dependencias | Construir y proporcionar las dependencias mediante Hilt. |
+
+Las pantallas no accederán directamente a Retrofit, Room ni los DAO. Los ViewModel
+dependerán de los repositorios.
+
+El backend conservará la autoridad sobre permisos, asignaciones, disponibilidad y
+transiciones de estado. Las validaciones Android mejorarán la experiencia del usuario,
+pero no reemplazarán las reglas del servidor.
+
+No se añadirá inicialmente una capa obligatoria de casos de uso. Podrá incorporarse para
+operaciones complejas o compartidas si el desarrollo lo requiere.
+
+#### Tecnologías y estado de incorporación
+
+“Incorporada” significa que la dependencia o configuración está presente; no implica que
+la funcionalidad esté terminada.
+
+| Tecnología | Uso previsto | Estado actual |
+|---|---|---|
+| Android Studio | Desarrollo, depuración, emuladores y compilación. | Entorno de trabajo utilizado. |
+| Kotlin | Lenguaje de la aplicación. | Incorporado. |
+| Gradle Kotlin DSL y catálogo de versiones | Configuración del build y administración de dependencias. | Incorporados. |
+| Jetpack Compose | Construcción de las pantallas. | Incorporado. |
+| Material 3 | Tema y componentes visuales. | Incorporado. |
+| Navigation Compose | Navegación entre pantallas y flujos por rol. | Dependencia incorporada; flujo completo pendiente. |
+| AndroidX ViewModel | Estado y lógica de presentación por pantalla. | Existe un `LoginViewModel` inicial. |
+| Kotlin Coroutines y Flow / StateFlow | Operaciones asíncronas y observación del estado y los datos. | Uso completo pendiente de implementación. |
+| Room / SQLite | Caché de viajes y solicitudes, y cola de cambios pendientes. | Dependencias, entidad y DAO iniciales; infraestructura completa pendiente. |
+| KSP | Procesamiento de anotaciones de Room y de las herramientas que lo requieran. | Configurado para Room; compatibilidad del conjunto por validar. |
+| Retrofit y convertidor JSON con Kotlin Serialization | Consumo de la API REST y conversión de DTO. | Planificados. |
+| OkHttp | Transporte HTTP, configuración de conexión e incorporación del JWT a las peticiones. | Planificado. |
+| Hilt | Inyección de dependencias. | Planificado. |
+| WorkManager | Sincronización persistente de operaciones pendientes cuando haya conexión. | Planificado. |
+| DataStore | Preferencias y metadatos pequeños de la aplicación. | Planificado. |
+| Android Keystore | Protección de las claves utilizadas para cifrar la sesión persistida. | Planificado. |
+| Firebase Cloud Messaging | Recepción de notificaciones y obtención del token del dispositivo. | Planificado en Android. |
+| Google Places SDK for Android | Selección de origen y destino con coordenadas. | Planificado. |
+| Intents de Android | Apertura de rutas en Google Maps o Waze. | Planificados. |
+| JUnit, AndroidX Test, Espresso y Compose UI Test | Pruebas unitarias y de interfaz. | Dependencias iniciales incorporadas; cobertura funcional pendiente. |
+
+Las versiones actuales se consultan en `gradle/libs.versions.toml` y en los archivos Gradle
+del proyecto Android. Las nuevas versiones se fijarán al incorporar cada tecnología y
+comprobar su compatibilidad.
+
+#### Organización prevista del código
+
+Se propone utilizar el paquete base `cl.belmontespa.transporte`. El proyecto conserva
+actualmente `com.example.myapplication`; su cambio se realizará posteriormente.
+
+```text
+cl/belmontespa/transporte/
+├── BelmonteApplication.kt
+├── MainActivity.kt
+├── di/
+├── model/
+├── data/
+│   ├── remote/
+│   │   ├── api/
+│   │   ├── dto/
+│   │   └── interceptor/
+│   ├── local/
+│   │   ├── database/
+│   │   ├── dao/
+│   │   └── entity/
+│   ├── mapper/
+│   ├── repository/
+│   └── session/
+├── ui/
+│   ├── navigation/
+│   ├── components/
+│   ├── theme/
+│   ├── auth/
+│   ├── solicitante/
+│   ├── administrador/
+│   └── conductor/
+├── notification/
+└── sync/
+```
+
+Cada pantalla y su ViewModel se ubicarán dentro de la funcionalidad correspondiente.
+`model` contendrá los modelos utilizados por la aplicación; las entidades Room y los DTO
+remotos permanecerán separados en `data`.
+
+#### Estado de pantalla y navegación
+
+Cada pantalla tendrá un ViewModel que expondrá su estado mediante `StateFlow`: datos,
+carga, resultados y errores. Compose lo observará respetando el ciclo de vida.
+
+Navigation Compose organizará un flujo de autenticación y los flujos de Solicitante,
+Administrador y Conductor. Después del login, la aplicación abrirá el flujo correspondiente
+al rol recibido del backend.
+
+Cerrar sesión eliminará la sesión local y el acceso a las pantallas autenticadas. La
+navegación por rol no sustituirá la autorización del backend.
+
+#### API y sesión
+
+La aplicación consumirá los endpoints `/api/v1/` mediante Retrofit. Usará DTO de petición
+y respuesta alineados con los contratos del backend.
+
+El login enviará `correo`, `password` y, cuando esté disponible, `tokenFcm`. El JWT recibido
+se adjuntará en las peticiones protegidas como `Authorization: Bearer <token>`.
+
+No se guardarán contraseñas en Room, DataStore ni logs. La sesión persistida se almacenará
+cifrada con una clave protegida por Android Keystore. DataStore no se considerará un
+mecanismo de cifrado por sí mismo.
+
+El backend actual no ofrece un endpoint para renovar el JWT. Cuando la sesión expire, la
+aplicación solicitará iniciar sesión nuevamente.
+
+Los errores HTTP se traducirán a mensajes comprensibles. Los errores de autenticación,
+permisos, validación, conflictos de negocio y conectividad tendrán tratamientos diferenciados.
+
+#### Persistencia y conectividad
+
+La aplicación requiere conexión para crear solicitudes y obtener información nueva. No se
+plantea como una aplicación completamente offline-first.
+
+Room permitirá consultar viajes y solicitudes previamente sincronizados. También almacenará
+los cambios de estado permitidos durante cortes de conexión, identificados como pendientes
+de sincronización.
+
+WorkManager enviará estos cambios cuando haya conexión y una sesión válida. Las operaciones
+se procesarán en orden por viaje. Un cambio local pendiente no se mostrará como confirmado
+por el servidor.
+
+Los fallos temporales de conexión podrán reintentarse. Un rechazo por permisos o reglas de
+negocio requerirá actualizar los datos y mostrar el conflicto, evitando reintentos indefinidos.
+
+La caché y la cola se asociarán a la cuenta correspondiente para impedir que otro usuario
+vea o envíe sus datos. Al cerrar sesión con cambios pendientes, se advertirá de su existencia
+y se permitirá sincronizarlos o descartarlos antes de eliminar los datos locales.
+
+#### Notificaciones y navegación externa
+
+Firebase Cloud Messaging notificará asignaciones, cancelaciones y cambios de estado. Una
+notificación identificará el viaje por su folio y provocará una consulta al backend para
+obtener información actualizada.
+
+La aplicación gestionará los canales y el permiso de notificaciones cuando corresponda.
+Obtendrá el token FCM y lo enviará durante el login.
+
+La actualización de un token FCM que cambie durante una sesión queda pendiente de definir
+con el backend, porque actualmente se registra mediante el login.
+
+Google Places se utilizará para seleccionar direcciones y obtener coordenadas. La clave
+del SDK tendrá restricciones de aplicación y API.
+
+La ruta se abrirá mediante Intents hacia Google Maps o Waze. Si no hay una aplicación
+compatible, se mostrará un aviso. El MVP no requiere implementar un motor de rutas ni un
+mapa embebido.
+
+#### Entornos y compilación
+
+Android Studio debe abrir la carpeta `android/MyApplication/`.
+
+La configuración actual utiliza Gradle 8.13 y Android Gradle Plugin 8.13.2. Se utilizará
+JDK 21 para ejecutar Gradle; el destino de compilación Java/Kotlin está actualmente
+configurado en 11.
+
+El proyecto tiene `compileSdk = 36`, `targetSdk = 36` y `minSdk = 36`. El requisito
+documentado sigue siendo Android 8.0/API 26 o superior. Antes de desarrollar las funciones
+se deberá ajustar el mínimo y verificar las dependencias contra ese requisito.
+
+La URL del backend se configurará por entorno. En el emulador estándar, `10.0.2.2` permite
+acceder al servidor de la máquina anfitriona. Un dispositivo físico utilizará una dirección
+accesible en la red.
+
+HTTP se permitirá únicamente para el entorno local de desarrollo; el entorno publicado
+utilizará HTTPS. Las credenciales de servicios del backend no se incluirán en el APK.
+
+#### Pruebas previstas
+
+Se cubrirán:
+
+- ViewModel y repositorios mediante dependencias falsas.
+- Contratos HTTP, autenticación y tratamiento de errores.
+- DAO, persistencia y migraciones Room.
+- Navegación, formularios y estados de las pantallas Compose.
+- Cola de sincronización, reintentos y conflictos.
+- Flujos completos por rol contra el backend.
+
+Las dependencias de pruebas existentes no representan todavía cobertura funcional del MVP.
+
+#### Pendientes antes de integrar las pantallas
+
+- Sustituir el login con credenciales fijas por autenticación real.
+- Ajustar el paquete base y la compatibilidad mínima con API 26.
+- Incorporar y validar las dependencias planificadas.
+- Definir cómo Android obtendrá los catálogos necesarios, porque actualmente no se exponen
+  como recursos de la API.
+- Resolver la actualización del token FCM durante una sesión.
+- Definir el tratamiento de un reintento cuyo cambio ya fue aplicado por el servidor,
+  evitando duplicaciones o conflictos incorrectos.
+- Configurar Firebase y Google Places para los entornos de desarrollo y entrega.
+
+Las decisiones de presentación y separación de datos siguen las
+[recomendaciones oficiales de arquitectura Android](https://developer.android.com/topic/architecture/recommendations).
+La gestión de notificaciones se implementará según la
+[documentación de FCM para Android](https://firebase.google.com/docs/cloud-messaging/android/get-started).
 
 ## Estructura del backend
 
