@@ -24,6 +24,11 @@
   - [Base de datos MariaDB](#base-de-datos-mariadb)
   - [Backend](#backend)
   - [Frontend](#frontend)
+    - [Acceso y sesión](#acceso-y-sesión)
+    - [Pantallas del Solicitante](#pantallas-del-solicitante)
+    - [Pantallas del Administrador](#pantallas-del-administrador)
+    - [Pantallas del Conductor](#pantallas-del-conductor)
+    - [Reglas comunes de navegación](#reglas-comunes-de-navegación)
   - [Frontend (Android)](#frontend-android)
     - [Arquitectura y responsabilidades](#arquitectura-y-responsabilidades)
     - [Organización prevista del código](#organización-prevista-del-código)
@@ -48,6 +53,12 @@
   - [Pruebas](#pruebas)
 
 ## Introduccion
+
+Este documento define los requisitos, la arquitectura, los contratos y las tecnologías
+del proyecto. Es una especificación de referencia; no registra el avance de implementación
+ni certifica que el código cumpla lo descrito. Su revisión documental debe evaluar la
+coherencia y suficiencia de estas especificaciones. La verificación de conformidad del
+código es una revisión independiente.
 
 Belmonte SpA hace transporte privado corporativo (traslados ejecutivos y aeropuerto).
 Este MVP móvil centraliza el flujo de traslados: captura de solicitudes, asignación a
@@ -659,51 +670,116 @@ corresponde, o en una ruta o método que no figura en esta matriz, 403 (ver "Err
 
 ![Wireframes de baja fidelidad](mockups/wireframes-belmonte.svg)
 
-Vistas del MVP por actor:
+La aplicación tendrá una sola actividad (`MainActivity`) y navegación con Navigation
+Compose. Cada rol tendrá su propio flujo. Las siguientes pantallas y reglas definen la
+navegación del MVP.
 
-**Transversal**
-- **Login:** para los tres actores con app. Incluye "Olvidé mi contraseña" (solo Solicitante
-  y Administrador, CU-13).
-- **Perfil / Cierre de sesión.**
+#### Acceso y sesión
 
-**Cliente corporativo / Solicitante**
-- **Registro:** cuenta propia (el Conductor no se autorregistra).
-- **Registrar solicitud de traslado:** CU-01.
-- **Mis solicitudes (historial):** traslados con su estado.
-- **Detalle de solicitud:** datos, estado y conductor una vez asignado; estado de pago si
-  existe (RF20) y botón "Cancelar" en Pendiente o Asignado (CU-08/RF15).
+| Pantalla | Contenido y acciones | Destino |
+|---|---|---|
+| Inicio de aplicación | Comprueba la sesión guardada. | Login o inicio del rol correspondiente. |
+| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante" y "Recuperar contraseña". | Inicio según el rol, registro o recuperación. |
+| Registro de solicitante | Nombre, correo, teléfono, contraseña, razón social y RUT de empresa. | Al completar, vuelve al login con el correo precargado. |
+| Recuperar contraseña | Correo y explicación de la contraseña temporal. Disponible para solicitantes y administradores. | Confirmación genérica y regreso al login. |
 
-**Recepcionista / Administrador**
-- **Panel de solicitudes pendientes:** entrada a CU-04.
-- **Asignar conductor:** CU-04. Incluye elegir el vehículo habilitado y reasignar una
-  solicitud Asignada (RF22).
-- **Registrar conductor:** CU-07/RF14.
-- **Registrar vehículo:** CU-09/RF16.
-- **Habilitar conductores para un vehículo:** CU-10/RF17.
-- **Pagos:** registrar el pago de un viaje y actualizar su estado (CU-11/CU-12, RF18/RF19).
-- **Panel general / dashboard** *(segunda iteración)*: conteo de viajes por estado.
-- **Sistema de distribución de solicitudes** *(mejora futura, fuera del MVP)*:
-  asignación automática de conductor (hoy manual, RF05/CU-04). Sin RF ni HU que lo
-  respalde.
+El rol se obtiene del backend: no habrá un selector para elegir con qué rol entrar.
+El Conductor no tendrá autorregistro ni recuperación de contraseña por autoservicio.
 
-**Conductor**
-- **Viajes del día:** asignados para hoy, por hora. CU-02.
-- **Detalle de viaje asignado:** datos, control En Curso/Finalizado y botón de
-  navegación. CU-03 y CU-05.
-- **Historial de viajes realizados** *(segunda iteración)*.
+#### Pantallas del Solicitante
+
+Navegación inferior: **Mis solicitudes · Perfil**.
+
+| Pantalla | Contenido y acciones |
+|---|---|
+| Mis solicitudes — inicio | Lista de solicitudes propias con folio, fecha, hora, origen, destino y estado. Botón "Nueva solicitud". |
+| Nueva solicitud | Fecha y hora, origen y destino mediante Places, uno o más pasajeros y número de vuelo opcional. |
+| Detalle de solicitud | Datos del viaje, pasajeros, estado, conductor y vehículo asignados, y estado de pago si existe. |
+| Perfil | Datos personales y empresa, acceso a cambio de contraseña y cierre de sesión. |
+| Cambiar contraseña | Nueva contraseña y confirmación. Disponible para solicitante y administrador. |
+
+Reglas de navegación:
+
+- Al enviar una solicitud correctamente, se abre su detalle. Volver lleva a
+  "Mis solicitudes".
+- En el detalle, "Cancelar solicitud" aparece únicamente en Pendiente o Asignado y
+  requiere confirmación.
+- Después de cancelar, se conserva el detalle mostrando el nuevo estado.
+- El formulario permite agregar, editar y quitar pasajeros antes del envío.
+
+#### Pantallas del Administrador
+
+Navegación inferior: **Solicitudes · Conductores · Vehículos · Perfil**.
+
+| Pantalla | Contenido y acciones |
+|---|---|
+| Solicitudes — inicio | Lista general, con filtro inicial "Pendientes" y filtros por estado. |
+| Detalle de solicitud | Información del viaje, pasajeros, asignación y pago. Acceso a asignar/reasignar y registrar/consultar pago. |
+| Asignar conductor y vehículo | Selección de conductor y de un vehículo habilitado para él. Resumen y confirmación. |
+| Conductores | Lista y acceso a "Registrar conductor". |
+| Registrar conductor | Nombre, correo, teléfono y contraseña inicial. |
+| Detalle de conductor | Datos, estado, vehículos habilitados, edición de datos y reemplazo de contraseña. |
+| Vehículos | Lista y acceso a "Registrar vehículo". |
+| Registrar vehículo | Patente, capacidad y serial GPS opcional. |
+| Detalle de vehículo | Datos, estado y conductores habilitados. |
+| Gestionar habilitaciones | Agregar habilitaciones entre conductores y vehículos. No se ofrece eliminación sin un contrato que la autorice. |
+| Registrar pago | Monto, banco, medio de pago y tipo de recibo para el viaje seleccionado. |
+| Detalle de pago | Datos y estado. Desde Pendiente permite marcar Pagado, Rechazado o Anulado; desde Pagado permite Anulado. Reembolsado es automático cuando el Solicitante cancela un viaje con pago Pagado. |
+| Perfil / Cambiar contraseña | Datos personales, cambio de contraseña y cierre de sesión. |
+
+Los pagos se gestionarán desde el viaje, sin una sección independiente en este MVP.
+La asignación automática y el dashboard quedan fuera de este flujo.
+
+Desde la lista de solicitudes se accede al detalle del viaje; desde ese detalle se abren
+los flujos de asignación y pago. Desde las listas de conductores y vehículos se accede a
+sus respectivos detalles y formularios de registro. La gestión de habilitaciones se abre
+desde el detalle del conductor o del vehículo.
+
+#### Pantallas del Conductor
+
+Navegación inferior: **Mis viajes · Perfil**.
+
+| Pantalla | Contenido y acciones |
+|---|---|
+| Mis viajes — inicio | Agenda del día, ordenada por hora, con selector de fecha. |
+| Detalle de viaje | Folio, horario, pasajeros, vuelo, origen, destino, vehículo y estado. |
+| Perfil | Datos personales y cierre de sesión. La contraseña la gestiona el administrador. |
+
+Seleccionar un viaje de la agenda abre su detalle. Acciones del detalle:
+
+- **Navegar:** abre la selección de Google Maps o Waze.
+- **Iniciar viaje:** disponible en Asignado; requiere confirmación.
+- **Finalizar viaje:** disponible en En Curso; requiere confirmación.
+- **Sin conexión:** los cambios permitidos muestran "Pendiente de sincronizar" hasta
+  su confirmación por el servidor.
+
+El selector de fecha permite consultar la agenda de otra fecha; no añade una pantalla
+independiente de historial.
+
+#### Reglas comunes de navegación
+
+- Las pantallas principales muestran la barra inferior; los formularios y detalles
+  muestran una flecha para volver.
+- Volver desde un formulario con cambios requiere confirmar que se desea descartarlos.
+- Al iniciar sesión se elimina el flujo de acceso del historial. Al cerrar sesión se
+  elimina el flujo autenticado.
+- Si la sesión expira, se solicita autenticarse nuevamente antes de continuar operaciones
+  protegidas.
+- Al pulsar una notificación se abre el detalle correspondiente después de comprobar
+  sesión, rol y acceso.
+- Cada pantalla contempla carga, contenido, lista vacía, error y falta de conexión,
+  según corresponda.
+- Durante un envío se bloquea la acción para impedir pulsaciones duplicadas.
+- Los cambios de estado se muestran como confirmados únicamente después de la respuesta
+  del backend.
 
 ### Frontend (Android)
 
 La aplicación móvil se desarrolla en **Android Studio**, con **Kotlin y Jetpack Compose**.
 El build usa Gradle con Kotlin DSL.
 
-La infraestructura seguirá **MVVM con Repository y fuentes de datos locales y remotas**.
-Se comenzará con un único módulo `app`, organizado por responsabilidades.
-
-Las decisiones de presentación y separación de datos siguen las
-[recomendaciones oficiales de arquitectura Android](https://developer.android.com/topic/architecture/recommendations).
-La gestión de notificaciones se implementará según la
-[documentación de FCM para Android](https://firebase.google.com/docs/cloud-messaging/android/get-started).
+La infraestructura se define como **MVVM con Repository y fuentes de datos locales y
+remotas**, con un único módulo `app` organizado por responsabilidades.
 
 #### Arquitectura y responsabilidades
 
@@ -740,9 +816,40 @@ pero no reemplazarán las reglas del servidor.
 No se añadirá inicialmente una capa obligatoria de casos de uso. Podrá incorporarse para
 operaciones complejas o compartidas si el desarrollo lo requiere.
 
-#### Organización prevista del código
+#### Tecnologías
 
-El paquete base es `cl.belmontespa.transporte`.
+| Tecnología | Responsabilidad |
+|---|---|
+| Android Studio | Desarrollo, depuración, emuladores y compilación. |
+| Kotlin | Lenguaje de la aplicación. |
+| Gradle Kotlin DSL y catálogo de versiones | Configuración del build y administración de dependencias. |
+| Jetpack Compose | Construcción de las pantallas. |
+| Material 3 | Tema y componentes visuales. |
+| Navigation Compose | Navegación entre pantallas y flujos por rol. |
+| AndroidX ViewModel | Estado y lógica de presentación por pantalla. |
+| Kotlin Coroutines y Flow / StateFlow | Operaciones asíncronas y observación del estado y los datos. |
+| Room / SQLite | Caché de viajes y solicitudes, y cola de cambios pendientes. |
+| KSP | Procesamiento de anotaciones de Room y de las herramientas que lo requieran. |
+| Retrofit y convertidor JSON con Kotlin Serialization | Consumo de la API REST y conversión de DTO. |
+| OkHttp | Transporte HTTP, configuración de conexión e incorporación del JWT a las peticiones. |
+| Hilt | Inyección de dependencias. |
+| WorkManager | Sincronización persistente de operaciones pendientes cuando haya conexión. |
+| DataStore | Preferencias y metadatos pequeños de la aplicación. |
+| Android Keystore | Protección de las claves utilizadas para cifrar la sesión persistida. |
+| Firebase Cloud Messaging | Recepción de notificaciones y obtención del token del dispositivo. |
+| Google Places SDK for Android | Selección de origen y destino con coordenadas. |
+| Intents de Android | Apertura de rutas en Google Maps o Waze. |
+| JUnit, AndroidX Test, Espresso y Compose UI Test | Pruebas unitarias y de interfaz. |
+
+Las versiones de las dependencias se fijan en `gradle/libs.versions.toml` y en los archivos
+Gradle del proyecto Android. El conjunto debe ser compatible con Kotlin, KSP, Android
+Gradle Plugin y el nivel mínimo de Android definido en esta especificación.
+
+#### Organización del código
+
+El paquete base de Android y del backend es `cl.belmontespa.transporte`. Cada proyecto
+mantiene su propio árbol de código, build y dependencias; compartir el nombre del paquete
+no implica compartir clases ni acoplar sus implementaciones.
 
 ```text
 cl/belmontespa/transporte/
@@ -859,7 +966,7 @@ accesible en la red.
 HTTP se permitirá únicamente para el entorno local de desarrollo; el entorno publicado
 utilizará HTTPS. Las credenciales de servicios del backend no se incluirán en el APK.
 
-#### Pruebas previstas
+#### Pruebas Android
 
 Se cubrirán:
 
