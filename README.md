@@ -35,6 +35,12 @@
     - [Estado de pantalla y navegación](#estado-de-pantalla-y-navegación)
     - [API y sesión](#api-y-sesión)
     - [Persistencia y conectividad](#persistencia-y-conectividad)
+      - [Base de datos local](#base-de-datos-local)
+      - [Tabla viajes_cache](#tabla-viajes_cache)
+      - [Tabla pasajeros_viaje_cache](#tabla-pasajeros_viaje_cache)
+      - [Tabla operaciones_pendientes](#tabla-operaciones_pendientes)
+      - [Tablas de consultas](#tablas-de-consultas)
+      - [Reglas de persistencia local](#reglas-de-persistencia-local)
     - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
     - [Entornos y compilación](#entornos-y-compilación)
     - [Pruebas previstas](#pruebas-previstas)
@@ -934,6 +940,143 @@ negocio requerirá actualizar los datos y mostrar el conflicto, evitando reinten
 La caché y la cola se asociarán a la cuenta correspondiente para impedir que otro usuario
 vea o envíe sus datos. Al cerrar sesión con cambios pendientes, se advertirá de su existencia
 y se permitirá sincronizarlos o descartarlos antes de eliminar los datos locales.
+
+##### Base de datos local
+
+La base local se llamará `belmonte_local.db`, utilizará **Room sobre SQLite** y comenzará
+en la versión **1**. Guardará viajes y solicitudes consultados, sus pasajeros y los cambios
+de estado pendientes del Conductor. MariaDB seguirá siendo la fuente autorizada de las
+reglas y los estados confirmados.
+
+No se replicarán todas las tablas del backend. El MVP no requiere gestionar flota, cuentas
+ni pagos sin conexión.
+
+Los tipos de las tablas siguientes se expresan como tipos **Kotlin**: `String`, `Int`,
+`Double` y `Long`. El sufijo `?` indica que el campo admite `null`; sin él, es obligatorio.
+Los instantes técnicos usan `Long` para representar milisegundos desde Unix.
+
+##### Tabla viajes_cache
+
+| Campo | Tipo Kotlin | Regla |
+|---|---|---|
+| `cuenta` | `String` | Correo de la cuenta autenticada, según el backend. |
+| `folio` | `String` | Identificador público del viaje. |
+| `estado_confirmado` | `String` | Último estado recibido del servidor. |
+| `correo_solicitante` | `String` | Solicitante del viaje. |
+| `fh_agenda` | `String` | Fecha y hora programada. |
+| `fh_creacion` | `String` | Fecha y hora de creación. |
+| `fh_asignacion`, `fh_inicio`, `fh_fin` | `String?` cada uno | Fechas informadas por el servidor. |
+| `numero_vuelo` | `String?` | Número de vuelo. |
+| `cantidad_pasajeros` | `Int` | Cantidad confirmada por el servidor. |
+| `origen_direccion`, `origen_comuna`, `origen_region` | `String` cada uno | Dirección de origen. |
+| `origen_latitud`, `origen_longitud` | `Double` cada uno | Coordenadas de origen. |
+| `destino_direccion`, `destino_comuna`, `destino_region` | `String` cada uno | Dirección de destino. |
+| `destino_latitud`, `destino_longitud` | `Double` cada uno | Coordenadas de destino. |
+| `correo_conductor`, `nombre_conductor` | `String?` cada uno | Conductor asignado. |
+| `patente_movil` | `String?` | Vehículo asignado. |
+| `hash_pago`, `estado_pago` | `String?` cada uno | Resumen del pago asociado. |
+| `descargado_en` | `Long` | Instante de actualización de la caché. |
+
+Clave primaria compuesta: **`cuenta + folio`**.
+
+Las ubicaciones se guardan dentro de la fila del viaje como una instantánea para consulta.
+No se requiere un catálogo local de direcciones.
+
+##### Tabla pasajeros_viaje_cache
+
+| Campo | Tipo Kotlin | Regla |
+|---|---|---|
+| `cuenta` | `String` | Cuenta propietaria de la caché. |
+| `folio` | `String` | Viaje al que pertenece. |
+| `dni_hash` | `String` | Identificador entregado por el backend. |
+| `nombre` | `String` | Nombre del pasajero. |
+
+Clave primaria compuesta: **`cuenta + folio + dni_hash`**.
+
+La combinación `cuenta + folio` referencia a `viajes_cache`. Al eliminar un viaje de la
+caché se eliminan sus pasajeros. El RUT o pasaporte original no se persiste localmente.
+
+##### Tabla operaciones_pendientes
+
+| Campo | Tipo Kotlin | Regla |
+|---|---|---|
+| `operacion_id` | `String` | UUID generado localmente; clave primaria. |
+| `cuenta` | `String` | Cuenta que realizó la acción. |
+| `folio` | `String` | Viaje afectado. |
+| `secuencia` | `Int` | Orden de las operaciones dentro del viaje. |
+| `estado_origen` | `String` | Estado desde el cual se solicitó el cambio. |
+| `estado_destino` | `String` | `EN_CURSO` o `FINALIZADO`. |
+| `estado_envio` | `String` | `PENDIENTE`, `ENVIANDO` o `CONFLICTO`. |
+| `creado_en` | `Long` | Instante de creación local. |
+| `intentos` | `Int` | Número de intentos de envío. |
+| `ultimo_intento_en` | `Long?` | Último intento. |
+| `codigo_error` | `String?` | Código técnico sin datos personales. |
+
+Debe ser única la combinación **`cuenta + folio + secuencia`**. Cada operación referencia
+al viaje de la misma cuenta mediante `cuenta + folio`.
+
+Reglas de la cola:
+
+- Se permite encolar Iniciar y luego Finalizar un mismo viaje, respetando ese orden.
+- Dos pulsaciones de la misma acción no deben crear dos operaciones.
+- El estado local pendiente no sobrescribe `estado_confirmado`.
+- Un conflicto detiene las operaciones posteriores de ese viaje.
+- Una sesión expirada pausa el envío hasta autenticarse con la misma cuenta.
+- Al confirmar una operación, la actualización del viaje y la eliminación de esa operación
+  se realizan en una transacción.
+- Si se perdió la respuesta del servidor, se consulta el viaje antes de reintentar.
+  El contrato para reconocer una operación ya aplicada debe quedar definido antes de
+  implementar ese caso (ver «Decisiones abiertas»).
+- El UUID local no supone que el backend ya admita claves de idempotencia.
+
+##### Tablas de consultas
+
+Para distinguir una lista vacía de una lista nunca descargada, se definen dos tablas.
+
+**`consultas_cache`**
+
+| Campo | Tipo Kotlin | Regla |
+|---|---|---|
+| `cuenta` | `String` | Cuenta que realizó la consulta. |
+| `clave_consulta` | `String` | Identifica la consulta y sus filtros. |
+| `sincronizada_en` | `Long` | Instante de la última respuesta completa guardada. |
+
+Clave primaria compuesta: **`cuenta + clave_consulta`**.
+
+**`consulta_viaje_cache`**
+
+| Campo | Tipo Kotlin | Regla |
+|---|---|---|
+| `cuenta` | `String` | Cuenta propietaria de los datos. |
+| `clave_consulta` | `String` | Consulta a la que pertenece el resultado. |
+| `folio` | `String` | Viaje devuelto por la consulta. |
+
+Clave primaria compuesta: **`cuenta + clave_consulta + folio`**. Las claves foráneas
+`cuenta + clave_consulta` y `cuenta + folio` referencian respectivamente a `consultas_cache`
+y `viajes_cache`.
+
+Ejemplos de consultas: agenda del Conductor de una fecha, solicitudes propias o solicitudes
+pendientes del Administrador.
+
+La respuesta completa reemplaza sus asociaciones en una transacción. **Una consulta fallida
+no vacía la caché.** Que un viaje deje de aparecer en una lista no elimina automáticamente
+el viaje ni sus operaciones pendientes.
+
+##### Reglas de persistencia local
+
+- Cada registro pertenece a la cuenta que lo descargó.
+- Las fechas de negocio se almacenan como `String` en formato ISO 8601 y se interpretan
+  según `America/Santiago`, conforme al contrato del backend. Los instantes técnicos
+  locales se guardan como `Long` en milisegundos desde Unix.
+- Viajes y pasajeros se actualizan juntos mediante una transacción.
+- Los DAO exponen consultas observables mediante `Flow`; las escrituras se ejecutan con
+  funciones suspendidas. Solo la capa de datos accede a los DAO.
+- No se guardan contraseñas, JWT ni claves externas en Room.
+- La base se aloja en almacenamiento privado y se excluye de las copias de seguridad.
+- Cerrar sesión elimina los datos de la cuenta después de resolver o descartar sus
+  operaciones pendientes.
+- No se utiliza una migración destructiva como solución automática: los cambios de esquema
+  deben preservar los datos y la cola.
 
 #### Notificaciones y navegación externa
 
