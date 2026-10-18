@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1062 8796" width="1062" height="8796">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1062 8927" width="1062" height="8927">
 <!-- Generado por mockups/generar_wireframes.py; no editar a mano. -->
 <style>.s{font-family:-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif}.m{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace}</style>
-<rect x="0" y="0" width="1062" height="8796" fill="#f3f2ee"/>
+<rect x="0" y="0" width="1062" height="8927" fill="#f3f2ee"/>
 <text x="40.0" y="42.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600" letter-spacing="1.4">BELMONTE SPA · MVP TRASLADOS CORPORATIVOS</text>
 <text x="40.0" y="76.0" class="m" font-size="27" fill="#211f1c" font-weight="700">Wireframes de baja fidelidad</text>
 <text x="40.0" y="100.0" class="s" font-size="13" fill="#696864">Las 40 pantallas del MVP descritas en el README (&quot;Navegación y pantallas&quot;), agrupadas por rol y trazadas a casos de uso (CU), requerimientos (RF), historias (HU) y</text>
@@ -1196,10 +1196,10 @@
 <text x="40.0" y="6944.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">32</text>
 <text x="66.0" y="6944.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Notificación push</text>
 <text x="66.0" y="6960.0" class="m" font-size="9.5" fill="#696864">Conductor · RF12 · HU13</text>
-<rect x="42.2" y="6989.0" width="226.0" height="695.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="42.2" y="6989.0" width="226.0" height="740.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
 <rect x="127.2" y="6998.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="51.2" y="7011.0" width="208.0" height="651.0" rx="18" fill="#eceae3" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="123.2" y="7671.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<rect x="51.2" y="7011.0" width="208.0" height="696.0" rx="18" fill="#eceae3" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="123.2" y="7716.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
 <text x="155.2" y="7064.0" class="s" font-size="40" fill="#211f1c" font-weight="300" text-anchor="middle">08:12</text>
 <text x="155.2" y="7084.0" class="s" font-size="11.5" fill="#696864" text-anchor="middle">jueves 24 de septiembre</text>
 <rect x="64.2" y="7099.0" width="182.0" height="76.0" rx="12" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
@@ -1216,10 +1216,10 @@
 <text x="290.5" y="6944.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">33</text>
 <text x="316.5" y="6944.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Mis viajes</text>
 <text x="316.5" y="6960.0" class="m" font-size="9.5" fill="#696864">Conductor · CU-02 · RF07 · HU07</text>
-<rect x="292.8" y="6989.0" width="226.0" height="695.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="292.8" y="6989.0" width="226.0" height="740.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
 <rect x="377.8" y="6998.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="301.8" y="7011.0" width="208.0" height="651.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="373.8" y="7671.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<rect x="301.8" y="7011.0" width="208.0" height="696.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="373.8" y="7716.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
 <text x="315.8" y="7039.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Mis viajes</text>
 <text x="315.8" y="7054.0" class="m" font-size="10" fill="#696864">Iván Reyes</text>
 <line x1="301.8" y1="7067.0" x2="509.8" y2="7067.0" stroke="#d8d6d0" stroke-width="1"/>
@@ -1251,21 +1251,21 @@
 <text x="314.8" y="7358.0" class="s" font-size="10.5" fill="#696864">Varios viajes asignados por día. El</text>
 <text x="314.8" y="7373.0" class="s" font-size="10.5" fill="#696864">selector de fecha muestra la agenda de</text>
 <text x="314.8" y="7388.0" class="s" font-size="10.5" fill="#696864">otro día.</text>
-<line x1="301.8" y1="7614.0" x2="509.8" y2="7614.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="335.8" y="7620.0" width="36.0" height="22.0" rx="11" fill="#d9ebe6"/>
-<g transform="translate(345.8,7623.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M8 14h.01 M12 14h.01 M16 14h.01"/></g>
-<text x="353.8" y="7655.0" class="s" font-size="8.5" fill="#2f6f5e" font-weight="600" text-anchor="middle">Mis viajes</text>
-<g transform="translate(449.8,7623.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
-<text x="457.8" y="7655.0" class="s" font-size="8.5" fill="#696864" font-weight="500" text-anchor="middle">Perfil</text>
+<line x1="301.8" y1="7659.0" x2="509.8" y2="7659.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="335.8" y="7665.0" width="36.0" height="22.0" rx="11" fill="#d9ebe6"/>
+<g transform="translate(345.8,7668.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M8 14h.01 M12 14h.01 M16 14h.01"/></g>
+<text x="353.8" y="7700.0" class="s" font-size="8.5" fill="#2f6f5e" font-weight="600" text-anchor="middle">Mis viajes</text>
+<g transform="translate(449.8,7668.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
+<text x="457.8" y="7700.0" class="s" font-size="8.5" fill="#696864" font-weight="500" text-anchor="middle">Perfil</text>
 <line x1="541.0" y1="6923.0" x2="771.5" y2="6923.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
 <text x="541.0" y="6944.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">34</text>
 <text x="567.0" y="6944.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Detalle de viaje</text>
 <text x="567.0" y="6960.0" class="m" font-size="9.5" fill="#696864">Conductor · CU-03 · RF08 · RF09 ·</text>
 <text x="567.0" y="6973.0" class="m" font-size="9.5" fill="#696864">HU08 · HU09 · V3 · V4</text>
-<rect x="543.2" y="6989.0" width="226.0" height="695.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="543.2" y="6989.0" width="226.0" height="740.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
 <rect x="628.2" y="6998.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="552.2" y="7011.0" width="208.0" height="651.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="624.2" y="7671.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<rect x="552.2" y="7011.0" width="208.0" height="696.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="624.2" y="7716.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
 <g transform="translate(564.2,7026.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
 <text x="586.2" y="7039.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
 <line x1="552.2" y1="7054.0" x2="760.2" y2="7054.0" stroke="#d8d6d0" stroke-width="1"/>
@@ -1298,26 +1298,26 @@
 <text x="585.2" y="7417.0" class="s" font-size="12" fill="#211f1c">Constanza Ríos</text>
 <g transform="translate(565.2,7428.0) scale(0.5417)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
 <text x="585.2" y="7439.0" class="s" font-size="12" fill="#211f1c">Tomás Vidal</text>
-<rect x="565.2" y="7457.0" width="87.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/>
-<text x="571.7" y="7478.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text>
-<g opacity="0.42"><rect x="660.2" y="7457.0" width="87.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/><text x="677.5" y="7478.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar</text></g>
-<rect x="565.2" y="7502.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
-<g transform="translate(596.4,7512.0) scale(0.5833)" fill="none" stroke="#211f1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
-<text x="614.4" y="7523.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Navegar al origen</text>
-<rect x="565.2" y="7547.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
-<text x="629.1" y="7568.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Rechazar</text>
-<text x="565.2" y="7602.0" class="s" font-size="10.5" fill="#696864">Iniciar desde 1 h antes hasta 1 h</text>
-<text x="565.2" y="7617.0" class="s" font-size="10.5" fill="#696864">después del horario. Rechazar, con</text>
-<text x="565.2" y="7632.0" class="s" font-size="10.5" fill="#696864">motivo y conexión, devuelve el viaje a</text>
-<text x="565.2" y="7647.0" class="s" font-size="10.5" fill="#696864">Pendiente.</text>
+<rect x="565.2" y="7457.0" width="182.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/>
+<text x="619.2" y="7478.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text>
+<g opacity="0.42"><rect x="565.2" y="7502.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/><text x="613.7" y="7523.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar viaje</text></g>
+<rect x="565.2" y="7547.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
+<g transform="translate(596.4,7557.0) scale(0.5833)" fill="none" stroke="#211f1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
+<text x="614.4" y="7568.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Navegar al origen</text>
+<rect x="565.2" y="7592.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
+<text x="629.1" y="7613.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Rechazar</text>
+<text x="565.2" y="7647.0" class="s" font-size="10.5" fill="#696864">Iniciar desde 1 h antes hasta 1 h</text>
+<text x="565.2" y="7662.0" class="s" font-size="10.5" fill="#696864">después del horario. Rechazar, con</text>
+<text x="565.2" y="7677.0" class="s" font-size="10.5" fill="#696864">motivo y conexión, devuelve el viaje a</text>
+<text x="565.2" y="7692.0" class="s" font-size="10.5" fill="#696864">Pendiente.</text>
 <line x1="791.5" y1="6923.0" x2="1022.0" y2="6923.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
 <text x="791.5" y="6944.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">35</text>
 <text x="817.5" y="6944.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Antes de la ventana</text>
 <text x="817.5" y="6960.0" class="m" font-size="9.5" fill="#696864">Conductor · RF09 · HU09 · V3</text>
-<rect x="793.8" y="6989.0" width="226.0" height="695.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="793.8" y="6989.0" width="226.0" height="740.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
 <rect x="878.8" y="6998.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="802.8" y="7011.0" width="208.0" height="651.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="874.8" y="7671.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<rect x="802.8" y="7011.0" width="208.0" height="696.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="874.8" y="7716.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
 <g transform="translate(814.8,7026.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
 <text x="836.8" y="7039.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1049</text>
 <line x1="802.8" y1="7054.0" x2="1010.8" y2="7054.0" stroke="#d8d6d0" stroke-width="1"/>
@@ -1337,179 +1337,181 @@
 <text x="815.8" y="7253.0" class="m" font-size="8.5" fill="#696864" letter-spacing="0.4">PASAJEROS</text>
 <g transform="translate(815.8,7269.0) scale(0.5417)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
 <text x="835.8" y="7280.0" class="s" font-size="12" fill="#211f1c">Felipe Mora</text>
-<g opacity="0.42"><rect x="815.8" y="7298.0" width="87.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/><text x="822.2" y="7319.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text></g>
-<g opacity="0.42"><rect x="910.8" y="7298.0" width="87.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/><text x="928.0" y="7319.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar</text></g>
-<text x="906.8" y="7353.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">Disponible desde las 17:45.</text>
-<rect x="815.8" y="7366.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
-<g transform="translate(846.9,7376.0) scale(0.5833)" fill="none" stroke="#211f1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
-<text x="864.9" y="7387.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Navegar al origen</text>
-<rect x="815.8" y="7411.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
-<text x="879.6" y="7432.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Rechazar</text>
-<line x1="40.0" y1="7718.0" x2="270.5" y2="7718.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="40.0" y="7739.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">36</text>
-<text x="66.0" y="7739.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Confirmar inicio</text>
-<text x="66.0" y="7755.0" class="m" font-size="9.5" fill="#696864">Conductor · RF09 · HU09 · V3</text>
-<rect x="42.2" y="7771.0" width="226.0" height="428.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
-<rect x="127.2" y="7780.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="51.2" y="7793.0" width="208.0" height="384.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="123.2" y="8186.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<g transform="translate(63.2,7808.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
-<text x="85.2" y="7821.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
-<line x1="51.2" y1="7836.0" x2="259.2" y2="7836.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="119.0" y="7849.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
-<text x="155.2" y="7863.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
-<text x="64.2" y="7899.0" class="s" font-size="12" fill="#696864">Horario</text>
-<text x="246.2" y="7899.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
-<line x1="64.2" y1="7909.0" x2="246.2" y2="7909.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="64.2" y="7937.0" class="s" font-size="12" fill="#696864">Origen</text>
-<text x="246.2" y="7937.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
-<text x="246.2" y="7952.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
-<line x1="64.2" y1="7962.0" x2="246.2" y2="7962.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="64.2" y="7990.0" class="s" font-size="12" fill="#696864">Destino</text>
-<text x="246.2" y="7990.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
-<line x1="64.2" y1="8000.0" x2="246.2" y2="8000.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="51.2" y="7793.0" width="208.0" height="384.0" rx="18" fill="#211f1c" opacity="0.38"/>
-<rect x="63.2" y="7903.5" width="184.0" height="163.0" rx="12" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<text x="77.2" y="7932.5" class="s" font-size="13.5" fill="#211f1c" font-weight="600">¿Iniciar el viaje</text>
-<text x="77.2" y="7950.5" class="s" font-size="13.5" fill="#211f1c" font-weight="600">TR-1042?</text>
-<text x="77.2" y="7972.5" class="s" font-size="11" fill="#696864">Pasará a En curso. Quedarás</text>
-<text x="77.2" y="7987.5" class="s" font-size="11" fill="#696864">Ocupado y el vehículo KXJR42</text>
-<text x="77.2" y="8002.5" class="s" font-size="11" fill="#696864">En uso hasta finalizarlo.</text>
-<rect x="77.2" y="8020.5" width="74.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
-<text x="95.5" y="8042.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Volver</text>
-<rect x="159.2" y="8020.5" width="74.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/>
-<text x="175.5" y="8042.0" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar</text>
-<line x1="290.5" y1="7718.0" x2="521.0" y2="7718.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="290.5" y="7739.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">37</text>
-<text x="316.5" y="7739.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Sin conexión</text>
-<text x="316.5" y="7755.0" class="m" font-size="9.5" fill="#696864">Conductor · RF11 · HU11 · V3</text>
-<rect x="292.8" y="7771.0" width="226.0" height="428.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
-<rect x="377.8" y="7780.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="301.8" y="7793.0" width="208.0" height="384.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="373.8" y="8186.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<g transform="translate(313.8,7808.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
-<text x="335.8" y="7821.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
-<line x1="301.8" y1="7836.0" x2="509.8" y2="7836.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="314.8" y="7849.0" width="182.0" height="42.0" rx="8" fill="#f6ecd2" stroke="#8a6514" stroke-width="1"/>
-<g transform="translate(323.8,7856.0) scale(0.6250)" fill="none" stroke="#8a6514" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18 M8.5 16a5 5 0 0 1 7 0 M5 12.5a10 10 0 0 1 4-2 M19 12.5a10 10 0 0 0-3-1.6 M2 8.5a15 15 0 0 1 5-2.7 M22 8.5A15 15 0 0 0 12 5 M12 19.5h.01"/></g>
-<text x="344.8" y="7867.0" class="s" font-size="10.5" fill="#8a6514" font-weight="500">Sin conexión. Los cambios se</text>
-<text x="344.8" y="7881.0" class="s" font-size="10.5" fill="#8a6514" font-weight="500">enviarán al reconectar.</text>
-<rect x="369.6" y="7902.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
-<text x="405.8" y="7916.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
-<rect x="333.9" y="7935.0" width="143.6" height="17.0" rx="8.5" fill="#f6ecd2" stroke="#8a6514" stroke-width="1"/>
-<text x="405.8" y="7946.6" class="m" font-size="8.5" fill="#8a6514" text-anchor="middle" letter-spacing="0.3">PENDIENTE DE SINCRONIZAR</text>
-<text x="405.8" y="7973.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">En curso, pendiente de sincronizar: no</text>
-<text x="405.8" y="7988.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">se muestra como confirmado hasta que</text>
-<text x="405.8" y="8003.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">responda el servidor.</text>
-<text x="314.8" y="8033.0" class="s" font-size="12" fill="#696864">Horario</text>
-<text x="496.8" y="8033.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
-<line x1="314.8" y1="8043.0" x2="496.8" y2="8043.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="314.8" y="8071.0" class="s" font-size="12" fill="#696864">Destino</text>
-<text x="496.8" y="8071.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
-<line x1="314.8" y1="8081.0" x2="496.8" y2="8081.0" stroke="#d8d6d0" stroke-width="1"/>
-<g opacity="0.42"><rect x="314.8" y="8092.0" width="87.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/><text x="321.2" y="8113.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text></g>
-<rect x="409.8" y="8092.0" width="87.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
-<text x="427.0" y="8113.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar</text>
-<text x="314.8" y="8147.0" class="s" font-size="10.5" fill="#696864">La cola respeta el orden por viaje:</text>
-<text x="314.8" y="8162.0" class="s" font-size="10.5" fill="#696864">Iniciar y luego Finalizar.</text>
-<line x1="541.0" y1="7718.0" x2="771.5" y2="7718.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="541.0" y="7739.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">38</text>
-<text x="567.0" y="7739.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Cambio en conflicto</text>
-<text x="567.0" y="7755.0" class="m" font-size="9.5" fill="#696864">Conductor · RF11 · HU11 · V3</text>
-<rect x="543.2" y="7771.0" width="226.0" height="428.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
-<rect x="628.2" y="7780.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="552.2" y="7793.0" width="208.0" height="384.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="624.2" y="8186.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<g transform="translate(564.2,7808.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
-<text x="586.2" y="7821.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1044</text>
-<line x1="552.2" y1="7836.0" x2="760.2" y2="7836.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="620.0" y="7849.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
-<text x="656.2" y="7863.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
-<rect x="630.4" y="7882.0" width="51.8" height="17.0" rx="8.5" fill="none" stroke="#a3402f" stroke-width="1"/>
-<text x="656.2" y="7893.6" class="m" font-size="8.5" fill="#a3402f" text-anchor="middle" letter-spacing="0.3">VENCIDO</text>
-<rect x="565.2" y="7910.0" width="182.0" height="61.0" rx="8" fill="#f5e1dc" stroke="#a3402f" stroke-width="1"/>
-<text x="575.2" y="7929.0" class="s" font-size="11" fill="#a3402f">No se pudo sincronizar «Iniciar</text>
-<text x="575.2" y="7944.0" class="s" font-size="11" fill="#a3402f">viaje»: el viaje está fuera de la</text>
-<text x="575.2" y="7959.0" class="s" font-size="11" fill="#a3402f">ventana de inicio.</text>
-<text x="565.2" y="7999.0" class="s" font-size="12" fill="#696864">Horario</text>
-<text x="747.2" y="7999.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 07:30</text>
-<line x1="565.2" y1="8009.0" x2="747.2" y2="8009.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="565.2" y="8037.0" class="s" font-size="12" fill="#696864">Destino</text>
-<text x="747.2" y="8037.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
-<text x="747.2" y="8052.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
-<line x1="565.2" y1="8062.0" x2="747.2" y2="8062.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="565.2" y="8073.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
-<text x="605.3" y="8094.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Descartar cambio</text>
-<text x="565.2" y="8128.0" class="s" font-size="10.5" fill="#696864">Vencido: avisa al Administrador.</text>
-<text x="565.2" y="8143.0" class="s" font-size="10.5" fill="#696864">Descartar borra el cambio pendiente y</text>
-<text x="565.2" y="8158.0" class="s" font-size="10.5" fill="#696864">vuelve a cargar el viaje.</text>
-<line x1="791.5" y1="7718.0" x2="1022.0" y2="7718.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="791.5" y="7739.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">39</text>
-<text x="817.5" y="7739.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Abrir navegación</text>
-<text x="817.5" y="7755.0" class="m" font-size="9.5" fill="#696864">Conductor · CU-03 · RF10 · HU10</text>
-<rect x="793.8" y="7771.0" width="226.0" height="428.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
-<rect x="878.8" y="7780.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="802.8" y="7793.0" width="208.0" height="384.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="874.8" y="8186.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<g transform="translate(814.8,7808.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
-<text x="836.8" y="7821.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
-<line x1="802.8" y1="7836.0" x2="1010.8" y2="7836.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="870.5" y="7849.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
-<text x="906.8" y="7863.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
-<text x="815.8" y="7899.0" class="s" font-size="12" fill="#696864">Horario</text>
-<text x="997.8" y="7899.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
-<line x1="815.8" y1="7909.0" x2="997.8" y2="7909.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="815.8" y="7937.0" class="s" font-size="12" fill="#696864">Origen</text>
-<text x="997.8" y="7937.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
-<text x="997.8" y="7952.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
-<line x1="815.8" y1="7962.0" x2="997.8" y2="7962.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="815.8" y="7990.0" class="s" font-size="12" fill="#696864">Destino</text>
-<text x="997.8" y="7990.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
-<line x1="815.8" y1="8000.0" x2="997.8" y2="8000.0" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="802.8" y="7793.0" width="208.0" height="384.0" rx="18" fill="#211f1c" opacity="0.38"/>
-<path d="M802.8,8008.0 a16,16 0 0 1 16,-16 h176.0 a16,16 0 0 1 16,16 v169.0 h-208.0 z" fill="#ffffff" stroke="#d8d6d0"/>
-<rect x="888.8" y="7999.0" width="36.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<text x="816.8" y="8022.0" class="s" font-size="13" fill="#211f1c" font-weight="600">Abrir con</text>
-<rect x="816.8" y="8038.0" width="26.0" height="26.0" rx="7" fill="#d9ebe6"/>
-<g transform="translate(821.8,8043.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 1 1 12 0c0 4.3-6 10-6 10Z M14 11a2 2 0 1 1-4 0a2 2 0 1 1 4 0"/></g>
-<text x="852.8" y="8055.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Google Maps</text>
-<rect x="816.8" y="8078.0" width="26.0" height="26.0" rx="7" fill="#d9ebe6"/>
-<g transform="translate(821.8,8083.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
-<text x="852.8" y="8095.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Waze</text>
-<text x="816.8" y="8128.0" class="s" font-size="10.5" fill="#696864">Asignado: navega al origen; En curso:</text>
-<text x="816.8" y="8143.0" class="s" font-size="10.5" fill="#696864">al destino. Solo apps instaladas; sin</text>
-<text x="816.8" y="8158.0" class="s" font-size="10.5" fill="#696864">ninguna, aviso.</text>
-<line x1="40.0" y1="8233.0" x2="270.5" y2="8233.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="40.0" y="8254.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">40</text>
-<text x="66.0" y="8254.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Perfil</text>
-<text x="66.0" y="8270.0" class="m" font-size="9.5" fill="#696864">Conductor · RF06</text>
-<rect x="42.2" y="8286.0" width="226.0" height="424.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
-<rect x="127.2" y="8295.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
-<rect x="51.2" y="8308.0" width="208.0" height="380.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
-<rect x="123.2" y="8697.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
-<text x="65.2" y="8336.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Perfil</text>
-<line x1="51.2" y1="8351.0" x2="259.2" y2="8351.0" stroke="#d8d6d0" stroke-width="1"/>
-<circle cx="82.2" cy="8383.0" r="17" fill="#eceae3" stroke="#4a5560" stroke-width="1.4"/>
-<g transform="translate(72.2,8373.0) scale(0.8333)" fill="none" stroke="#696864" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
-<text x="110.2" y="8380.0" class="s" font-size="13" fill="#211f1c" font-weight="600">Iván Reyes</text>
-<text x="110.2" y="8395.0" class="s" font-size="10.5" fill="#696864">ireyes@belmonte.cl</text>
-<text x="64.2" y="8430.0" class="s" font-size="12" fill="#696864">Teléfono</text>
-<text x="246.2" y="8430.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">+56 9 5555 0303</text>
-<line x1="64.2" y1="8440.0" x2="246.2" y2="8440.0" stroke="#d8d6d0" stroke-width="1"/>
-<text x="64.2" y="8461.0" class="s" font-size="10.5" fill="#696864">Tu contraseña la gestiona el</text>
-<text x="64.2" y="8476.0" class="s" font-size="10.5" fill="#696864">Administrador; no hay cambio ni</text>
-<text x="64.2" y="8491.0" class="s" font-size="10.5" fill="#696864">recuperación por autoservicio.</text>
-<rect x="64.2" y="8504.0" width="182.0" height="34.0" rx="8" fill="none"/>
-<g transform="translate(107.7,8514.0) scale(0.5833)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5H5v14h5 M14 8l4 4-4 4 M18 12H9"/></g>
-<text x="125.7" y="8525.5" class="s" font-size="12.5" fill="#2f6f5e" font-weight="500">Cerrar sesión</text>
-<line x1="51.2" y1="8640.0" x2="259.2" y2="8640.0" stroke="#d8d6d0" stroke-width="1"/>
-<g transform="translate(95.2,8649.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M8 14h.01 M12 14h.01 M16 14h.01"/></g>
-<text x="103.2" y="8681.0" class="s" font-size="8.5" fill="#696864" font-weight="500" text-anchor="middle">Mis viajes</text>
-<rect x="189.2" y="8646.0" width="36.0" height="22.0" rx="11" fill="#d9ebe6"/>
-<g transform="translate(199.2,8649.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
-<text x="207.2" y="8681.0" class="s" font-size="8.5" fill="#2f6f5e" font-weight="600" text-anchor="middle">Perfil</text>
-<line x1="40.0" y1="8750.0" x2="1022.0" y2="8750.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
-<text x="40.0" y="8772.0" class="m" font-size="10.5" fill="#696864">Fuente: README.md (especificación) y anexo de requerimiento</text>
-<text x="591.0" y="8772.0" class="m" font-size="10.5" fill="#696864" text-anchor="middle">Generado por mockups/generar_wireframes.py</text>
-<text x="1022.0" y="8772.0" class="m" font-size="10.5" fill="#696864" text-anchor="end">Datos ficticios</text>
+<g opacity="0.42"><rect x="815.8" y="7298.0" width="182.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/><text x="869.7" y="7319.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text></g>
+<g opacity="0.42"><rect x="815.8" y="7343.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/><text x="864.2" y="7364.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar viaje</text></g>
+<text x="906.8" y="7398.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">Disponible desde las 17:45.</text>
+<rect x="815.8" y="7411.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
+<g transform="translate(846.9,7421.0) scale(0.5833)" fill="none" stroke="#211f1c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
+<text x="864.9" y="7432.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Navegar al origen</text>
+<rect x="815.8" y="7456.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
+<text x="879.6" y="7477.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Rechazar</text>
+<line x1="40.0" y1="7763.0" x2="270.5" y2="7763.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="40.0" y="7784.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">36</text>
+<text x="66.0" y="7784.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Confirmar inicio</text>
+<text x="66.0" y="7800.0" class="m" font-size="9.5" fill="#696864">Conductor · RF09 · HU09 · V3</text>
+<rect x="42.2" y="7816.0" width="226.0" height="514.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="127.2" y="7825.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
+<rect x="51.2" y="7838.0" width="208.0" height="470.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="123.2" y="8317.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<g transform="translate(63.2,7853.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+<text x="85.2" y="7866.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
+<line x1="51.2" y1="7881.0" x2="259.2" y2="7881.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="119.0" y="7894.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
+<text x="155.2" y="7908.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
+<text x="64.2" y="7944.0" class="s" font-size="12" fill="#696864">Horario</text>
+<text x="246.2" y="7944.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
+<line x1="64.2" y1="7954.0" x2="246.2" y2="7954.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="64.2" y="7982.0" class="s" font-size="12" fill="#696864">Origen</text>
+<text x="246.2" y="7982.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
+<text x="246.2" y="7997.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
+<line x1="64.2" y1="8007.0" x2="246.2" y2="8007.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="64.2" y="8035.0" class="s" font-size="12" fill="#696864">Destino</text>
+<text x="246.2" y="8035.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
+<line x1="64.2" y1="8045.0" x2="246.2" y2="8045.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="51.2" y="7838.0" width="208.0" height="470.0" rx="18" fill="#211f1c" opacity="0.38"/>
+<rect x="63.2" y="7991.5" width="184.0" height="163.0" rx="12" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<text x="77.2" y="8020.5" class="s" font-size="13.5" fill="#211f1c" font-weight="600">¿Iniciar el viaje</text>
+<text x="77.2" y="8038.5" class="s" font-size="13.5" fill="#211f1c" font-weight="600">TR-1042?</text>
+<text x="77.2" y="8060.5" class="s" font-size="11" fill="#696864">Pasará a En curso. Quedarás</text>
+<text x="77.2" y="8075.5" class="s" font-size="11" fill="#696864">Ocupado y el vehículo KXJR42</text>
+<text x="77.2" y="8090.5" class="s" font-size="11" fill="#696864">En uso hasta finalizarlo.</text>
+<rect x="77.2" y="8108.5" width="74.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
+<text x="95.5" y="8130.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Volver</text>
+<rect x="159.2" y="8108.5" width="74.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/>
+<text x="175.5" y="8130.0" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar</text>
+<line x1="290.5" y1="7763.0" x2="521.0" y2="7763.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="290.5" y="7784.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">37</text>
+<text x="316.5" y="7784.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Sin conexión</text>
+<text x="316.5" y="7800.0" class="m" font-size="9.5" fill="#696864">Conductor · RF11 · HU11 · V3</text>
+<rect x="292.8" y="7816.0" width="226.0" height="514.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="377.8" y="7825.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
+<rect x="301.8" y="7838.0" width="208.0" height="470.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="373.8" y="8317.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<g transform="translate(313.8,7853.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+<text x="335.8" y="7866.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
+<line x1="301.8" y1="7881.0" x2="509.8" y2="7881.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="314.8" y="7894.0" width="182.0" height="42.0" rx="8" fill="#f6ecd2" stroke="#8a6514" stroke-width="1"/>
+<g transform="translate(323.8,7901.0) scale(0.6250)" fill="none" stroke="#8a6514" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18 M8.5 16a5 5 0 0 1 7 0 M5 12.5a10 10 0 0 1 4-2 M19 12.5a10 10 0 0 0-3-1.6 M2 8.5a15 15 0 0 1 5-2.7 M22 8.5A15 15 0 0 0 12 5 M12 19.5h.01"/></g>
+<text x="344.8" y="7912.0" class="s" font-size="10.5" fill="#8a6514" font-weight="500">Sin conexión. Los cambios se</text>
+<text x="344.8" y="7926.0" class="s" font-size="10.5" fill="#8a6514" font-weight="500">enviarán al reconectar.</text>
+<rect x="369.6" y="7947.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
+<text x="405.8" y="7961.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
+<rect x="333.9" y="7980.0" width="143.6" height="17.0" rx="8.5" fill="#f6ecd2" stroke="#8a6514" stroke-width="1"/>
+<text x="405.8" y="7991.6" class="m" font-size="8.5" fill="#8a6514" text-anchor="middle" letter-spacing="0.3">PENDIENTE DE SINCRONIZAR</text>
+<text x="405.8" y="8018.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">En curso, pendiente de sincronizar: no</text>
+<text x="405.8" y="8033.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">se muestra como confirmado hasta que</text>
+<text x="405.8" y="8048.0" class="s" font-size="10.5" fill="#696864" text-anchor="middle">responda el servidor.</text>
+<text x="314.8" y="8078.0" class="s" font-size="12" fill="#696864">Horario</text>
+<text x="496.8" y="8078.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
+<line x1="314.8" y1="8088.0" x2="496.8" y2="8088.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="314.8" y="8116.0" class="s" font-size="12" fill="#696864">Destino</text>
+<text x="496.8" y="8116.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
+<line x1="314.8" y1="8126.0" x2="496.8" y2="8126.0" stroke="#d8d6d0" stroke-width="1"/>
+<g opacity="0.42"><rect x="314.8" y="8137.0" width="182.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/><text x="368.7" y="8158.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text></g>
+<rect x="314.8" y="8182.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/>
+<text x="363.2" y="8203.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar viaje</text>
+<text x="314.8" y="8237.0" class="s" font-size="10.5" fill="#696864">La cola respeta el orden por viaje:</text>
+<text x="314.8" y="8252.0" class="s" font-size="10.5" fill="#696864">Iniciar y luego Finalizar.</text>
+<line x1="541.0" y1="7763.0" x2="771.5" y2="7763.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="541.0" y="7784.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">38</text>
+<text x="567.0" y="7784.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Cambio en conflicto</text>
+<text x="567.0" y="7800.0" class="m" font-size="9.5" fill="#696864">Conductor · RF11 · HU11 · V3</text>
+<rect x="543.2" y="7816.0" width="226.0" height="514.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="628.2" y="7825.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
+<rect x="552.2" y="7838.0" width="208.0" height="470.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="624.2" y="8317.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<g transform="translate(564.2,7853.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+<text x="586.2" y="7866.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1044</text>
+<line x1="552.2" y1="7881.0" x2="760.2" y2="7881.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="620.0" y="7894.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
+<text x="656.2" y="7908.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
+<rect x="630.4" y="7927.0" width="51.8" height="17.0" rx="8.5" fill="none" stroke="#a3402f" stroke-width="1"/>
+<text x="656.2" y="7938.6" class="m" font-size="8.5" fill="#a3402f" text-anchor="middle" letter-spacing="0.3">VENCIDO</text>
+<rect x="565.2" y="7955.0" width="182.0" height="61.0" rx="8" fill="#f5e1dc" stroke="#a3402f" stroke-width="1"/>
+<text x="575.2" y="7974.0" class="s" font-size="11" fill="#a3402f">No se pudo sincronizar «Iniciar</text>
+<text x="575.2" y="7989.0" class="s" font-size="11" fill="#a3402f">viaje»: el viaje está fuera de la</text>
+<text x="575.2" y="8004.0" class="s" font-size="11" fill="#a3402f">ventana de inicio.</text>
+<text x="565.2" y="8044.0" class="s" font-size="12" fill="#696864">Horario</text>
+<text x="747.2" y="8044.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 07:30</text>
+<line x1="565.2" y1="8054.0" x2="747.2" y2="8054.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="565.2" y="8082.0" class="s" font-size="12" fill="#696864">Destino</text>
+<text x="747.2" y="8082.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
+<text x="747.2" y="8097.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
+<line x1="565.2" y1="8107.0" x2="747.2" y2="8107.0" stroke="#d8d6d0" stroke-width="1"/>
+<g opacity="0.42"><rect x="565.2" y="8118.0" width="182.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/><text x="619.2" y="8139.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Iniciar viaje</text></g>
+<g opacity="0.42"><rect x="565.2" y="8163.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#4a5560" stroke-width="1"/><text x="613.7" y="8184.5" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Finalizar viaje</text></g>
+<rect x="565.2" y="8208.0" width="182.0" height="34.0" rx="8" fill="none" stroke="#a3402f" stroke-width="1"/>
+<text x="605.3" y="8229.5" class="s" font-size="12.5" fill="#a3402f" font-weight="500">Descartar cambio</text>
+<text x="565.2" y="8263.0" class="s" font-size="10.5" fill="#696864">Vencido: avisa al Administrador.</text>
+<text x="565.2" y="8278.0" class="s" font-size="10.5" fill="#696864">Descartar borra el cambio pendiente y</text>
+<text x="565.2" y="8293.0" class="s" font-size="10.5" fill="#696864">vuelve a cargar el viaje.</text>
+<line x1="791.5" y1="7763.0" x2="1022.0" y2="7763.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="791.5" y="7784.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">39</text>
+<text x="817.5" y="7784.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Abrir navegación</text>
+<text x="817.5" y="7800.0" class="m" font-size="9.5" fill="#696864">Conductor · CU-03 · RF10 · HU10</text>
+<rect x="793.8" y="7816.0" width="226.0" height="514.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="878.8" y="7825.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
+<rect x="802.8" y="7838.0" width="208.0" height="470.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="874.8" y="8317.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<g transform="translate(814.8,7853.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></g>
+<text x="836.8" y="7866.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Viaje TR-1042</text>
+<line x1="802.8" y1="7881.0" x2="1010.8" y2="7881.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="870.5" y="7894.0" width="72.4" height="22.0" rx="11.0" fill="#dde8f2" stroke="#37689c" stroke-width="1"/>
+<text x="906.8" y="7908.6" class="m" font-size="10" fill="#37689c" text-anchor="middle" letter-spacing="0.3">ASIGNADO</text>
+<text x="815.8" y="7944.0" class="s" font-size="12" fill="#696864">Horario</text>
+<text x="997.8" y="7944.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">24-09-2026 · 14:30</text>
+<line x1="815.8" y1="7954.0" x2="997.8" y2="7954.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="815.8" y="7982.0" class="s" font-size="12" fill="#696864">Origen</text>
+<text x="997.8" y="7982.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Aeropuerto A. Merino</text>
+<text x="997.8" y="7997.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Benítez</text>
+<line x1="815.8" y1="8007.0" x2="997.8" y2="8007.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="815.8" y="8035.0" class="s" font-size="12" fill="#696864">Destino</text>
+<text x="997.8" y="8035.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">Av. Apoquindo 5400</text>
+<line x1="815.8" y1="8045.0" x2="997.8" y2="8045.0" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="802.8" y="7838.0" width="208.0" height="470.0" rx="18" fill="#211f1c" opacity="0.38"/>
+<path d="M802.8,8139.0 a16,16 0 0 1 16,-16 h176.0 a16,16 0 0 1 16,16 v169.0 h-208.0 z" fill="#ffffff" stroke="#d8d6d0"/>
+<rect x="888.8" y="8130.0" width="36.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<text x="816.8" y="8153.0" class="s" font-size="13" fill="#211f1c" font-weight="600">Abrir con</text>
+<rect x="816.8" y="8169.0" width="26.0" height="26.0" rx="7" fill="#d9ebe6"/>
+<g transform="translate(821.8,8174.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.7-6-10a6 6 0 1 1 12 0c0 4.3-6 10-6 10Z M14 11a2 2 0 1 1-4 0a2 2 0 1 1 4 0"/></g>
+<text x="852.8" y="8186.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Google Maps</text>
+<rect x="816.8" y="8209.0" width="26.0" height="26.0" rx="7" fill="#d9ebe6"/>
+<g transform="translate(821.8,8214.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M15 9l-4 2-2 4 4-2 2-4Z"/></g>
+<text x="852.8" y="8226.0" class="s" font-size="12.5" fill="#211f1c" font-weight="500">Waze</text>
+<text x="816.8" y="8259.0" class="s" font-size="10.5" fill="#696864">Asignado: navega al origen; En curso:</text>
+<text x="816.8" y="8274.0" class="s" font-size="10.5" fill="#696864">al destino. Solo apps instaladas; sin</text>
+<text x="816.8" y="8289.0" class="s" font-size="10.5" fill="#696864">ninguna, aviso.</text>
+<line x1="40.0" y1="8364.0" x2="270.5" y2="8364.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="40.0" y="8385.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">40</text>
+<text x="66.0" y="8385.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Perfil</text>
+<text x="66.0" y="8401.0" class="m" font-size="9.5" fill="#696864">Conductor · RF06</text>
+<rect x="42.2" y="8417.0" width="226.0" height="424.0" rx="26" fill="#f3f2ee" stroke="#4a5560" stroke-width="2"/>
+<rect x="127.2" y="8426.0" width="56.0" height="5.0" rx="2.5" fill="#4a5560" opacity="0.8"/>
+<rect x="51.2" y="8439.0" width="208.0" height="380.0" rx="18" fill="#ffffff" stroke="#d8d6d0" stroke-width="1"/>
+<rect x="123.2" y="8828.0" width="64.0" height="4.0" rx="2" fill="#4a5560" opacity="0.5"/>
+<text x="65.2" y="8467.0" class="s" font-size="14" fill="#211f1c" font-weight="700">Perfil</text>
+<line x1="51.2" y1="8482.0" x2="259.2" y2="8482.0" stroke="#d8d6d0" stroke-width="1"/>
+<circle cx="82.2" cy="8514.0" r="17" fill="#eceae3" stroke="#4a5560" stroke-width="1.4"/>
+<g transform="translate(72.2,8504.0) scale(0.8333)" fill="none" stroke="#696864" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
+<text x="110.2" y="8511.0" class="s" font-size="13" fill="#211f1c" font-weight="600">Iván Reyes</text>
+<text x="110.2" y="8526.0" class="s" font-size="10.5" fill="#696864">ireyes@belmonte.cl</text>
+<text x="64.2" y="8561.0" class="s" font-size="12" fill="#696864">Teléfono</text>
+<text x="246.2" y="8561.0" class="s" font-size="12" fill="#211f1c" font-weight="500" text-anchor="end">+56 9 5555 0303</text>
+<line x1="64.2" y1="8571.0" x2="246.2" y2="8571.0" stroke="#d8d6d0" stroke-width="1"/>
+<text x="64.2" y="8592.0" class="s" font-size="10.5" fill="#696864">Tu contraseña la gestiona el</text>
+<text x="64.2" y="8607.0" class="s" font-size="10.5" fill="#696864">Administrador; no hay cambio ni</text>
+<text x="64.2" y="8622.0" class="s" font-size="10.5" fill="#696864">recuperación por autoservicio.</text>
+<rect x="64.2" y="8635.0" width="182.0" height="34.0" rx="8" fill="none"/>
+<g transform="translate(107.7,8645.0) scale(0.5833)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 5H5v14h5 M14 8l4 4-4 4 M18 12H9"/></g>
+<text x="125.7" y="8656.5" class="s" font-size="12.5" fill="#2f6f5e" font-weight="500">Cerrar sesión</text>
+<line x1="51.2" y1="8771.0" x2="259.2" y2="8771.0" stroke="#d8d6d0" stroke-width="1"/>
+<g transform="translate(95.2,8780.0) scale(0.6667)" fill="none" stroke="#696864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v14H4z M4 10h16 M8 3v4 M16 3v4 M8 14h.01 M12 14h.01 M16 14h.01"/></g>
+<text x="103.2" y="8812.0" class="s" font-size="8.5" fill="#696864" font-weight="500" text-anchor="middle">Mis viajes</text>
+<rect x="189.2" y="8777.0" width="36.0" height="22.0" rx="11" fill="#d9ebe6"/>
+<g transform="translate(199.2,8780.0) scale(0.6667)" fill="none" stroke="#2f6f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M4.5 20c1.3-3.3 4-5 7.5-5s6.2 1.7 7.5 5"/></g>
+<text x="207.2" y="8812.0" class="s" font-size="8.5" fill="#2f6f5e" font-weight="600" text-anchor="middle">Perfil</text>
+<line x1="40.0" y1="8881.0" x2="1022.0" y2="8881.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
+<text x="40.0" y="8903.0" class="m" font-size="10.5" fill="#696864">Fuente: README.md (especificación) y anexo de requerimiento</text>
+<text x="591.0" y="8903.0" class="m" font-size="10.5" fill="#696864" text-anchor="middle">Generado por mockups/generar_wireframes.py</text>
+<text x="1022.0" y="8903.0" class="m" font-size="10.5" fill="#696864" text-anchor="end">Datos ficticios</text>
 </svg>

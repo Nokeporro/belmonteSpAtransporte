@@ -1101,7 +1101,7 @@ GRUPOS = [
             KV('Solicitante', 'Constanza Ríos'), KV('Teléfono', '+56 9 5555 0101'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Vehículo', 'KXJR42'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
-            Botones(Boton('Iniciar viaje'), Boton('Finalizar', 'secundario', deshabilitado=True)),
+            Boton('Iniciar viaje'), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
             Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
                  'devuelve el viaje a Pendiente.')]),
@@ -1109,7 +1109,7 @@ GRUPOS = [
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 18:45'),
             KV('Origen', 'Av. Isidora Goyenechea 3000'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
             Seccion('Pasajeros'), Lista('Felipe Mora'),
-            Botones(Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar', 'secundario', deshabilitado=True)),
+            Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Nota('Disponible desde las 17:45.', centro=True),
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec')]),
         Pantalla('Confirmar inicio', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1042', atras=True,
@@ -1124,13 +1124,14 @@ GRUPOS = [
             Nota('En curso, pendiente de sincronizar: no se muestra como confirmado hasta que responda el '
                  'servidor.', centro=True),
             KV('Horario', '24-09-2026 · 14:30'), KV('Destino', 'Av. Apoquindo 5400'),
-            Botones(Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar', 'secundario')),
+            Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar viaje', 'secundario'),
             Nota('La cola respeta el orden por viaje: Iniciar y luego Finalizar.')]),
         Pantalla('Cambio en conflicto', ['RF11', 'HU11', 'V3'], barra='Viaje TR-1044', atras=True, cuerpo=[
             Chip('ASIGNADO', grande=True), Chip('VENCIDO'),
             Aviso('No se pudo sincronizar «Iniciar viaje»: el viaje está fuera de la ventana de inicio.',
                   tono='peligro'),
             KV('Horario', '24-09-2026 · 07:30'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
+            Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Boton('Descartar cambio', 'peligro_sec'),
             Nota('Vencido: avisa al Administrador. Descartar borra el cambio pendiente y vuelve a cargar el '
                  'viaje.')]),
