@@ -893,6 +893,13 @@ GRUPOS = [
             Boton('Cerrar sesión', 'fantasma', icono='salir'),
             Nota('Sin flecha atrás. Con la sesión temporal solo se cambia la contraseña o se cierra sesión; al '
                  'guardar, la app inicia sesión con la nueva.')]),
+        Pantalla('Sesión por renovar', ['CU-14', 'RF11', 'HU11'], centro=True, cuerpo=[
+            Marca(), Aviso('Tu sesión terminó. Inicia sesión de nuevo.', tono='aviso'),
+            Campo('Correo electrónico', 'ireyes@belmonte.cl'),
+            Campo('Contraseña', '••••••••', vacio=True), Boton('Iniciar sesión'),
+            Aviso('Tus cambios pendientes se enviarán al volver a entrar.'),
+            Nota('No se pudo renovar la sesión: la app conserva datos y pendientes de la cuenta. Entrar con '
+                 'otra cuenta pide antes confirmar su descarte.', centro=True)]),
     ]),
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
@@ -901,6 +908,20 @@ GRUPOS = [
             Item('TR-1042', 'Constanza Ríos +1', '24-09 · 14:30 · Aeropuerto → Las Condes', derecha=Chip('ASIGNADO')),
             Item('TR-1039', 'Roberto Aguilar', '24-09 · 07:15 · Apoquindo → Aeropuerto', derecha=Chip('FINALIZADO')),
             Item('TR-1033', 'Paula Lagos', '23-09 · 18:00 · Las Condes → Aeropuerto', derecha=Chip('CANCELADO'))]),
+        Pantalla('Solicitud sin terminar', ['CU-01', 'RF02', 'HU02'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
+            Aviso('Una solicitud no terminó de enviarse.', tono='aviso'),
+            Boton('Continuar envío'), Boton('Descartar', 'secundario'),
+            Item('TR-1051', 'Marcela Soto', '25-09 · 09:00 · Vitacura → Aeropuerto', derecha=Chip('PENDIENTE')),
+            Item('TR-1042', 'Constanza Ríos +1', '24-09 · 14:30 · Aeropuerto → Las Condes', derecha=Chip('ASIGNADO')),
+            Nota('Continuar envío repite cada paso pendiente con su clave original y no crea otro viaje. '
+                 'Descartar solo borra el registro local.')]),
+        Pantalla('Revisión requerida', ['CU-01', 'RF02', 'HU02'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
+            Aviso('No pudimos confirmar el resultado. Contacta al Administrador antes de crear otra solicitud.',
+                  tono='peligro'),
+            KV('Folio', 'TR-1056'), Boton('Descartar registro', 'peligro_sec'),
+            Item('TR-1051', 'Marcela Soto', '25-09 · 09:00 · Vitacura → Aeropuerto', derecha=Chip('PENDIENTE')),
+            Nota('Pasaron 24 horas sin confirmar el envío. Descartar no cancela el viaje: con folio, abre su '
+                 'detalle.')]),
         Pantalla('Nueva solicitud', ['CU-01', 'RF02', 'HU02', 'V1'], barra='Nueva solicitud', atras=True, cuerpo=[
             Fila(Campo('Fecha', '24-09-2026', 'fecha'), Campo('Hora', '14:30', 'hora'), pesos=(3, 2)),
             Campo('Origen', 'Aeropuerto A. Merino B.', 'pin'),
@@ -1063,6 +1084,16 @@ GRUPOS = [
             Boton('Registrar pago'),
             Nota('Solo si el viaje no está Cancelado y no tiene pago. Nace Pendiente. Un pago rechazado o '
                  'anulado no se reemplaza.')]),
+        Pantalla('Registrar pago sin catálogos', ['CU-11', 'RF18', 'HU19'], barra='Registrar pago',
+                 sub='Viaje TR-1042', atras=True, cuerpo=[
+            Aviso('No pudimos cargar los datos del formulario.', tono='peligro'),
+            Boton('Reintentar', 'secundario'),
+            Campo('Monto', '$48.000'), Campo('Banco', 'Sin datos', 'select', vacio=True),
+            Campo('Medio de pago', 'Sin datos', 'select', vacio=True),
+            Campo('Tipo de recibo', 'Sin datos', 'select', vacio=True),
+            Boton('Registrar pago', deshabilitado=True),
+            Nota('Selectores y envío quedan deshabilitados hasta recibir los catálogos; la app no inventa '
+                 'opciones.')]),
         Pantalla('Detalle de pago', ['CU-12', 'RF19', 'HU20', 'P2', 'P3', 'V6'], barra='Pago',
                  sub='Viaje TR-1042', atras=True, cuerpo=[
             Chip('PAGO_PENDIENTE', grande=True), KV('Monto', '$48.000'), KV('Banco', 'BancoEstado'),
@@ -1135,6 +1166,15 @@ GRUPOS = [
             Boton('Descartar cambio', 'peligro_sec'),
             Nota('Vencido: avisa al Administrador. Descartar borra el cambio pendiente y vuelve a cargar el '
                  'viaje.')]),
+        Pantalla('Viaje no disponible', ['RF07', 'RF11', 'HU11'], barra='Mis viajes', sub='Iván Reyes',
+                 nav=NAV_CON, cuerpo=[
+            Aviso('El viaje ya no está disponible para tu cuenta. Los cambios pendientes no se enviaron.',
+                  tono='peligro'),
+            SelectorFecha('Hoy · 24-09-2026'),
+            Viaje('07:15', 'FINALIZADO', 'Roberto Aguilar', 'Apoquindo → Aeropuerto'),
+            Viaje('18:45', 'ASIGNADO', 'Felipe Mora', 'Las Condes → Aeropuerto'),
+            Nota('El viaje se reasignó a otro conductor: su consulta respondió 403 y la app borró sus datos '
+                 'y su cola.')]),
         Pantalla('Abrir navegación', ['CU-03', 'RF10', 'HU10'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Hoja('Abrir con', [('pin', 'Google Maps'), ('brujula', 'Waze')],

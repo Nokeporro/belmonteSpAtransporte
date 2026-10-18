@@ -351,8 +351,8 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | IDEMPOTENCIA | id_usuario | BIGINT UNSIGNED | NOT NULL | PK compuesta, FK → USUARIO | Quien hizo la petición: la misma clave de otro usuario es otra fila. |
 | IDEMPOTENCIA | metodo_ruta | VARCHAR(200) | NOT NULL | — | Método y ruta de la petición original (`POST /api/v1/viajes/TR-1042/estado`). |
 | IDEMPOTENCIA | cuerpo_hash | CHAR(64) | NOT NULL | — | SHA-256 hexadecimal del cuerpo recibido; distingue una repetición de otra petición con la misma clave. |
-| IDEMPOTENCIA | status | SMALLINT | NOT NULL | — | Código `2xx` devuelto. |
-| IDEMPOTENCIA | respuesta | MEDIUMTEXT | NOT NULL | — | Cuerpo JSON devuelto, que se repite tal cual. |
+| IDEMPOTENCIA | status | SMALLINT | NOT NULL | — | Código `2xx` devuelto (un valor provisional interno mientras la petición está en curso, que nunca se confirma ni se devuelve). |
+| IDEMPOTENCIA | respuesta | MEDIUMTEXT | NOT NULL | — | Cuerpo JSON devuelto, que se repite tal cual (provisional interno mientras la petición está en curso, como `status`). |
 | IDEMPOTENCIA | fh_creacion | DATETIME | NOT NULL | DEFAULT CURRENT_TIMESTAMP | Se borra pasadas `IDEMPOTENCIA_HORAS`. |
 | BLOQUEO_NEGOCIO | nombre | VARCHAR(20) | NOT NULL | PK | Una única fila `TRANSPORTE`, creada por migración; coordina las escrituras operativas del MVP mediante bloqueo transaccional. No se expone por API. |
 | EMPRESA | id_empresa | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
@@ -609,26 +609,31 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
 
 #### Orden de evaluación e idempotencia
 
-En una petición autenticada con clave se sigue este orden:
+En una petición autenticada con clave se sigue el
+[orden de evaluación de toda petición](#validaciones), agrupado así:
 
-1. Validar JWT, rol y acceso vigente al recurso. Perder acceso a un viaje responde 403 aunque
-   exista una respuesta guardada de una operación anterior; nunca se devuelve información
-   fuera del alcance del usuario. Validar también la forma UUID de la clave (400 si falla).
-2. Buscar la clave para ese usuario y comprobar su vigencia. Si sigue vigente, comparar método,
-   ruta y hash de los bytes UTF-8 del cuerpo (sin cuerpo equivale a bytes vacíos). Si difieren,
-   responder 409; si coinciden, devolver la respuesta original sin reevaluar horario, estado
-   ni efectos de negocio. El cliente conserva los mismos bytes en los reintentos.
-3. Si no hay una respuesta vigente, validar cuerpo, campos y recursos, y ejecutar las reglas
-   de negocio en la transacción correspondiente. El registro de idempotencia y el cambio
-   confirman juntos; un rollback no deja clave consumida ni avisos externos.
+1. Pasos 1 a 5: JWT, rol, forma UUID de la clave (400 si falla) y existencia y acceso vigente al
+   recurso de la ruta. Perder acceso a un viaje responde 403 aunque exista una respuesta
+   guardada de una operación anterior; nunca se devuelve información fuera del alcance del
+   usuario.
+2. Paso 6: buscar la clave para ese usuario y comprobar su vigencia. Si sigue vigente, comparar
+   método, ruta y hash de los bytes UTF-8 del cuerpo (sin cuerpo equivale a bytes vacíos). Si
+   difieren, responder 409; si coinciden, devolver la respuesta original sin reevaluar horario,
+   estado ni efectos de negocio. El cliente conserva los mismos bytes en los reintentos.
+3. Pasos 7 a 10, si no hay una respuesta vigente: validar cuerpo, campos y recursos del cuerpo, y
+   ejecutar las reglas de negocio en la transacción correspondiente. El registro de
+   idempotencia y el cambio confirman juntos; un rollback no deja clave consumida ni avisos
+   externos.
 
 La repetición no vuelve a emitir push ni correo. Una respuesta repetida puede describir un
-estado anterior al actual: Android la usa para confirmar la operación, después consulta el
-recurso y evita reemplazar una instantánea más reciente por una respuesta histórica.
+estado anterior al actual, así que Android no la escribe en su caché: si trae
+`Idempotent-Replayed: true`, la usa solo para confirmar la operación y después guarda el
+resultado de consultar el recurso (`GET /viajes/{folio}`). Una respuesta no repetida se guarda
+tal cual.
 
 El autorregistro ignora `Idempotency-Key` y no participa en esta tabla. Si su respuesta se
 pierde, la app informa que el registro puede haberse completado y ofrece iniciar sesión o
-recuperar contraseña; no repite automáticamente el registro. Un nuevo intento manual puede
+recuperar contraseña ([Textos y tema](#textos-y-tema)); no repite automáticamente el registro. Un nuevo intento manual puede
 responder 409 por correo existente y no se interpreta como una cuenta creada por ese intento.
 
 ### Recursos y roles
@@ -767,14 +772,21 @@ Orden en la app al pulsar "Enviar solicitud", cada llamada con su `Idempotency-K
 
 1. Un `POST /pasajeros` por pasajero. Si alguno falla, no se crea el viaje y el formulario
    muestra el error.
-2. `POST /viajes`. Si falla, el formulario muestra el error y se puede reenviar.
-3. Un `POST /pasajeros-viaje` por pasajero. Si una asociación falla tras su reintento
-   automático, la app abre igual el detalle del viaje ya creado: con 0 pasajeros muestra
-   "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno", y en `PENDIENTE` o
-   `ASIGNADO` ofrece "Agregar pasajero" (pasos 1 y 3 para un pasajero).
+2. `POST /viajes`. Un rechazo definitivo (400, 403, 404 o 409 de un envío nuevo) vuelve al
+   formulario, que muestra el error y permite corregir y enviar de nuevo con otra clave. Un
+   resultado incierto (sin respuesta, tiempo agotado o 5xx salvo 503) no crea otro viaje: se
+   resuelve con la misma clave y el mismo cuerpo según la
+   [Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas).
+3. Un `POST /pasajeros-viaje` por pasajero. Si una asociación falla tras sus reintentos
+   automáticos, la app abre igual el detalle del viaje ya creado: con 0 pasajeros muestra
+   "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno", y ofrece
+   "Continuar envío" para las asociaciones que faltan. "Agregar pasajero" (pasos 1 y 3 para un
+   pasajero) vuelve a estar disponible en `PENDIENTE` o `ASIGNADO` cuando esa recuperación
+   termina o se descarta.
 
-Antes de enviar el paso 2, la app guarda los `dniHash` preparados, el cuerpo exacto y la clave
-de creación en el registro local de [Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas).
+Al pulsar "Enviar solicitud", antes del paso 1, la app guarda el cuerpo exacto y la clave de
+creación en el registro local de [Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas),
+y luego cada `dniHash` a medida que lo recibe.
 Los reintentos siguen [Reintentos fuera de la cola](#reintentos-fuera-de-la-cola); cerrar el
 proceso no autoriza a crear otro viaje con una clave distinta si el resultado es incierto.
 
@@ -894,7 +906,7 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshD
   Cualquier logout recibido por el servidor lo borra, incluso si proviene de una sesión de
   otro dispositivo. Se acepta esta limitación: las sesiones de los demás dispositivos siguen
   su vigencia y sus consultas funcionan, pero el push se recupera mediante un nuevo login o
-  una actualización explícita del token. No se implementa una tabla de dispositivos ni se
+  un cambio del token en ese dispositivo (`onNewToken`). No se implementa una tabla de dispositivos ni se
   registra el token repetidamente en cada consulta para competir entre dispositivos.
 - **Administrador inicial:** la cadena de migraciones crea `admin@belmontespa.cl` con una contraseña
   temporal de desarrollo (en el comentario de la migración) en `password_temporal_hash`, que vence
@@ -1045,13 +1057,23 @@ backend guarda y devuelve el valor normalizado. Un fallo responde 400 con `messa
 | `tokenFcm` | Opcional en el login, obligatorio en `/auth/token-fcm`; hasta 255 caracteres. | — |
 | `folio`, `hash`, `dniHash` | `folio`: `^TR-[1-9][0-9]{3,16}$`; `hash`: `^[0-9a-f]{32}$`; `dniHash`: 43 caracteres Base64url. En el cuerpo, un valor mal formado es 400; en la ruta, 404, igual que uno inexistente. | — |
 
-Orden de evaluación:
+Orden de evaluación de toda petición (la primera regla que falla decide la respuesta):
 
-1. Cuerpo ilegible: 400 "Cuerpo inválido".
-2. Reglas de esta tabla: 400.
-3. Recurso de la ruta o del cuerpo inexistente (`folio`, `hash`, `patente`, `correo`, `dniHash`): 404.
-4. Reglas de negocio y [Máquinas de estado](#máquinas-de-estado): 409. Un `estado` válido
-   pero no permitido desde el estado actual es 409, no 400.
+1. Límite de intentos de una ruta pública excedido: 429.
+2. JWT ausente, alterado o vencido: 401. JWT de una contraseña temporal en una ruta no
+   permitida: 403 "Debes cambiar la contraseña".
+3. Rol o ruta que la matriz no autoriza: 403; método inexistente en una ruta autorizada: 405.
+4. `Idempotency-Key` mal formada: 400.
+5. Recurso de la ruta (`folio`, `hash`, `patente`, `correo`, `dniHash`) mal formado o
+   inexistente: 404; fuera del alcance del usuario: 403. En cuentas ajenas, 403 exista o no
+   ([Consultas y alcance por rol](#consultas-y-alcance-por-rol)).
+6. `Idempotency-Key` vigente del mismo usuario: la misma petición devuelve la respuesta
+   guardada; otra ruta u otro cuerpo, 409 ([Orden de evaluación e idempotencia](#orden-de-evaluación-e-idempotencia)).
+7. Cuerpo ilegible: 400 "Cuerpo inválido".
+8. Reglas de esta tabla, o dato inexistente en su catálogo o geografía: 400.
+9. Recurso del cuerpo inexistente (`folio`, `patente`, `correo`, `dniHash`): 404.
+10. Reglas de negocio y [Máquinas de estado](#máquinas-de-estado): 409. Un `estado` válido
+    pero no permitido desde el estado actual es 409, no 400.
 
 Android aplica las mismas reglas antes de enviar (HU02), sin reemplazar las del backend.
 
@@ -1074,7 +1096,7 @@ Los errores de la aplicación responden `ApiError`:
 | `409` | Regla de negocio o restricción: correo o patente repetidos, transición inválida, viaje vencido, capacidad superada, solapamiento de viajes, `Idempotency-Key` ya usada con otra petición, o rechazo de un trigger ("La operación viola una restricción de datos"). | `ApiError` |
 | `429` | Límite de intentos excedido ([Autenticación](#autenticación)); cabecera `Retry-After` en segundos. | `ApiError` |
 | `500` | Error inesperado; mensaje genérico ("Error interno"), detalle solo en el log. | `ApiError` |
-| `503` | Tiempo agotado de bloqueo o deadlock de una operación de transporte, con rollback completo: "Operación ocupada. Intenta nuevamente". | `ApiError` |
+| `503` | Tiempo agotado de bloqueo o deadlock de una operación de transporte, con rollback completo: "Operación ocupada, inténtalo de nuevo". | `ApiError` |
 
 ## Estructura del backend
 
@@ -1098,15 +1120,17 @@ backend/
     │   │                 CancelarViajeDTORequest, RechazarViajeDTORequest, ActivoDTORequest
     │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, ApiError
     │   ├── exception/    ApiExceptionHandler
-    │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, Sesion, Idempotencia,
+    │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, Sesion, Idempotencia, BloqueoNegocio,
     │   │                 DetalleMovilConductorId, DetalleViajePasajeroId
     │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository,
-    │   │                 SesionRepository, IdempotenciaRepository
+    │   │                 SesionRepository, IdempotenciaRepository, BloqueoNegocioRepository
     │   └── service/      CrudService, AuthService, {E}Service, UbicacionService, IdempotenciaService
     ├── main/resources/   application.properties,
-    │                     db/migration/ V1__esquema.sql, V2__triggers.sql, V3__datos_iniciales.sql
+    │                     db/migration/ V1__esquema.sql, V2__triggers.sql, V3__datos_iniciales.sql (históricas),
+    │                                   V4__… y siguientes (incrementales)
     ├── test/java/cl/belmontespa/transporte/
     │   ├── SeguridadIT, CuentasIT, FlotaIT, PasajeroIT, ViajeIT, PagoIT, NotificacionesIT,
+    │   │   IdempotenciaIT, ConcurrenciaIT, MigracionesIT,
     │   │   TransporteApplicationTests
     │   ├── client/       EmailClientTest, FirebaseClientTest
     │   ├── config/       JwtProviderTest, FirebaseConfigTest
@@ -1128,7 +1152,10 @@ backend/
 - **`Ubicacion`**: sin `Controller` ni DTO (clave compuesta, no sirve como ruta); `UbicacionService`
   solo desde `ViajeService`, y hace el cotejo de comuna de
   [Ubicaciones desde Google Places](#ubicaciones-desde-google-places). **`HistorialViaje`**: solo `Model` y `Repository`, lo llenan los
-  triggers; exponerlo permitiría falsear o borrar el historial.
+  triggers; exponerlo permitiría falsear o borrar el historial. **`BloqueoNegocio`**: solo
+  `Model` y `Repository`; `BloqueoNegocioRepository` bloquea la fila `TRANSPORTE` con
+  `@Lock(PESSIMISTIC_WRITE)` (`SELECT … FOR UPDATE`) según
+  [Concurrencia de operaciones de transporte](#concurrencia-de-operaciones-de-transporte).
 - **DTO**: `DTORequest` solo con campos escribibles por el cliente (nunca `id` ni
   `password_hash`); `DTOResponse` con la clave de negocio en vez del `id` y nunca
   `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
@@ -1185,7 +1212,7 @@ en MariaDB: `BLOQUEO_NEGOCIO.nombre = 'TRANSPORTE'`.
 
 - Toda creación o modificación de viajes, asociaciones de pasajeros, pagos, habilitaciones
   y activación de conductores o vehículos adquiere `SELECT ... FOR UPDATE` sobre esa fila
-  antes de leer las precondiciones y antes de tomar otros bloqueos operativos. Se conserva
+  (`BloqueoNegocioRepository`) antes de leer las precondiciones y antes de tomar otros bloqueos operativos. Se conserva
   hasta commit o rollback, en la misma transacción del cambio.
 - Después de adquirir el bloqueo se vuelven a leer estado, disponibilidad, agenda, capacidad
   y pago desde la base; no se decide con entidades leídas antes del bloqueo.
@@ -1198,8 +1225,12 @@ en MariaDB: `BLOQUEO_NEGOCIO.nombre = 'TRANSPORTE'`.
   operativo. Las claves se reservan con valores internos provisionales para los campos
   `status` y `respuesta`, sustituidos antes de confirmar; esos valores nunca se devuelven ni
   se confirman si falla la operación.
-- Un tiempo agotado de bloqueo o deadlock revierte todo y responde 503 con `ApiError` y
-  "Operación ocupada. Intenta nuevamente". No se envían notificaciones ni se consume la clave.
+- La espera de un bloqueo (el operativo o la fila de una clave reservada por otra petición) dura
+  a lo más `DB_LOCK_TIMEOUT_SEGUNDOS` (5), aplicado a cada sesión de la base como
+  `innodb_lock_wait_timeout` y siempre menor que los 15 segundos de espera de la app
+  ([API y sesión](#api-y-sesión)). Un tiempo agotado de bloqueo o deadlock revierte todo y
+  responde 503 con `ApiError` y "Operación ocupada, inténtalo de nuevo". No se envían
+  notificaciones ni se consume la clave.
 - Esta garantía aplica a las operaciones por API; las escrituras directas de mantenimiento
   requieren el mismo protocolo o un entorno detenido y controlado. Los triggers no sustituyen
   la coordinación de transacciones concurrentes.
@@ -1224,6 +1255,7 @@ Valores exactos al completar toda la cadena de migraciones; los códigos son los
 | `BANCO` (`nombre`, `cod_sbif`) | Banco de Chile (1), Banco Internacional (9), BancoEstado (12), Scotiabank Chile (14), Banco de Crédito e Inversiones (16), Banco BICE (28), HSBC Bank Chile (31), Banco Santander-Chile (37), Banco Itaú Chile (39), Banco Security (49), Banco Falabella (51), Banco Ripley (53), Banco Consorcio (55), Banco BTG Pactual Chile (59) |
 | `REGION`, `COMUNA` | Las 16 regiones y 346 comunas ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)) |
 | `USUARIO`, `ADMINISTRADOR` | El Administrador inicial ([Autenticación](#autenticación)) |
+| `BLOQUEO_NEGOCIO` | `TRANSPORTE` ([Concurrencia de operaciones de transporte](#concurrencia-de-operaciones-de-transporte)) |
 
 Cada sesión de la base usa la hora de Chile (`DB_TIME_ZONE`, por defecto `America/Santiago`)
 para que `NOW()`/`CURRENT_TIMESTAMP` coincidan con los `LocalDateTime` de la aplicación; el
@@ -1240,6 +1272,7 @@ Todo por variables de entorno; `application.properties` trae valores de desarrol
 | `DB_URL` | `jdbc:mariadb://localhost:3307/belmonte` | Conexión a MariaDB. |
 | `DB_USER`, `DB_PASSWORD` | `belmonte`, `belmonte_dev` | Credenciales de la base. |
 | `DB_TIME_ZONE` | `America/Santiago` | Zona horaria de cada sesión. |
+| `DB_LOCK_TIMEOUT_SEGUNDOS` | `5` | Espera máxima de un bloqueo, como `innodb_lock_wait_timeout` de cada sesión; menor que los 15 segundos de la app ([Concurrencia de operaciones de transporte](#concurrencia-de-operaciones-de-transporte)). |
 | `JWT_SECRET` | valor de desarrollo | Clave Base64 de al menos 256 bits para firmar el JWT. |
 | `JWT_EXPIRATION_SECONDS` | `3600` | Vigencia del JWT de acceso. |
 | `JWT_REFRESH_DIAS` | `30` | Vigencia del refresh token (sesión). |
@@ -1254,6 +1287,7 @@ Todo por variables de entorno; `application.properties` trae valores de desarrol
 | `MAIL_SMTP_AUTH`, `MAIL_SMTP_STARTTLS` | `true`, `true` | En `false` solo para un relay interno sin credenciales. |
 | `FIREBASE_CREDENTIALS_FILE` | sin valor | JSON de la cuenta de servicio de Firebase; sin él el push queda desactivado. |
 | `TEST_DB_URL`, `TEST_DB_USER`, `TEST_DB_PASSWORD` | `jdbc:mariadb://localhost:3307/belmonte_test`, `belmonte`, `belmonte_dev` | Base de las pruebas de integración. |
+| `TEST_DB_MIGRACIONES_URL` | `jdbc:mariadb://localhost:3307/belmonte_migraciones_test` | Base propia de `MigracionesIT`, con las mismas credenciales de prueba. |
 
 Fuera de desarrollo se definen `JWT_SECRET`, `DNI_SECRET` y las credenciales de la base.
 `DNI_SECRET` se fija una vez: cambiarlo invalida los `dni_hash` guardados. El JSON de Firebase
@@ -1333,19 +1367,26 @@ cd backend
 ```
 
 Las pruebas de integración levantan la aplicación completa detrás de MockMvc contra la MariaDB
-real del compose, porque los triggers de `V2` llevan parte de las reglas de negocio. Requieren
-el contenedor `mariadb` y el esquema `belmonte_test`, creado una vez:
+real del compose, porque los triggers de las migraciones llevan parte de las reglas de negocio.
+Requieren el contenedor `mariadb` y los esquemas `belmonte_test` y `belmonte_migraciones_test`
+(este, solo de `MigracionesIT`), creados una vez:
 
 ```bash
-mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS belmonte_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON belmonte_test.* TO 'belmonte'@'%';"
+mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS belmonte_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE DATABASE IF NOT EXISTS belmonte_migraciones_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL ON belmonte_test.* TO 'belmonte'@'%'; GRANT ALL ON belmonte_migraciones_test.* TO 'belmonte'@'%';"
 ```
 
 - El esquema se reinicia en cada ejecución (Flyway `clean` + `migrate`) con una guarda que solo
   lo permite si su nombre termina en `_test`: las pruebas no pueden borrar `belmonte`.
+  `MigracionesIT` aplica la misma guarda a su propio esquema.
 - Sin avisos reales: correo a un SMTP en memoria (GreenMail) y push a un grabador que reemplaza a Firebase.
-- Cada prueba crea sus datos por la API real; no dependen del orden. Única excepción: como V1 no
-  admite un `fhAgenda` a menos de 2 horas, las pruebas de la ventana de inicio y del retraso crean
-  el viaje por la API y luego mueven su `fh_agenda` por SQL directo.
+- Cada prueba crea sus datos por la API real; no dependen del orden. Excepciones, por SQL directo
+  y solo en estas pruebas:
+  - Ventana de inicio y retraso: como V1 no admite un `fhAgenda` a menos de 2 horas, crean el
+    viaje por la API y luego mueven su `fh_agenda`.
+  - `IdempotenciaIT`: mueve `IDEMPOTENCIA.fh_creacion` para vencer una clave.
+  - `ConcurrenciaIT`: retiene la fila `BLOQUEO_NEGOCIO` desde otra conexión para forzar el 503.
+  - `MigracionesIT`: migra su esquema hasta la versión anterior (Flyway `target`), carga datos
+    ficticios y luego completa la cadena.
 
 | Pruebas | Cubren |
 |---|---|
@@ -1410,8 +1451,10 @@ Reglas comunes de las firmas y modelos:
   `Fallo(error: ErrorApp)`. Solo los cambios de estado permitidos del Conductor pueden
   devolver `Encolado`; no es una confirmación remota. Acciones sin cuerpo usan `Unit`.
 - `ErrorApp` diferencia `Validacion` (errores por campo), `SinConexion`, `TiempoAgotado`,
-  `SesionRequerida`, `SinPermiso`, `NoEncontrado`, `Conflicto`, `LimiteIntentos` (con espera)
-  e `Inesperado`. Incluye `httpStatus: Int?`, `codigo: String?` y `mensaje: String`; nunca
+  `SesionRequerida`, `SinPermiso`, `NoEncontrado`, `Conflicto`, `LimiteIntentos` (con espera),
+  `Ocupado` (503, sin cambios aplicados), `Incierto` (un POST enviado sin resultado confirmado:
+  tiempo agotado, conexión cortada o 5xx salvo 503), `Contrato` (código desconocido o respuesta
+  ilegible) e `Inesperado`. Incluye `httpStatus: Int?`, `codigo: String?` y `mensaje: String`; nunca
   contiene contraseñas ni un cuerpo HTTP completo. Los textos siguen "Textos y tema".
 - `EstadoDatos<T>` contiene `datos: T?`, `actualizando: Boolean`, `error: ErrorApp?` y
   `sinConexion: Boolean`. Los datos guardados pueden coexistir con actualización o error;
@@ -1550,7 +1593,7 @@ El Conductor no tiene autorregistro ni recuperación por autoservicio.
 
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
-| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior). Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
+| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior), salvo con una creación interrumpida de ese viaje, que primero ofrece "Continuar envío". "Mis solicitudes" y "Nueva solicitud" muestran el aviso de una creación interrumpida ([Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas)). Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
 | Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
 | Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado. Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación; "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
 
@@ -1562,6 +1605,9 @@ Reglas comunes:
   `POST /auth/logout` si hay conexión y elimina el flujo autenticado y la sesión local incluso
   si la llamada falla, según [Cierre de sesión local y remoto](#cierre-de-sesión-local-y-remoto).
 - Sesión que no se puede renovar: reautenticar antes de seguir con operaciones protegidas.
+- Los avisos de sesión, sincronización, recuperación y catálogos usan los textos de
+  [Textos y tema](#textos-y-tema) y aparecen en los mockups ("Sesión por renovar", "Solicitud
+  sin terminar", "Revisión requerida", "Registrar pago sin catálogos", "Viaje no disponible").
 - Pulsar una notificación abre su destino según `data.tipo` ([Notificaciones y navegación externa](#notificaciones-y-navegación-externa)) tras comprobar sesión y rol; sin sesión, pide login y luego lo abre.
 - Cada pantalla contempla carga, contenido, lista vacía, error y sin conexión, según corresponda.
 - Durante un envío la acción se bloquea (sin pulsaciones duplicadas).
@@ -1648,7 +1694,8 @@ técnicos.
 |---|---|
 | Sin conexión | "Sin conexión. Revisa tu red e inténtalo de nuevo." En el Conductor, el banner: "Sin conexión. Los cambios se enviarán al reconectar." |
 | Sin conexión y sin datos guardados | "No hay datos guardados. Conéctate para cargarlos." |
-| Tiempo agotado | "El servidor no respondió a tiempo. Inténtalo de nuevo." |
+| Tiempo agotado en una consulta | "El servidor no respondió a tiempo. Inténtalo de nuevo." |
+| `POST` sin resultado confirmado (`Incierto`) | "No pudimos confirmar el resultado. Reintenta para comprobarlo." con "Reintentar", que repite la misma clave y el mismo cuerpo ([Reintentos fuera de la cola](#reintentos-fuera-de-la-cola)). |
 | 400 | Bajo cada campo, su motivo del `message`; si no es de un campo: "Revisa los datos ingresados." |
 | 401 en el login | "Correo o contraseña incorrectos." |
 | Sesión que no se puede renovar | "Tu sesión terminó. Inicia sesión de nuevo." |
@@ -1660,7 +1707,21 @@ técnicos.
 | 409 | El `message` del backend (p. ej. "El correo ya está registrado"); luego se recargan los datos. |
 | 429 | "Demasiados intentos. Espera {n} minutos." (`n` desde `Retry-After`, redondeado hacia arriba) |
 | 500 | "Ocurrió un error inesperado. Inténtalo más tarde." |
+| 503 (`Ocupado`) | "El sistema está ocupado. Inténtalo de nuevo." No se aplicó ningún cambio, así que reenviar con la misma clave es seguro. |
 | Sin app de navegación | "Instala Google Maps o Waze para navegar." |
+
+**Avisos de sesión, sincronización y recuperación:**
+
+| Situación | Texto |
+|---|---|
+| Creación de solicitud interrumpida ("Mis solicitudes", "Nueva solicitud") | "Una solicitud no terminó de enviarse." con "Continuar envío" y "Descartar" ([Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas)). |
+| Recuperación en `REVISION_REQUERIDA` | "No pudimos confirmar el resultado. Contacta al Administrador antes de crear otra solicitud." con el folio si se conoce y "Descartar registro". |
+| Autorregistro sin respuesta | "No pudimos confirmar el registro. Tu cuenta puede existir: inicia sesión o recupera tu contraseña." |
+| Reautenticación requerida | "Tu sesión terminó. Inicia sesión de nuevo." y, con pendientes, "Tus cambios pendientes se enviarán al volver a entrar." |
+| Login con otra cuenta habiendo pendientes | "Hay cambios sin enviar de otra cuenta. Si continúas, se descartarán." con "Cancelar" y "Descartar y continuar". |
+| Retirada de acceso a un viaje | "El viaje ya no está disponible para tu cuenta. Los cambios pendientes no se enviaron." |
+| Fallo de sincronización sin `message` del servidor | "No pudimos sincronizar el cambio." |
+| Catálogos sin cargar | "No pudimos cargar los datos del formulario." con "Reintentar". |
 
 **Listas vacías:**
 
@@ -1763,15 +1824,18 @@ TalkBack ([Pruebas Android](#pruebas-android), [Definición de terminado](#defin
 2. Al confirmar el cierre, se bloquean nuevos envíos de la cuenta, se detiene su sincronización
    y se cancelan las peticiones activas, salvo el intento de logout. Una respuesta tardía no
    puede restaurar la sesión ni escribir datos de una cuenta que ya salió.
-3. Con conexión, se intenta una vez `POST /auth/logout` con el JWT disponible; no se reintenta
-   automáticamente ni se renueva la sesión para cerrar. Sin conexión se omite esa llamada.
+3. Con conexión, se intenta `POST /auth/logout` con el JWT disponible. Ante un 401 (p. ej. el
+   JWT venció tras una hora sin uso) sigue la regla general: una renovación coordinada y una
+   repetición, para que el servidor revoque la sesión y borre el token FCM. No hay reintentos
+   por red ni 5xx. Si la renovación falla, la sesión es temporal (sin refresh) o no hay
+   conexión, el cierre es solo local.
 4. Aunque falle o agote el tiempo, se eliminan tokens, identidad de sesión, catálogos, cachés en
    memoria, datos locales, registros de recuperación y notificaciones de esa cuenta. Se abre
    Login eliminando el flujo autenticado del historial.
 5. No se conservan credenciales ni trabajos para intentar el logout más tarde.
 
-El cierre local no certifica revocación remota: si el servidor no recibió la petición, el
-refresh token puede seguir vigente hasta expirar o revocarse por otro mecanismo. Según el
+El cierre local no certifica revocación remota: si el servidor no recibió la petición o no se
+pudo renovar la sesión para enviarla, el refresh token puede seguir vigente hasta expirar o revocarse por otro mecanismo. Según el
 contrato de [Autenticación](#autenticación), el JWT de acceso sigue siendo válido hasta su
 expiración aunque se confirme el logout remoto.
 
@@ -1787,12 +1851,15 @@ solicitudes; no reemplaza la política de WorkManager.
 | 401 en una petición protegida | Una renovación coordinada de sesión y una repetición de la petición. Si falla, pedir login. |
 | 400, 403, 404 o 409 | Sin reintento automático. |
 
-- Login, recuperación de contraseña, refresh y logout no se reintentan automáticamente.
+- Login, autorregistro (`POST /solicitantes`), recuperación de contraseña y refresh no se
+  reintentan automáticamente. El logout tampoco se reintenta por red ni 5xx; ante un 401 sigue
+  la fila 401 ([Cierre de sesión local y remoto](#cierre-de-sesión-local-y-remoto)).
 - Cada reintento de un POST conserva la misma `Idempotency-Key` y el cuerpo exacto del primer
   envío. La repetición por 401 tampoco genera otra clave ni reinicia el presupuesto de
   reintentos de red o 5xx.
-- Un POST cuyo resultado sea incierto no ofrece un envío nuevo con otra clave. Se informa
-  "No pudimos confirmar el resultado" y cualquier repetición conserva cuerpo y clave dentro
+- Un POST cuyo resultado sea incierto (`Incierto`) no ofrece un envío nuevo con otra clave. Se
+  informa "No pudimos confirmar el resultado. Reintenta para comprobarlo." ([Textos y tema](#textos-y-tema))
+  y cualquier repetición conserva cuerpo y clave dentro
   de la ventana de idempotencia. Para crear solicitudes, el registro local permite recuperar
   ese envío tras reiniciar el proceso.
 - Los envíos parciales de una solicitud conservan las respuestas ya confirmadas; no repiten
@@ -1818,7 +1885,7 @@ solicitudes; no reemplaza la política de WorkManager.
 
   | Respuesta | Efecto |
   |---|---|
-  | `2xx` (también la repetida por `Idempotency-Key`) | Se confirma: se actualiza el viaje y se borra la operación. |
+  | `2xx` | Se confirma: se actualiza el viaje con la respuesta y se borra la operación. Con `Idempotent-Replayed: true` se borra la operación sin escribir esa respuesta y se guarda el resultado de `GET /viajes/{folio}` ([Orden de evaluación e idempotencia](#orden-de-evaluación-e-idempotencia)). |
   | Sin red, tiempo agotado o 429 | Vuelve a `PENDIENTE` y se reintenta, sin tope. |
   | 5xx | Se incrementa `fallos_5xx`; la quinta respuesta 5xx acumulada deja la operación en `CONFLICTO`. |
   | 401 | Se renueva la sesión y se reintenta; si no se puede, la cola se pausa hasta un login con la misma cuenta. |
@@ -1941,7 +2008,7 @@ PK `operacion_id`; UQ **`cuenta + folio + secuencia`**; `cuenta + folio` referen
 Los tres campos de error comienzan en NULL. Al registrar un fallo se actualizan juntos y
 permanecen después de reiniciar. `mensaje_error` contiene el `message` válido del servidor o
 el texto de [Textos y tema](#textos-y-tema) que corresponda al fallo; si no hay uno específico,
-"No pudimos sincronizar el cambio. Intenta nuevamente". No se guardan cuerpos completos de
+"No pudimos sincronizar el cambio." No se guardan cuerpos completos de
 respuesta, documentos ni otros datos personales en estos campos. Al confirmar o descartar
 la operación se eliminan con ella.
 
@@ -1998,7 +2065,8 @@ Reglas de la cola (`operaciones_pendientes`):
   avisar al Administrador.
 - Una sesión que no se puede renovar pausa el envío hasta autenticarse con la misma cuenta.
 - Al confirmar una operación, la actualización del viaje y el borrado de la operación van en una
-  transacción.
+  transacción. Una respuesta repetida (`Idempotent-Replayed: true`) no actualiza el viaje: se
+  borra la operación y el viaje se actualiza con el `GET /viajes/{folio}` siguiente.
 - Cada envío lleva `operacion_id` como `Idempotency-Key` ([Convenciones](#convenciones)). Si se
   perdió la respuesta del servidor, se reintenta con la misma clave: el servidor devuelve la
   respuesta original sin volver a aplicar el cambio, y la operación se confirma con ella.
@@ -2055,23 +2123,24 @@ el registro debe poder existir antes de descargar el viaje.
 |---|---|---|---|
 | `creacion_id` | `String` | no | FK a `creaciones_solicitud`; borrado en cascada al retirar el registro local. |
 | `posicion` | `Int` | no | Orden del pasajero en el formulario, desde 0. |
+| `nombre` | `String` | no | Nombre del pasajero, para mostrar a quién falta completar al recuperar. |
 | `dni_hash` | `String?` | sí | Respuesta confirmada de `POST /pasajeros`; NULL mientras falta preparar ese pasajero. |
 | `clave_asociacion` | `String` | no | UUID único de `POST /pasajeros-viaje` para ese pasajero. |
 | `asociacion_confirmada` | `Boolean` | no | Inicialmente `false`; pasa a `true` al guardar un 2xx de la asociación. |
 | `primer_envio_en` | `Long?` | sí | Primer intento de asociación; se guarda antes de enviar y no cambia en reintentos. |
 
 PK compuesta `creacion_id + posicion`; UQ `clave_asociacion`. No se persisten el RUT,
-pasaporte ni la contraseña. Los campos originales necesarios para preparar un pasajero
-todavía sin `dni_hash` se mantienen solo en el formulario en memoria.
+pasaporte ni la contraseña. El tipo de documento y el documento de un pasajero todavía sin
+`dni_hash` se mantienen solo en el formulario en memoria.
 
 Protocolo de recuperación:
 
 1. Al confirmar "Enviar solicitud" se guarda en una transacción la creación en `PREPARANDO`,
    el cuerpo del viaje, su clave y las filas de pasajeros. Las respuestas de preparación
    guardan de inmediato cada `dni_hash`. No se envía `POST /viajes` hasta tenerlos todos.
-2. Si el proceso termina en `PREPARANDO`, se conservan los hashes ya obtenidos y se pide
-   completar de nuevo los pasajeros que falten; no se puede recuperar su documento desde
-   Room. Repetir su alta no duplica el pasajero por las reglas de `POST /pasajeros`.
+2. Si el proceso termina en `PREPARANDO`, se conservan los hashes ya obtenidos y se pide de
+   nuevo el documento de los pasajeros que falten, mostrando su `nombre`; no se puede
+   recuperar su documento desde Room. Repetir su alta no duplica el pasajero por las reglas de `POST /pasajeros`.
 3. Antes del paso de creación se guardan la fase `CREANDO` y `primer_envio_en`; después se
    envía el cuerpo persistido con `clave_creacion`. Un 2xx guarda el folio y pasa a
    `ASOCIANDO`. No se cambia el cuerpo de un envío que podría haberse aplicado.
@@ -2082,9 +2151,9 @@ Protocolo de recuperación:
    Cada respuesta confirmada actualiza su fila. Si ya estaba aplicada, la respuesta repetida
    confirma el mismo paso. No se repiten como nuevas las asociaciones confirmadas.
 6. Si se agotan los reintentos de una asociación, se abre el detalle como indica el flujo
-   CU-01 y se ofrece recuperar las restantes. Mientras exista el registro, "Agregar pasajero"
-   no reinicia esa creación ni reemplaza sus claves; primero se resuelve o descarta la
-   recuperación. Los errores 400, 403, 404 o 409 se muestran y no provocan reintentos
+   CU-01 y se ofrece "Continuar envío" para las restantes. Mientras exista el registro,
+   "Agregar pasajero" no se ofrece en ese viaje: no reinicia esa creación ni reemplaza sus
+   claves, y primero se resuelve o descarta la recuperación. Los errores 400, 403, 404 o 409 se muestran y no provocan reintentos
    automáticos.
 7. Al completarse todas las asociaciones se consulta el viaje, se actualiza su caché y se
    elimina el registro local con sus pasajeros. Si la consulta falla, la recuperación sigue
@@ -2193,12 +2262,12 @@ cd android
 | `FormatosTest` | JVM | Etiquetas y formatos de [Textos y tema](#textos-y-tema). |
 | `ErrorMapperTest` | JVM | Cada código HTTP y causa de red → su texto de "Mensajes de error". |
 | `ApiContratoTest` | JVM + `MockWebServer` | Cada DTO contra los ejemplos de [Contratos JSON](#contratos-json): fechas sin zona, `null` y ausente, campos desconocidos ignorados; cabeceras `Authorization` e `Idempotency-Key`. |
-| `SesionTest` | JVM + `MockWebServer` | Una sola renovación ante varios 401 simultáneos, fin de sesión si falla, sesión temporal sin refresh ni persistencia, refresh perdido sin reintento; logout sin red o con fallo remoto que elimina la sesión local, y respuestas tardías que no restauran datos de la cuenta cerrada. |
+| `SesionTest` | JVM + `MockWebServer` | Una sola renovación ante varios 401 simultáneos, paso a `REAUTENTICACION_REQUERIDA` si falla (conservando datos y pendientes), sesión temporal sin refresh ni persistencia, refresh perdido sin reintento; logout con JWT vencido que renueva una vez y revoca, logout sin red o con fallo remoto que elimina la sesión local, y respuestas tardías que no restauran datos de la cuenta cerrada. |
 | `*RepositoryTest` | JVM con fakes | Viajes desde Room primero; alcance de caché persistente frente a memoria; respuesta completa que reemplaza la consulta; consulta fallida que no vacía la caché; datos separados por cuenta; retirada tras 403/404 individual, sin purgar por ausencia en una lista o por fallo de red. |
 | `CatalogosTest` | JVM con fakes | Carga tras login y restauración de sesión, sin solicitudes simultáneas duplicadas; selectores y envío bloqueados hasta obtener los datos; fallo con reintento manual; limpieza al salir. |
-| `ReintentosTest` | JVM + `MockWebServer` | Máximo de tres intentos de red/5xx por operación normal, esperas de 1 y 3 segundos con tiempo virtual, 429 sin reintento automático y con espera, 401 con una renovación coordinada; mismo cuerpo y clave en POST; exclusión de login, recuperación de contraseña, refresh y logout. |
+| `ReintentosTest` | JVM + `MockWebServer` | Máximo de tres intentos de red/5xx por operación normal, esperas de 1 y 3 segundos con tiempo virtual, 429 sin reintento automático y con espera, 401 con una renovación coordinada; mismo cuerpo y clave en POST; exclusión de login, autorregistro, recuperación de contraseña y refresh, y logout sin reintentos por red ni 5xx. |
 | `*ViewModelTest` | JVM con fakes | Estados de carga, contenido, lista vacía, error y sin conexión; envío sin duplicados; botones según estado (Iniciar deshabilitado con su motivo, Asignar oculto con el viaje vencido o sin pasajeros). |
-| `SincronizacionWorkerTest` | Instrumentada | Tabla de resultados de la cola, orden por viaje, recuperación de `ENVIANDO` solo sin ejecución anterior activa, propietario por WorkRequest, contadores total/5xx separados y respeto de Retry-After; error persistido, descarte y detención al retirar acceso o cerrar sesión. |
+| `SincronizacionWorkerTest` | Instrumentada | Tabla de resultados de la cola, orden por viaje, recuperación de `ENVIANDO` solo sin ejecución anterior activa, propietario por WorkRequest, contadores total/5xx separados y respeto de Retry-After; respuesta repetida que confirma sin escribir la caché; error persistido, descarte y detención al retirar acceso o cerrar sesión. |
 | `DaosTest` | Instrumentada | PK y UQ, borrado en cascada de pasajeros, consultas `Flow`, transacciones de confirmación y purga por cuenta; tablas y restricciones del registro de recuperación. |
 | `RecuperacionSolicitudTest` | JVM con fakes + instrumentada para Room | Interrupción antes de preparar todos los pasajeros, después de crear el viaje y antes de guardar el folio, y entre asociaciones; cuerpo y claves originales, respuestas repetidas sin duplicados, expiración que exige revisión y descarte que no cancela el viaje. Nunca persiste documentos ni contraseñas. |
 | `MigracionesRoomTest` | Instrumentada | Cada versión del esquema migra desde la 1 con `MigrationTestHelper`, sin perder caché ni cola. |
@@ -2207,6 +2276,8 @@ cd android
 | `FlujosE2ETest` | Instrumentada contra el backend real (`10.0.2.2:8080` con `database/demo.sql` recién cargado) | Solicitante: crea, agrega un pasajero y cancela. Administrador: aprueba una cuenta, asigna, registra y marca un pago. Conductor: inicia y finaliza (también sin conexión) y rechaza. Se corren antes de cada entrega, no en CI. |
 
 ### Decisiones abiertas
+
+Ninguna. Estas decisiones están cerradas y no se reabren al implementar:
 
 Las ocho decisiones sobre errores persistentes, alcance de caché, carga de catálogos,
 logout sin red, retirada de acceso, reintentos normales, recuperación de solicitudes y
@@ -2219,7 +2290,7 @@ También son obligatorias las decisiones de evolución incremental de migracione
 del autorregistro de la idempotencia, vencimiento evaluado por petición, autorización antes
 de repetir una respuesta, bloqueo transaccional de transporte, propiedad de las operaciones
 `ENVIANDO`, contador separado de 5xx y límite multidispositivo de FCM. No se sustituyen por
-recomendaciones antiguas del historial de conversaciones. Una necesidad nueva que las cambie
+propuestas no incorporadas al README. Una necesidad nueva que las cambie
 requiere un PR documental previo.
 
 ## Proceso de desarrollo
@@ -2259,7 +2330,7 @@ GitHub Actions, `.github/workflows/ci.yml`, en cada `pull_request` y cada `push`
 
 | Job | Entorno | Pasos |
 |---|---|---|
-| `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` (valores de desarrollo, como el compose) y el healthcheck del compose | `./gradlew test` en `backend/` con los `TEST_DB_*` por defecto ([Pruebas](#pruebas)); si falla, sube `build/reports/tests` como artefacto. |
+| `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` (valores de desarrollo, como el compose) y el healthcheck del compose | Crea `belmonte_migraciones_test` con root, como el comando de [Pruebas](#pruebas); luego `./gradlew test` en `backend/` con los `TEST_DB_*` por defecto; si falla, sube `build/reports/tests` como artefacto. |
 | `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Escribe `app/google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`; luego `./gradlew lintDebug testDebugUnitTest assembleDebug` en `android/`. Sube el reporte de lint y el APK debug como artefactos (7 días). |
 
 - Secretos del repositorio: solo `GOOGLE_SERVICES_JSON` y `PLACES_API_KEY` (la misma clave de `local.properties`).
@@ -2298,7 +2369,7 @@ Una HU o tarea está terminada cuando:
 | 1 | Base y cuentas | HU01, HU06, HU15, HU17, HU18, HU22, HU26, HU27, HU28 | 24 | CI y protección de `main`; migraciones históricas conservadas y evolución V4+; seguridad (sesiones, refresh, límites de intentos, `Idempotency-Key`); `GET /catalogos`; esqueleto de `android/` (tema, navegación por rol, sesión cifrada, Retrofit con sus interceptores). |
 | 2 | Solicitud, asignación y pagos | HU02, HU03, HU04, HU05, HU19, HU20 | 24 | Places y cotejo de comunas; esquema Room versión 1 con sus siete tablas; caché de consultas y recuperación de solicitudes interrumpidas; concurrencia de asignaciones y pagos. |
 | 3 | Conductor y notificaciones | HU07, HU08, HU09, HU10, HU12, HU13, HU14 | 25 | FCM en backend y app (canal, permiso, `data.tipo`); Intents de navegación. |
-| 4 | Cancelaciones, sin conexión y entrega | HU11, HU16, HU21, HU23, HU24, HU25 | 21 | Cola con WorkManager; `database/demo.sql` y `.env.demo.example`; `FlujosE2ETest`; pasada con TalkBack; firma, `v1.0.0` y publicación en GitHub Releases. |
+| 4 | Cancelaciones, sin conexión y entrega | HU11, HU16, HU21, HU23, HU24, HU25 | 21 | Cola con WorkManager; `database/demo.sql` y `.env.demo.example`; `FlujosE2ETest`; pasada con TalkBack; APK release firmado de la entrega, `v1.0.0` y publicación en GitHub Releases. |
 
 Total: 94 SP. HU16 y HU24, de prioridad Alta, van en el sprint 4 porque sus efectos dependen de
 los pagos (sprint 2) y de los push (sprint 3); el sprint 4 es más liviano para dejar tiempo a la
@@ -2312,7 +2383,7 @@ Los responsables concretos se acuerdan en la planificación sin cambiar los cont
 
 **Preparación compartida, antes de las tareas de código:**
 
-1. Integrar el README aprobado en la rama base acordada e identificar su commit de referencia
+1. Integrar el README aprobado en `main` (por un PR `docs/`) e identificar su commit de referencia
    en los issues y PR. Una conversación o un mockup anterior no modifica esa referencia.
 2. Inventariar el código existente por requisito y clasificarlo en reutilizar, adaptar o
    sustituir. No reescribir componentes que cumplen ni cambiar el README para justificar
@@ -2325,13 +2396,13 @@ Los responsables concretos se acuerdan en la planificación sin cambiar los cont
 | ID | Sprint | Entregable | Dependencias | Verificación para continuar |
 |---|---|---|---|---|
 | I01 | 1 | Esqueleto Android en `android/`, paquete base, catálogo de versiones, Hilt y configuración por entorno. | Preparación | Aceptación de compatibilidad: sincronización, generación KSP, lint, tests, debug, instalación API 26/36 y release local. |
-| I02 | 1 | Evolución de esquema MariaDB, catálogos, sesiones, idempotencia y fila de coordinación. | Preparación | Instalación vacía y actualización con datos ficticios conservados; Hibernate valida. No modifica checksums históricos. |
+| I02 | 1 | Evolución de esquema MariaDB, catálogos, sesiones, idempotencia y fila de coordinación. | Preparación | `MigracionesIT`: instalación vacía y actualización con datos ficticios conservados; Hibernate valida. No modifica checksums históricos. |
 | I03 | 1 | Modelos, DTO, validaciones, errores y contratos de prueba compartidos. | Preparación | Ejemplos JSON y casos límite pasan en backend y JVM Android; no se exponen entidades de persistencia. |
 | I04 | 1 | Seguridad y cuentas backend: login/refresh/logout, temporal, límites, aprobaciones, altas y catálogos. | I02, I03 | `SeguridadIT`, `CuentasIT` y `FlotaIT`; matriz de roles y autorregistro sin idempotencia verificados. |
 | I05 | 1 | API y sesión Android, repositorios de cuentas/catálogos, tema, navegación y pantallas de las HU del sprint. | I01, I03; integración con I04 | `SesionTest`, `CatalogosTest`, contratos y navegación; una cuenta de prueba entra desde la app al backend real. |
 | I06 | 1 | Workflow CI de ambos proyectos y proceso de revisión/protección. | I01 y base backend compilable | Ambos jobs se ejecutan y pasan; un fallo bloquea el PR. CI y esqueleto se preparan juntos para no exigir compilar un directorio inexistente. |
 | I07 | 2 | Room versión 1: siete tablas, DAO, mapeadores y repositorios de viajes/recuperación. | I01, I03 | `DaosTest`, restricciones, transacciones, observación, separación por cuenta y política de caché. |
-| I08 | 2 | API de solicitudes, pasajeros, asignación y pagos; bloqueo e idempotencia integrados. | I02, I04 | `PasajeroIT`, `ViajeIT`, `PagoIT`; carreras de asignación y respuestas repetidas sin efectos duplicados. |
+| I08 | 2 | API de solicitudes, pasajeros, asignación y pagos; bloqueo e idempotencia integrados. | I02, I04 | `PasajeroIT`, `ViajeIT`, `PagoIT`, `IdempotenciaIT`, `ConcurrenciaIT`; carreras de asignación y respuestas repetidas sin efectos duplicados. |
 | I09 | 2 | Places, solicitud, recuperación, listas/detalles, asignación y pagos en Android. | I05, I07; integración con I08 | HU del sprint; `ReintentosTest`, `RecuperacionSolicitudTest`; cerrar proceso entre llamadas no duplica el viaje. |
 | I10 | 3 | Agenda, transiciones de Conductor y avisos backend. | I08 | Ventanas exactas, agenda al cruzar medianoche, disponibilidad y `NotificacionesIT`. |
 | I11 | 3 | Agenda y detalle Android, navegación externa, permiso/canal FCM y apertura por tipo. | I09; integración con I10 | HU del sprint, reloj fijo, sin app de navegación, permiso denegado y notificación con/sin sesión. |
