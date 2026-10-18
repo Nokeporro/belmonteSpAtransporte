@@ -46,6 +46,8 @@ ESTADOS = {
     'DISPONIBLE': ('Disponible', 'ok'), 'OCUPADO': ('Ocupado', 'acento'),
     'EN_USO': ('En uso', 'acento'), 'EN_VIAJE': ('En viaje', 'acento'),
     'SYNC': ('Pendiente de sincronizar', 'aviso'),
+    'ATRASADO': ('Atrasado', 'aviso'), 'VENCIDO': ('Vencido', 'peligro_borde'),
+    'INACTIVO': ('Inactivo', 'tenue'), 'SOL_PENDIENTE': ('Por aprobar', 'aviso'),
 }
 ESTILOS = {  # estilo → (texto, borde, fondo)
     'neutro': ('ink_soft', 'line_strong', None), 'info': ('info', 'info', 'info_soft'),
@@ -851,8 +853,8 @@ GRUPOS = [
             Campo('Teléfono (opcional)', '+56 9 5555 0101'), Campo('Contraseña', '••••••••'),
             Seccion('Empresa'), Campo('Razón social', 'Andes Consultores SpA'),
             Campo('RUT de la empresa', '76.543.210-K'), Boton('Crear cuenta'),
-            Nota('Al terminar vuelve al login con el correo precargado. Si el RUT ya existe, la empresa '
-                 'se reutiliza.')]),
+            Nota('Al terminar vuelve al login con el correo precargado. Si el RUT ya existe, la cuenta '
+                 'espera la aprobación de un Administrador.')]),
         Pantalla('Recuperar contraseña', ['CU-13', 'RF21', 'HU22'], barra='Recuperar contraseña', atras=True, cuerpo=[
             Nota('Te enviaremos una contraseña temporal al correo registrado. Tu contraseña actual sigue '
                  'funcionando; la temporal vence en 30 minutos.'),
@@ -909,13 +911,23 @@ GRUPOS = [
                  'antes de seguir.')]),
     ]),
     ('Administrador', 'recepcionista', [
-        Pantalla('Solicitudes', ['CU-04', 'RF04', 'HU04'], barra='Solicitudes', badge='2', nav=NAV_ADM, cuerpo=[
+        Pantalla('Solicitudes', ['CU-04', 'RF04', 'HU04'], barra='Solicitudes', badge='3', nav=NAV_ADM, cuerpo=[
+            Boton('Cuentas por aprobar (1)', 'fantasma', icono='usuarios'),
             Filtros(['Pendientes', 'Asignado', 'En curso', 'Finalizado', 'Cancelado', 'Todas'], 'Pendientes'),
             Item('TR-1051', 'Marcela Soto', '25-09 · 09:00 · Vitacura → Aeropuerto',
                  derecha=Boton('Asignar', 'secundario', chico=True)),
             Item('TR-1047', 'Diego Fuentes', '25-09 · 11:45 · Providencia → Aeropuerto',
                  derecha=Boton('Asignar', 'secundario', chico=True)),
-            Nota('Cada fila abre el detalle; en las pendientes, "Asignar" abre directo la asignación.')]),
+            Item('TR-1038', 'Luis Pino', '24-09 · 06:30 · Ñuñoa → Aeropuerto', derecha=Chip('VENCIDO')),
+            Nota('Cada fila abre el detalle; en las pendientes, "Asignar" abre directo la asignación. '
+                 'Vencido: pasó una hora de su horario sin iniciar.')]),
+        Pantalla('Cuentas por aprobar', ['CU-17', 'RF26', 'HU27'], barra='Cuentas por aprobar', atras=True,
+                 cuerpo=[
+            Item('Rodrigo Pérez', 'rperez@andesconsult.cl', 'Andes Consultores SpA · 76.543.210-K',
+                 derecha=Chip('SOL_PENDIENTE')),
+            Botones(Boton('Rechazar', 'secundario'), Boton('Aprobar')),
+            Nota('Se registró con el RUT de una empresa existente. Aprobar o rechazar le avisa por correo; '
+                 'hasta entonces no puede iniciar sesión.')]),
         Pantalla('Detalle de solicitud', ['CU-04', 'RF22', 'HU23', 'V2'], barra='Solicitud TR-1042',
                  sub='Andes Consultores SpA', atras=True, cuerpo=[
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'),
@@ -923,7 +935,17 @@ GRUPOS = [
             KV('Pasajeros', '2'), Seccion('Asignación'), KV('Conductor', 'Iván Reyes'),
             KV('Vehículo', 'KXJR42'), Boton('Reasignar', 'secundario'),
             Seccion('Pago'), KV('Estado', chip=Chip('PAGADO')), Boton('Ver pago', 'fantasma'),
-            Nota('Reasignar solo en Asignado; en En curso o Finalizado no se ofrece.')]),
+            Boton('Cancelar viaje', 'peligro_sec'),
+            Nota('Reasignar y cancelar solo en Pendiente o Asignado; en En curso o Finalizado no se ofrecen.')]),
+        Pantalla('Cancelar viaje', ['CU-15', 'RF23', 'HU24', 'V7', 'P4'], barra='Cancelar viaje',
+                 sub='TR-1038 · Luis Pino', atras=True, cuerpo=[
+            Chip('VENCIDO', grande=True), KV('Horario', '24-09-2026 · 06:30'),
+            KV('Pago', chip=Chip('PAGADO')), KV('Monto', '$52.000'),
+            Campo('Motivo', 'Conductor sin disponibilidad'),
+            Campo('Monto a reembolsar', '$52.000'),
+            Botones(Boton('Volver', 'secundario'), Boton('Confirmar', 'peligro')),
+            Nota('Vencido: el reembolso lo decide el Administrador, de $0 al total. Si no está vencido, se '
+                 'reembolsa el 100 % sin preguntar.')]),
         Pantalla('Asignar conductor y vehículo', ['CU-04', 'RF05', 'RF22', 'HU05', 'HU23', 'V2'],
                  barra='Asignar', sub='TR-1051 · 2 pasajeros', atras=True, cuerpo=[
             Seccion('Conductor'),
@@ -942,7 +964,9 @@ GRUPOS = [
             Item('Iván Reyes', 'ireyes@belmonte.cl', derecha=Chip('DISPONIBLE')),
             Item('Paula Muñoz', 'pmunoz@belmonte.cl', derecha=Chip('DISPONIBLE')),
             Item('Jorge Lara', 'jlara@belmonte.cl', derecha=Chip('OCUPADO')),
-            Nota('Ocupado solo mientras tiene un viaje en curso.')]),
+            Item('Marta Soto', 'msoto@belmonte.cl', derecha=Chip('INACTIVO')),
+            Nota('Ocupado solo mientras tiene un viaje en curso. Inactivo: dado de baja; no inicia sesión ni '
+                 'se asigna.')]),
         Pantalla('Registrar conductor', ['CU-07', 'RF14', 'HU15'], barra='Registrar conductor', atras=True, cuerpo=[
             Campo('Nombre', 'Paula Muñoz'), Campo('Correo', 'pmunoz@belmonte.cl'),
             Campo('Teléfono (opcional)', '+56 9 5555 0202'), Campo('Contraseña inicial', '••••••••'),
@@ -955,22 +979,25 @@ GRUPOS = [
             Item('KXJR42', '4 pasajeros', derecha=Chip('DISPONIBLE')),
             Item('LPHT17', '6 pasajeros', derecha=Chip('DISPONIBLE')),
             Boton('Gestionar habilitaciones', 'secundario'), Boton('Editar datos', 'secundario', icono='editar'),
-            Boton('Reemplazar contraseña', 'secundario', icono='llave')]),
+            Boton('Reemplazar contraseña', 'secundario', icono='llave'),
+            Boton('Desactivar', 'peligro_sec'),
+            Nota('Solo sin viajes asignados ni en curso.')]),
         Pantalla('Vehículos', ['CU-09'], barra='Vehículos', nav=NAV_ADM, activa=2, cuerpo=[
             Boton('Registrar vehículo', icono='mas'),
             Item('KXJR42', '4 pasajeros · GPS 50231', derecha=Chip('DISPONIBLE')),
             Item('LPHT17', '6 pasajeros · sin GPS', derecha=Chip('DISPONIBLE')),
             Item('GZRW90', '4 pasajeros · GPS 50477', derecha=Chip('EN_USO')),
-            Nota('En uso solo mientras tiene un viaje en curso.')]),
+            Item('HJKL21', '4 pasajeros · en taller', derecha=Chip('INACTIVO')),
+            Nota('En uso solo mientras tiene un viaje en curso. Inactivo: no se asigna.')]),
         Pantalla('Registrar vehículo', ['CU-09', 'RF16', 'HU17'], barra='Registrar vehículo', atras=True, cuerpo=[
             Campo('Patente', 'LPHT17'), Campo('Capacidad (pasajeros)', '6'),
             Campo('Serial GPS (opcional)', 'Opcional', vacio=True), Boton('Registrar vehículo'),
-            Nota('Patente única y capacidad mayor que 0. Sin serial GPS sirve el smartphone del conductor. '
-                 'Nace Disponible.')]),
+            Nota('Patente única y capacidad mayor que 0. El serial GPS es un dato de flota. Nace Disponible '
+                 'y activo.')]),
         Pantalla('Detalle de vehículo', ['CU-09', 'CU-10'], barra='KXJR42', atras=True, cuerpo=[
             Chip('DISPONIBLE', grande=True), KV('Capacidad', '4 pasajeros'), KV('Serial GPS', '50231'),
             Seccion('Conductores habilitados'), Lista('Iván Reyes', 'Paula Muñoz'),
-            Boton('Gestionar habilitaciones', 'secundario')]),
+            Boton('Gestionar habilitaciones', 'secundario'), Boton('Desactivar', 'peligro_sec')]),
         Pantalla('Gestionar habilitaciones', ['CU-10', 'RF17', 'HU18'], barra='Habilitaciones',
                  sub='Vehículo KXJR42', atras=True, cuerpo=[
             Casilla('Iván Reyes', 'Ya habilitado', marcada=True, bloqueada=True),
@@ -990,12 +1017,19 @@ GRUPOS = [
             Chip('PAGO_PENDIENTE', grande=True), KV('Monto', '$48.000'), KV('Banco', 'Banco Austral'),
             KV('Medio de pago', 'Transferencia'), KV('Recibo', 'Factura'), KV('Fecha de cobro', '—'),
             Boton('Marcar pagado'), Botones(Boton('Rechazar', 'secundario'), Boton('Anular', 'peligro_sec')),
-            Nota('Desde Pagado solo se puede anular. Reembolsado es automático al cancelar el Solicitante. '
-                 'Anular cancela el viaje si está Pendiente o Asignado.')]),
+            Nota('Desde Pagado solo se puede anular. Reembolsado es automático al cancelar el viaje. Anular '
+                 'cancela el viaje si está Pendiente o Asignado.')]),
         Pantalla('Perfil', ['RF21'], barra='Perfil', nav=NAV_ADM, activa=3, cuerpo=[
             Persona('Andrea Castro', 'recepcion@belmonte.cl'), KV('Rol', 'Administrador'),
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
+            Boton('Registrar administrador', 'secundario', icono='mas'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
+        Pantalla('Registrar administrador', ['CU-18', 'RF27', 'HU28'], barra='Registrar administrador',
+                 atras=True, cuerpo=[
+            Campo('Nombre', 'Tomás Ibarra'), Campo('Correo', 'tibarra@belmonte.cl'),
+            Campo('Teléfono (opcional)', 'Opcional', vacio=True), Campo('Contraseña inicial', '••••••••'),
+            Boton('Registrar administrador'),
+            Nota('La contraseña inicial es temporal: vence en 72 horas y debe cambiarse al entrar.')]),
     ]),
     ('Conductor', 'en terreno', [
         Pantalla('Notificación push', ['RF12', 'HU13'], bloqueo=True, cuerpo=[
@@ -1017,8 +1051,9 @@ GRUPOS = [
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Vehículo', 'KXJR42'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
             Botones(Boton('Iniciar viaje'), Boton('Finalizar', 'secundario', deshabilitado=True)),
-            Boton('Navegar', 'secundario', icono='brujula'),
-            Nota('Iniciar solo en Asignado y Finalizar solo en En curso; ambos piden confirmación.')]),
+            Boton('Navegar', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
+            Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
+                 'devuelve el viaje a Pendiente.')]),
         Pantalla('Confirmar inicio', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Dialogo('¿Iniciar el viaje TR-1042?',
@@ -1168,8 +1203,9 @@ def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
 
 def leyenda_svg(out, y):
     filas = [('Viaje', ['PENDIENTE', 'ASIGNADO', 'EN_CURSO', 'FINALIZADO', 'CANCELADO']),
+               ('Retraso', ['ATRASADO', 'VENCIDO']),
              ('Pago', ['PAGO_PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO', 'REEMBOLSADO']),
-             ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO']),
+             ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO', 'INACTIVO']),
              ('Sin conexión', ['SYNC'])]
     for nombre, estados in filas:
         texto(out, MARGEN, y + 13, nombre.upper(), 10, C['ink_soft'], mono=True, espaciado=0.6)
@@ -1419,8 +1455,9 @@ def pantalla_html(p):
 
 def generar_html():
     leyenda = [('Viaje', ['PENDIENTE', 'ASIGNADO', 'EN_CURSO', 'FINALIZADO', 'CANCELADO']),
+               ('Retraso', ['ATRASADO', 'VENCIDO']),
                ('Pago', ['PAGO_PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO', 'REEMBOLSADO']),
-               ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO']),
+               ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO', 'INACTIVO']),
                ('Sin conexión', ['SYNC'])]
     filas = ''.join(f'<div class="legend-row"><span class="legend-title">{h(n)}</span>' +
                     ''.join(Chip(e).html() for e in es) + '</div>' for n, es in leyenda)
