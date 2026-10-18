@@ -49,6 +49,7 @@
   - [Organización del código](#organización-del-código)
   - [Navegación y pantallas](#navegación-y-pantallas)
   - [Textos y tema](#textos-y-tema)
+  - [Accesibilidad](#accesibilidad)
   - [API y sesión](#api-y-sesión)
   - [Persistencia y conectividad](#persistencia-y-conectividad)
   - [Base de datos local](#base-de-datos-local)
@@ -56,6 +57,11 @@
   - [Compilación, firma y distribución](#compilación-firma-y-distribución)
   - [Pruebas Android](#pruebas-android)
   - [Decisiones abiertas](#decisiones-abiertas)
+- [Proceso de desarrollo](#proceso-de-desarrollo)
+  - [Ramas y pull requests](#ramas-y-pull-requests)
+  - [Integración continua](#integración-continua)
+  - [Definición de terminado](#definición-de-terminado)
+  - [Plan de sprints](#plan-de-sprints)
 
 ## Introduccion
 
@@ -242,7 +248,8 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 - **RNF03 Tiempo de respuesta:** consultas (solicitudes, viajes del día) < 2 s con 4G/Wi-Fi;
   un push (RF12/RF13) se refleja en segundos, no minutos.
 - **RNF04 Usabilidad en terreno:** pantallas del Conductor con botones grandes y legibles y
-  mínimos pasos para En Curso/Finalizado o abrir la navegación.
+  mínimos pasos para En Curso/Finalizado o abrir la navegación; toda la app cumple
+  [Accesibilidad](#accesibilidad) (WCAG 2.1 AA).
 - **RNF05 Compatibilidad:** Android 8.0 (API 26) o superior. El backend expone solo contratos
   JSON REST, sin acoplarse a un cliente.
 - **RNF06 Mantenibilidad:** capas estrictas (`Controller-Service-Repository` en Spring Boot,
@@ -1271,13 +1278,47 @@ Pantalla Compose ⇄ ViewModel ⇄ Repository ⇄ { Room / SQLite (local) , Retr
 | Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze). |
 | Pruebas | JUnit, AndroidX Test, Espresso y Compose UI Test. |
 
-Versiones fijadas en `gradle/libs.versions.toml` y en los archivos Gradle del proyecto Android,
-compatibles con Kotlin, KSP, Android Gradle Plugin y el `minSdk` de esta especificación.
+**Versiones de partida.** Exactas en `android/gradle/libs.versions.toml` (sin `+` ni rangos);
+Compose y Firebase por su BOM, que fija las versiones de sus librerías:
+
+| Componente | Versión | Notas |
+|---|---|---|
+| JDK | 21 | Para Gradle, como el backend. |
+| Gradle (wrapper) | 9.8.1 | |
+| Android Gradle Plugin | 9.4.1 | Kotlin integrado: no se aplica `org.jetbrains.kotlin.android`. Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`, `com.google.dagger.hilt.android`, `com.google.gms.google-services`. |
+| Kotlin | 2.4.21 | También para los plugins `compose` y `serialization`. |
+| KSP | 2.3.12 | Room y Hilt. |
+| Compose BOM | 2026.09.00 | `ui`, `material3`, `ui-tooling-preview`, `ui-test-junit4`, `ui-test-junit4-accessibility`, `ui-test-manifest`. |
+| `androidx.activity:activity-compose` | 1.13.0 | |
+| `androidx.navigation:navigation-compose` | 2.10.2 | |
+| `androidx.lifecycle` | 2.11.0 | `lifecycle-runtime-compose`, `lifecycle-viewmodel-compose`. |
+| `androidx.core:core-ktx` | 1.19.1 | |
+| Hilt (`com.google.dagger`) | 2.60.1 | `hilt-android`, `hilt-compiler`, `hilt-android-testing`. |
+| `androidx.hilt` | 1.4.0 | `hilt-navigation-compose`, `hilt-work`. |
+| Room | 2.8.5 | `room-runtime`, `room-ktx`, `room-compiler`, `room-testing`. |
+| WorkManager | 2.12.0 | `work-runtime-ktx`, `work-testing`. |
+| DataStore | 1.2.1 | `datastore-preferences`. |
+| Retrofit | 3.0.0 | Con `converter-kotlinx-serialization`. |
+| OkHttp | 5.5.0 | `okhttp`, `logging-interceptor` (solo debug, sin cuerpos), `mockwebserver3`. |
+| `kotlinx-serialization-json` | 1.11.0 | |
+| `kotlinx-coroutines` | 1.11.0 | `-android`, `-test`. |
+| Firebase BoM | 35.0.2 | `firebase-messaging`. |
+| Plugin `google-services` | 4.5.0 | |
+| Places SDK (`com.google.android.libraries.places:places`) | 6.0.2 | |
+| JUnit | 4.13.2 | |
+| `androidx.test` | `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 | |
+| Turbine (`app.cash.turbine`) | 1.2.1 | |
+
+Las versiones se actualizan solo con un PR `chore/` que pase CI, nunca dentro de otro cambio; en
+el último sprint, solo por correcciones de seguridad ([Proceso de desarrollo](#proceso-de-desarrollo)).
 
 ### Organización del código
 
 Android y backend comparten el paquete base `cl.belmontespa.transporte`, pero cada uno tiene su
-propio árbol, build y dependencias; no comparten clases ni se acoplan.
+propio árbol, build y dependencias; no comparten clases ni se acoplan. El proyecto Android vive en
+`android/`, junto a `backend/`: `settings.gradle.kts`, `build.gradle.kts`, `gradle/libs.versions.toml`,
+el wrapper y el módulo `app` (`app/src/main/java/` con el árbol siguiente, `app/src/test` y
+`app/src/androidTest`).
 
 ```text
 cl/belmontespa/transporte/
@@ -1352,10 +1393,10 @@ oscuro según el sistema. Roles tomados de la paleta de los [mockups](mockups/wi
 | `surface` | `#FFFFFF` | `#1D2023` |
 | `surfaceVariant` | `#ECEAE3` | `#262A2D` |
 | `onSurface` | `#211F1C` | `#EEF0EE` |
-| `onSurfaceVariant` | `#6B6A66` | `#9EA3A1` |
+| `onSurfaceVariant` | `#696864` | `#9EA3A1` |
 | `outline` | `#4A5560` | `#7C8790` |
 | `outlineVariant` | `#D8D6D0` | `#2C2F33` |
-| `tertiary` (información) | `#3A6EA5` | `#7FB0E0` |
+| `tertiary` (información) | `#37689C` | `#7FB0E0` |
 | `tertiaryContainer` | `#DDE8F2` | `#1F2C37` |
 | `error` | `#A3402F` | `#E08A78` |
 | `onError` | `#FFFFFF` | `#2A0F0A` |
@@ -1439,6 +1480,44 @@ técnicos.
 | Vehículos | "Aún no hay vehículos. Registra el primero." |
 | Detalle de conductor / de vehículo | "Sin vehículos habilitados." / "Sin conductores habilitados." |
 | Mis viajes | "No tienes viajes para este día." |
+
+### Accesibilidad
+
+Obligatoria en todas las pantallas; se verifica con `PantallasTest` y una pasada manual con
+TalkBack ([Pruebas Android](#pruebas-android), [Definición de terminado](#definición-de-terminado)).
+
+- **Contraste (WCAG 2.1 AA):** texto de al menos 4,5:1 contra su fondo (3:1 desde 18 sp, o
+  desde 14 sp en negrita); bordes, íconos y controles que transmiten información, al menos 3:1.
+  Los separadores decorativos (`outlineVariant`) quedan exentos. Los roles de
+  [Textos y tema](#textos-y-tema) cumplen en claro y oscuro, incluidos los chips.
+- **El color nunca es el único indicador:** cada chip lleva su etiqueta, y cada error, su texto.
+- **Áreas táctiles** de al menos 48 × 48 dp. En el detalle del Conductor, "Iniciar viaje",
+  "Finalizar viaje", "Navegar" y "Rechazar" miden 56 dp de alto y ocupan el ancho disponible
+  (RNF04).
+- **Texto en `sp`**, con la escala de fuente del sistema hasta 200 %: ningún contenedor de texto
+  tiene alto fijo, las pantallas hacen scroll y las etiquetas parten línea en vez de cortarse.
+  Folio, patente y montos nunca se truncan.
+- **TalkBack:**
+  - Todo botón con solo ícono tiene `contentDescription` ("Volver", "Editar pasajero", "Quitar
+    pasajero", "Seleccionar fecha"); los íconos decorativos, `null`.
+  - Un chip se anuncia como "Estado: Asignado" (o "Pago: Pagado"); Atrasado y Vencido, igual.
+  - Cada fila de lista es un solo elemento (`mergeDescendants`) que se anuncia como folio,
+    pasajero, fecha y hora, ruta y estado.
+  - Los títulos de sección (`PASAJEROS`, `PAGO`…) son `heading()`.
+  - Los errores de campo van en la semántica `error` del campo; los banners y avisos son regiones
+    en vivo (`LiveRegionMode.Polite`).
+  - El orden de foco sigue el orden visual; al abrir un diálogo u hoja, el foco va a su título.
+- **Gestos con alternativa:** "deslizar para actualizar" ofrece también la acción de accesibilidad
+  "Actualizar".
+- **Orientación** vertical y horizontal, sin diseños propios para la horizontal: el contenido hace
+  scroll.
+- **Movimiento:** con "Quitar animaciones" del sistema, las transiciones son instantáneas.
+- **Formularios:** cada campo tiene etiqueta visible (no solo texto de ejemplo), teclado según su
+  tipo (correo, teléfono, número, contraseña) y acción del teclado "Siguiente" o, en el último,
+  "Listo".
+- **Pruebas:** `PantallasTest` activa `enableAccessibilityChecks()` (dependencia
+  `ui-test-junit4-accessibility`), que revisa contraste, tamaño táctil, etiquetas y orden de foco en
+  cada acción; da resultados válidos solo desde API 34, así que corre en el emulador API 36.
 
 ### API y sesión
 
@@ -1682,14 +1761,125 @@ Reglas de persistencia local:
 
 ### Pruebas Android
 
-- ViewModel y repositorios con dependencias falsas.
-- Contratos HTTP, autenticación y tratamiento de errores.
-- DAO, persistencia y migraciones Room.
-- Navegación, formularios y estados de las pantallas Compose.
-- Cola de sincronización, reintentos y conflictos.
-- Flujos completos por rol contra el backend.
+```bash
+cd android
+./gradlew testDebugUnitTest            # JVM: rápidas, corren en CI
+./gradlew connectedDebugAndroidTest    # instrumentadas: emulador encendido, en local
+```
+
+- **JVM** (`app/src/test`): lógica, contratos HTTP, repositorios y ViewModel. Corren en cada PR
+  ([Integración continua](#integración-continua)).
+- **Instrumentadas** (`app/src/androidTest`): Room, WorkManager, navegación y pantallas. Se corren
+  en local en emuladores API 26 (el `minSdk`) y API 36 antes de abrir un PR que toque datos o UI
+  ([Definición de terminado](#definición-de-terminado)).
+- Dobles escritos a mano (fakes de repositorios y fuentes de datos), sin framework de mocks.
+  HTTP con `MockWebServer`; `Flow` con Turbine y `kotlinx-coroutines-test`.
+- La app toma "ahora" de un `Clock` inyectado; las pruebas lo fijan para que la ventana de
+  inicio, el retraso y los formatos no dependan de la hora real.
+- Room en memoria; WorkManager con `work-testing`; Hilt con `@HiltAndroidTest` y
+  `HiltTestApplication` como aplicación de prueba.
+- Solo datos ficticios (RNF09), con los mismos ejemplos de los mockups.
+
+| Pruebas | Tipo | Cubren |
+|---|---|---|
+| `ValidacionesTest` | JVM | Cada regla de [Validaciones](#validaciones) replicada en la app: RUT (módulo 11), pasaporte, patente, teléfono, correo, `password` y rango de `fhAgenda`, con normalización. |
+| `RetrasoTest` | JVM | Ventana de inicio, Atrasado y Vencido en los extremos exactos (`fh_agenda` ± 1 hora, un minuto antes y después). |
+| `FormatosTest` | JVM | Etiquetas y formatos de [Textos y tema](#textos-y-tema). |
+| `ErrorMapperTest` | JVM | Cada código HTTP y causa de red → su texto de "Mensajes de error". |
+| `ApiContratoTest` | JVM + `MockWebServer` | Cada DTO contra los ejemplos de [Contratos JSON](#contratos-json): fechas sin zona, `null` y ausente, campos desconocidos ignorados; cabeceras `Authorization` e `Idempotency-Key`. |
+| `SesionTest` | JVM + `MockWebServer` | Una sola renovación ante varios 401 simultáneos, fin de sesión si falla, sesión temporal sin refresh ni persistencia, refresh perdido sin reintento. |
+| `*RepositoryTest` | JVM con fakes | Caché mostrada primero; respuesta completa que reemplaza la consulta; consulta fallida que no vacía la caché; datos separados por cuenta. |
+| `*ViewModelTest` | JVM con fakes | Estados de carga, contenido, lista vacía, error y sin conexión; envío sin duplicados; botones según estado (Iniciar deshabilitado con su motivo, Asignar oculto con el viaje vencido o sin pasajeros). |
+| `SincronizacionWorkerTest` | Instrumentada | Tabla de resultados de la cola ([Persistencia y conectividad](#persistencia-y-conectividad)), orden por viaje, `ENVIANDO` → `PENDIENTE` al iniciar y "Descartar cambio". |
+| `DaosTest` | Instrumentada | PK y UQ, borrado en cascada de pasajeros, consultas `Flow` y transacciones de confirmación. |
+| `MigracionesRoomTest` | Instrumentada | Cada versión del esquema migra desde la 1 con `MigrationTestHelper`, sin perder caché ni cola. |
+| `NavegacionTest` | Instrumentada | Flujo por rol, cambio obligatorio de contraseña, historial tras login y logout, apertura por `data.tipo`. |
+| `PantallasTest` | Instrumentada | Cada pantalla en los estados de los [mockups](mockups/wireframes-belmonte.html), con las verificaciones de [Accesibilidad](#accesibilidad). |
+| `FlujosE2ETest` | Instrumentada contra el backend real (`10.0.2.2:8080` con `database/demo.sql`) | Solicitante: crea, agrega un pasajero y cancela. Administrador: aprueba una cuenta, asigna, registra y marca un pago. Conductor: inicia y finaliza (también sin conexión) y rechaza. Se corren antes de cada entrega, no en CI. |
 
 ### Decisiones abiertas
 
 Ninguna por ahora. Un reintento cuyo cambio el servidor ya aplicó se resuelve con
 `Idempotency-Key` ([Convenciones](#convenciones), [Base de datos local](#base-de-datos-local)).
+
+## Proceso de desarrollo
+
+Equipo de dos integrantes, en GitHub, con 4 sprints de 2 semanas.
+
+### Ramas y pull requests
+
+- **`main` protegida:** siempre compila, pasa CI y se puede demostrar. No admite push directo ni
+  force push; se fusiona solo por pull request con *squash merge*, y la rama se borra al fusionar.
+- **Una rama corta por HU o tarea**, creada desde `main` y actualizada con `rebase`; dura menos de
+  un sprint (idealmente pocos días):
+
+  | Prefijo | Uso | Ejemplo |
+  |---|---|---|
+  | `feature/` | Una HU | `feature/HU05-asignar` |
+  | `fix/` | Corrección | `fix/folio-orden-numerico` |
+  | `docs/` | README, mockups o `docs/` | `docs/accesibilidad` |
+  | `chore/` | Build, CI, dependencias | `chore/actualiza-compose-bom` |
+
+- **Pull request:**
+  - Título = mensaje del commit fusionado: verbo en presente, tercera persona y español
+    ("Agrega…", "Corrige…", "Especifica…"), hasta 72 caracteres.
+  - Descripción: HU y RF que cubre, qué cambia, cómo se probó y la checklist de la
+    [Definición de terminado](#definición-de-terminado).
+  - Lo revisa y aprueba el otro integrante; con CI en rojo o un cambio pedido sin resolver, no se
+    fusiona.
+- **La especificación va primero:** un cambio de comportamiento entra antes al README (PR `docs/`) y
+  después al código. Un PR de código que contradice el README no se aprueba.
+- **Versiones entregadas:** cada APK entregado lleva en `main` la etiqueta `v<versionName>`
+  (`v1.0.0`), que es la que se publica en GitHub Releases
+  ([Compilación, firma y distribución](#compilación-firma-y-distribución)).
+
+### Integración continua
+
+GitHub Actions, `.github/workflows/ci.yml`, en cada `pull_request` y cada `push` a `main`:
+
+| Job | Entorno | Pasos |
+|---|---|---|
+| `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev` y el healthcheck del compose | `./gradlew test` en `backend/` con los `TEST_DB_*` por defecto ([Pruebas](#pruebas)); si falla, sube `build/reports/tests` como artefacto. |
+| `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Escribe `app/google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`; luego `./gradlew lintDebug testDebugUnitTest assembleDebug` en `android/`. Sube el reporte de lint y el APK debug como artefactos (7 días). |
+
+- Secretos del repositorio: solo `GOOGLE_SERVICES_JSON` y `PLACES_API_KEY` (la clave de debug).
+  El backend no necesita ninguno: sus pruebas usan valores de desarrollo, GreenMail y el grabador
+  de push.
+- Quedan fuera de CI y se corren en local: las pruebas instrumentadas, las E2E y el APK release
+  (necesita el keystore, que nunca sale de los computadores de los integrantes).
+- La protección de `main` exige los dos jobs en verde y una aprobación.
+
+### Definición de terminado
+
+Una HU o tarea está terminada cuando:
+
+- [ ] Cumple todos sus criterios de aceptación y las reglas del README que cita.
+- [ ] Tiene sus pruebas según [Pruebas](#pruebas) (backend) y [Pruebas Android](#pruebas-android), y CI
+  está en verde.
+- [ ] Si toca datos o UI de Android, las instrumentadas pasan en local en API 26 y API 36.
+- [ ] Cumple [Accesibilidad](#accesibilidad) y los textos de [Textos y tema](#textos-y-tema).
+- [ ] El README y los mockups describen lo implementado (si algo cambió, el PR `docs/` ya está
+  fusionado).
+- [ ] No agrega secretos, claves ni datos personales reales (RNF09).
+- [ ] El otro integrante aprobó el PR y está fusionado en `main`.
+
+### Plan de sprints
+
+- **Ceremonias:** planificación el día 1 de cada sprint (se reparten las HU y se crean sus
+  ramas); revisión el día 10, con demostración de lo fusionado en `main` sobre el entorno de
+  desarrollo, y luego retrospectiva.
+- **Tablero:** GitHub Projects con las columnas Por hacer, En curso, En revisión y Terminado. Hay
+  un issue por HU, con su prioridad y sus SP como etiquetas, y un issue por tarea técnica.
+- **Ajustes:** lo que no se termina pasa al sprint siguiente; si el último sprint no alcanza, se
+  recortan primero las HU de prioridad Baja.
+
+| Sprint | Objetivo | HU | SP | Tareas técnicas |
+|---|---|---|---|---|
+| 1 | Base y cuentas | HU01, HU06, HU15, HU17, HU18, HU22, HU26, HU27, HU28 | 24 | CI y protección de `main`; migraciones `V1`–`V3` completas; seguridad (sesiones, refresh, límites de intentos, `Idempotency-Key`); `GET /catalogos`; esqueleto de `android/` (tema, navegación por rol, sesión cifrada, Retrofit con sus interceptores). |
+| 2 | Solicitud, asignación y pagos | HU02, HU03, HU04, HU05, HU19, HU20 | 24 | Places y cotejo de comunas; caché Room de consultas (`viajes_cache`, `consultas_cache`). |
+| 3 | Conductor y notificaciones | HU07, HU08, HU09, HU10, HU12, HU13, HU14 | 25 | FCM en backend y app (canal, permiso, `data.tipo`); Intents de navegación. |
+| 4 | Cancelaciones, sin conexión y entrega | HU11, HU16, HU21, HU23, HU24, HU25 | 21 | Cola con WorkManager; `database/demo.sql` y `.env.demo.example`; `FlujosE2ETest`; pasada con TalkBack; firma, `v1.0.0` y publicación en GitHub Releases. |
+
+Total: 94 SP. HU16 y HU24, de prioridad Alta, van en el sprint 4 porque sus efectos dependen de
+los pagos (sprint 2) y de los push (sprint 3); el sprint 4 es más liviano para dejar tiempo a la
+entrega.
