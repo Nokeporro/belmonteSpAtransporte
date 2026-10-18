@@ -902,7 +902,8 @@ GRUPOS = [
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
         Pantalla('Cambiar contraseña', ['RF21'], barra='Cambiar contraseña', atras=True, cuerpo=[
-            Campo('Nueva contraseña', '••••••••'), Campo('Confirmar contraseña', '••••••••'),
+            Campo('Contraseña actual', '••••••••'), Campo('Nueva contraseña', '••••••••'),
+            Campo('Confirmar contraseña', '••••••••'),
             Boton('Guardar'),
             Nota('Solo Solicitante y Administrador. Si entraste con una contraseña temporal, al cambiarla deja '
                  'de vencer.')]),
@@ -984,7 +985,7 @@ GRUPOS = [
             Boton('Registrar pago'),
             Nota('Solo si el viaje no está Cancelado y no tiene pago. Nace Pendiente. Un pago rechazado o '
                  'anulado no se reemplaza.')]),
-        Pantalla('Detalle de pago', ['CU-12', 'RF19', 'HU20', 'P2', 'P3', 'V6'], barra='Pago PG-7F3A9C',
+        Pantalla('Detalle de pago', ['CU-12', 'RF19', 'HU20', 'P2', 'P3', 'V6'], barra='Pago',
                  sub='Viaje TR-1042', atras=True, cuerpo=[
             Chip('PAGO_PENDIENTE', grande=True), KV('Monto', '$48.000'), KV('Banco', 'Banco Austral'),
             KV('Medio de pago', 'Transferencia'), KV('Recibo', 'Factura'), KV('Fecha de cobro', '—'),
@@ -1012,6 +1013,7 @@ GRUPOS = [
         Pantalla('Detalle de viaje', ['RF08', 'RF09', 'HU08', 'HU09', 'V3', 'V4'], barra='Viaje TR-1042',
                  atras=True, cuerpo=[
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09 · 14:30'), KV('Vuelo', 'LA 1502'),
+            KV('Solicitante', 'Constanza Ríos'), KV('Teléfono', '+56 9 5555 0101'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Vehículo', 'KXJR42'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
             Botones(Boton('Iniciar viaje'), Boton('Finalizar', 'secundario', deshabilitado=True)),
