@@ -24,6 +24,7 @@
 - [Arquitectura](#arquitectura)
   - [Stack](#stack)
   - [Servicios locales](#servicios-locales)
+  - [Entornos](#entornos)
 - [API REST](#api-rest)
   - [Convenciones](#convenciones)
   - [Recursos y roles](#recursos-y-roles)
@@ -46,11 +47,12 @@
   - [Tecnologías](#tecnologías)
   - [Organización del código](#organización-del-código)
   - [Navegación y pantallas](#navegación-y-pantallas)
+  - [Textos y tema](#textos-y-tema)
   - [API y sesión](#api-y-sesión)
   - [Persistencia y conectividad](#persistencia-y-conectividad)
   - [Base de datos local](#base-de-datos-local)
   - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
-  - [Entornos y compilación](#entornos-y-compilación)
+  - [Compilación, firma y distribución](#compilación-firma-y-distribución)
   - [Pruebas Android](#pruebas-android)
   - [Decisiones abiertas](#decisiones-abiertas)
 
@@ -227,8 +229,8 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 - **RNF06 Mantenibilidad:** capas estrictas (`Controller-Service-Repository` en Spring Boot,
   `View-ViewModel-Repository` en Android): una regla de negocio se cambia en un solo lugar.
 - **RNF07 Servicios externos:** tres dependencias con cuota gratuita limitada (Google Places
-  API, Firebase Cloud Messaging y un servicio de correo, SMTP o proveedor transaccional, para
-  RF21/CU-13); el uso se monitorea para no exceder el nivel gratuito.
+  API, Firebase Cloud Messaging y un proveedor de correo transaccional por SMTP, para RF21/CU-13
+  y CU-17); el uso se monitorea para no exceder el nivel gratuito.
 - **RNF08 Privacidad:** nombre, teléfono y dirección de pasajeros y solicitantes no van a
   logs, y solo los ven el Solicitante, el Administrador y el Conductor asignado de cada
   solicitud.
@@ -236,7 +238,8 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
   anonimizados (Anexo §4; Ley N.º 21.719 y Ley N.º 19.628); los antecedentes se comparten por
   canales institucionales con acceso restringido.
 - **RNF10 Entregable:** colaboración y documentación en Git/GitHub; el ejecutable final es un
-  APK firmado en modo release (Anexo, "Alcance tecnológico comprometido").
+  APK firmado en modo release (Anexo, "Alcance tecnológico comprometido"), publicado en GitHub
+  Releases ([Compilación, firma y distribución](#compilación-firma-y-distribución)).
 
 ### Historias de usuario y Backlog
 
@@ -471,6 +474,30 @@ docker compose -f database/docker-compose.yaml down      # conserva los datos; d
 El `.env` solo lo lee Docker Compose. La API recibe `DB_URL`, `DB_USER` y `DB_PASSWORD`
 (valores locales en `.env.example`) del entorno o de la configuración del IDE, y Flyway migra
 al iniciar. Las credenciales se cambian en cualquier entorno compartido.
+
+### Entornos
+
+No hay entorno publicado: el sistema se entrega como demostración en un computador anfitrión.
+
+| Entorno | Dónde | Backend y base | Correo | Push | App |
+|---|---|---|---|---|---|
+| Desarrollo | Equipo de cada integrante | Compose local y `./gradlew bootRun` | Mailpit | Opcional (sin `FIREBASE_CREDENTIALS_FILE` queda desactivado) | Debug contra `10.0.2.2` (emulador) |
+| Demostración | Un computador anfitrión en una red controlada (sala o hotspot) | El mismo compose y el backend con las variables de `.env.demo` | Proveedor transaccional ([Notificaciones externas](#notificaciones-externas)) | Firebase real | APK release contra la IP del anfitrión |
+
+- **Anfitrión:** IP fija en la red de la demo; el puerto `8080` se abre solo en esa red. MariaDB
+  y Mailpit siguen escuchando solo en `127.0.0.1`.
+- **Datos de demostración:** antes de cada presentación se carga `database/demo.sql` con
+  conductores, vehículos, habilitaciones y solicitudes ficticias (RNF09). Ese script no es una
+  migración de Flyway y nunca corre en las pruebas.
+- **Respaldo:** `mariadb-dump` de la base antes de cada demostración, guardado fuera del
+  repositorio.
+- **Sin TLS solo en la demo:** el backend responde por HTTP dentro de la red de la demostración.
+  Es una limitación aceptada: el JWT viaja sin cifrar dentro de esa red. Publicar el sistema
+  exige HTTPS detrás de un proxy y quitar las excepciones de HTTP de la app.
+- **Secretos:** `JWT_SECRET`, `DNI_SECRET`, las credenciales SMTP y el JSON de Firebase viven
+  solo en el anfitrión. `.env.demo` y el JSON quedan fuera de Git y legibles solo por su usuario;
+  `.env.demo.example` documenta las variables sin valores. La demostración nunca usa los valores
+  de desarrollo.
 
 ## API REST
 
@@ -1038,6 +1065,12 @@ cuentas por aprobar abre "Cuentas por aprobar".
 - Revisión de una cuenta (CU-17/RF26): asunto "Belmonte SpA: tu cuenta fue aprobada" o "…fue
   rechazada". La cuenta pendiente no puede iniciar sesión, así que no recibe push.
 
+**Correo en la demostración.** Un proveedor transaccional con plan gratuito (p. ej. Brevo),
+por SMTP con las variables `SPRING_MAIL_*` (RNF07). Sin dominio propio, `MAIL_FROM` es un
+remitente verificado en el proveedor (una dirección institucional del equipo);
+`no-reply@belmontespa.cl` es solo el valor por defecto de desarrollo. Se vigila el cupo diario
+del plan.
+
 **Probar el correo con Mailpit.** Con el servicio `mailpit` arriba, desde `backend/` (usuario y
 clave cualesquiera, pero definidos, porque la API autentica por defecto); luego "Recuperar
 contraseña" y leer el correo en <http://localhost:8025>:
@@ -1172,6 +1205,79 @@ Reglas comunes:
 - Un cambio de estado se muestra confirmado solo tras la respuesta del backend.
 - Un viaje `PENDIENTE` o `ASIGNADO` muestra el chip "Atrasado" o "Vencido" según
   la regla de retraso de [V3](#viaje), calculado en la app con `fh_agenda`.
+
+### Textos y tema
+
+**Tema Material 3**, sin color dinámico (la marca no cambia con el fondo de pantalla); claro u
+oscuro según el sistema. Roles tomados de la paleta de los [mockups](mockups/wireframes-belmonte.html):
+
+| Rol | Claro | Oscuro |
+|---|---|---|
+| `primary` | `#2F6F5E` | `#4FAE95` |
+| `onPrimary` | `#FFFFFF` | `#08201B` |
+| `primaryContainer` | `#D9EBE6` | `#1F3630` |
+| `background` | `#F3F2EE` | `#15171A` |
+| `surface` | `#FFFFFF` | `#1D2023` |
+| `surfaceVariant` | `#ECEAE3` | `#262A2D` |
+| `onSurface` | `#211F1C` | `#EEF0EE` |
+| `onSurfaceVariant` | `#6B6A66` | `#9EA3A1` |
+| `outline` | `#4A5560` | `#7C8790` |
+| `outlineVariant` | `#D8D6D0` | `#2C2F33` |
+| `tertiary` (información) | `#3A6EA5` | `#7FB0E0` |
+| `tertiaryContainer` | `#DDE8F2` | `#1F2C37` |
+| `error` | `#A3402F` | `#E08A78` |
+| `onError` | `#FFFFFF` | `#2A0F0A` |
+| `errorContainer` | `#F5E1DC` | `#3A221D` |
+| Aviso (color extendido) | `#8A6514` | `#D9B45A` |
+| Contenedor de aviso (color extendido) | `#F6ECD2` | `#352C17` |
+
+Chips de estado (texto / borde / fondo):
+
+| Estilo | Estados | Colores |
+|---|---|---|
+| Neutro | `PENDIENTE` (viaje y pago) | `onSurfaceVariant` / `outline` / sin fondo |
+| Información | `ASIGNADO` | `tertiary` / `tertiary` / `tertiaryContainer` |
+| Lleno | `EN_CURSO`, `OCUPADO`, `EN_USO` | `onPrimary` / `primary` / `primary` |
+| Tenue | `FINALIZADO`, inactivo | `onSurfaceVariant` / `outlineVariant` / `surfaceVariant` |
+| Correcto | `PAGADO`, `DISPONIBLE` | `primary` / `primary` / `primaryContainer` |
+| Peligro | `CANCELADO`, `RECHAZADO` | `error` / `error` / `errorContainer` |
+| Peligro, solo borde | `ANULADO`, vencido | `error` / `error` / sin fondo |
+| Aviso | `REEMBOLSADO`, atrasado, "Pendiente de sincronizar", cuenta por aprobar | aviso / aviso / contenedor de aviso |
+
+Tipografía Roboto; folio, patente, horas y etiquetas de campo en IBM Plex Mono (licencia OFL,
+incluida en el APK).
+
+**Mensajes de error.** Textos en `strings.xml` (español); nunca se muestran trazas ni códigos
+técnicos.
+
+| Causa | Texto |
+|---|---|
+| Sin conexión | "Sin conexión. Revisa tu red e inténtalo de nuevo." En el Conductor, el banner: "Sin conexión. Los cambios se enviarán al reconectar." |
+| Sin conexión y sin datos guardados | "No hay datos guardados. Conéctate para cargarlos." |
+| Tiempo agotado | "El servidor no respondió a tiempo. Inténtalo de nuevo." |
+| 400 | Bajo cada campo, su motivo del `message`; si no es de un campo: "Revisa los datos ingresados." |
+| 401 en el login | "Correo o contraseña incorrectos." |
+| Sesión que no se puede renovar | "Tu sesión terminó. Inicia sesión de nuevo." |
+| 403 sin permiso o recurso ajeno | "No tienes permiso para ver esto." |
+| 403 cuenta pendiente | "Tu cuenta espera la aprobación de un Administrador." |
+| 403 cuenta rechazada | "Tu cuenta no fue aprobada. Contacta a Belmonte SpA." |
+| 404 | "No encontramos este registro." |
+| 409 | El `message` del backend (p. ej. "El correo ya está registrado"); luego se recargan los datos. |
+| 429 | "Demasiados intentos. Espera {n} minutos." (`n` desde `Retry-After`, redondeado hacia arriba) |
+| 500 | "Ocurrió un error inesperado. Inténtalo más tarde." |
+
+**Listas vacías:**
+
+| Pantalla | Texto |
+|---|---|
+| Mis solicitudes | "Aún no tienes solicitudes. Crea la primera con «Nueva solicitud»." |
+| Solicitudes (Administrador) | Con "Pendientes": "No hay solicitudes pendientes."; con otro filtro: "No hay solicitudes en este estado." |
+| Cuentas por aprobar | "No hay cuentas por aprobar." |
+| Asignar conductor y vehículo | "No hay conductores disponibles. Revisa las habilitaciones o espera a que terminen sus viajes." (CU-04) |
+| Conductores | "Aún no hay conductores. Registra el primero." |
+| Vehículos | "Aún no hay vehículos. Registra el primero." |
+| Detalle de conductor / de vehículo | "Sin vehículos habilitados." / "Sin conductores habilitados." |
+| Mis viajes | "No tienes viajes para este día." |
 
 ### API y sesión
 
@@ -1346,14 +1452,31 @@ Reglas de persistencia local:
 - La ruta se abre por Intent en Google Maps o Waze; sin app compatible, aviso. El MVP no incluye
   motor de rutas ni mapa embebido.
 
-### Entornos y compilación
+### Compilación, firma y distribución
 
 - JDK 21 para Gradle; `compileSdk` y `targetSdk` 36, `minSdk` 26 (Android 8.0, RNF05); las
   dependencias deben soportar ese mínimo.
-- URL del backend por entorno: `10.0.2.2` en el emulador estándar para llegar al anfitrión; un
-  dispositivo físico usa una dirección accesible en la red.
-- HTTP solo en desarrollo local; el entorno publicado usa HTTPS. Las credenciales de servicios del
-  backend no van en el APK.
+- **URL del backend** en `BuildConfig.API_BASE_URL`, por tipo de build: debug,
+  `http://10.0.2.2:8080/` (emulador estándar hacia el anfitrión); release, la propiedad Gradle
+  `belmonte.apiBaseUrl` con la IP del anfitrión de la demostración, obligatoria para compilar
+  release.
+- **HTTP:** `network_security_config` lo permite solo hacia `10.0.2.2` y hacia el host de la
+  demostración ([Entornos](#entornos)); cualquier otro destino exige HTTPS.
+- **Claves de servicios:**
+  - `google-services.json` va en `app/`, fuera de Git; cada integrante lo descarga de la consola
+    de Firebase.
+  - La clave de Places va en `local.properties` (`PLACES_API_KEY`), fuera de Git, y se inyecta
+    por `BuildConfig`. Está restringida a la Places API y al paquete `cl.belmontespa.transporte`
+    con los SHA-1 de los certificados de debug y de release.
+  - Las credenciales de servicios del backend (Firebase Admin, SMTP, `JWT_SECRET`) nunca van en
+    el APK.
+- **Firma de release:** keystore `belmonte-release.jks` fuera del repositorio; su ruta, alias y
+  contraseñas van en `~/.gradle/gradle.properties` o en variables de entorno. El equipo respalda
+  el keystore: sin él no se puede actualizar la app ya instalada. R8 activo en release.
+- **Versionado:** `versionCode` sube en cada APK entregado; `versionName` sigue
+  `MAYOR.MENOR.PARCHE`; el archivo se llama `belmonte-<versionName>.apk`.
+- **Distribución (RNF10):** el APK firmado y su SHA-256 se publican en GitHub Releases del
+  repositorio; se instala permitiendo fuentes externas en el dispositivo.
 
 ### Pruebas Android
 
