@@ -20,9 +20,9 @@ AVISOS = []  # textos que no caben en el SVG; se informan al final
 
 # ----------------------------------------------------------------------------------- paleta
 CLARO = {
-    'paper': '#f3f2ee', 'ink': '#211f1c', 'ink_soft': '#6b6a66', 'line_strong': '#4a5560',
+    'paper': '#f3f2ee', 'ink': '#211f1c', 'ink_soft': '#696864', 'line_strong': '#4a5560',
     'line_soft': '#d8d6d0', 'surface': '#ffffff', 'surface_tint': '#eceae3', 'accent': '#2f6f5e',
-    'accent_soft': '#d9ebe6', 'on_accent': '#ffffff', 'info': '#3a6ea5', 'info_soft': '#dde8f2',
+    'accent_soft': '#d9ebe6', 'on_accent': '#ffffff', 'info': '#37689c', 'info_soft': '#dde8f2',
     'danger': '#a3402f', 'danger_soft': '#f5e1dc', 'on_danger': '#ffffff', 'warn': '#8a6514',
     'warn_soft': '#f6ecd2',
 }
@@ -343,10 +343,12 @@ class Nota:
 
 
 class Aviso:
-    """Recuadro informativo (mensaje genérico, confirmación)."""
+    """Recuadro de mensaje: info (genérico, confirmación), aviso (falta algo) o peligro (conflicto)."""
 
-    def __init__(self, contenido):
-        self.contenido = contenido
+    TONOS = {'info': ('info', 'info_soft'), 'aviso': ('warn', 'warn_soft'), 'peligro': ('danger', 'danger_soft')}
+
+    def __init__(self, contenido, tono='info'):
+        self.contenido, self.tono = contenido, tono
 
     def lineas(self, w):
         return partir(self.contenido, 11, w - 20, donde='aviso')
@@ -355,12 +357,14 @@ class Aviso:
         return len(self.lineas(w)) * 15 + 16
 
     def svg(self, out, x, y, w):
-        rect(out, x, y, w, self.alto(w), C['info_soft'], C['info'], rx=8)
+        tinta, fondo = self.TONOS[self.tono]
+        rect(out, x, y, w, self.alto(w), C[fondo], C[tinta], rx=8)
         for i, l in enumerate(self.lineas(w)):
-            texto(out, x + 10, y + 19 + i * 15, l, 11, C['info'])
+            texto(out, x + 10, y + 19 + i * 15, l, 11, C[tinta])
 
     def html(self):
-        return f'<div class="callout">{h(self.contenido)}</div>'
+        cls = '' if self.tono == 'info' else f' callout-{self.tono}'
+        return f'<div class="callout{cls}">{h(self.contenido)}</div>'
 
 
 class Seccion:
@@ -787,13 +791,18 @@ class Dialogo:
 
 
 class Hoja:
-    """Hoja inferior de selección (overlay): elegir app de navegación."""
+    """Hoja inferior (overlay): opciones (elegir app de navegación) o un formulario corto (cuerpo)."""
 
-    def __init__(self, titulo, opciones, nota):
-        self.titulo, self.opciones, self.nota = titulo, opciones, nota
+    def __init__(self, titulo, opciones, nota, cuerpo=None):
+        self.titulo, self.opciones, self.nota, self.cuerpo = titulo, opciones, nota, cuerpo
+
+    def medio(self, w):
+        if self.cuerpo:
+            return sum(c.alto(w - 28) for c in self.cuerpo) + GAP * (len(self.cuerpo) - 1) + 8
+        return len(self.opciones) * 40
 
     def alto(self, w):
-        return 16 + 18 + len(self.opciones) * 40 + 8 + len(partir(self.nota, 10.5, w - 28)) * 15 + 18
+        return 16 + 18 + self.medio(w) + 8 + len(partir(self.nota, 10.5, w - 28)) * 15 + 18
 
     def svg(self, out, x, y, w):
         out.append(f'<path d="M{x:.1f},{y + 16:.1f} a16,16 0 0 1 16,-16 h{w - 32:.1f} a16,16 0 0 1 16,16 '
@@ -801,6 +810,12 @@ class Hoja:
         rect(out, x + w / 2 - 18, y + 7, 36, 4, C['line_strong'], rx=2, opacidad=0.5)
         texto(out, x + 14, y + 30, self.titulo, 13, C['ink'], peso='600')
         cy = y + 40
+        if self.cuerpo:
+            by = cy + 4
+            for c in self.cuerpo:
+                c.svg(out, x + 14, by, w - 28)
+                by += c.alto(w - 28) + GAP
+            cy += self.medio(w)
         for ic, etiqueta in self.opciones:
             rect(out, x + 14, cy + 6, 26, 26, C['accent_soft'], rx=7)
             icono_svg(out, ic, x + 19, cy + 11, 16, C['accent'])
@@ -812,6 +827,8 @@ class Hoja:
     def html(self):
         ops = ''.join(f'<div class="sheet-opt"><span class="sheet-ic">{icono_html(ic, 16)}</span>{h(t)}</div>'
                       for ic, t in self.opciones)
+        if self.cuerpo:
+            ops += ''.join(c.html() for c in self.cuerpo)
         return (f'<div class="scrim"></div><div class="sheet"><span class="grabber"></span><h5>{h(self.titulo)}</h5>'
                 f'{ops}<p class="note">{h(self.nota)}</p></div>')
 
@@ -835,6 +852,13 @@ class Pantalla:
 
 NUEVA_SOLICITUD_FONDO = [Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'),
                          KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400')]
+
+SOLICITUD_SIN_PASAJEROS = [
+    Chip('PENDIENTE', grande=True), Seccion('Viaje'), KV('Horario', '26-09-2026 · 10:00'),
+    KV('Origen', 'Av. Vitacura 2939'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
+    Aviso('Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno.', tono='aviso'),
+    Seccion('Pasajeros (0)'), Boton('Agregar pasajero', icono='mas'),
+    Boton('Cancelar solicitud', 'peligro_sec')]
 
 GRUPOS = [
     ('Transversal', 'acceso', [
@@ -861,6 +885,14 @@ GRUPOS = [
             Campo('Correo', 'crios@andesconsult.cl'), Boton('Enviar contraseña temporal'),
             Aviso('Si el correo pertenece a una cuenta habilitada, recibirás la contraseña temporal.'),
             Nota('Solo Solicitante y Administrador. Conductores: el Administrador reemplaza su contraseña.')]),
+        Pantalla('Cambio obligatorio de contraseña', ['CU-13', 'CU-14', 'RF21'], barra='Cambiar contraseña',
+                 cuerpo=[
+            Aviso('Debes cambiar la contraseña: entraste con una contraseña temporal.', tono='aviso'),
+            Campo('Contraseña actual (temporal)', '••••••••••••'), Campo('Nueva contraseña', '••••••••'),
+            Campo('Confirmar contraseña', '••••••••'), Boton('Guardar'),
+            Boton('Cerrar sesión', 'fantasma', icono='salir'),
+            Nota('Sin flecha atrás. Con la sesión temporal solo se cambia la contraseña o se cierra sesión; al '
+                 'guardar, la app inicia sesión con la nueva.')]),
     ]),
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
@@ -886,6 +918,17 @@ GRUPOS = [
             Seccion('Asignación'), KV('Conductor', 'Iván Reyes'), KV('Vehículo', 'KXJR42'),
             Seccion('Pago'), KV('Estado', chip=Chip('PAGADO')), KV('Monto', '$48.000'),
             Boton('Cancelar solicitud', 'peligro_sec')]),
+        Pantalla('Solicitud sin pasajeros', ['CU-01', 'HU02', 'V2'], barra='Solicitud TR-1055', atras=True,
+                 cuerpo=SOLICITUD_SIN_PASAJEROS),
+        Pantalla('Agregar pasajero', ['CU-01', 'HU02'], barra='Solicitud TR-1055', atras=True,
+                 cuerpo=SOLICITUD_SIN_PASAJEROS,
+                 overlay=Hoja('Agregar pasajero', [],
+                              'Se registra y se asocia al viaje. Con vehículo asignado, no más pasajeros que '
+                              'su capacidad.',
+                              cuerpo=[Campo('Nombre', 'Marcela Soto'),
+                                      Fila(Campo('Documento', 'RUT', 'select'), Campo('Número', '16.789.012-3'),
+                                           pesos=(2, 3)),
+                                      Botones(Boton('Volver', 'secundario'), Boton('Agregar'))])),
         Pantalla('Confirmar cancelación', ['CU-08', 'RF15', 'HU16', 'V5', 'P4', 'P5'], barra='Solicitud TR-1042',
                  atras=True, cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Dialogo('¿Cancelar la solicitud TR-1042?',
@@ -939,6 +982,13 @@ GRUPOS = [
             Boton('Cancelar viaje', 'peligro_sec'),
             Nota('Reasignar solo en Pendiente o Asignado sin vencer; cancelar, en Pendiente o Asignado. En En '
                  'curso o Finalizado no se ofrecen.')]),
+        Pantalla('Solicitud sin pasajeros', ['CU-04', 'HU05', 'V2'], barra='Solicitud TR-1055',
+                 sub='Andes Consultores SpA', atras=True, cuerpo=[
+            Chip('PENDIENTE', grande=True), KV('Horario', '26-09-2026 · 10:00'),
+            KV('Origen', 'Av. Vitacura 2939'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
+            KV('Pasajeros', '0'), Aviso('Sin pasajeros: no se puede asignar.', tono='aviso'),
+            Boton('Registrar pago', 'secundario'), Boton('Cancelar viaje', 'peligro_sec'),
+            Nota('"Asignar" aparece cuando el Solicitante agrega al menos un pasajero.')]),
         Pantalla('Cancelar viaje', ['CU-15', 'RF23', 'HU24', 'V7', 'P4', 'P5'], barra='Cancelar viaje',
                  sub='TR-1038 · Luis Pino', atras=True, cuerpo=[
             Chip('VENCIDO', grande=True), KV('Horario', '24-09-2026 · 06:30'),
@@ -1055,6 +1105,13 @@ GRUPOS = [
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
             Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
                  'devuelve el viaje a Pendiente.')]),
+        Pantalla('Antes de la ventana', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1049', atras=True, cuerpo=[
+            Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 18:45'),
+            KV('Origen', 'Av. Isidora Goyenechea 3000'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
+            Seccion('Pasajeros'), Lista('Felipe Mora'),
+            Botones(Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar', 'secundario', deshabilitado=True)),
+            Nota('Disponible desde las 17:45.', centro=True),
+            Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec')]),
         Pantalla('Confirmar inicio', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Dialogo('¿Iniciar el viaje TR-1042?',
@@ -1069,6 +1126,14 @@ GRUPOS = [
             KV('Horario', '24-09-2026 · 14:30'), KV('Destino', 'Av. Apoquindo 5400'),
             Botones(Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar', 'secundario')),
             Nota('La cola respeta el orden por viaje: Iniciar y luego Finalizar.')]),
+        Pantalla('Cambio en conflicto', ['RF11', 'HU11', 'V3'], barra='Viaje TR-1044', atras=True, cuerpo=[
+            Chip('ASIGNADO', grande=True), Chip('VENCIDO'),
+            Aviso('No se pudo sincronizar «Iniciar viaje»: el viaje está fuera de la ventana de inicio.',
+                  tono='peligro'),
+            KV('Horario', '24-09-2026 · 07:30'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
+            Boton('Descartar cambio', 'peligro_sec'),
+            Nota('Vencido: avisa al Administrador. Descartar borra el cambio pendiente y vuelve a cargar el '
+                 'viaje.')]),
         Pantalla('Abrir navegación', ['CU-03', 'RF10', 'HU10'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Hoja('Abrir con', [('pin', 'Google Maps'), ('brujula', 'Waze')],
@@ -1341,6 +1406,8 @@ h1{font-family:'IBM Plex Mono','Courier New',monospace;font-weight:700;font-size
 .note-center{text-align:center;}
 .callout{border:1px solid var(--info);background:var(--info-soft);color:var(--info);border-radius:8px;
   padding:8px 10px;font-size:11px;line-height:1.45;}
+.callout-aviso{border-color:var(--warn);background:var(--warn-soft);color:var(--warn);}
+.callout-peligro{border-color:var(--danger);background:var(--danger-soft);color:var(--danger);}
 .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.03em;text-transform:uppercase;
   padding:3px 8px;border-radius:999px;border:1px solid;white-space:nowrap;flex:none;align-self:center;}
 .chip-lg{font-size:10.5px;padding:4px 12px;}
