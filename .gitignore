@@ -27,3 +27,6 @@ templates/
 *.rej
 *.diff
 *.orig
+
+# Pyhon cache
+__pycache__
