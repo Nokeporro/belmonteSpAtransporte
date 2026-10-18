@@ -44,7 +44,7 @@ ESTADOS = {
     'RECHAZADO': ('Rechazado', 'peligro'), 'ANULADO': ('Anulado', 'peligro_borde'),
     'REEMBOLSADO': ('Reembolsado', 'aviso'),
     'DISPONIBLE': ('Disponible', 'ok'), 'OCUPADO': ('Ocupado', 'acento'),
-    'EN_USO': ('En uso', 'acento'), 'EN_VIAJE': ('En viaje', 'acento'),
+    'EN_USO': ('En uso', 'acento'),
     'SYNC': ('Pendiente de sincronizar', 'aviso'),
     'ATRASADO': ('Atrasado', 'aviso'), 'VENCIDO': ('Vencido', 'peligro_borde'),
     'INACTIVO': ('Inactivo', 'tenue'), 'SOL_PENDIENTE': ('Por aprobar', 'aviso'),
@@ -865,8 +865,8 @@ GRUPOS = [
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
             Boton('Nueva solicitud', icono='mas'),
-            Item('TR-1042', 'Constanza Ríos +1', '24-09 · 14:30 · Aeropuerto → Las Condes', derecha=Chip('ASIGNADO')),
             Item('TR-1051', 'Marcela Soto', '25-09 · 09:00 · Vitacura → Aeropuerto', derecha=Chip('PENDIENTE')),
+            Item('TR-1042', 'Constanza Ríos +1', '24-09 · 14:30 · Aeropuerto → Las Condes', derecha=Chip('ASIGNADO')),
             Item('TR-1039', 'Roberto Aguilar', '24-09 · 07:15 · Apoquindo → Aeropuerto', derecha=Chip('FINALIZADO')),
             Item('TR-1033', 'Paula Lagos', '23-09 · 18:00 · Las Condes → Aeropuerto', derecha=Chip('CANCELADO'))]),
         Pantalla('Nueva solicitud', ['CU-01', 'RF02', 'HU02', 'V1'], barra='Nueva solicitud', atras=True, cuerpo=[
@@ -877,19 +877,20 @@ GRUPOS = [
             Seccion('Pasajeros (2)'), Pasajero('Constanza Ríos', 'RUT 15.234.567-8'),
             Pasajero('Tomás Vidal', 'Pasaporte P4471023'), Boton('Agregar pasajero', 'fantasma', icono='mas'),
             Campo('N.º de vuelo (opcional)', 'LA 1502'), Boton('Enviar solicitud')]),
-        Pantalla('Detalle de solicitud', ['RF03', 'RF20', 'HU03', 'HU21'], barra='Solicitud TR-1042', atras=True,
+        Pantalla('Detalle de solicitud', ['CU-01', 'RF03', 'RF20', 'HU03', 'HU21'], barra='Solicitud TR-1042', atras=True,
                  cuerpo=[
             Chip('ASIGNADO', grande=True), Seccion('Viaje'), KV('Horario', '24-09-2026 · 14:30'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Vuelo', 'LA 1502'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
+            Boton('Agregar pasajero', 'fantasma', icono='mas'),
             Seccion('Asignación'), KV('Conductor', 'Iván Reyes'), KV('Vehículo', 'KXJR42'),
             Seccion('Pago'), KV('Estado', chip=Chip('PAGADO')), KV('Monto', '$48.000'),
             Boton('Cancelar solicitud', 'peligro_sec')]),
-        Pantalla('Confirmar cancelación', ['CU-08', 'RF15', 'HU16', 'V5', 'P4'], barra='Solicitud TR-1042',
+        Pantalla('Confirmar cancelación', ['CU-08', 'RF15', 'HU16', 'V5', 'P4', 'P5'], barra='Solicitud TR-1042',
                  atras=True, cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Dialogo('¿Cancelar la solicitud TR-1042?',
-                                 'Se avisará al conductor y el viaje saldrá de su agenda. El pago Pagado pasa '
-                                 'a Reembolsado: se devuelve el 50 % del monto.',
+                                 'Se avisará al conductor y el viaje saldrá de su agenda. Un pago Pagado se '
+                                 'reembolsa al 50 %; uno Pendiente se anula.',
                                  [Boton('Volver', 'secundario'), Boton('Cancelar', 'peligro')])),
         Pantalla('Solicitud cancelada', ['CU-08', 'RF15', 'V5', 'P4'], barra='Solicitud TR-1042', atras=True,
                  cuerpo=[
@@ -911,14 +912,14 @@ GRUPOS = [
                  'antes de seguir.')]),
     ]),
     ('Administrador', 'recepcionista', [
-        Pantalla('Solicitudes', ['CU-04', 'RF04', 'HU04'], barra='Solicitudes', badge='3', nav=NAV_ADM, cuerpo=[
+        Pantalla('Solicitudes', ['CU-04', 'RF04', 'HU04'], barra='Solicitudes', nav=NAV_ADM, cuerpo=[
             Boton('Cuentas por aprobar (1)', 'fantasma', icono='usuarios'),
             Filtros(['Pendientes', 'Asignado', 'En curso', 'Finalizado', 'Cancelado', 'Todas'], 'Pendientes'),
+            Item('TR-1038', 'Luis Pino', '24-09 · 06:30 · Ñuñoa → Aeropuerto', derecha=Chip('VENCIDO')),
             Item('TR-1051', 'Marcela Soto', '25-09 · 09:00 · Vitacura → Aeropuerto',
                  derecha=Boton('Asignar', 'secundario', chico=True)),
             Item('TR-1047', 'Diego Fuentes', '25-09 · 11:45 · Providencia → Aeropuerto',
                  derecha=Boton('Asignar', 'secundario', chico=True)),
-            Item('TR-1038', 'Luis Pino', '24-09 · 06:30 · Ñuñoa → Aeropuerto', derecha=Chip('VENCIDO')),
             Nota('Cada fila abre el detalle; en las pendientes, "Asignar" abre directo la asignación. '
                  'Vencido: pasó una hora de su horario sin iniciar.')]),
         Pantalla('Cuentas por aprobar', ['CU-17', 'RF26', 'HU27'], barra='Cuentas por aprobar', atras=True,
@@ -936,8 +937,9 @@ GRUPOS = [
             KV('Vehículo', 'KXJR42'), Boton('Reasignar', 'secundario'),
             Seccion('Pago'), KV('Estado', chip=Chip('PAGADO')), Boton('Ver pago', 'fantasma'),
             Boton('Cancelar viaje', 'peligro_sec'),
-            Nota('Reasignar y cancelar solo en Pendiente o Asignado; en En curso o Finalizado no se ofrecen.')]),
-        Pantalla('Cancelar viaje', ['CU-15', 'RF23', 'HU24', 'V7', 'P4'], barra='Cancelar viaje',
+            Nota('Reasignar solo en Pendiente o Asignado sin vencer; cancelar, en Pendiente o Asignado. En En '
+                 'curso o Finalizado no se ofrecen.')]),
+        Pantalla('Cancelar viaje', ['CU-15', 'RF23', 'HU24', 'V7', 'P4', 'P5'], barra='Cancelar viaje',
                  sub='TR-1038 · Luis Pino', atras=True, cuerpo=[
             Chip('VENCIDO', grande=True), KV('Horario', '24-09-2026 · 06:30'),
             KV('Pago', chip=Chip('PAGADO')), KV('Monto', '$52.000'),
@@ -951,14 +953,14 @@ GRUPOS = [
             Seccion('Conductor'),
             Opcion('Iván Reyes', Chip('DISPONIBLE'), sub='1 viaje asignado', elegido=True),
             Opcion('Paula Muñoz', Chip('DISPONIBLE'), sub='Sin viajes'),
-            Opcion('Jorge Lara', Chip('EN_VIAJE'), sub='TR-1045 en curso', deshabilitado=True),
+            Opcion('Jorge Lara', Chip('OCUPADO'), sub='TR-1045 en curso', deshabilitado=True),
             Seccion('Vehículo habilitado para Iván'),
             Opcion('KXJR42', Chip('DISPONIBLE'), sub='4 pasajeros', elegido=True),
             Opcion('LPHT17', Chip('DISPONIBLE'), sub='6 pasajeros'),
             Seccion('Resumen'), KV('Conductor', 'Iván Reyes'), KV('Vehículo', 'KXJR42'),
             Boton('Confirmar asignación'),
-            Nota('Disponible = sin viaje en curso; puede tener otros viajes asignados. La capacidad debe '
-                 'cubrir a los pasajeros.')]),
+            Nota('Disponible = sin viaje en curso. Ni conductor ni vehículo pueden tener otro viaje a menos '
+                 'de 2 h. La capacidad debe cubrir a los pasajeros.')]),
         Pantalla('Conductores', ['CU-07'], barra='Conductores', nav=NAV_ADM, activa=1, cuerpo=[
             Boton('Registrar conductor', icono='mas'),
             Item('Iván Reyes', 'ireyes@belmonte.cl', derecha=Chip('DISPONIBLE')),
@@ -1003,22 +1005,21 @@ GRUPOS = [
             Casilla('Iván Reyes', 'Ya habilitado', marcada=True, bloqueada=True),
             Casilla('Paula Muñoz', 'Nueva habilitación', marcada=True),
             Casilla('Jorge Lara', 'Sin habilitar'), Boton('Agregar habilitaciones'),
-            Nota('Solo se agregan; una relación existente no se duplica. No hay eliminación mientras no exista '
-                 'un contrato que la autorice.')]),
+            Nota('Solo se agregan; una relación existente no se duplica. No se eliminan en el MVP.')]),
         Pantalla('Registrar pago', ['CU-11', 'RF18', 'HU19', 'P1'], barra='Registrar pago', sub='Viaje TR-1042',
                  atras=True, cuerpo=[
-            Campo('Monto', '$48.000'), Campo('Banco', 'Banco Austral', 'select'),
+            Campo('Monto', '$48.000'), Campo('Banco', 'BancoEstado', 'select'),
             Campo('Medio de pago', 'Transferencia', 'select'), Campo('Tipo de recibo', 'Factura', 'select'),
             Boton('Registrar pago'),
             Nota('Solo si el viaje no está Cancelado y no tiene pago. Nace Pendiente. Un pago rechazado o '
                  'anulado no se reemplaza.')]),
         Pantalla('Detalle de pago', ['CU-12', 'RF19', 'HU20', 'P2', 'P3', 'V6'], barra='Pago',
                  sub='Viaje TR-1042', atras=True, cuerpo=[
-            Chip('PAGO_PENDIENTE', grande=True), KV('Monto', '$48.000'), KV('Banco', 'Banco Austral'),
+            Chip('PAGO_PENDIENTE', grande=True), KV('Monto', '$48.000'), KV('Banco', 'BancoEstado'),
             KV('Medio de pago', 'Transferencia'), KV('Recibo', 'Factura'), KV('Fecha de cobro', '—'),
             Boton('Marcar pagado'), Botones(Boton('Rechazar', 'secundario'), Boton('Anular', 'peligro_sec')),
-            Nota('Desde Pagado solo se puede anular. Reembolsado es automático al cancelar el viaje. Anular '
-                 'cancela el viaje si está Pendiente o Asignado.')]),
+            Nota('Desde Pagado solo se puede anular. Al cancelar el viaje, Pagado pasa a Reembolsado y '
+                 'Pendiente a Anulado. Anular cancela el viaje si está Pendiente o Asignado.')]),
         Pantalla('Perfil', ['RF21'], barra='Perfil', nav=NAV_ADM, activa=3, cuerpo=[
             Persona('Andrea Castro', 'recepcion@belmonte.cl'), KV('Rol', 'Administrador'),
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
@@ -1034,7 +1035,7 @@ GRUPOS = [
     ('Conductor', 'en terreno', [
         Pantalla('Notificación push', ['RF12', 'HU13'], bloqueo=True, cuerpo=[
             Reloj('08:12', 'jueves 24 de septiembre'),
-            Notificacion('Nuevo viaje asignado', 'Viaje TR-1051 para 25-09-2026'),
+            Notificacion('Nuevo viaje asignado', 'Viaje TR-1051 para 25-09-2026 · 09:00'),
             Nota('Al tocarla, la app comprueba sesión, rol y acceso y abre el detalle del viaje. El push '
                  'lleva folio y fecha, sin nombres ni direcciones (RNF08).', centro=True)]),
         Pantalla('Mis viajes', ['CU-02', 'RF07', 'HU07'], barra='Mis viajes', sub='Iván Reyes', nav=NAV_CON,
@@ -1044,14 +1045,14 @@ GRUPOS = [
             Viaje('14:30', 'ASIGNADO', 'Constanza Ríos +1', 'Aeropuerto → Las Condes'),
             Viaje('18:45', 'ASIGNADO', 'Felipe Mora', 'Las Condes → Aeropuerto'),
             Nota('Varios viajes asignados por día. El selector de fecha muestra la agenda de otro día.')]),
-        Pantalla('Detalle de viaje', ['RF08', 'RF09', 'HU08', 'HU09', 'V3', 'V4'], barra='Viaje TR-1042',
+        Pantalla('Detalle de viaje', ['CU-03', 'RF08', 'RF09', 'HU08', 'HU09', 'V3', 'V4'], barra='Viaje TR-1042',
                  atras=True, cuerpo=[
-            Chip('ASIGNADO', grande=True), KV('Horario', '24-09 · 14:30'), KV('Vuelo', 'LA 1502'),
+            Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'), KV('Vuelo', 'LA 1502'),
             KV('Solicitante', 'Constanza Ríos'), KV('Teléfono', '+56 9 5555 0101'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Vehículo', 'KXJR42'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
             Botones(Boton('Iniciar viaje'), Boton('Finalizar', 'secundario', deshabilitado=True)),
-            Boton('Navegar', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
+            Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
             Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
                  'devuelve el viaje a Pendiente.')]),
         Pantalla('Confirmar inicio', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1042', atras=True,
@@ -1065,13 +1066,14 @@ GRUPOS = [
             Chip('ASIGNADO', grande=True), Chip('SYNC'),
             Nota('En curso, pendiente de sincronizar: no se muestra como confirmado hasta que responda el '
                  'servidor.', centro=True),
-            KV('Horario', '24-09 · 14:30'), KV('Destino', 'Av. Apoquindo 5400'),
+            KV('Horario', '24-09-2026 · 14:30'), KV('Destino', 'Av. Apoquindo 5400'),
             Botones(Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar', 'secundario')),
             Nota('La cola respeta el orden por viaje: Iniciar y luego Finalizar.')]),
         Pantalla('Abrir navegación', ['CU-03', 'RF10', 'HU10'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Hoja('Abrir con', [('pin', 'Google Maps'), ('brujula', 'Waze')],
-                              'Se envían origen y destino por Intent. Sin app compatible se muestra un aviso.')),
+                              'Asignado: navega al origen; En curso: al destino. Solo apps instaladas; sin '
+                              'ninguna, aviso.')),
         Pantalla('Perfil', ['RF06'], barra='Perfil', nav=NAV_CON, activa=1, cuerpo=[
             Persona('Iván Reyes', 'ireyes@belmonte.cl'), KV('Teléfono', '+56 9 5555 0303'),
             Nota('Tu contraseña la gestiona el Administrador; no hay cambio ni recuperación por autoservicio.'),

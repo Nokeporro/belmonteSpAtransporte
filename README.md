@@ -10,6 +10,7 @@
 ## Indice
 
 - [Introduccion](#introduccion)
+  - [Cómo leer esta especificación](#cómo-leer-esta-especificación)
   - [Problemática y actores](#problemática-y-actores)
 - [Máquinas de estado](#máquinas-de-estado)
 - [Requisitos](#requisitos)
@@ -67,6 +68,19 @@ Belmonte SpA hace transporte privado corporativo (traslados ejecutivos y aeropue
 móvil centraliza el flujo: captura de solicitudes, asignación a conductores y enlace con
 navegación externa (Google Maps/Waze).
 
+### Cómo leer esta especificación
+
+- **Precedencia:** este README es la fuente de verdad. Los [mockups](mockups/wireframes-belmonte.html)
+  ilustran las pantallas; si discrepan, gana el README. `docs/` guarda el material de origen (el
+  Anexo de Requerimiento) y no se implementa directamente.
+- **Rangos:** "de A a B" y "entre A y B" incluyen ambos extremos, salvo que se diga otra cosa.
+- **Hora:** "ahora" es la hora del servidor en `America/Santiago` al recibir la petición; las
+  fechas de negocio no llevan zona ([Contratos JSON](#contratos-json)).
+- **Códigos y etiquetas:** la API y la base usan códigos en mayúsculas (`EN_CURSO`); la app
+  muestra su etiqueta en español ([Textos y tema](#textos-y-tema)).
+- **Obligatoriedad:** lo descrito es obligatorio. Lo que no se menciona no se implementa en el MVP
+  (p. ej. borrar registros, pagos en línea, mapa embebido).
+
 ### Problemática y actores
 
 Hoy las solicitudes se coordinan a mano (teléfono, correo, WhatsApp): datos críticos
@@ -99,12 +113,12 @@ cambio registra su fecha/hora.
 | ID | Transición | Quién | Precondiciones | Efectos |
 |---|---|---|---|---|
 | V1 | alta → `PENDIENTE` | Solicitante aprobado (CU-01/RF02) | `fh_agenda` de 2 horas a 90 días desde ahora ([Validaciones](#validaciones); si no, 400) | La base genera el `folio` (`TR-` y un correlativo, inmutable; ver `VIAJE.folio`); `fh_creacion`. Push a los Administradores. |
-| V2 | `PENDIENTE`/`ASIGNADO` → `ASIGNADO` (asignar o reasignar) | Administrador (CU-04/RF05/RF22) | Al menos un pasajero (`cantidad_pasajeros` ≥ 1). Conductor y vehículo activos y Disponibles (sin otro viaje `EN_CURSO`); conductor habilitado para el vehículo; pasajeros ≤ capacidad. Sin solapamiento: ni el conductor ni el vehículo tienen otro viaje `ASIGNADO` o `EN_CURSO` cuya ventana de inicio (ver V3) se cruce con la de este, es decir, con `fh_agenda` a menos de 2 horas de distancia. Al reasignar, la disponibilidad y el solapamiento se validan solo para lo que cambia (sin contar el propio viaje) y la habilitación para el par resultante. Sin reasignación automática. | `fh_asignacion`. No cambia el estado del conductor ni del vehículo: ambos pueden tener varios viajes `ASIGNADO`. Al reasignar puede cambiar solo el conductor, solo el vehículo o ambos; el viaje sale de la agenda de los reemplazados. Push al conductor (nuevo), al solicitante y, si cambia el conductor, al reemplazado. |
-| V3 | `ASIGNADO` → `EN_CURSO` | Conductor asignado (RF09) | Dentro de la ventana de inicio: de `fh_agenda` − 1 hora a `fh_agenda` + 1 hora. Conductor y vehículo Disponibles (sin otro viaje `EN_CURSO`). | `fh_inicio`; conductor → Ocupado, vehículo → En uso. Push al solicitante. |
+| V2 | `PENDIENTE`/`ASIGNADO` → `ASIGNADO` (asignar o reasignar) | Administrador (CU-04/RF05/RF22) | Viaje no vencido (ver Retraso; si no, 409 "El viaje está vencido"). Al menos un pasajero (`cantidad_pasajeros` ≥ 1). Conductor y vehículo activos y Disponibles (sin otro viaje `EN_CURSO`); conductor habilitado para el vehículo; pasajeros ≤ capacidad. Sin solapamiento: ni el conductor ni el vehículo tienen otro viaje `ASIGNADO` o `EN_CURSO` cuya ventana de inicio (ver V3) se cruce con la de este, es decir, con `|fh_agenda − fh_agenda del otro| < 2 horas` (a 2 horas exactas no se solapan). Al reasignar, la disponibilidad y el solapamiento se validan solo para lo que cambia (sin contar el propio viaje) y la habilitación para el par resultante. Sin reasignación automática. | `fh_asignacion`. No cambia el estado del conductor ni del vehículo: ambos pueden tener varios viajes `ASIGNADO`. Al reasignar puede cambiar solo el conductor, solo el vehículo o ambos; el viaje sale de la agenda de los reemplazados. Push al conductor (nuevo), al solicitante y, si cambia el conductor, al reemplazado. |
+| V3 | `ASIGNADO` → `EN_CURSO` | Conductor asignado (RF09) | Dentro de la ventana de inicio: `fh_agenda − 1 hora ≤ ahora ≤ fh_agenda + 1 hora`. Conductor y vehículo Disponibles (sin otro viaje `EN_CURSO`). | `fh_inicio`; conductor → Ocupado, vehículo → En uso. Push al solicitante. |
 | V4 | `EN_CURSO` → `FINALIZADO` | Conductor asignado (RF09) | — | `fh_fin`; conductor y vehículo → Disponible. Push al solicitante. |
-| V5 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (cancelar) | Solicitante dueño (CU-08/RF15) | Viaje no vencido (ver Retraso). | Si había conductor: push al conductor y el viaje sale de su agenda ("Viajes del día" si es de hoy). No cambia el estado de conductor ni vehículo (en `PENDIENTE`/`ASIGNADO` este viaje no los ocupa). Pago `PAGADO` → `REEMBOLSADO` con `monto_reembolsado` = 50 % del monto, redondeado hacia abajo (P4); en otro estado el pago no cambia. No modifica `fh_fin`: el momento queda en `HISTORIAL_VIAJE`. |
+| V5 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (cancelar) | Solicitante dueño (CU-08/RF15) | Viaje no vencido (ver Retraso). | Si había conductor: push al conductor y el viaje sale de su agenda ("Viajes del día" si es de hoy). No cambia el estado de conductor ni vehículo (en `PENDIENTE`/`ASIGNADO` este viaje no los ocupa). Pago `PAGADO` → `REEMBOLSADO` con `monto_reembolsado` = 50 % del monto, redondeado hacia abajo (P4); `PENDIENTE` → `ANULADO` (P5); en otro estado el pago no cambia. No modifica `fh_fin`: el momento queda en `HISTORIAL_VIAJE`. |
 | V6 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (por anulación del pago) | Sistema, al anular el Administrador el pago (P2 o P3; CU-12/RF19) | — | Mismos efectos de V5 (agenda y push al conductor) sin reembolso, y push al solicitante. |
-| V7 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (por el Administrador) | Administrador (CU-15/RF23) | `motivo` obligatorio. | Guarda el `motivo`; agenda y push al conductor como en V5, y push al solicitante. Pago `PAGADO` → `REEMBOLSADO` (P4): con el viaje no vencido, `monto_reembolsado` = monto (100 %); vencido, el monto que fije el Administrador entre 0 y el monto (con 0 el pago no cambia). |
+| V7 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (por el Administrador) | Administrador (CU-15/RF23) | `motivo` obligatorio. | Guarda el `motivo`; agenda y push al conductor como en V5, y push al solicitante. Pago `PAGADO` → `REEMBOLSADO` (P4): con el viaje no vencido, `monto_reembolsado` = monto (100 %); vencido, el monto que fije el Administrador entre 0 y el monto (con 0 el pago no cambia). Pago `PENDIENTE` → `ANULADO` (P5). |
 | V8 | `ASIGNADO` → `PENDIENTE` (rechazo) | Conductor asignado (CU-16/RF24) | `motivo` obligatorio; solo con conexión (no va a la cola sin conexión). | Guarda el `motivo`; deja en NULL conductor, móvil y `fh_asignacion`; el viaje sale de su agenda. Push a los Administradores y al solicitante. El pago no cambia. |
 
 `CANCELADO` se suma a los 4 estados del Anexo (§3.2) para conservar la auditoría: la
@@ -113,10 +127,10 @@ solicitud no se borra.
 **Retraso.** Se calcula a partir de `fh_agenda` y no es un estado: lo calculan el backend al
 validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIGNADO` está:
 
-- **Atrasado**, si ya pasó `fh_agenda` y no pasó `fh_agenda` + 1 hora: todavía puede iniciarse.
-- **Vencido**, si pasó `fh_agenda` + 1 hora sin iniciarse: no se inicia ni lo cancela el
-  Solicitante; nada cambia solo, y el Administrador decide (reasignarlo no reabre la ventana:
-  lo cancela con V7 y decide el reembolso).
+- **Atrasado**, si `fh_agenda < ahora ≤ fh_agenda + 1 hora`: todavía puede iniciarse.
+- **Vencido**, si `ahora > fh_agenda + 1 hora`: no se inicia (V3), no se asigna ni reasigna (V2)
+  y no lo cancela el Solicitante (V5). Nada cambia solo: el Administrador lo cancela con V7 y
+  decide el reembolso.
 
 ### Pago
 
@@ -128,9 +142,11 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
 | P2 | `PENDIENTE` | `PAGADO`, `RECHAZADO` o `ANULADO` | Manual, Administrador (CU-12/RF19). Al pasar a `PAGADO`, el backend fija `fecha_pago`. Push al solicitante. |
 | P3 | `PAGADO` | `ANULADO` | Manual, Administrador. Push al solicitante. |
 | P4 | `PAGADO` | `REEMBOLSADO` | Automático al cancelar el viaje: en V5 (Solicitante, 50 %) o en V7 (Administrador, 100 % o el monto que fije si el viaje está vencido). Fija `monto_reembolsado`; nunca manual. Push al solicitante. |
+| P5 | `PENDIENTE` | `ANULADO` | Automático al cancelar el viaje en V5 o V7: no queda nada que cobrar. Nunca manual (la anulación manual es P2). Push al solicitante. |
 
 - `RECHAZADO`, `ANULADO` y `REEMBOLSADO` son terminales.
-- `ANULADO` por P2 o P3 (problema con el banco u otro motivo) cancela el viaje si está `PENDIENTE` o `ASIGNADO` (V6).
+- `ANULADO` por P2 o P3 (problema con el banco u otro motivo) cancela el viaje si está `PENDIENTE` o `ASIGNADO` (V6). P5 no dispara V6: el viaje ya está cancelado.
+- Un viaje `CANCELADO` nunca queda con un pago `PENDIENTE` ni `PAGADO`, salvo el `PAGADO` de V7 vencido con reembolso 0.
 - Sin re-cobro: el pago no se reemplaza ni se registra otro. Un viaje con su pago `RECHAZADO`, o
   `ANULADO` estando `EN_CURSO` o `FINALIZADO`, queda sin cobro (`POST /pagos` responde 409 porque ya tiene pago).
 
@@ -146,7 +162,10 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
   desactiva (baja de un conductor desvinculado o de un vehículo en taller) solo si no tienen
   viajes `ASIGNADO` ni `EN_CURSO` (409), y los puede reactivar (CU-07/CU-09/RF25). Un inactivo no
   es asignable (V2) ni aparece en "Asignar"; un Conductor inactivo no inicia sesión (mismo 401
-  genérico) y al desactivarlo se revocan sus sesiones. Las habilitaciones no cambian.
+  genérico) y al desactivarlo se revocan sus sesiones. Su JWT de acceso ya emitido vale hasta su
+  `exp` (es stateless), pero sin viajes `ASIGNADO` ni `EN_CURSO` no puede ejecutar transiciones, y
+  no puede renovarlo. Las habilitaciones no cambian. Desactivar o reactivar con el mismo valor
+  que ya tiene responde `200` sin cambios; reactivar no tiene precondiciones.
 
 ## Requisitos
 
@@ -156,14 +175,14 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
 |---|---|---|---|
 | CU-01 Registrar solicitud de traslado | ACT-01 | Ingresa pasajero(s), fecha/hora, origen, destino y n.º de vuelo (si aplica) → viaje `PENDIENTE` con sus pasajeros, en tres llamadas ([Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02)). | Datos incompletos o inválidos: 400 según [Validaciones](#validaciones). |
 | CU-02 Visualizar viajes asignados | ACT-04 | Lista sus viajes asignados del día, actualizados desde el backend. | Sin conectividad: muestra los viajes ya sincronizados (RF11/HU11). Sin viajes: lista vacía. |
-| CU-03 Navegar a la ruta del viaje | ACT-04 | "Navegar" en un viaje con coordenadas → Intent con origen y destino → el SO lo entrega a una app compatible, que navega. | No hay app compatible o el Intent no puede procesarse. |
-| CU-04 Gestionar y distribuir solicitudes | ACT-03 | Elige una solicitud y un conductor disponible (se sugieren sus vehículos habilitados) y confirma: [V2](#viaje) `PENDIENTE` → `ASIGNADO`. | Sin conductores disponibles. Conductor o vehículo con otro viaje a menos de 2 horas: 409 ([V2](#viaje)). Sin reasignación automática; la manual de un `ASIGNADO` sigue el mismo flujo (RF22). |
+| CU-03 Navegar a la ruta del viaje | ACT-04 | "Navegar" en el detalle de un viaje propio: en `ASIGNADO` hacia el origen (recoger a los pasajeros) y en `EN_CURSO` hacia el destino, desde la ubicación actual → Intent con las coordenadas de ese punto → Google Maps o Waze navega ([Notificaciones y navegación externa](#notificaciones-y-navegación-externa)). En otros estados no se ofrece. | Ninguna app compatible instalada: aviso. |
+| CU-04 Gestionar y distribuir solicitudes | ACT-03 | Elige una solicitud y un conductor disponible (se sugieren sus vehículos habilitados) y confirma: [V2](#viaje) `PENDIENTE` → `ASIGNADO`. | Sin conductores disponibles. Viaje vencido o sin pasajeros: no se ofrece y se rechaza (409). Conductor o vehículo con otro viaje a menos de 2 horas: 409 ([V2](#viaje)). Sin reasignación automática; la manual de un `ASIGNADO` sigue el mismo flujo (RF22). |
 | CU-05 Actualizar estado del traslado | ACT-03, ACT-04 | Ciclo [V2](#viaje) `PENDIENTE` → `ASIGNADO` (el Administrador asigna), [V3](#viaje) `ASIGNADO` → `EN_CURSO` y [V4](#viaje) `EN_CURSO` → `FINALIZADO` (el Conductor inicia y finaliza). | Sin reapertura; el único retroceso es el rechazo del Conductor (CU-16, [V8](#viaje)). La cancelación es CU-08, CU-15 o la anulación del pago (CU-12). |
 | CU-06 Trazar ruta óptima hacia el destino | ACT-05 | Con coordenadas válidas, calcula la ruta con el tráfico disponible y la muestra al conductor. | Algoritmo, proveedor de tráfico y criterios son del sistema externo. |
-| CU-07 Registrar conductor | ACT-03 | El Administrador ingresa nombre, correo (único), contraseña inicial (se guarda como hash) y teléfono opcional; la cuenta queda activa para autenticarse y, una vez habilitada para un vehículo (CU-10), para ser asignada (CU-04). Sin autorregistro. Desde su ficha el Administrador lo desactiva o reactiva ([Conductor y vehículo](#conductor-y-vehículo), RF25). | Correo existente o campo faltante: rechazo. Desactivar con viajes `ASIGNADO` o `EN_CURSO`: 409. El Conductor no tiene "cambiar contraseña": el Administrador la reemplaza en su ficha. |
+| CU-07 Registrar conductor | ACT-03 | El Administrador ingresa nombre, correo (único), contraseña inicial (se guarda como hash) y teléfono opcional; la cuenta queda activa para autenticarse y, una vez habilitada para un vehículo (CU-10), para ser asignada (CU-04). Sin autorregistro. Desde su ficha el Administrador lo desactiva o reactiva ([Conductor y vehículo](#conductor-y-vehículo), RF25). | Correo existente o campo faltante: rechazo. Desactivar con viajes `ASIGNADO` o `EN_CURSO`: 409. El Conductor no tiene "cambiar contraseña": el Administrador la reemplaza en su ficha. No se envía correo: el Administrador le comunica la contraseña en persona. |
 | CU-08 Cancelar solicitud de traslado | ACT-01 | Solicitud propia en `PENDIENTE` o `ASIGNADO`: "Cancelar" en el detalle → [V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO`, con fecha/hora. | En `EN_CURSO` o `FINALIZADO`, o con el viaje vencido, no hay botón y se rechaza (409). |
 | CU-09 Registrar vehículo | ACT-03 | Patente (única), capacidad y serial GPS opcional (dato de flota; el MVP no registra ubicación en vivo); queda Disponible, activo, habilitable y asignable. Desde su ficha el Administrador lo desactiva (taller) o reactiva (RF25). | Patente existente o campo faltante: rechazo. Desactivar con viajes `ASIGNADO` o `EN_CURSO`: 409. |
-| CU-10 Habilitar conductor para vehículo | ACT-03 | Relaciona un conductor (CU-07) con uno o más vehículos (CU-09); M:N. | Relación existente: se ignora sin duplicar. |
+| CU-10 Habilitar conductor para vehículo | ACT-03 | Relaciona un conductor (CU-07) con uno o más vehículos (CU-09); M:N. | Relación existente: se ignora sin duplicar. Las habilitaciones no se eliminan en el MVP. |
 | CU-11 Registrar pago de un viaje | ACT-03 | En un viaje no `CANCELADO`: monto, banco, medio de pago y tipo de recibo → pago `PENDIENTE` asociado al viaje. | Viaje `CANCELADO`: no se registra. |
 | CU-12 Actualizar estado de un pago | ACT-03 | Sobre un pago `PENDIENTE` (o `PAGADO`, solo para anularlo) marca `PAGADO`, `RECHAZADO` o `ANULADO` ([P2](#pago) desde `PENDIENTE`; [P3](#pago) `PAGADO` → `ANULADO`); anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)). | Estado terminal: no cambia. |
 | CU-13 Recuperar contraseña | ACT-01, ACT-03 | Ingresa su correo en "Recuperar contraseña". Si es de un Solicitante o Administrador: contraseña temporal aleatoria, guardada hasheada en `password_temporal_hash` con `password_temporal_expira`, sin tocar la contraseña actual, y enviada en texto plano solo a ese correo vía `EmailClient` (único momento en claro; nunca se persiste así, RNF01). Sirve para el login (CU-14) hasta expirar y obliga a cambiar la contraseña al entrar. | Correo inexistente o de un Conductor: mismo mensaje genérico. Expirada sin uso: pedir otra. Pedidos repetidos: [límite](#autenticación) por correo, sin aviso. |
@@ -171,7 +190,7 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
 | CU-15 Cancelar un viaje (Administrador) | ACT-03 | En el detalle de un viaje `PENDIENTE` o `ASIGNADO`: "Cancelar viaje", motivo y, si el viaje está vencido, monto a reembolsar → [V7](#viaje), con reembolso según [P4](#pago). | `EN_CURSO`, `FINALIZADO` o `CANCELADO`: no hay botón y se rechaza (409). Sin motivo: 400. |
 | CU-16 Rechazar una asignación | ACT-04 | En el detalle de un viaje propio `ASIGNADO`, antes de iniciarlo: "Rechazar", motivo → [V8](#viaje); el viaje vuelve a `PENDIENTE` y sale de su agenda. | Sin conexión: no se ofrece (no se encola). Sin motivo: 400. |
 | CU-17 Aprobar un Solicitante | ACT-03 | Quien se registra con el RUT de una empresa existente queda `PENDIENTE` (RF01). El Administrador lo ve en "Cuentas por aprobar" y lo aprueba (puede crear solicitudes) o rechaza (no inicia sesión). | Cuenta ya revisada: 409. |
-| CU-18 Registrar un Administrador | ACT-03 | Un Administrador ingresa nombre, correo, teléfono opcional y una contraseña inicial, que queda como temporal por `ALTA_TEMPORAL_HORAS` y obliga a cambiarla al entrar. | Correo existente o campo faltante: rechazo. |
+| CU-18 Registrar un Administrador | ACT-03 | Un Administrador ingresa nombre, correo, teléfono opcional y una contraseña inicial, que queda como temporal por `ALTA_TEMPORAL_HORAS` y obliga a cambiarla al entrar. No se envía correo: quien lo registra le comunica la contraseña en persona. | Correo existente o campo faltante: rechazo. |
 
 El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza su contraseña
 (CU-07/RF14), para que un desvinculado no recupere acceso por su cuenta.
@@ -196,7 +215,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 | **RF12** | Sistema | Push (FCM) a los actores afectados ante cambios relevantes (nueva solicitud, asignación o reasignación, rechazo, En Curso, Finalizado, cancelación, cambios del pago y cuentas por aprobar), sin recarga manual. |
 | **RF13** | Sistema | Registrar y mantener actualizado el token FCM de cada usuario autenticado. |
 | **RF14** | Administrador | Registrar una cuenta de Conductor (nombre, correo, contraseña inicial; teléfono opcional), utilizable de inmediato. |
-| **RF15** | Solicitante | Cancelar una solicitud propia en Pendiente o Asignado: el viaje sale de la agenda del conductor, si había uno, y se le avisa por push; un pago Pagado pasa a Reembolsado con devolución del 50 % del monto. No se puede con el viaje vencido ([V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO`; [P4](#pago) `PAGADO` → `REEMBOLSADO`). |
+| **RF15** | Solicitante | Cancelar una solicitud propia en Pendiente o Asignado: el viaje sale de la agenda del conductor, si había uno, y se le avisa por push; un pago Pagado pasa a Reembolsado con devolución del 50 % del monto y uno Pendiente se anula. No se puede con el viaje vencido ([V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO`; [P4](#pago) `PAGADO` → `REEMBOLSADO`; [P5](#pago) `PENDIENTE` → `ANULADO`). |
 | **RF16** | Administrador | Registrar un vehículo con patente y capacidad; serial GPS opcional, como dato de flota (el MVP no registra ubicación en vivo). |
 | **RF17** | Administrador | Habilitar uno o más conductores para un vehículo. |
 | **RF18** | Administrador | Registrar el pago de un viaje en cualquier estado previo a Cancelado (monto, banco, medio de pago, tipo de recibo); nace en Pendiente. |
@@ -204,7 +223,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 | **RF20** | Solicitante | Ver el estado de pago de sus viajes en el detalle de la solicitud. |
 | **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): temporal enviada al correo, con expiración, que no reemplaza la actual y obliga a cambiarla al entrar. El Conductor no tiene este autoservicio (solo RF14). |
 | **RF22** | Administrador | Reasignar una solicitud Asignado (conductor, vehículo o ambos) con las reglas de RF05; sigue Asignado, el viaje sale de la agenda de los reemplazados y se avisa por push al nuevo conductor, al conductor reemplazado y al solicitante (RF12). |
-| **RF23** | Administrador | Cancelar un viaje Pendiente o Asignado con motivo: un pago Pagado se reembolsa al 100 %, o en el monto que decida si el viaje está vencido ([V7](#viaje), [P4](#pago)). |
+| **RF23** | Administrador | Cancelar un viaje Pendiente o Asignado con motivo: un pago Pagado se reembolsa al 100 %, o en el monto que decida si el viaje está vencido, y uno Pendiente se anula ([V7](#viaje), [P4](#pago), [P5](#pago)). |
 | **RF24** | Conductor | Rechazar con motivo un viaje Asignado antes de iniciarlo: vuelve a Pendiente y se avisa a los Administradores y al solicitante ([V8](#viaje)). |
 | **RF25** | Administrador | Desactivar y reactivar conductores y vehículos sin viajes Asignado ni En Curso ([Conductor y vehículo](#conductor-y-vehículo)). |
 | **RF26** | Administrador | Aprobar o rechazar a los Solicitantes que se registran en una empresa existente (CU-17). |
@@ -243,7 +262,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 
 ### Historias de usuario y Backlog
 
-Los efectos de estado se citan por el ID de su transición en [Máquinas de estado](#máquinas-de-estado) (V1–V8 viaje, P1–P4 pago) y forman parte del criterio.
+Los efectos de estado se citan por el ID de su transición en [Máquinas de estado](#máquinas-de-estado) (V1–V8 viaje, P1–P5 pago) y forman parte del criterio.
 
 | HU | RF | Prio. | SP | Historia | Criterios de aceptación |
 |---|---|---|---|---|---|
@@ -256,21 +275,21 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU07 | RF07 | Alta | 3 | Conductor: viajes del día en tiempo real | Solo los suyos, de la fecha actual, por hora; con pasajero, hora y estado. |
 | HU08 | RF08 | Alta | 3 | Conductor: detalle del viaje | Pasajero, vuelo (si aplica), origen y destino completos; "Navegar" y controles de estado. |
 | HU09 | RF09 | Alta | 3 | Conductor: En Curso y Finalizado | "Iniciar viaje" ([V3](#viaje)) solo en `ASIGNADO` y dentro de la ventana de `fh_agenda` ± 1 hora, "Finalizar viaje" ([V4](#viaje)) solo en `EN_CURSO`; cada cambio registra fecha/hora; al finalizar, conductor y vehículo → Disponible. |
-| HU10 | RF10 | Alta | 3 | Conductor: ruta en Google Maps o Waze | "Navegar" los abre con el destino precargado; sin app instalada, aviso en vez de fallar en silencio. |
+| HU10 | RF10 | Alta | 3 | Conductor: ruta en Google Maps o Waze | "Navegar" los abre con el origen precargado en `ASIGNADO` y con el destino en `EN_CURSO`; en otros estados no aparece. Sin app instalada, aviso en vez de fallar en silencio. |
 | HU11 | RF11 | Media | 8 | Conductor: uso sin conexión | Lo ya cargado se consulta offline; un cambio de estado offline va a una cola local marcado "pendiente de sincronizar" y se envía solo al reconectar. |
 | HU12 | RF12 | Media | 5 | Solicitante: push de estado | Push al pasar a `ASIGNADO`, `EN_CURSO` o `FINALIZADO`; al abrirlo o abrir "Mis solicitudes", el estado ya está actualizado. |
 | HU13 | RF12 | Alta | 5 | Conductor: push de asignación | Push al asignársele; al abrirlo, el viaje está en su agenda ("Viajes del día" si es de hoy) con datos completos. |
 | HU14 | RF13 | Alta | 3 | Todos: token de notificaciones | El login registra o actualiza el token FCM; si cambia (reinstalación, otro dispositivo), reemplaza al anterior sin duplicar. |
 | HU15 | RF14 | Alta | 3 | Administrador: alta de Conductor | Rechazo si el correo existe o falta un obligatorio; teléfono opcional. El Administrador define la contraseña (no se genera sola), guardada como hash. Aparece en "Asignar conductor" (HU05) en cuanto se lo habilita para un vehículo (HU18). Sin "cambiar contraseña" para el Conductor: la reemplaza el Administrador en su ficha. |
-| HU16 | RF15 | Alta | 3 | Solicitante: cancelar | "Cancelar" solo en `PENDIENTE` o `ASIGNADO` y con el viaje no vencido; [V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO` registra fecha/hora, avisa al conductor (RF12), saca el viaje de su agenda y reembolsa el 50 % de un pago `PAGADO` ([P4](#pago); otro estado no cambia). |
+| HU16 | RF15 | Alta | 3 | Solicitante: cancelar | "Cancelar" solo en `PENDIENTE` o `ASIGNADO` y con el viaje no vencido; [V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO` registra fecha/hora, avisa al conductor (RF12), saca el viaje de su agenda, reembolsa el 50 % de un pago `PAGADO` ([P4](#pago)) y anula uno `PENDIENTE` ([P5](#pago)); otro estado no cambia. |
 | HU17 | RF16 | Media | 3 | Administrador: alta de vehículo | Patente obligatoria y única; capacidad > 0; GPS serial opcional, como dato de flota; nace Disponible y activo. |
 | HU18 | RF17 | Media | 2 | Administrador: habilitaciones | Solo conductores registrados (HU15); M:N; una relación existente no se duplica. |
 | HU19 | RF18 | Media | 5 | Administrador: registrar pago | Viaje en cualquier estado salvo `CANCELADO`; hash único; banco, medio de pago y tipo de recibo desde catálogos; nace `PENDIENTE`. |
-| HU20 | RF19 | Media | 3 | Administrador: estado del pago | Transiciones [P2](#pago) `PENDIENTE` → `PAGADO`/`RECHAZADO`/`ANULADO`, [P3](#pago) `PAGADO` → `ANULADO` y [P4](#pago) `PAGADO` → `REEMBOLSADO` (solo automática, HU16); `RECHAZADO`, `ANULADO` y `REEMBOLSADO` terminales. Anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)) con los efectos de HU16 (agenda y push al conductor). |
+| HU20 | RF19 | Media | 3 | Administrador: estado del pago | Transiciones [P2](#pago) `PENDIENTE` → `PAGADO`/`RECHAZADO`/`ANULADO`, [P3](#pago) `PAGADO` → `ANULADO`, [P4](#pago) `PAGADO` → `REEMBOLSADO` y [P5](#pago) `PENDIENTE` → `ANULADO` (solo automáticas, al cancelar el viaje: HU16 y HU24); `RECHAZADO`, `ANULADO` y `REEMBOLSADO` terminales. Anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)) con los efectos de HU16 (agenda y push al conductor). |
 | HU21 | RF20 | Baja | 2 | Solicitante: estado de pago | En "Detalle de solicitud" (HU03), solo si el viaje tiene pago. |
 | HU22 | RF21 | Media | 3 | Solicitante/Administrador: recuperar contraseña | Solo esos roles; cualquier otro correo recibe el mismo mensaje genérico. La temporal no reemplaza la actual y expira; usarla obliga a cambiar la contraseña; sin uso, se pide otra. |
 | HU23 | RF22 | Media | 3 | Administrador: reasignar | [V2](#viaje) `ASIGNADO` → `ASIGNADO`, solo en `ASIGNADO`. Cambia conductor, vehículo o ambos con las reglas de HU05; sigue `ASIGNADO`; el viaje sale de la agenda de los reemplazados; push al nuevo conductor, al reemplazado y al solicitante (RF12); queda en `HISTORIAL_VIAJE`. |
-| HU24 | RF23 | Alta | 3 | Administrador: cancelar un viaje | Solo en `PENDIENTE` o `ASIGNADO`; motivo obligatorio. [V7](#viaje): push al conductor y al solicitante; pago `PAGADO` reembolsado al 100 % o, con el viaje vencido, en el monto que se indique (0 lo deja `PAGADO`). |
+| HU24 | RF23 | Alta | 3 | Administrador: cancelar un viaje | Solo en `PENDIENTE` o `ASIGNADO`; motivo obligatorio. [V7](#viaje): push al conductor y al solicitante; pago `PAGADO` reembolsado al 100 % o, con el viaje vencido, en el monto que se indique (0 lo deja `PAGADO`); pago `PENDIENTE` anulado ([P5](#pago)). |
 | HU25 | RF24 | Media | 2 | Conductor: rechazar una asignación | Solo `ASIGNADO`, antes de iniciar y con conexión; motivo obligatorio. [V8](#viaje): vuelve a `PENDIENTE`, sale de su agenda y avisa a los Administradores y al solicitante. |
 | HU26 | RF25 | Media | 3 | Administrador: dar de baja | Desactivar o reactivar un conductor o un vehículo desde su ficha; 409 con viajes `ASIGNADO` o `EN_CURSO`. Inactivo: no aparece en "Asignar"; un Conductor inactivo no inicia sesión. |
 | HU27 | RF26 | Media | 3 | Administrador: aprobar solicitantes | "Cuentas por aprobar" lista los `PENDIENTE` con su empresa; aprobar o rechazar avisa por correo al Solicitante. |
@@ -299,7 +318,7 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | USUARIO | nombre | VARCHAR(120) | NOT NULL | — |  |
 | USUARIO | correo | VARCHAR(150) | NOT NULL | UQ | Login. |
 | USUARIO | telefono | VARCHAR(20) | NULL | — | Opcional, para todos los roles. |
-| USUARIO | password_hash | VARCHAR(200) | NOT NULL | — | Contraseña normal (BCrypt). Nunca texto plano; recuperar la contraseña no la reemplaza. |
+| USUARIO | password_hash | VARCHAR(200) | NOT NULL | — | Contraseña normal (BCrypt). Nunca texto plano; recuperar la contraseña no la reemplaza. Un Administrador que nace con contraseña temporal (el inicial y los de CU-18) recibe aquí el BCrypt de 32 bytes aleatorios que nunca se revelan: inutilizable hasta que cambie su contraseña. |
 | USUARIO | password_temporal_hash | VARCHAR(200) | NULL | — | Contraseña temporal pendiente (RF21), BCrypt; NULL si no hay. Siempre NULL para CONDUCTOR. |
 | USUARIO | password_temporal_expira | DATETIME | NULL | — | Vencimiento de `password_temporal_hash`; NULL junto con ella (RF21). Siempre NULL para CONDUCTOR. |
 | USUARIO | fecha_registro | DATETIME | NOT NULL | DEFAULT CURRENT_TIMESTAMP |  |
@@ -328,12 +347,12 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | ESTADO_SOLICITANTE | nombre | VARCHAR(20) | NOT NULL | UQ | PENDIENTE, APROBADO o RECHAZADO. |
 | ADMINISTRADOR | id_usuario | BIGINT UNSIGNED | NOT NULL | PK, FK → USUARIO | Extensión 1:1, sin atributos propios. El inicial se crea por migración Flyway de carga inicial; los demás, con `POST /administradores` (CU-18/RF27). Sin autorregistro. |
 | ESTADO_CONDUCTOR | id_estado | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| ESTADO_CONDUCTOR | estado | VARCHAR(20) | NOT NULL | UQ | Disponible u Ocupado (ver [Conductor y vehículo](#conductor-y-vehículo)). |
+| ESTADO_CONDUCTOR | estado | VARCHAR(20) | NOT NULL | UQ | `DISPONIBLE` u `OCUPADO` (ver [Conductor y vehículo](#conductor-y-vehículo)). |
 | CONDUCTOR | id_usuario | BIGINT UNSIGNED | NOT NULL | PK, FK → USUARIO | Extensión 1:1. |
 | CONDUCTOR | estado_conductor_id_estado | BIGINT UNSIGNED | NOT NULL | FK → ESTADO_CONDUCTOR | Estado operativo del Conductor: nace Disponible (CU-07); Ocupado solo con un viaje `EN_CURSO` (ver [Conductor y vehículo](#conductor-y-vehículo)). |
 | CONDUCTOR | activo | BOOLEAN | NOT NULL | DEFAULT TRUE | Baja de un desvinculado (RF25): inactivo no inicia sesión ni es asignable. |
 | ESTADO_MOVIL | id_estado_mov | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| ESTADO_MOVIL | nombre | VARCHAR(20) | NOT NULL | UQ | Disponible o En uso (ver [Conductor y vehículo](#conductor-y-vehículo)). |
+| ESTADO_MOVIL | nombre | VARCHAR(20) | NOT NULL | UQ | `DISPONIBLE` o `EN_USO` (ver [Conductor y vehículo](#conductor-y-vehículo)). |
 | MOVIL | id_movil | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
 | MOVIL | patente | VARCHAR(6) | NOT NULL | UQ |  |
 | MOVIL | gps_serial | INT | NULL | — | Opcional (RF16). |
@@ -346,16 +365,16 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | PASAJERO | dni_hash | VARCHAR(50) | NOT NULL | UQ | Hash del documento de identidad: RUT chileno o pasaporte extranjero. Es el HMAC-SHA256 del documento normalizado (sin puntos, guion ni espacios, en mayúsculas), en Base64url sin relleno (43 caracteres). El cliente envía el documento en `dni` y el backend calcula el hash; nunca se guarda en claro. |
 | PASAJERO | nombre | VARCHAR(120) | NOT NULL | — | Puede no coincidir con el solicitante (CU-01). |
 | ESTADO_SOLICITUD | id_estado | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| ESTADO_SOLICITUD | nombre_estado | VARCHAR(20) | NOT NULL | UQ | PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO (RF05/RF09) y CANCELADO (RF15/CU-08). |
+| ESTADO_SOLICITUD | nombre_estado | VARCHAR(20) | NOT NULL | UQ | `PENDIENTE`, `ASIGNADO`, `EN_CURSO`, `FINALIZADO` (RF05/RF09) y `CANCELADO` (RF15/CU-08). |
 | BANCO | id | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| BANCO | nombre | VARCHAR(50) | NOT NULL | — |  |
+| BANCO | nombre | VARCHAR(50) | NOT NULL | — | Los 14 bancos de [Datos iniciales](#datos-iniciales). |
 | BANCO | cod_sbif | INT | NOT NULL | UQ | Código SBIF; identificador externo único. |
 | ESTADO_PAGO | id | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| ESTADO_PAGO | estado | VARCHAR(20) | NOT NULL | UQ | Pendiente, Pagado, Rechazado, Anulado o Reembolsado (RF18/RF19). Anulado lo genera el pago (banco u otro motivo) y cancela el viaje si está Pendiente o Asignado (RF19, V6); Reembolsado es automático cuando el Solicitante (RF15, V5) o el Administrador (RF23, V7) cancela con el pago Pagado. |
+| ESTADO_PAGO | estado | VARCHAR(20) | NOT NULL | UQ | `PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO` (RF18/RF19). `ANULADO` manual (P2/P3) cancela el viaje si está Pendiente o Asignado (RF19, V6); también es automático (P5) cuando se cancela el viaje con el pago Pendiente. `REEMBOLSADO` es automático (P4) cuando el Solicitante (RF15, V5) o el Administrador (RF23, V7) cancela con el pago Pagado. |
 | MEDIO_PAGO | id | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| MEDIO_PAGO | nombre | VARCHAR(20) | NOT NULL | UQ | P. ej. transferencia, tarjeta. |
+| MEDIO_PAGO | nombre | VARCHAR(20) | NOT NULL | UQ | `TRANSFERENCIA`, `TARJETA_DEBITO`, `TARJETA_CREDITO` o `EFECTIVO`. |
 | TIPO_RECIBO | id | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
-| TIPO_RECIBO | nombre | VARCHAR(20) | NOT NULL | UQ |  |
+| TIPO_RECIBO | nombre | VARCHAR(20) | NOT NULL | UQ | `BOLETA` o `FACTURA`. |
 | PAGO | id | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
 | PAGO | hash | VARCHAR(50) | NOT NULL | UQ | Generado por el backend al crear el pago, sin pasarela externa: 32 caracteres hexadecimales en minúsculas, aleatorios (UUID v4 sin guiones). Es la clave de ruta y no se muestra al usuario: la app identifica el pago por el folio de su viaje. |
 | PAGO | monto | INT | NOT NULL | — | Monto cobrado. |
@@ -387,8 +406,8 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | NOT NULL | PK, FK → PASAJERO |  |
 | HISTORIAL_VIAJE | id_historial | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
 | HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | NOT NULL | FK → VIAJE |  |
-| HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | — | Campo de `VIAJE` que cambió (conductor, móvil, estado, cantidad de pasajeros, etc.). |
-| HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | — | Valor nuevo, como texto. |
+| HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | — | Uno de: `estado`, `conductor`, `movil`, `cantidad_pasajeros`, `pago`, `motivo` (ver [Decisiones de modelo](#decisiones-de-modelo)). |
+| HISTORIAL_VIAJE | valor | VARCHAR(200) | NOT NULL | — | Valor nuevo como texto: el código del estado, el correo del conductor, la patente, el número, el `hash` del pago o el motivo. Un conductor o móvil que queda en NULL (V8) se registra como texto vacío (`''`). |
 | HISTORIAL_VIAJE | fecha_cambio | DATETIME | NOT NULL | DEFAULT CURRENT_TIMESTAMP |  |
 
 El actor ACT-05 no tiene tabla: no hay datos propios que persistir.
@@ -397,9 +416,12 @@ El actor ACT-05 no tiene tabla: no hay datos propios que persistir.
 
 - **`CANCELADO`** extiende los 4 estados del Anexo (§3.2): auditoría sin borrar la solicitud ni
   reutilizar otro estado (RF15/CU-08).
-- **`HISTORIAL_VIAJE`**: una fila por campo cambiado en cada `UPDATE` de `VIAJE` (conductor,
-  móvil, estado, cantidad de pasajeros; p. ej. una reasignación). La escriben los triggers de
-  `VIAJE`, no la aplicación; `folio` y `fh_creacion` son inmutables y nunca generan fila.
+- **`HISTORIAL_VIAJE`**: una fila por columna cambiada en cada `UPDATE` de `VIAJE`, solo para
+  `id_estado` (`estado`), `conductor_id_usuario` (`conductor`), `movil_id_movil` (`movil`),
+  `cantidad_pasajeros`, `pago_id` (`pago`) y `motivo`; una reasignación del conductor y del
+  vehículo genera dos filas. La escriben los triggers de `VIAJE`, no la aplicación. El `INSERT`
+  (V1) y las columnas `fh_*` no generan fila: la `fecha_cambio` de la fila de `estado` registra el
+  momento. `folio` y `fh_creacion` son inmutables. No se expone por la API.
 - **Roles como tabla por subtipo** (extensiones 1:1 de `USUARIO`) en vez de `TIPO_USUARIO` con
   `CHECK`; `USUARIO_ROL_ACTIVO` impone la exclusividad que el subtipo no garantiza.
 - **Catálogos en vez de `CHECK`** (`ESTADO_SOLICITUD`, `ESTADO_SOLICITANTE`, `ESTADO_CONDUCTOR`,
@@ -497,9 +519,18 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
 
 - **Anfitrión:** IP fija en la red de la demo; el puerto `8080` se abre solo en esa red. MariaDB
   y Mailpit siguen escuchando solo en `127.0.0.1`.
-- **Datos de demostración:** antes de cada presentación se carga `database/demo.sql` con
-  conductores, vehículos, habilitaciones y solicitudes ficticias (RNF09). Ese script no es una
-  migración de Flyway y nunca corre en las pruebas.
+- **Datos de demostración:** antes de cada presentación se carga `database/demo.sql` (RNF09).
+  Ese script no es una migración de Flyway y nunca corre en las pruebas. Vacía las tablas de
+  negocio (conserva catálogos, regiones y comunas), así que se puede volver a ejecutar, y carga
+  como mínimo:
+  - 2 Administradores, 4 Conductores (1 inactivo) y 4 vehículos (1 inactivo), con cada
+    Conductor activo habilitado para al menos un vehículo activo;
+  - 2 empresas y 3 Solicitantes (1 `PENDIENTE` de aprobación);
+  - viajes en los 5 estados, uno atrasado y uno vencido, con `fh_agenda` relativa a `NOW()`, y
+    pagos en los 5 estados.
+
+  Todas las cuentas usan la misma contraseña ficticia, escrita en un comentario al inicio del
+  script (sin contraseña temporal pendiente).
 - **Respaldo:** `mariadb-dump` de la base antes de cada demostración, guardado fuera del
   repositorio.
 - **Sin TLS solo en la demo:** el backend responde por HTTP dentro de la red de la demostración.
@@ -522,7 +553,7 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
   | `GET` | `/api/v1/{recurso}` | Listar |
   | `GET` | `/api/v1/{recurso}/{valor_unique_key}` | Consultar uno |
   | `POST` | `/api/v1/{recurso}` | Crear (`201` con el recurso) |
-  | `PUT` | `/api/v1/{recurso}/{valor_unique_key}` | Solo `usuarios`, `conductores` y `solicitantes` (`200`), p. ej. el Administrador reemplazando la contraseña de un Conductor (CU-07) |
+  | `PUT` | `/api/v1/{recurso}/{valor_unique_key}` | Solo `usuarios` (la cuenta propia) y `conductores` (el Administrador) (`200`), p. ej. el Administrador reemplazando la contraseña de un Conductor (CU-07) |
 
 - **Sin `DELETE`:** ninguna fila se destruye por API; a lo más cambia de estado (`CANCELADO`,
   `HISTORIAL_VIAJE`).
@@ -557,10 +588,10 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
 |---|---|---|---|
 | `auth` | — | Público; `logout` y `token-fcm` con JWT de cualquier rol | Login (CU-14), renovación y cierre de sesión, token FCM (RF13) y recuperación de contraseña (CU-13/RF21). |
 | `catalogos` | — | Solicitante, Administrador, Conductor (lectura) | Solo `GET /api/v1/catalogos`: bancos, medios de pago, tipos de recibo, regiones y comunas. |
-| `usuarios` | `correo` | Solicitante, Administrador, Conductor | Cada uno solo su cuenta (RNF08). `POST` (cuenta sin rol): solo Administrador. El Conductor solo consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
+| `usuarios` | `correo` | Solicitante, Administrador, Conductor | Cada uno solo su cuenta (RNF08): `GET` y, salvo el Conductor, `PUT` (datos y contraseña propios). Sin `POST`: cada cuenta se crea por su rol (`solicitantes`, `conductores`, `administradores`). El Conductor solo consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
 | `administradores` | `correo` | Administrador | Consulta y alta (`POST`, CU-18/RF27); el inicial se crea por migración. |
 | `conductores` | `correo` | Administrador (crea, edita y activa o desactiva; CU-07/RF25); Conductor | El Conductor solo su cuenta. |
-| `solicitantes` | `correo` | Público (`POST`, autorregistro RF01); Solicitante (su cuenta: lectura y `PUT`); Administrador (lectura, aprobar y rechazar; CU-17/RF26) | El Solicitante solo su cuenta. |
+| `solicitantes` | `correo` | Público (`POST`, autorregistro RF01); Solicitante (su cuenta, lectura); Administrador (lectura, aprobar y rechazar; CU-17/RF26) | El Solicitante solo su cuenta; sus datos y contraseña se editan con `PUT /usuarios/{correo}` y su empresa no cambia. Sin `PUT`. |
 | `empresas` | `rut` | Administrador (lectura) | Se crean o reutilizan dentro de `POST /solicitantes` (autorregistro público, RF01), no por esta ruta. |
 | `moviles` | `patente` | Administrador | Gestión de flota y bajas (CU-09, CU-10, RF25). |
 | `habilitaciones-movil-conductor` | `{patente}/{correo}` | Administrador | Habilitar conductores para un vehículo (CU-10). |
@@ -574,17 +605,26 @@ ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede us
 
 ### Consultas y alcance por rol
 
-- `GET /usuarios` devuelve solo la cuenta propia. En `usuarios`, `conductores` (Conductor) y
-  `solicitantes` (Solicitante), pedir la cuenta de otra persona responde 403 exista o no, para
-  no revelar qué correos están registrados.
-- `GET /viajes`: Administrador, todos (CU-04); Solicitante, los propios (RF03); Conductor, los
-  asignados a él (RF07). Parámetros combinables, para todos los roles dentro de su alcance:
+- `GET /usuarios` devuelve solo la cuenta propia, y lo mismo `GET /conductores` del Conductor y
+  `GET /solicitantes` del Solicitante (una lista de un elemento). En `usuarios`, `conductores`
+  (Conductor) y `solicitantes` (Solicitante), pedir la cuenta de otra persona responde 403 exista
+  o no, para no revelar qué correos están registrados.
+- **Alcance de `viajes`** (listas, `GET /viajes/{folio}` y acciones): Administrador, todos
+  (CU-04); Solicitante, los de `VIAJE.id_solicitante` propio (RF03), no los de otros empleados
+  de su empresa; Conductor, los de `VIAJE.conductor_id_usuario` propio en cualquier estado (RF07).
+  Un viaje reasignado a otro conductor o rechazado (V8) deja de ser del Conductor anterior. Fuera
+  del alcance: 403. Para el Conductor, `hashPago` y `estadoPago` van en `null` (los pagos no son
+  de su rol).
+- `GET /viajes`, parámetros combinables, para todos los roles dentro de su alcance:
   - `estado`: uno de los 5 de `ESTADO_SOLICITUD`; `?estado=PENDIENTE` es la lista de pendientes
     del Administrador (RF04).
   - `fecha` (`AAAA-MM-DD`): viajes con `fhAgenda` ese día.
   - Sin parámetros, el Conductor recibe su agenda de hoy y los demás roles, todo su alcance.
-  - La agenda del Conductor (sin `estado`) trae sus viajes `ASIGNADO`, `EN_CURSO` y `FINALIZADO`
-    del día; uno `CANCELADO` ([V5](#viaje) a [V7](#viaje)) o rechazado ([V8](#viaje)) sale de ella.
+  - La agenda del Conductor (sin `estado`, de hoy o de la `fecha` pedida) trae sus viajes
+    `ASIGNADO`, `EN_CURSO` y `FINALIZADO` de ese día; uno `CANCELADO` ([V5](#viaje) a
+    [V7](#viaje)) o rechazado ([V8](#viaje)) sale de ella. La agenda de hoy incluye además su
+    viaje `EN_CURSO` de una fecha anterior, si lo tiene (p. ej. uno iniciado antes de la
+    medianoche), para que pueda finalizarlo.
 - `GET /solicitantes` (Administrador): todos o, con `?estado=PENDIENTE`, las cuentas por aprobar
   (CU-17).
 - `GET /habilitaciones-movil-conductor`: todas, o filtradas por `?patente=` (conductores de un
@@ -597,16 +637,21 @@ ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede us
 - `POST /pagos` (CU-11/RF18): 409 si el viaje está cancelado o ya tiene pago; 400 si el banco
   (`codSbif`), el medio de pago o el tipo de recibo no existen en su catálogo.
 - `POST /pasajeros` recibe el documento en `dni`, con su tipo en `tipoDocumento`, y el backend calcula el `dni_hash` (ver
-  [Configuración](#configuración)); si el documento ya existe, devuelve su `dniHash` sin duplicarlo ni exponer el `nombre` guardado (RNF08).
+  [Configuración](#configuración)). Documento nuevo: `201` con `dniHash` y `nombre`. Documento ya
+  existente: `200` con su `dniHash` y `nombre` en `null`, sin duplicarlo ni exponer el `nombre`
+  guardado (RNF08); el `nombre` enviado se ignora y el guardado no cambia.
 - **Sin paginación:** cada lista responde completa según sus filtros, porque la caché Room
   reemplaza la consulta guardada con la respuesta completa ([Base de datos local](#base-de-datos-local)).
 - **Orden fijo:**
   - `viajes`, por `fhAgenda` ascendente (lo próximo primero) en la agenda del Conductor y con
     `estado` `PENDIENTE`, `ASIGNADO` o `EN_CURSO`; descendente (lo reciente primero) sin `estado`
-    o con `FINALIZADO` o `CANCELADO`. El empate se desata por `folio`.
+    o con `FINALIZADO` o `CANCELADO`. El empate se desata por `folio`, en el mismo sentido.
   - `usuarios`, `conductores`, `solicitantes` y `pasajeros`, por `nombre`; `empresas`, por
     `razonSocial`; `moviles`, por `patente`; `habilitaciones-movil-conductor`, por `patente` y
     `nombreConductor`; `pagos`, por `folio` descendente.
+  - El orden por `folio` es numérico, por su correlativo, no alfabético: `TR-9999` va antes que
+    `TR-10000`. Los textos se ordenan con la intercalación de la base (`utf8mb4_unicode_ci`: sin
+    distinguir mayúsculas ni tildes).
 - **Asociaciones repetidas:** "uno o más" conductores por vehículo (RF17/CU-10) se registra con un
   `POST /habilitaciones-movil-conductor` por par. Un par nuevo responde `201`; uno existente,
   `200` con el mismo cuerpo, sin duplicar. Igual con `POST /pasajeros-viaje`.
@@ -627,10 +672,10 @@ notificación, `GET /viajes/{folio}`; al cerrar sesión desde un Perfil, `POST /
 | Recuperar contraseña | `POST /auth/recuperar-password`. |
 | Mis solicitudes | `GET /viajes`. |
 | Nueva solicitud | Places ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), luego el [Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02). |
-| Detalle de solicitud (Solicitante) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`; cancelar, `POST /viajes/{folio}/cancelar`. |
+| Detalle de solicitud (Solicitante) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`; agregar pasajero, `POST /pasajeros` y `POST /pasajeros-viaje`; cancelar, `POST /viajes/{folio}/cancelar`. |
 | Perfil (Solicitante) | `GET /solicitantes/{correo}`. |
 | Cambiar contraseña | `PUT /usuarios/{correo}` con los datos actuales, `passwordActual` y la nueva `password` (Solicitante y Administrador). |
-| Solicitudes (Administrador) | `GET /viajes?estado=PENDIENTE` al abrir; cada filtro, `GET /viajes?estado=…`; "Todas", `GET /viajes`. |
+| Solicitudes (Administrador) | `GET /viajes?estado=PENDIENTE` y `GET /solicitantes?estado=PENDIENTE` (la cantidad del enlace a "Cuentas por aprobar") al abrir; cada filtro, `GET /viajes?estado=…`; "Todas", `GET /viajes`. |
 | Detalle de solicitud (Administrador) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`; cancelar, `POST /viajes/{folio}/cancelar` con `motivo` (y `montoReembolso` si está vencido). |
 | Cuentas por aprobar | `GET /solicitantes?estado=PENDIENTE`; `POST /solicitantes/{correo}/aprobar` o `/rechazar`. |
 | Asignar conductor y vehículo | `GET /conductores` (se elige uno `DISPONIBLE`, con `viajesAsignados` y `folioEnCurso` como contexto); `GET /habilitaciones-movil-conductor?correo=` del elegido (vehículos con `capacidad` y `estadoMovil`); confirmar, `POST /viajes/{folio}/asignar`. |
@@ -662,7 +707,18 @@ Tres llamadas del Solicitante autenticado, porque viaje, pasajero y asociación 
 Los pasos 1 y 2 son independientes; el 3 necesita el `dniHash` del 1 y el `folio` del 2. Solo el
 Solicitante dueño agrega pasajeros, y solo con el viaje `PENDIENTE` o `ASIGNADO` (409 si no). Con
 vehículo asignado no se admiten más pasajeros que su capacidad (409). Cada asociación suma 1 a
-`VIAJE.cantidad_pasajeros` por trigger.
+`VIAJE.cantidad_pasajeros` por trigger. Un pasajero asociado no se quita (no hay `DELETE`).
+
+Orden en la app al pulsar "Enviar solicitud", cada llamada con su `Idempotency-Key`
+([Convenciones](#convenciones)):
+
+1. Un `POST /pasajeros` por pasajero. Si alguno falla, no se crea el viaje y el formulario
+   muestra el error.
+2. `POST /viajes`. Si falla, el formulario muestra el error y se puede reenviar.
+3. Un `POST /pasajeros-viaje` por pasajero. Si una asociación falla tras su reintento
+   automático, la app abre igual el detalle del viaje ya creado: con 0 pasajeros muestra
+   "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno", y en `PENDIENTE` o
+   `ASIGNADO` ofrece "Agregar pasajero" (pasos 1 y 3 para un pasajero).
 
 ### Ubicaciones desde Google Places
 
@@ -713,8 +769,8 @@ fila ([Contratos JSON](#contratos-json)) y devuelven la respuesta del recurso. R
 |---|---|---|---|---|
 | `POST` | `/api/v1/viajes/{folio}/asignar` | Administrador | `correoConductor`, `patente` | [V2](#viaje): asignar o reasignar (CU-04/RF05/RF22); viaje `PENDIENTE` o `ASIGNADO`. |
 | `POST` | `/api/v1/viajes/{folio}/estado` | Conductor asignado | `estado`: `EN_CURSO` o `FINALIZADO` | [V3](#viaje) `ASIGNADO` → `EN_CURSO` o [V4](#viaje) `EN_CURSO` → `FINALIZADO` (CU-05/RF09). |
-| `POST` | `/api/v1/viajes/{folio}/cancelar` | Solicitante dueño | — | [V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO` (CU-08/RF15), con [P4](#pago) al 50 % si el pago está `PAGADO`. |
-| `POST` | `/api/v1/viajes/{folio}/cancelar` | Administrador | `motivo`; `montoReembolso` si el viaje está vencido y el pago `PAGADO` | [V7](#viaje) (CU-15/RF23), con [P4](#pago) al 100 % o en el monto indicado. |
+| `POST` | `/api/v1/viajes/{folio}/cancelar` | Solicitante dueño | — | [V5](#viaje) `PENDIENTE`/`ASIGNADO` → `CANCELADO` (CU-08/RF15), con [P4](#pago) al 50 % si el pago está `PAGADO` o [P5](#pago) si está `PENDIENTE`. |
+| `POST` | `/api/v1/viajes/{folio}/cancelar` | Administrador | `motivo`; `montoReembolso` si el viaje está vencido y el pago `PAGADO` | [V7](#viaje) (CU-15/RF23), con [P4](#pago) al 100 % o en el monto indicado si el pago está `PAGADO`, o [P5](#pago) si está `PENDIENTE`. |
 | `POST` | `/api/v1/viajes/{folio}/rechazar` | Conductor asignado | `motivo` | [V8](#viaje) `ASIGNADO` → `PENDIENTE` (CU-16/RF24). |
 | `POST` | `/api/v1/pagos/{hash}/estado` | Administrador | `estado`: `PAGADO`, `RECHAZADO` o `ANULADO` | [P2](#pago) o [P3](#pago) (CU-12/RF19); `ANULADO` dispara [V6](#viaje). `REEMBOLSADO` (P4) no pasa por esta ruta. |
 | `POST` | `/api/v1/conductores/{correo}/activo` | Administrador | `activo` | Desactivar o reactivar un Conductor (RF25); 409 con viajes `ASIGNADO` o `EN_CURSO`. |
@@ -740,7 +796,9 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshD
   - Con la normal: responde `accessToken` y `refreshToken`, y anula una temporal pendiente.
   - Con la temporal: responde solo `accessToken` (`refreshToken` en `null`) y
     `cambioPasswordRequerido: true`; la app abre "Cambiar contraseña" antes que cualquier otra
-    pantalla.
+    pantalla. Ese JWT no lleva `sid` y solo autoriza `GET` y `PUT /usuarios/{correo}` de la
+    cuenta propia y `POST /auth/logout`; cualquier otra ruta responde 403 "Debes cambiar la
+    contraseña". Tras cambiarla, la app inicia sesión con la nueva.
 
   Todo fallo (correo desconocido, contraseña incorrecta, temporal vencida, usuario sin rol o
   Conductor inactivo) da
@@ -757,7 +815,9 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshD
     Responde como el login.
   - Refresh desconocido, vencido o revocado: 401 "Sesión inválida". Presentar uno ya revocado se
     trata como robo y revoca todas las sesiones del usuario.
-  - `POST /auth/logout` revoca la sesión `sid`, deja `USUARIO.token_fcm` en NULL y responde `204`.
+  - `POST /auth/logout` revoca la sesión `sid` (sin `sid`, no revoca nada), deja
+    `USUARIO.token_fcm` en NULL y responde `204`.
+  - `POST /auth/token-fcm` responde `204`.
   - Cambiar la contraseña propia revoca las demás sesiones del usuario (la `sid` actual sigue);
     el Administrador que reemplaza la de un Conductor revoca todas las del Conductor (CU-07).
 - **Contraseñas:** BCrypt.
@@ -778,7 +838,8 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshD
   cualquier entorno compartido.
 
 **Límites de intentos.** Contadores en memoria de la instancia (se pierden al reiniciar), por
-correo normalizado y por IP del cliente:
+correo normalizado y por IP del cliente (la del socket; no se confía en `X-Forwarded-For`), en
+ventanas deslizantes: "en 15 minutos" son los 15 minutos anteriores a cada petición.
 
 | Ruta | Límite | Al excederlo |
 |---|---|---|
@@ -811,10 +872,10 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | `RefreshDTORequest` | `POST /auth/refresh` | `refreshToken` |
 | `TokenFcmDTORequest` | `POST /auth/token-fcm` | `tokenFcm` |
 | `RecuperarPasswordDTORequest` | `POST /auth/recuperar-password` | `correo` |
-| `SolicitanteDTORequest` | `POST /solicitantes`, `PUT /solicitantes/{correo}` | `nombre`, `correo`, `telefono?`, `password`, `passwordActual?`, `razonSocial`, `rutEmpresa` |
-| `ConductorDTORequest` | `POST /conductores`, `PUT /conductores/{correo}` | `nombre`, `correo`, `telefono?`, `password` |
+| `SolicitanteDTORequest` | `POST /solicitantes` | `nombre`, `correo`, `telefono?`, `password`, `razonSocial`, `rutEmpresa` |
+| `ConductorDTORequest` | `POST /conductores`, `PUT /conductores/{correo}` | `nombre`, `correo`, `telefono?`, `password` (opcional en `PUT`) |
 | `AdministradorDTORequest` | `POST /administradores` | `nombre`, `correo`, `telefono?`, `password` (inicial y temporal, CU-18) |
-| `UsuarioDTORequest` | `POST /usuarios`, `PUT /usuarios/{correo}` | `nombre`, `correo`, `telefono?`, `password`, `passwordActual?` |
+| `UsuarioDTORequest` | `PUT /usuarios/{correo}` | `nombre`, `correo`, `telefono?`, `password?`, `passwordActual?` (obligatoria si viene `password`) |
 | `MovilDTORequest` | `POST /moviles` | `patente`, `capacidad`, `gpsSerial?` |
 | `DetalleMovilConductorDTORequest` | `POST /habilitaciones-movil-conductor` | `patente`, `correoConductor` |
 | `PasajeroDTORequest` | `POST /pasajeros` | `tipoDocumento` (`RUT` o `PASAPORTE`), `dni`, `nombre` |
@@ -828,15 +889,15 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | `RechazarViajeDTORequest` | `POST /viajes/{folio}/rechazar` | `motivo` |
 | `ActivoDTORequest` | `POST /conductores/{correo}/activo`, `POST /moviles/{patente}/activo` | `activo` (booleano) |
 
-- **`PUT`** usa el DTO del `POST` y reemplaza todos los campos editables: `nombre`, `telefono`
+- **`PUT`** (`UsuarioDTORequest` o `ConductorDTORequest`) reemplaza todos los campos editables: `nombre`, `telefono`
   (ausente o `null` lo borra) y, si viene, `password`. `correo` debe coincidir con el de la ruta:
-  no se cambia (400 si difiere). Sin `password` se conserva la actual; con ella se reemplaza y se
-  anula la expiración de una temporal (RF21).
-- **Contraseña propia:** en `PUT /usuarios` y `PUT /solicitantes` con `password`, el dueño de la
-  cuenta envía `passwordActual` (obligatoria; una temporal vigente cuenta como actual). Si falta
-  o no coincide: 400 `passwordActual: no coincide`, sin más detalle. En `PUT /conductores` el
-  Administrador reemplaza la contraseña del Conductor sin `passwordActual` (CU-07). En `PUT /solicitantes`, `razonSocial` y `rutEmpresa` son opcionales y, si
-  vienen, deben ser los de su empresa actual (400 si difieren): la empresa no cambia por API.
+  no se cambia (400 si difiere). Sin `password` se conserva la actual; con ella se reemplaza y la
+  temporal pendiente queda en NULL (RF21). Solo hay `PUT` en `usuarios` (la cuenta propia) y
+  `conductores` (el Administrador).
+- **Contraseña propia:** en `PUT /usuarios` con `password`, el dueño de la cuenta envía
+  `passwordActual` (obligatoria; una temporal vigente cuenta como actual). Si falta o no coincide:
+  400 `passwordActual: no coincide`, sin más detalle. En `PUT /conductores` el Administrador
+  reemplaza la contraseña del Conductor sin `passwordActual` (CU-07).
 - **`PagoDTORequest`**: la empresa que paga (`PAGO.empresa_id_empresa`) es la del Solicitante
   del viaje; no viene en el cuerpo. El banco se identifica por `codSbif`.
 - **`PasajeroDTORequest`**: `dni` es el único campo que lleva el documento en claro; el backend
@@ -853,10 +914,10 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | `SolicitanteDTOResponse` | Los de `UsuarioDTOResponse`, `razonSocial`, `rutEmpresa` y `estadoSolicitante` (`PENDIENTE`, `APROBADO` o `RECHAZADO`) |
 | `EmpresaDTOResponse` | `razonSocial`, `rut` |
 | `MovilDTOResponse` | `patente`, `capacidad`, `gpsSerial?`, `activo`, `estadoMovil` (`DISPONIBLE` o `EN_USO`) |
-| `DetalleMovilConductorDTOResponse` | `patente`, `capacidad`, `estadoMovil`, `correoConductor`, `nombreConductor`, `estadoConductor` |
+| `DetalleMovilConductorDTOResponse` | `patente`, `capacidad`, `estadoMovil`, `activoMovil`, `correoConductor`, `nombreConductor`, `estadoConductor`, `activoConductor` |
 | `PasajeroDTOResponse` | `dniHash`, `nombre?` (`null` solo en `POST /pasajeros` cuando el documento ya existía, RNF08) |
 | `DetalleViajePasajeroDTOResponse` | `folio`, `dniHash`, `nombrePasajero` |
-| `ViajeDTOResponse` | `folio`, `estado`, `correoSolicitante`, `nombreSolicitante`, `telefonoSolicitante?`, `razonSocial` (empresa del Solicitante; RNF08), `origen` y `destino` (mismo objeto que en la petición), `fhCreacion`, `fhAgenda`, `fhAsignacion?`, `fhInicio?`, `fhFin?`, `numeroVuelo?`, `cantidadPasajeros`, `correoConductor?`, `nombreConductor?`, `patenteMovil?`, `hashPago?`, `estadoPago?`, `motivo?` (de V7 o V8), `pasajeros` (lista de `PasajeroDTOResponse`, con `nombre`) |
+| `ViajeDTOResponse` | `folio`, `estado`, `correoSolicitante`, `nombreSolicitante`, `telefonoSolicitante?`, `razonSocial` (empresa del Solicitante; RNF08), `origen` y `destino` (mismo objeto que en la petición), `fhCreacion`, `fhAgenda`, `fhAsignacion?`, `fhInicio?`, `fhFin?`, `numeroVuelo?`, `cantidadPasajeros`, `correoConductor?`, `nombreConductor?`, `patenteMovil?`, `hashPago?`, `estadoPago?` (ambos `null` para el Conductor), `motivo?` (de V7 o V8), `pasajeros` (lista de `PasajeroDTOResponse`, con `nombre`) |
 | `PagoDTOResponse` | `hash`, `folio`, `monto`, `estadoPago` (`PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO`), `banco`, `codSbif`, `rutEmpresa`, `medioPago`, `tipoRecibo`, `fechaPago?`, `montoReembolsado?` |
 | `CatalogosDTOResponse` | `bancos` (lista de `{nombre, codSbif}`), `mediosPago` y `tiposRecibo` (listas de nombres), `regiones` (lista de `{nombre, comunas}`, con `comunas` como lista de nombres); todo por `nombre` |
 | `ApiError` | `timestamp`, `status`, `error`, `message`, `path` ([Errores](#errores)) |
@@ -893,19 +954,19 @@ backend guarda y devuelve el valor normalizado. Un fallo responde 400 con `messa
 
 | Campo | Regla | Normalización |
 |---|---|---|
-| `correo`, `correoConductor` | Obligatorio; formato `local@dominio.tld`; hasta 150 caracteres. | Sin espacios en los extremos y en minúsculas; el login compara así, sin distinguir mayúsculas. |
+| `correo`, `correoConductor` | Obligatorio; `^[^\s@]+@[^\s@]+\.[^\s@]+$` (una `@` y un punto en el dominio); hasta 150 caracteres. | Sin espacios en los extremos y en minúsculas; el login compara así, sin distinguir mayúsculas. |
 | `nombre` (usuario y pasajero) | De 2 a 120 caracteres. | Sin espacios en los extremos. |
 | `razonSocial` | De 2 a 50 caracteres. | Sin espacios en los extremos. |
-| `telefono` | Opcional; 9 dígitos chilenos, con o sin el prefijo `+56`. | Sin espacios ni guiones y con prefijo: `+56955550101`. |
+| `telefono` | Opcional; 9 dígitos chilenos, con o sin el prefijo `+56`; normalizado debe cumplir `^\+56[0-9]{9}$`. | Sin espacios, guiones ni paréntesis y con prefijo: `+56955550101`. |
 | `passwordActual` | Obligatoria solo al cambiar la contraseña propia (ver `PUT` en [Contratos JSON](#contratos-json)); se compara con el hash guardado. | Ninguna: no se recortan espacios. |
-| `password` | De 8 a 72 caracteres (hasta 72 bytes en UTF-8, límite de BCrypt), con al menos una letra y un dígito. Rige en el autorregistro, el alta de Conductor, de Administrador y de usuario, y todo `PUT` que la cambie. La temporal de RF21 (12 caracteres) se genera cumpliéndola. | Ninguna: no se recortan espacios. |
+| `password` | De 8 a 72 caracteres (hasta 72 bytes en UTF-8, límite de BCrypt), con al menos una letra (`\p{L}`, incluye `ñ` y tildes) y un dígito (`[0-9]`). Rige en el autorregistro, el alta de Conductor y de Administrador, y todo `PUT` que la cambie. La temporal de RF21 (12 caracteres) se genera cumpliéndola. | Ninguna: no se recortan espacios. |
 | `rutEmpresa`, `dni` con `tipoDocumento` `RUT` | Cuerpo de 7 u 8 dígitos y dígito verificador válido (módulo 11: dígitos de derecha a izquierda por 2, 3, 4, 5, 6, 7, 2…; `11 − suma mod 11`, donde 11 → `0` y 10 → `K`). Se aceptan puntos y guion. | `EMPRESA.rut`: sin puntos, con guion y `K` mayúscula (`76543210-K`). `dni`: la de `PASAJERO.dni_hash`. |
-| `dni` con `tipoDocumento` `PASAPORTE` | De 5 a 20 letras o dígitos. | La de `PASAJERO.dni_hash`. |
+| `dni` con `tipoDocumento` `PASAPORTE` | De 5 a 20 letras `A-Z` o dígitos, tras normalizar. | La de `PASAJERO.dni_hash` (sin espacios ni guiones, en mayúsculas). |
 | `tipoDocumento` | `RUT` o `PASAPORTE`. | — |
 | `patente` | Formato antiguo `AA1234` o actual `BBBB12`: `^([A-Z]{2}[0-9]{4}\|[A-Z]{4}[0-9]{2})$`. | En mayúsculas, sin espacios ni guion. |
 | `capacidad` | Entero de 1 a 20. | — |
 | `gpsSerial` | Opcional; entero mayor que 0. | — |
-| `fhAgenda` | Entre ahora + 2 horas y ahora + 90 días, en hora de Chile al recibir la petición. | — |
+| `fhAgenda` | `ahora + 2 horas ≤ fhAgenda ≤ ahora + 90 días`, en hora de Chile al recibir la petición. | Se truncan los segundos (`14:30:45` → `14:30:00`) antes de validar. |
 | `direccion` | De 1 a 200 caracteres. | Sin espacios en los extremos. |
 | `comuna`, `region` | Se cotejan con el catálogo según [Ubicaciones desde Google Places](#ubicaciones-desde-google-places); sin coincidencia, 400. | La del cotejo; se guardan y devuelven los nombres oficiales. |
 | `latitud`, `longitud` | Entre −90 y 90, y entre −180 y 180; hasta 6 decimales. `origen` y `destino` no pueden tener las mismas coordenadas. | — |
@@ -943,10 +1004,10 @@ Los errores de la aplicación responden `ApiError`:
 |---|---|---|
 | `400` | Validación del cuerpo ([Validaciones](#validaciones); `message` lista `campo: motivo`), JSON ilegible ("Cuerpo inválido"), parámetro o `Idempotency-Key` mal formados (p. ej. `fecha`) o dato inexistente en su catálogo o geografía. | `ApiError` |
 | `401` | Sin token, o token alterado o vencido (cabecera `WWW-Authenticate: Bearer`); también el login fallido y un refresh inválido. | Vacío; el login fallido lleva `ApiError` |
-| `403` | La matriz no autoriza ese método en esa ruta para el rol, o la ruta no figura en ella (cabecera `WWW-Authenticate`); también un recurso o cuenta ajena, o el login de un Solicitante no aprobado. | Vacío en los dos primeros casos; `ApiError` en el recurso ajeno y en el login |
+| `403` | La matriz no autoriza ese método en esa ruta para el rol, o la ruta no figura en ella (cabecera `WWW-Authenticate`); también un recurso o cuenta ajena, el login de un Solicitante no aprobado, o una ruta no permitida con el JWT de una contraseña temporal ("Debes cambiar la contraseña"). | Vacío en los dos primeros casos; `ApiError` en los demás |
 | `404` | El recurso no existe. | `ApiError` |
 | `405` | La matriz autoriza al rol en esa ruta pero el método no existe (p. ej. `PUT /moviles/{patente}` del Administrador, que tiene `moviles` completo). | `ApiError` |
-| `409` | Regla de negocio o restricción: correo o patente repetidos, transición inválida, capacidad superada, solapamiento de viajes, `Idempotency-Key` ya usada con otra petición, o rechazo de un trigger ("La operación viola una restricción de datos"). | `ApiError` |
+| `409` | Regla de negocio o restricción: correo o patente repetidos, transición inválida, viaje vencido, capacidad superada, solapamiento de viajes, `Idempotency-Key` ya usada con otra petición, o rechazo de un trigger ("La operación viola una restricción de datos"). | `ApiError` |
 | `429` | Límite de intentos excedido ([Autenticación](#autenticación)); cabecera `Retry-After` en segundos. | `ApiError` |
 | `500` | Error inesperado; mensaje genérico ("Error interno"), detalle solo en el log. | `ApiError` |
 
@@ -1027,11 +1088,30 @@ solo valida (`ddl-auto=validate`); Flyway administra el esquema al iniciar:
 |---|---|
 | `V1__esquema.sql` | Tablas, claves y restricciones del [Modelo de datos](#modelo-de-datos). |
 | `V2__triggers.sql` | Rol exclusivo por usuario, folio de `VIAJE` (secuencia y formato `TR-`), transiciones de viaje y de pago (incluida la ventana de inicio, y al menos un pasajero y sin solapamiento al asignar), conductor y vehículo activos y habilitados, capacidad, `motivo`, `cantidad_pasajeros` e `HISTORIAL_VIAJE`. |
-| `V3__datos_iniciales.sql` | Catálogos, bancos, las 16 regiones y 346 comunas ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)) y el Administrador inicial. |
+| `V3__datos_iniciales.sql` | Los [Datos iniciales](#datos-iniciales). |
+
+#### Datos iniciales
+
+Valores exactos que carga `V3`; los códigos son los de la API ([Contratos JSON](#contratos-json)):
+
+| Tabla | Filas |
+|---|---|
+| `ESTADO_SOLICITUD` | `PENDIENTE`, `ASIGNADO`, `EN_CURSO`, `FINALIZADO`, `CANCELADO` |
+| `ESTADO_SOLICITANTE` | `PENDIENTE`, `APROBADO`, `RECHAZADO` |
+| `ESTADO_CONDUCTOR` | `DISPONIBLE`, `OCUPADO` |
+| `ESTADO_MOVIL` | `DISPONIBLE`, `EN_USO` |
+| `ESTADO_PAGO` | `PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO`, `REEMBOLSADO` |
+| `MEDIO_PAGO` | `TRANSFERENCIA`, `TARJETA_DEBITO`, `TARJETA_CREDITO`, `EFECTIVO` |
+| `TIPO_RECIBO` | `BOLETA`, `FACTURA` |
+| `BANCO` (`nombre`, `cod_sbif`) | Banco de Chile (1), Banco Internacional (9), BancoEstado (12), Scotiabank Chile (14), Banco de Crédito e Inversiones (16), Banco BICE (28), HSBC Bank Chile (31), Banco Santander-Chile (37), Banco Itaú Chile (39), Banco Security (49), Banco Falabella (51), Banco Ripley (53), Banco Consorcio (55), Banco BTG Pactual Chile (59) |
+| `REGION`, `COMUNA` | Las 16 regiones y 346 comunas ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)) |
+| `USUARIO`, `ADMINISTRADOR` | El Administrador inicial ([Autenticación](#autenticación)) |
 
 Cada sesión de la base usa la hora de Chile (`DB_TIME_ZONE`, por defecto `America/Santiago`)
 para que `NOW()`/`CURRENT_TIMESTAMP` coincidan con los `LocalDateTime` de la aplicación; el
-servidor necesita las zonas horarias cargadas (la imagen oficial de MariaDB las trae).
+servidor necesita las zonas horarias cargadas (la imagen oficial de MariaDB las trae). La
+aplicación toma "ahora" de un bean `Clock` en `America/Santiago` (nunca de la zona del sistema) y
+Jackson serializa `LocalDateTime` en ISO 8601 sin zona (`WRITE_DATES_AS_TIMESTAMPS=false`).
 
 ### Configuración
 
@@ -1074,9 +1154,17 @@ Correo y push siguen las mismas reglas:
   (RNF08). La contraseña temporal nunca se escribe en el log.
 
 **Push (RF12/RF13).** Solo a quien tiene un token FCM registrado (en el login o con
-`POST /auth/token-fcm`); "Administradores" son
-todos los que tengan uno. Los de un viaje incluyen `data.folio` para que la app lo abra; el de
-cuentas por aprobar abre "Cuentas por aprobar".
+`POST /auth/token-fcm`); "Administradores" son todos los que tengan uno. Cada mensaje FCM lleva
+`notification` (título y mensaje de la tabla) y `data`:
+
+| `data.tipo` | Otros campos | Al pulsarlo, la app abre | Eventos |
+|---|---|---|---|
+| `VIAJE` | `folio` | El detalle de ese viaje para el rol | Todos los de un viaje, salvo el del conductor reemplazado |
+| `AGENDA` | — | "Mis viajes" | Reasignar a otro conductor (el reemplazado ya no tiene acceso al viaje) |
+| `CUENTAS` | — | "Cuentas por aprobar" | Cuenta pendiente de aprobación |
+
+En los mensajes, `{fecha}` es `fh_agenda` en formato `24-09-2026 · 14:30` y los estados se
+escriben con su etiqueta ([Textos y tema](#textos-y-tema)), p. ej. "Estado: En curso".
 
 | Evento | Destinatario | Título | Mensaje |
 |---|---|---|---|
@@ -1089,15 +1177,20 @@ cuentas por aprobar abre "Cuentas por aprobar".
 | Rechazo del Conductor (V8) | Administradores | Viaje rechazado | El viaje `{folio}` volvió a pendiente |
 | Rechazo del Conductor (V8) | Solicitante | Viaje sin conductor | Tu viaje `{folio}` volvió a pendiente; se asignará otro conductor |
 | Cancelar por el Administrador o por anulación del pago (V7, V6) | Solicitante | Viaje cancelado | Tu viaje `{folio}` fue cancelado |
-| Cambio del pago (P2, P3, P4) | Solicitante | Pago del viaje `{folio}` | Estado: `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO` |
+| Cambio del pago (P2 a P5) | Solicitante | Pago del viaje `{folio}` | Estado: `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO` |
 | Cuenta pendiente de aprobación (RF01) | Administradores | Cuenta por aprobar | Hay una cuenta nueva por revisar |
 
 **Correo.** Texto plano:
 
-- Recuperar contraseña (RF21): asunto "Belmonte SpA: tu contraseña temporal", con la contraseña
-  y su vigencia.
-- Revisión de una cuenta (CU-17/RF26): asunto "Belmonte SpA: tu cuenta fue aprobada" o "…fue
-  rechazada". La cuenta pendiente no puede iniciar sesión, así que no recibe push.
+| Correo | Asunto | Cuerpo |
+|---|---|---|
+| Recuperar contraseña (RF21) | Belmonte SpA: tu contraseña temporal | "Hola {nombre}: tu contraseña temporal es {temporal} y vence el {vence}. Úsala para iniciar sesión; la app te pedirá crear una nueva. Si no la pediste, ignora este correo: tu contraseña actual sigue funcionando." |
+| Cuenta aprobada (CU-17/RF26) | Belmonte SpA: tu cuenta fue aprobada | "Hola {nombre}: tu cuenta para {razonSocial} fue aprobada. Ya puedes iniciar sesión con tu correo y contraseña." |
+| Cuenta rechazada (CU-17/RF26) | Belmonte SpA: tu cuenta fue rechazada | "Hola {nombre}: tu cuenta para {razonSocial} no fue aprobada. Si crees que es un error, contacta a Belmonte SpA." |
+
+`{vence}` va en formato `24-09-2026 · 14:30`. Todos firman "Belmonte SpA" en una línea final.
+No hay otros correos: el alta de Conductores y Administradores no envía ninguno. La cuenta
+pendiente no puede iniciar sesión, así que la revisión le llega solo por correo.
 
 **Correo en la demostración.** Un proveedor transaccional con plan gratuito (p. ej. Brevo),
 por SMTP con las variables `SPRING_MAIL_*` (RNF07). Sin dominio propio, `MAIL_FROM` es un
@@ -1139,12 +1232,12 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | Pruebas | Cubren |
 |---|---|
 | `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y validación; sesiones (refresh, rotación, reuso, logout) y límites de intentos. |
-| `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login, sesiones revocadas) y reactivado. |
+| `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña (con el JWT temporal solo se cambia la contraseña) y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login, sesiones revocadas) y reactivado. |
 | `FlotaIT` | Vehículos y habilitación de conductores; desactivar y reactivar vehículos y conductores (409 con viajes `ASIGNADO` o `EN_CURSO`; un inactivo no es asignable). |
 | `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
-| `ViajeIT` | Creación y rango de `fhAgenda` (V1); ciclo Pendiente → Finalizado; asignación y reasignación con al menos un pasajero, activos y sin solapamiento (V2); ventana de inicio ± 1 hora (V3); cancelación del Solicitante solo sin vencer (V5), del Administrador con motivo (V7) y rechazo del Conductor (V8); historial (trigger); consultas por rol; reintento con la misma `Idempotency-Key` (respuesta repetida sin aplicar dos veces) y con otro cuerpo (409). |
-| `PagoIT` | Registro, estados (con `folio` en la respuesta) y cancelación del viaje al anular el pago; reembolso del 50 % en V5 y del 100 % o el monto fijado en V7 (con 0 sigue `PAGADO`), con su `montoReembolsado`. |
-| `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión), correos de aprobación y rechazo de cuentas, y push de cada evento. |
+| `ViajeIT` | Creación y rango de `fhAgenda` (V1); alcance por rol (Conductor sin datos de pago, agenda con el `EN_CURSO` de ayer); ciclo Pendiente → Finalizado; asignación y reasignación con al menos un pasajero, activos, sin solapamiento y sin vencer (V2); ventana de inicio ± 1 hora (V3); cancelación del Solicitante solo sin vencer (V5), del Administrador con motivo (V7) y rechazo del Conductor (V8); historial (trigger); consultas por rol; reintento con la misma `Idempotency-Key` (respuesta repetida sin aplicar dos veces) y con otro cuerpo (409). |
+| `PagoIT` | Registro, estados (con `folio` en la respuesta) y cancelación del viaje al anular el pago; reembolso del 50 % en V5 y del 100 % o el monto fijado en V7 (con 0 sigue `PAGADO`), con su `montoReembolsado`; pago `PENDIENTE` anulado al cancelar (P5). |
+| `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión), correos de aprobación y rechazo de cuentas, y push de cada evento con su `data` (`tipo` y `folio`). |
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 
 ## Frontend (Android)
@@ -1166,8 +1259,7 @@ Pantalla Compose ⇄ ViewModel ⇄ Repository ⇄ { Room / SQLite (local) , Retr
 - Las pantallas no acceden a Retrofit, Room ni los DAO; los ViewModel dependen de los repositorios.
 - El backend es la autoridad sobre permisos, asignaciones, disponibilidad y transiciones; las
   validaciones Android son de experiencia de usuario y no reemplazan las del servidor.
-- Sin capa obligatoria de casos de uso al inicio; puede agregarse para operaciones complejas o
-  compartidas.
+- Sin capa de casos de uso: los ViewModel llaman directamente a los repositorios.
 
 ### Tecnologías
 
@@ -1224,9 +1316,9 @@ El Conductor no tiene autorregistro ni recuperación por autoservicio.
 
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
-| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe. Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. |
-| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; asignar/reasignar, registrar/consultar pago y "Cancelar viaje" (motivo y, si está vencido, monto a reembolsar; CU-15). Asignar conductor y vehículo: conductor + vehículo habilitado, resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar). Gestionar habilitaciones: solo agregar, sin eliminar mientras no haya un contrato que lo autorice. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
-| Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado. Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: Navegar (elegir Google Maps o Waze); Iniciar viaje en `ASIGNADO` y dentro de la ventana de ± 1 hora, y Finalizar viaje en `EN_CURSO`, con confirmación; "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme. El selector de fecha no agrega pantalla de historial. |
+| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior). Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
+| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
+| Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado. Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación; "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
 
 Reglas comunes:
 
@@ -1235,12 +1327,16 @@ Reglas comunes:
 - Iniciar sesión elimina el flujo de acceso del historial; cerrar sesión llama a
   `POST /auth/logout` y elimina el flujo autenticado y la sesión local.
 - Sesión que no se puede renovar: reautenticar antes de seguir con operaciones protegidas.
-- Pulsar una notificación abre el detalle tras comprobar sesión, rol y acceso.
+- Pulsar una notificación abre su destino según `data.tipo` ([Notificaciones y navegación externa](#notificaciones-y-navegación-externa)) tras comprobar sesión y rol; sin sesión, pide login y luego lo abre.
 - Cada pantalla contempla carga, contenido, lista vacía, error y sin conexión, según corresponda.
 - Durante un envío la acción se bloquea (sin pulsaciones duplicadas).
 - Un cambio de estado se muestra confirmado solo tras la respuesta del backend.
-- Un viaje `PENDIENTE` o `ASIGNADO` muestra el chip "Atrasado" o "Vencido" según
-  la regla de retraso de [V3](#viaje), calculado en la app con `fh_agenda`.
+- Un viaje `PENDIENTE` o `ASIGNADO` muestra el chip "Atrasado" o "Vencido", en las listas y en
+  el detalle, según la regla de retraso de [V3](#viaje), calculado en la app con `fh_agenda` y la
+  hora del dispositivo.
+- Los botones que no aplican al estado del viaje no se muestran. Excepción: en el detalle del
+  Conductor, "Iniciar viaje" y "Finalizar viaje" van juntos en `ASIGNADO` y `EN_CURSO`, con solo el
+  aplicable habilitado (con un Iniciar pendiente de sincronizar, se habilita Finalizar).
 
 ### Textos y tema
 
@@ -1283,6 +1379,33 @@ Chips de estado (texto / borde / fondo):
 Tipografía Roboto; folio, patente, horas y etiquetas de campo en IBM Plex Mono (licencia OFL,
 incluida en el APK).
 
+**Idioma:** solo español de Chile, con todos los textos en `strings.xml`.
+
+**Etiquetas.** La app nunca muestra un código; muestra su etiqueta:
+
+| Códigos | Etiquetas |
+|---|---|
+| Viaje: `PENDIENTE`, `ASIGNADO`, `EN_CURSO`, `FINALIZADO`, `CANCELADO` | Pendiente, Asignado, En curso, Finalizado, Cancelado |
+| Pago: `PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO`, `REEMBOLSADO` | Pendiente, Pagado, Rechazado, Anulado, Reembolsado |
+| Conductor: `DISPONIBLE`, `OCUPADO`; vehículo: `DISPONIBLE`, `EN_USO`; `activo` falso | Disponible, Ocupado; Disponible, En uso; Inactivo (reemplaza al estado) |
+| Solicitante: `PENDIENTE`, `APROBADO`, `RECHAZADO` | Por aprobar, Aprobado, Rechazado |
+| `TRANSFERENCIA`, `TARJETA_DEBITO`, `TARJETA_CREDITO`, `EFECTIVO` | Transferencia, Tarjeta de débito, Tarjeta de crédito, Efectivo |
+| `BOLETA`, `FACTURA` | Boleta, Factura |
+| `RUT`, `PASAPORTE` | RUT, Pasaporte |
+| Retraso y cola (calculados en la app) | Atrasado, Vencido, Pendiente de sincronizar |
+
+**Formatos de presentación** (la API mantiene los de [Contratos JSON](#contratos-json)):
+
+| Dato | Formato | Ejemplo |
+|---|---|---|
+| Fecha y hora en listas | `dd-MM · HH:mm` (24 horas) | `24-09 · 14:30` |
+| Fecha y hora en detalles y push | `dd-MM-yyyy · HH:mm` | `24-09-2026 · 14:30` |
+| Fecha sola (selectores) | `dd-MM-yyyy` | `24-09-2026` |
+| Monto | `$` y punto de miles, sin decimales | `$48.000` |
+| RUT | Con puntos y guion | `76.543.210-K` |
+| Teléfono | `+56 9 XXXX XXXX` | `+56 9 5555 0101` |
+| Patente, folio | Tal cual, en IBM Plex Mono | `KXJR42`, `TR-1042` |
+
 **Mensajes de error.** Textos en `strings.xml` (español); nunca se muestran trazas ni códigos
 técnicos.
 
@@ -1297,10 +1420,12 @@ técnicos.
 | 403 sin permiso o recurso ajeno | "No tienes permiso para ver esto." |
 | 403 cuenta pendiente | "Tu cuenta espera la aprobación de un Administrador." |
 | 403 cuenta rechazada | "Tu cuenta no fue aprobada. Contacta a Belmonte SpA." |
+| 403 con contraseña temporal | "Debes cambiar la contraseña." y se abre "Cambiar contraseña". |
 | 404 | "No encontramos este registro." |
 | 409 | El `message` del backend (p. ej. "El correo ya está registrado"); luego se recargan los datos. |
 | 429 | "Demasiados intentos. Espera {n} minutos." (`n` desde `Retry-After`, redondeado hacia arriba) |
 | 500 | "Ocurrió un error inesperado. Inténtalo más tarde." |
+| Sin app de navegación | "Instala Google Maps o Waze para navegar." |
 
 **Listas vacías:**
 
@@ -1309,7 +1434,7 @@ técnicos.
 | Mis solicitudes | "Aún no tienes solicitudes. Crea la primera con «Nueva solicitud»." |
 | Solicitudes (Administrador) | Con "Pendientes": "No hay solicitudes pendientes."; con otro filtro: "No hay solicitudes en este estado." |
 | Cuentas por aprobar | "No hay cuentas por aprobar." |
-| Asignar conductor y vehículo | "No hay conductores disponibles. Revisa las habilitaciones o espera a que terminen sus viajes." (CU-04) |
+| Asignar conductor y vehículo | Conductores: "No hay conductores disponibles. Revisa las habilitaciones o espera a que terminen sus viajes." (CU-04). Vehículos del elegido: "Sin vehículos habilitados disponibles." |
 | Conductores | "Aún no hay conductores. Registra el primero." |
 | Vehículos | "Aún no hay vehículos. Registra el primero." |
 | Detalle de conductor / de vehículo | "Sin vehículos habilitados." / "Sin conductores habilitados." |
@@ -1327,7 +1452,13 @@ técnicos.
   protegida, OkHttp renueva una sola vez con `POST /auth/refresh` (sin renovaciones simultáneas)
   y repite la petición; si la renovación falla, la sesión termina y se pide login. Con
   `cambioPasswordRequerido` no hay refresh: tras cambiar la contraseña, la app inicia sesión con
-  la nueva.
+  la nueva. La sesión de una contraseña temporal no se persiste.
+- Si se pierde la respuesta de `POST /auth/refresh` (tiempo agotado), no se reintenta con el
+  mismo refresh token: el servidor lo trataría como reuso y revocaría todas las sesiones. La
+  sesión termina y se pide login.
+- Con una sesión guardada, "Inicio de aplicación" abre el inicio del rol guardado sin esperar a
+  la red; los tokens se renuevan en el primer 401.
+- Tiempos de OkHttp: 15 segundos de conexión, lectura y escritura.
 - Cada `POST` que crea algo o cambia un estado (fuera de `/auth/*`) lleva `Idempotency-Key`: un
   UUID generado al confirmar la acción y reutilizado en los reintentos automáticos de ese mismo
   envío (p. ej. tras un tiempo agotado); la cola sin conexión usa su `operacion_id`. Una acción
@@ -1338,12 +1469,26 @@ técnicos.
 ### Persistencia y conectividad
 
 - Crear solicitudes y obtener información nueva requiere conexión; la app no es offline-first.
-- Room permite consultar viajes y solicitudes ya sincronizados y guarda los cambios de estado
-  permitidos hechos durante un corte, marcados como pendientes de sincronización.
-- WorkManager los envía cuando hay conexión y sesión válida, en orden por viaje. Un cambio local
+- **Refresco ("tiempo real", RF07):** cada lista y detalle muestra de inmediato lo guardado en
+  Room y consulta al backend al abrirse y al deslizar hacia abajo para actualizar. Un push
+  recibido con la app en primer plano se muestra igual como notificación y recarga la pantalla
+  visible si es la de ese viaje o su lista. No hay sondeo periódico.
+- **Sin conexión:** se muestra lo guardado con el banner de [Textos y tema](#textos-y-tema); de
+  las acciones, solo "Iniciar viaje" y "Finalizar viaje" del Conductor se encolan, y las demás se
+  deshabilitan hasta reconectar.
+- Room guarda esos cambios de estado marcados como pendientes de sincronización.
+  WorkManager los envía cuando hay conexión y sesión válida, en orden por viaje, como trabajo
+  único con red como requisito y backoff exponencial desde 30 segundos. Un cambio local
   pendiente nunca se muestra como confirmado por el servidor.
-- Los fallos temporales de conexión se reintentan; un rechazo por permisos o reglas de negocio
-  obliga a actualizar los datos y mostrar el conflicto, sin reintentos indefinidos.
+- Resultado de cada envío de la cola:
+
+  | Respuesta | Efecto |
+  |---|---|
+  | `2xx` (también la repetida por `Idempotency-Key`) | Se confirma: se actualiza el viaje y se borra la operación. |
+  | Sin red, tiempo agotado o 429 | Vuelve a `PENDIENTE` y se reintenta, sin tope. |
+  | 5xx | Se reintenta hasta 5 intentos; luego `CONFLICTO`. |
+  | 401 | Se renueva la sesión y se reintenta; si no se puede, la cola se pausa hasta un login con la misma cuenta. |
+  | 400, 403, 404 o 409 | `CONFLICTO` de inmediato, sin reintentos. |
 - Caché y cola se asocian a la cuenta, para que otro usuario no vea ni envíe sus datos. Al cerrar
   sesión con cambios pendientes se avisa y se permite sincronizarlos o descartarlos antes de
   borrar los datos locales.
@@ -1453,7 +1598,11 @@ Reglas de la cola (`operaciones_pendientes`):
 - Se puede encolar Iniciar y luego Finalizar un mismo viaje, en ese orden.
 - Dos pulsaciones de la misma acción no crean dos operaciones.
 - El estado local pendiente no sobrescribe `estado_confirmado`.
-- Un conflicto detiene las operaciones posteriores de ese viaje.
+- Un conflicto detiene las operaciones posteriores de ese viaje. El detalle del viaje muestra el
+  `message` del servidor y "Descartar cambio", que borra esa operación y las posteriores del viaje
+  y vuelve a consultar el viaje; no hay otra forma de salir de `CONFLICTO`.
+- Al iniciar la app, una operación que quedó en `ENVIANDO` (proceso cerrado a mitad de envío)
+  vuelve a `PENDIENTE`; su `Idempotency-Key` evita aplicarla dos veces.
 - La ventana de inicio (V3) la evalúa el servidor al recibir la operación: un Iniciar encolado
   que llega después de `fh_agenda` + 1 hora responde 409 y queda en `CONFLICTO`, y la app indica
   avisar al Administrador.
@@ -1482,17 +1631,28 @@ Reglas de persistencia local:
 
 ### Notificaciones y navegación externa
 
-- FCM notifica los eventos de la tabla de push de [Notificaciones externas](#notificaciones-externas);
-  la de un viaje lo identifica por su folio y provoca una consulta al backend para obtener datos
-  actualizados, y la de cuentas por aprobar abre esa pantalla.
-- La app gestiona los canales y el permiso de notificaciones cuando corresponde, obtiene el token
-  FCM y lo envía en el login; si cambia durante la sesión (`onNewToken`), lo envía con
-  `POST /auth/token-fcm`, y sin sesión lo guarda para el próximo login. Al cerrar sesión,
-  `POST /auth/logout` lo borra en el servidor.
+- FCM notifica los eventos de la tabla de push de [Notificaciones externas](#notificaciones-externas).
+  Al pulsar una, la app abre el destino según `data.tipo` (`VIAJE`: el detalle del `folio`,
+  consultado al backend; `AGENDA`: "Mis viajes"; `CUENTAS`: "Cuentas por aprobar").
+- Un solo canal, `avisos` ("Avisos de viajes"), con importancia alta. En Android 13 o superior el
+  permiso `POST_NOTIFICATIONS` se pide tras el primer login exitoso; si se niega, la app funciona
+  sin push y no vuelve a pedirlo.
+- La app obtiene el token FCM y lo envía en el login; si cambia durante la sesión
+  (`onNewToken`), lo envía con `POST /auth/token-fcm`, y sin sesión lo guarda para el próximo
+  login. Al cerrar sesión, `POST /auth/logout` lo borra en el servidor.
 - Google Places selecciona direcciones y obtiene coordenadas; la clave del SDK tiene
   restricciones de aplicación y de API.
-- La ruta se abre por Intent en Google Maps o Waze; sin app compatible, aviso. El MVP no incluye
-  motor de rutas ni mapa embebido.
+- **Navegar** (CU-03): el punto es el origen del viaje en `ASIGNADO` y el destino en `EN_CURSO`;
+  la navegación parte de la ubicación actual del teléfono, que la app no lee.
+
+  | App | Intent (`ACTION_VIEW`) | Paquete |
+  |---|---|---|
+  | Google Maps | `google.navigation:q={lat},{lng}` | `com.google.android.apps.maps` |
+  | Waze | `https://waze.com/ul?ll={lat},{lng}&navigate=yes` | `com.waze` |
+
+  La hoja "Abrir con" lista solo las apps instaladas (el manifiesto las declara en `<queries>`);
+  con una sola, la abre directo, y sin ninguna muestra el aviso de [Textos y tema](#textos-y-tema).
+  El MVP no incluye motor de rutas, mapa embebido ni permiso de ubicación.
 
 ### Compilación, firma y distribución
 
