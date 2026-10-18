@@ -29,8 +29,11 @@
   - [Recursos y roles](#recursos-y-roles)
   - [Consultas y alcance por rol](#consultas-y-alcance-por-rol)
   - [Flujo de una solicitud (CU-01 / RF02)](#flujo-de-una-solicitud-cu-01--rf02)
+  - [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)
   - [Acciones de negocio](#acciones-de-negocio)
   - [Autenticación](#autenticación)
+  - [Contratos JSON](#contratos-json)
+  - [Validaciones](#validaciones)
   - [Errores](#errores)
 - [Estructura del backend](#estructura-del-backend)
   - [Paquetes y capas](#paquetes-y-capas)
@@ -92,7 +95,7 @@ cancelan ni se reasignan. Cada cambio registra su fecha/hora.
 
 | ID | Transición | Quién | Precondiciones | Efectos |
 |---|---|---|---|---|
-| V1 | alta → `PENDIENTE` | Solicitante (CU-01/RF02) | `fh_agenda` futura | El backend genera el `folio` (inmutable); `fh_creacion`. |
+| V1 | alta → `PENDIENTE` | Solicitante (CU-01/RF02) | `fh_agenda` de 2 horas a 90 días desde ahora ([Validaciones](#validaciones); si no, 400) | El backend genera el `folio` (inmutable); `fh_creacion`. |
 | V2 | `PENDIENTE`/`ASIGNADO` → `ASIGNADO` (asignar o reasignar) | Administrador (CU-04/RF05/RF22) | Conductor y vehículo Disponibles (sin otro viaje `EN_CURSO`); conductor habilitado para el vehículo; pasajeros ≤ capacidad. Al reasignar, la disponibilidad se valida solo para lo que cambia y la habilitación para el par resultante. Sin reasignación automática. | `fh_asignacion`. No cambia el estado del conductor ni del vehículo: ambos pueden tener varios viajes `ASIGNADO`. Al reasignar puede cambiar solo el conductor, solo el vehículo o ambos; el viaje sale de la agenda de los reemplazados. Push al conductor (nuevo), al solicitante y, si cambia el conductor, al reemplazado. |
 | V3 | `ASIGNADO` → `EN_CURSO` | Conductor asignado (RF09) | Conductor y vehículo Disponibles (sin otro viaje `EN_CURSO`). | `fh_inicio`; conductor → Ocupado, vehículo → En uso. Push al solicitante. |
 | V4 | `EN_CURSO` → `FINALIZADO` | Conductor asignado (RF09) | — | `fh_fin`; conductor y vehículo → Disponible. Push al solicitante. |
@@ -133,7 +136,7 @@ solicitud no se borra.
 
 | CU | Actor | Flujo | Excepciones |
 |---|---|---|---|
-| CU-01 Registrar solicitud de traslado | ACT-01 | Ingresa pasajero(s), fecha/hora, origen, destino y n.º de vuelo (si aplica) → viaje `PENDIENTE` con sus pasajeros, en tres llamadas ([Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02)). | Datos incompletos o inválidos; las reglas de validación no están definidas en el alcance actual. |
+| CU-01 Registrar solicitud de traslado | ACT-01 | Ingresa pasajero(s), fecha/hora, origen, destino y n.º de vuelo (si aplica) → viaje `PENDIENTE` con sus pasajeros, en tres llamadas ([Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02)). | Datos incompletos o inválidos: 400 según [Validaciones](#validaciones). |
 | CU-02 Visualizar viajes asignados | ACT-04 | Lista sus viajes asignados del día, actualizados desde el backend. | Sin conectividad: muestra los viajes ya sincronizados (RF11/HU11). Sin viajes: lista vacía. |
 | CU-03 Navegar a la ruta del viaje | ACT-04 | "Navegar" en un viaje con coordenadas → Intent con origen y destino → el SO lo entrega a una app compatible, que navega. | No hay app compatible o el Intent no puede procesarse. |
 | CU-04 Gestionar y distribuir solicitudes | ACT-03 | Elige una solicitud y un conductor disponible (se sugieren sus vehículos habilitados) y confirma: [V2](#viaje) `PENDIENTE` → `ASIGNADO`. | Sin conductores disponibles. Sin reasignación automática; la manual de un `ASIGNADO` sigue el mismo flujo (RF22). |
@@ -217,7 +220,7 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU | RF | Prio. | SP | Historia | Criterios de aceptación |
 |---|---|---|---|---|---|
 | HU01 | RF01 | Alta | 3 | Solicitante: registro y login | Rechazo si el correo existe o falta un obligatorio (empresa, nombre de contacto, correo, contraseña); teléfono opcional. Login válido → "Mis solicitudes"; inválido → error sin indicar qué falló. La empresa (razón social + RUT) se crea o reutiliza en `EMPRESA`, sin duplicar. |
-| HU02 | RF02 | Alta | 5 | Solicitante: nueva solicitud con Google Places | Origen y destino solo desde las sugerencias (nunca texto libre), capturando latitud y longitud; sin eso no se envía. Obligatorios: al menos un pasajero (nombre y documento: RUT o pasaporte), fecha, hora, origen y destino; vuelo opcional. La app los exige antes de enviar y registra viaje y pasajeros en llamadas separadas. |
+| HU02 | RF02 | Alta | 5 | Solicitante: nueva solicitud con Google Places | Origen y destino solo desde las sugerencias (nunca texto libre), capturando latitud y longitud; sin eso no se envía. Obligatorios: al menos un pasajero (nombre y documento, RUT o pasaporte, con su `tipoDocumento`), fecha, hora, origen y destino; vuelo opcional. La app los exige antes de enviar y registra viaje y pasajeros en llamadas separadas. |
 | HU03 | RF03 | Media | 3 | Solicitante: historial y estado | Por solicitud propia: pasajero, fecha/hora, origen→destino y estado (el del último cambio). |
 | HU04 | RF04 | Alta | 3 | Administrador: pendientes | Solo `PENDIENTE`; cada fila lleva a "Asignar conductor". |
 | HU05 | RF05 | Alta | 5 | Administrador: asignar | Solo conductores disponibles (sin viaje en curso). Al confirmar, [V2](#viaje) `PENDIENTE` → `ASIGNADO` con un vehículo habilitado para él, y el viaje aparece en la agenda del conductor ("Viajes del día" si es de hoy). |
@@ -444,7 +447,8 @@ al iniciar. Las credenciales se cambian en cualquier entorno compartido.
   (`200`) y los validan y auditan los triggers.
 - **No son recursos:** los 9 catálogos (`bancos`, `comunas`, `estados-conductor`,
   `estados-movil`, `estados-pago`, `estados-solicitud`, `medios-pago`, `regiones`,
-  `tipos-recibo`) ni `ubicaciones`, que se crea y consulta solo como parte de `viajes`.
+  `tipos-recibo`), que cambian solo por migración y se leen juntos, sin CRUD, con
+  `GET /api/v1/catalogos`; ni `ubicaciones`, que se crea y consulta solo como parte de `viajes`.
 - **Tablas puente:** clave de negocio de dos columnas, se crean como unidad y no tienen `PUT`:
   `/api/v1/habilitaciones-movil-conductor/{patente}/{correo}` y
   `/api/v1/pasajeros-viaje/{folio}/{dni_hash}`.
@@ -454,6 +458,7 @@ al iniciar. Las credenciales se cambian en cualquier entorno compartido.
 | Recurso | Clave de ruta | Roles | Alcance |
 |---|---|---|---|
 | `auth` | — | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21). |
+| `catalogos` | — | Solicitante, Administrador, Conductor (lectura) | Solo `GET /api/v1/catalogos`: bancos, medios de pago, tipos de recibo, regiones y comunas. |
 | `usuarios` | `correo` | Solicitante, Administrador, Conductor | Cada uno solo su cuenta (RNF08). `POST` (cuenta sin rol): solo Administrador. El Conductor solo consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
 | `administradores` | `correo` | Administrador | Consulta; se crean por migración, no por API. |
 | `conductores` | `correo` | Administrador (crea/edita, CU-07); Conductor | El Conductor solo su cuenta. |
@@ -474,16 +479,73 @@ ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede us
 - `GET /usuarios` devuelve solo la cuenta propia. En `usuarios`, `conductores` (Conductor) y
   `solicitantes` (Solicitante), pedir la cuenta de otra persona responde 403 exista o no, para
   no revelar qué correos están registrados.
-- `GET /viajes`: Administrador, todos o solo los pendientes con `?estado=PENDIENTE` (RF04);
-  Solicitante, los propios (RF03); Conductor, su agenda del día o la de otra fecha con
-  `?fecha=AAAA-MM-DD` (RF07).
+- `GET /viajes`: Administrador, todos (CU-04); Solicitante, los propios (RF03); Conductor, los
+  asignados a él (RF07). Parámetros combinables, para todos los roles dentro de su alcance:
+  - `estado`: uno de los 5 de `ESTADO_SOLICITUD`; `?estado=PENDIENTE` es la lista de pendientes
+    del Administrador (RF04).
+  - `fecha` (`AAAA-MM-DD`): viajes con `fhAgenda` ese día.
+  - Sin parámetros, el Conductor recibe su agenda de hoy y los demás roles, todo su alcance.
+  - La agenda del Conductor (sin `estado`) trae sus viajes `ASIGNADO`, `EN_CURSO` y `FINALIZADO`
+    del día; uno `CANCELADO` sale de ella ([V5](#viaje), [V6](#viaje)).
+- `GET /habilitaciones-movil-conductor`: todas, o filtradas por `?patente=` (conductores de un
+  vehículo) y/o `?correo=` (vehículos de un conductor).
+- Un parámetro mal formado o con un valor fuera de su lista responde 400; uno desconocido se
+  ignora.
 - `ViajeDTOResponse` incluye `pasajeros` (`dniHash`, `nombre`): cada rol ve los pasajeros de los
   viajes que ya puede consultar (RF03, RF08, HU07), sin leer `pasajeros` ni `pasajeros-viaje`.
 - `GET /pagos` del Solicitante: solo los de sus viajes (RF20).
 - `POST /pagos` (CU-11/RF18): 409 si el viaje está cancelado o ya tiene pago; 400 si el banco
   (`codSbif`), el medio de pago o el tipo de recibo no existen en su catálogo.
-- `POST /pasajeros` recibe el documento en `dni` y el backend calcula el `dni_hash` (ver
+- `POST /pasajeros` recibe el documento en `dni`, con su tipo en `tipoDocumento`, y el backend calcula el `dni_hash` (ver
   [Configuración](#configuración)); si el documento ya existe, devuelve su `dniHash` sin duplicarlo ni exponer el `nombre` guardado (RNF08).
+- **Sin paginación:** cada lista responde completa según sus filtros, porque la caché Room
+  reemplaza la consulta guardada con la respuesta completa ([Base de datos local](#base-de-datos-local)).
+- **Orden fijo:**
+  - `viajes`, por `fhAgenda` ascendente (lo próximo primero) en la agenda del Conductor y con
+    `estado` `PENDIENTE`, `ASIGNADO` o `EN_CURSO`; descendente (lo reciente primero) sin `estado`
+    o con `FINALIZADO` o `CANCELADO`. El empate se desata por `folio`.
+  - `usuarios`, `conductores`, `solicitantes` y `pasajeros`, por `nombre`; `empresas`, por
+    `razonSocial`; `moviles`, por `patente`; `habilitaciones-movil-conductor`, por `patente` y
+    `nombreConductor`; `pagos`, por `folio` descendente.
+- **Asociaciones repetidas:** "uno o más" conductores por vehículo (RF17/CU-10) se registra con un
+  `POST /habilitaciones-movil-conductor` por par. Un par nuevo responde `201`; uno existente,
+  `200` con el mismo cuerpo, sin duplicar. Igual con `POST /pasajeros-viaje`.
+- **`GET /api/v1/catalogos`:** para cualquier rol autenticado; responde `CatalogosDTOResponse`
+  ([Contratos JSON](#contratos-json)) con bancos, medios de pago, tipos de recibo, regiones y
+  comunas. La app lo pide tras el login y lo mantiene en memoria durante la sesión, para los
+  selects de "Registrar pago" y el selector de comuna de
+  [Ubicaciones desde Google Places](#ubicaciones-desde-google-places).
+
+Consultas por pantalla ([Navegación y pantallas](#navegación-y-pantallas)); al abrir una
+notificación, `GET /viajes/{folio}`:
+
+| Pantalla | Llamadas |
+|---|---|
+| Inicio de aplicación | Ninguna: lee la sesión guardada. |
+| Login | `POST /auth/login`; luego `GET /catalogos`. |
+| Registro de solicitante | `POST /solicitantes`. |
+| Recuperar contraseña | `POST /auth/recuperar-password`. |
+| Mis solicitudes | `GET /viajes`. |
+| Nueva solicitud | Places ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), luego el [Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02). |
+| Detalle de solicitud (Solicitante) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`; cancelar, `POST /viajes/{folio}/cancelar`. |
+| Perfil (Solicitante) | `GET /solicitantes/{correo}`. |
+| Cambiar contraseña | `PUT /usuarios/{correo}` con los datos actuales y la nueva `password` (Solicitante y Administrador). |
+| Solicitudes (Administrador) | `GET /viajes?estado=PENDIENTE` al abrir; cada filtro, `GET /viajes?estado=…`; "Todas", `GET /viajes`. |
+| Detalle de solicitud (Administrador) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`. |
+| Asignar conductor y vehículo | `GET /conductores` (se elige uno `DISPONIBLE`, con `viajesAsignados` y `folioEnCurso` como contexto); `GET /habilitaciones-movil-conductor?correo=` del elegido (vehículos con `capacidad` y `estadoMovil`); confirmar, `POST /viajes/{folio}/asignar`. |
+| Conductores | `GET /conductores`. |
+| Registrar conductor | `POST /conductores`. |
+| Detalle de conductor | `GET /conductores/{correo}` y `GET /habilitaciones-movil-conductor?correo=`; editar o reemplazar la contraseña, `PUT /conductores/{correo}`. |
+| Vehículos | `GET /moviles`. |
+| Registrar vehículo | `POST /moviles`. |
+| Detalle de vehículo | `GET /moviles/{patente}` y `GET /habilitaciones-movil-conductor?patente=`. |
+| Gestionar habilitaciones | Desde el vehículo, `GET /conductores` y `GET /habilitaciones-movil-conductor?patente=`; desde el conductor, `GET /moviles` y `?correo=`. Un `POST /habilitaciones-movil-conductor` por cada par nuevo. |
+| Registrar pago | `GET /catalogos` (ya en memoria); `POST /pagos`. |
+| Detalle de pago | `GET /pagos/{hash}`; cambiar estado, `POST /pagos/{hash}/estado`. |
+| Perfil (Administrador) | `GET /administradores/{correo}`. |
+| Mis viajes | `GET /viajes` (hoy) o `GET /viajes?fecha=AAAA-MM-DD`. |
+| Detalle de viaje | `GET /viajes/{folio}`; iniciar y finalizar, `POST /viajes/{folio}/estado` (o la cola sin conexión, RF11). |
+| Perfil (Conductor) | `GET /conductores/{correo}`. |
 
 ### Flujo de una solicitud (CU-01 / RF02)
 
@@ -491,14 +553,52 @@ Tres llamadas del Solicitante autenticado, porque viaje, pasajero y asociación 
 
 | Paso | Llamada | Cuerpo | Resultado |
 |---|---|---|---|
-| 1 | `POST /api/v1/pasajeros` | `dni`, `nombre` | Pasajero con su `dniHash` (si el documento ya existe, solo su `dniHash`). Uno por pasajero. |
-| 2 | `POST /api/v1/viajes` | `fhAgenda` (futura), `origen` y `destino` (`direccion`, `comuna`, `region`, `latitud`, `longitud`), `numeroVuelo` opcional | Viaje `PENDIENTE` a nombre del Solicitante del JWT; devuelve su `folio`. |
+| 1 | `POST /api/v1/pasajeros` | `tipoDocumento`, `dni`, `nombre` | Pasajero con su `dniHash` (si el documento ya existe, solo su `dniHash`). Uno por pasajero. |
+| 2 | `POST /api/v1/viajes` | `fhAgenda` (de 2 horas a 90 días desde ahora), `origen` y `destino` (`direccion`, `comuna`, `region`, `latitud`, `longitud`), `numeroVuelo` opcional | Viaje `PENDIENTE` a nombre del Solicitante del JWT; devuelve su `folio`. |
 | 3 | `POST /api/v1/pasajeros-viaje` | `folio`, `dniHash` | Asocia el pasajero; repetir una asociación existente no la duplica. |
 
 Los pasos 1 y 2 son independientes; el 3 necesita el `dniHash` del 1 y el `folio` del 2. Solo el
 Solicitante dueño agrega pasajeros, y solo con el viaje `PENDIENTE` o `ASIGNADO` (409 si no). Con
 vehículo asignado no se admiten más pasajeros que su capacidad (409). Cada asociación suma 1 a
 `VIAJE.cantidad_pasajeros` por trigger.
+
+### Ubicaciones desde Google Places
+
+`origen` y `destino` salen siempre de una sugerencia de Google Places, nunca de texto libre (HU02).
+
+**En Android (Places SDK for Android):**
+
+- Autocompletado restringido a Chile (`CL`) y en español, con un token de sesión por búsqueda
+  para que las sugerencias y el detalle se cobren como una sola sesión (RNF07).
+- Al elegir una sugerencia se piden solo el nombre, la dirección formateada, los componentes de
+  dirección y las coordenadas del lugar.
+
+| Campo de `origen`/`destino` | Origen en Places |
+|---|---|
+| `direccion` | Nombre del lugar si es un establecimiento (p. ej. un aeropuerto u hotel); si no, calle y número de la dirección formateada. Se corta a 200 caracteres. |
+| `comuna` | Componente `administrative_area_level_3`; si falta, `locality`. |
+| `region` | Componente `administrative_area_level_1`. |
+| `latitud`, `longitud` | Coordenadas del lugar, redondeadas a 6 decimales. |
+
+**En el backend (cotejo con el catálogo):**
+
+1. Normaliza `comuna` y `region`: minúsculas, sin tildes ni diéresis, `ñ` como `n`, espacios
+   simples y sin los prefijos "región de la", "región del", "región de" ni "región".
+2. Busca la comuna por nombre normalizado. El catálogo no repite nombres de comuna, así que la
+   región solo desempataría si se repitieran: una región escrita distinto (p. ej. "Región del
+   Libertador Gral. Bernardo O'Higgins") no rechaza una comuna que calza.
+3. Sin coincidencia responde 400 con `origen.comuna: no existe en el catálogo` (o
+   `destino.comuna`).
+4. Guarda y devuelve los nombres oficiales del catálogo, no los de Places.
+
+**Respaldo en la app:** si Places no trae comuna o el backend responde ese 400, la app muestra un
+selector de región y comuna con los datos de `GET /catalogos`, conserva la dirección y las
+coordenadas de Places y reenvía. El selector solo corrige la comuna; no permite escribir la
+dirección.
+
+**Catálogo geográfico:** `V3__datos_iniciales.sql` carga las 16 regiones y las 346 comunas de
+Chile con su nombre oficial, sin el prefijo "Región" (p. ej. "Metropolitana de Santiago",
+"Pudahuel"). Cambia solo por migración.
 
 ### Acciones de negocio
 
@@ -540,6 +640,132 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse` y `Recuper
   temporal de desarrollo (en el comentario de la migración) que vence a los 30 días; se
   reemplaza en cualquier entorno compartido.
 
+### Contratos JSON
+
+Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
+
+- Nombres en camelCase. Los valores de estado, rol y tipo son códigos en mayúsculas
+  (`PENDIENTE`, `EN_USO`, `ADMINISTRADOR`, `RUT`); los de `medioPago` y `tipoRecibo` son el
+  `nombre` de su catálogo.
+- Fechas de negocio como fecha y hora local sin zona, ISO 8601 (`2026-09-24T14:30:00`),
+  interpretadas en `America/Santiago`; el parámetro `fecha` es `AAAA-MM-DD`. El único instante
+  con zona es `ApiError.timestamp` (UTC, sufijo `Z`).
+- Coordenadas como número decimal; montos como entero en pesos chilenos (CLP).
+- Un opcional ausente equivale a `null`, y un texto vacío o solo con espacios equivale a ausente.
+  Los campos desconocidos se ignoran.
+- Las respuestas incluyen los opcionales con `null` y nunca llevan `id` interno,
+  `password_hash` ni el documento del pasajero en claro.
+- Las reglas de cada campo están en [Validaciones](#validaciones).
+
+**Peticiones** (`?` = opcional):
+
+| DTO | Rutas | Campos |
+|---|---|---|
+| `LoginDTORequest` | `POST /auth/login` | `correo`, `password`, `tokenFcm?` |
+| `RecuperarPasswordDTORequest` | `POST /auth/recuperar-password` | `correo` |
+| `SolicitanteDTORequest` | `POST /solicitantes`, `PUT /solicitantes/{correo}` | `nombre`, `correo`, `telefono?`, `password`, `razonSocial`, `rutEmpresa` |
+| `ConductorDTORequest` | `POST /conductores`, `PUT /conductores/{correo}` | `nombre`, `correo`, `telefono?`, `password` |
+| `UsuarioDTORequest` | `POST /usuarios`, `PUT /usuarios/{correo}` | `nombre`, `correo`, `telefono?`, `password` |
+| `MovilDTORequest` | `POST /moviles` | `patente`, `capacidad`, `gpsSerial?` |
+| `DetalleMovilConductorDTORequest` | `POST /habilitaciones-movil-conductor` | `patente`, `correoConductor` |
+| `PasajeroDTORequest` | `POST /pasajeros` | `tipoDocumento` (`RUT` o `PASAPORTE`), `dni`, `nombre` |
+| `DetalleViajePasajeroDTORequest` | `POST /pasajeros-viaje` | `folio`, `dniHash` |
+| `ViajeDTORequest` | `POST /viajes` | `fhAgenda`, `origen`, `destino`, `numeroVuelo?`; `origen` y `destino` son objetos `{direccion, comuna, region, latitud, longitud}` |
+| `PagoDTORequest` | `POST /pagos` | `folio`, `monto`, `codSbif`, `medioPago`, `tipoRecibo` |
+| `AsignarViajeDTORequest` | `POST /viajes/{folio}/asignar` | `correoConductor`, `patente` |
+| `CambiarEstadoViajeDTORequest` | `POST /viajes/{folio}/estado` | `estado` (`EN_CURSO` o `FINALIZADO`) |
+| `CambiarEstadoPagoDTORequest` | `POST /pagos/{hash}/estado` | `estado` (`PAGADO`, `RECHAZADO` o `ANULADO`) |
+
+- **`PUT`** usa el DTO del `POST` y reemplaza los campos editables (`nombre`, `telefono` y, si
+  viene, `password`). `correo` debe coincidir con el de la ruta: no se cambia (400 si difiere).
+  Sin `password` se conserva la actual; con ella se reemplaza y se anula la expiración de una
+  temporal (RF21). En `PUT /solicitantes`, `razonSocial` y `rutEmpresa` son opcionales y, si
+  vienen, deben ser los de su empresa actual (400 si difieren): la empresa no cambia por API.
+- **`PagoDTORequest`**: la empresa que paga (`PAGO.empresa_id_empresa`) es la del Solicitante
+  del viaje; no viene en el cuerpo. El banco se identifica por `codSbif`.
+- **`PasajeroDTORequest`**: `dni` es el único campo que lleva el documento en claro; el backend
+  lo normaliza, calcula el `dni_hash` y lo descarta. `tipoDocumento` solo decide la validación
+  y no se guarda.
+
+**Respuestas** (`?` = puede ser `null`):
+
+| DTO | Campos |
+|---|---|
+| `LoginDTOResponse` | `accessToken`, `tokenType` (`Bearer`), `expiresIn` (segundos), `correo`, `rol` (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`) |
+| `UsuarioDTOResponse`, `AdministradorDTOResponse` | `nombre`, `correo`, `telefono?`, `fechaRegistro` |
+| `ConductorDTOResponse` | Los de `UsuarioDTOResponse`, `estadoConductor` (`DISPONIBLE` u `OCUPADO`), `viajesAsignados` (cantidad de sus viajes `ASIGNADO`) y `folioEnCurso?` (su viaje `EN_CURSO`, si tiene) |
+| `SolicitanteDTOResponse` | Los de `UsuarioDTOResponse`, `razonSocial` y `rutEmpresa` |
+| `EmpresaDTOResponse` | `razonSocial`, `rut` |
+| `MovilDTOResponse` | `patente`, `capacidad`, `gpsSerial?`, `estadoMovil` (`DISPONIBLE` o `EN_USO`) |
+| `DetalleMovilConductorDTOResponse` | `patente`, `capacidad`, `estadoMovil`, `correoConductor`, `nombreConductor`, `estadoConductor` |
+| `PasajeroDTOResponse` | `dniHash`, `nombre?` (`null` solo en `POST /pasajeros` cuando el documento ya existía, RNF08) |
+| `DetalleViajePasajeroDTOResponse` | `folio`, `dniHash`, `nombrePasajero` |
+| `ViajeDTOResponse` | `folio`, `estado`, `correoSolicitante`, `origen` y `destino` (mismo objeto que en la petición), `fhCreacion`, `fhAgenda`, `fhAsignacion?`, `fhInicio?`, `fhFin?`, `numeroVuelo?`, `cantidadPasajeros`, `correoConductor?`, `nombreConductor?`, `patenteMovil?`, `hashPago?`, `estadoPago?`, `pasajeros` (lista de `PasajeroDTOResponse`, con `nombre`) |
+| `PagoDTOResponse` | `hash`, `folio`, `monto`, `estadoPago` (`PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO`), `banco`, `codSbif`, `rutEmpresa`, `medioPago`, `tipoRecibo`, `fechaPago?` |
+| `CatalogosDTOResponse` | `bancos` (lista de `{nombre, codSbif}`), `mediosPago` y `tiposRecibo` (listas de nombres), `regiones` (lista de `{nombre, comunas}`, con `comunas` como lista de nombres); todo por `nombre` |
+| `ApiError` | `timestamp`, `status`, `error`, `message`, `path` ([Errores](#errores)) |
+
+Ejemplo, paso 2 del [Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02).
+`POST /api/v1/viajes`:
+
+```json
+{"fhAgenda": "2026-09-24T14:30:00",
+ "origen": {"direccion": "Aeropuerto Arturo Merino Benítez", "comuna": "Pudahuel",
+            "region": "Metropolitana de Santiago", "latitud": -33.392975, "longitud": -70.785803},
+ "destino": {"direccion": "Av. Apoquindo 5400", "comuna": "Las Condes",
+             "region": "Metropolitana de Santiago", "latitud": -33.411520, "longitud": -70.575384},
+ "numeroVuelo": "LA1502"}
+```
+
+Respuesta `201` (`origen` y `destino` iguales a los enviados, omitidos aquí):
+
+```json
+{"folio": "TR-1042", "estado": "PENDIENTE", "correoSolicitante": "crios@andesconsult.cl",
+ "fhCreacion": "2026-09-20T10:05:12", "fhAgenda": "2026-09-24T14:30:00",
+ "fhAsignacion": null, "fhInicio": null, "fhFin": null, "numeroVuelo": "LA1502",
+ "cantidadPasajeros": 0, "correoConductor": null, "nombreConductor": null,
+ "patenteMovil": null, "hashPago": null, "estadoPago": null, "pasajeros": []}
+```
+
+### Validaciones
+
+Reglas de cada campo, comunes a todos los DTO que lo usan. Se aplican tras normalizar; el
+backend guarda y devuelve el valor normalizado. Un fallo responde 400 con `message` en forma
+`campo: motivo` (anidados como `origen.latitud`), con todos los campos fallidos juntos.
+
+| Campo | Regla | Normalización |
+|---|---|---|
+| `correo`, `correoConductor` | Obligatorio; formato `local@dominio.tld`; hasta 150 caracteres. | Sin espacios en los extremos y en minúsculas; el login compara así, sin distinguir mayúsculas. |
+| `nombre` (usuario y pasajero) | De 2 a 120 caracteres. | Sin espacios en los extremos. |
+| `razonSocial` | De 2 a 50 caracteres. | Sin espacios en los extremos. |
+| `telefono` | Opcional; 9 dígitos chilenos, con o sin el prefijo `+56`. | Sin espacios ni guiones y con prefijo: `+56955550101`. |
+| `password` | De 8 a 72 caracteres (hasta 72 bytes en UTF-8, límite de BCrypt), con al menos una letra y un dígito. Rige en el autorregistro, el alta de Conductor y todo `PUT` que la cambie. La temporal de RF21 (12 caracteres) se genera cumpliéndola. | Ninguna: no se recortan espacios. |
+| `rutEmpresa`, `dni` con `tipoDocumento` `RUT` | Cuerpo de 7 u 8 dígitos y dígito verificador válido (módulo 11: dígitos de derecha a izquierda por 2, 3, 4, 5, 6, 7, 2…; `11 − suma mod 11`, donde 11 → `0` y 10 → `K`). Se aceptan puntos y guion. | `EMPRESA.rut`: sin puntos, con guion y `K` mayúscula (`76543210-K`). `dni`: la de `PASAJERO.dni_hash`. |
+| `dni` con `tipoDocumento` `PASAPORTE` | De 5 a 20 letras o dígitos. | La de `PASAJERO.dni_hash`. |
+| `tipoDocumento` | `RUT` o `PASAPORTE`. | — |
+| `patente` | Formato antiguo `AA1234` o actual `BBBB12`: `^([A-Z]{2}[0-9]{4}\|[A-Z]{4}[0-9]{2})$`. | En mayúsculas, sin espacios ni guion. |
+| `capacidad` | Entero de 1 a 20. | — |
+| `gpsSerial` | Opcional; entero mayor que 0. | — |
+| `fhAgenda` | Entre ahora + 2 horas y ahora + 90 días, en hora de Chile al recibir la petición. | — |
+| `direccion` | De 1 a 200 caracteres. | Sin espacios en los extremos. |
+| `comuna`, `region` | Se cotejan con el catálogo según [Ubicaciones desde Google Places](#ubicaciones-desde-google-places); sin coincidencia, 400. | La del cotejo; se guardan y devuelven los nombres oficiales. |
+| `latitud`, `longitud` | Entre −90 y 90, y entre −180 y 180; hasta 6 decimales. `origen` y `destino` no pueden tener las mismas coordenadas. | — |
+| `numeroVuelo` | Opcional; código de aerolínea de 2 caracteres, 1 a 4 dígitos y una letra opcional: `^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$`. | En mayúsculas y sin espacios: `la 1502` → `LA1502`. |
+| `monto` | Entero mayor que 0 (CLP). | — |
+| `codSbif`, `medioPago`, `tipoRecibo` | Deben existir en su catálogo. | `medioPago` y `tipoRecibo` en mayúsculas. |
+| `estado` | Uno de los valores de su DTO. | — |
+| `folio`, `dniHash` | `folio` hasta 20 caracteres; `dniHash` de exactamente 43 caracteres Base64url. | — |
+
+Orden de evaluación:
+
+1. Cuerpo ilegible: 400 "Cuerpo inválido".
+2. Reglas de esta tabla: 400.
+3. Recurso de la ruta o del cuerpo inexistente (`folio`, `hash`, `patente`, `correo`, `dniHash`): 404.
+4. Reglas de negocio y [Máquinas de estado](#máquinas-de-estado): 409. Un `estado` válido
+   pero no permitido desde el estado actual es 409, no 400.
+
+Android aplica las mismas reglas antes de enviar (HU02), sin reemplazar las del backend.
+
 ### Errores
 
 Los errores de la aplicación responden `ApiError`:
@@ -551,7 +777,7 @@ Los errores de la aplicación responden `ApiError`:
 
 | Código | Cuándo | Cuerpo |
 |---|---|---|
-| `400` | Validación del cuerpo (`message` lista `campo: motivo`), JSON ilegible ("Cuerpo inválido"), parámetro mal formado (p. ej. `fecha`) o dato inexistente en su catálogo o geografía. | `ApiError` |
+| `400` | Validación del cuerpo ([Validaciones](#validaciones); `message` lista `campo: motivo`), JSON ilegible ("Cuerpo inválido"), parámetro mal formado (p. ej. `fecha`) o dato inexistente en su catálogo o geografía. | `ApiError` |
 | `401` | Sin token, o token alterado o vencido (cabecera `WWW-Authenticate: Bearer`); también el login fallido. | Vacío; el login fallido lleva `ApiError` |
 | `403` | La matriz no autoriza ese método en esa ruta para el rol, o la ruta no figura en ella (cabecera `WWW-Authenticate`); también un recurso o cuenta ajena. | Vacío en los dos primeros casos; `ApiError` en el recurso ajeno |
 | `404` | El recurso no existe. | `ApiError` |
@@ -575,10 +801,10 @@ backend/
     │   ├── TransporteApplication.java
     │   ├── client/       EmailClient, FirebaseClient, FcmSender, FirebaseFcmSender, EnvioDiferido
     │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig
-    │   ├── controller/   CrudController, AuthController, {E}Controller
+    │   ├── controller/   CrudController, AuthController, CatalogoController, {E}Controller
     │   ├── dto/request/  {E}DTORequest, LoginDTORequest, RecuperarPasswordDTORequest,
     │   │                 AsignarViajeDTORequest, CambiarEstadoViajeDTORequest, CambiarEstadoPagoDTORequest
-    │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, ApiError
+    │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, ApiError
     │   ├── exception/    ApiExceptionHandler
     │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, DetalleMovilConductorId, DetalleViajePasajeroId
     │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository
@@ -603,8 +829,11 @@ backend/
 - **`{C}`**: los 9 catálogos (`Banco`, `Comuna`, `EstadoConductor`, `EstadoMovil`, `EstadoPago`,
   `EstadoSolicitud`, `MedioPago`, `Region`, `TipoRecibo`): solo `Model` y `Repository`, se
   modifican solo en la base; se validan con `existsById` (p. ej. `PagoService` con `banco_id`).
+  `CatalogoController` lee bancos, medios de pago, tipos de recibo, regiones y comunas para
+  `GET /catalogos`, sin escritura.
 - **`Ubicacion`**: sin `Controller` ni DTO (clave compuesta, no sirve como ruta); `UbicacionService`
-  solo desde `ViajeService`. **`HistorialViaje`**: solo `Model` y `Repository`, lo llenan los
+  solo desde `ViajeService`, y hace el cotejo de comuna de
+  [Ubicaciones desde Google Places](#ubicaciones-desde-google-places). **`HistorialViaje`**: solo `Model` y `Repository`, lo llenan los
   triggers; exponerlo permitiría falsear o borrar el historial.
 - **DTO**: `DTORequest` solo con campos escribibles por el cliente (nunca `id` ni
   `password_hash`); `DTOResponse` con la clave de negocio en vez del `id` y nunca
@@ -627,7 +856,7 @@ solo valida (`ddl-auto=validate`); Flyway administra el esquema al iniciar:
 |---|---|
 | `V1__esquema.sql` | Tablas, claves y restricciones del [Modelo de datos](#modelo-de-datos). |
 | `V2__triggers.sql` | Rol exclusivo por usuario, folio de `VIAJE`, transiciones de viaje y de pago, conductor habilitado para el vehículo, capacidad, `cantidad_pasajeros` e `HISTORIAL_VIAJE`. |
-| `V3__datos_iniciales.sql` | Catálogos, bancos, regiones y comunas, y el Administrador inicial. |
+| `V3__datos_iniciales.sql` | Catálogos, bancos, las 16 regiones y 346 comunas ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)) y el Administrador inicial. |
 
 Cada sesión de la base usa la hora de Chile (`DB_TIME_ZONE`, por defecto `America/Santiago`)
 para que `NOW()`/`CURRENT_TIMESTAMP` coincidan con los `LocalDateTime` de la aplicación; el
@@ -801,7 +1030,7 @@ El Conductor no tiene autorregistro ni recuperación por autoservicio.
 
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
-| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places, uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe. Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO`, con confirmación; luego se queda en el detalle con el nuevo estado. |
+| Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe. Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO`, con confirmación; luego se queda en el detalle con el nuevo estado. |
 | Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Detalle de solicitud: viaje, pasajeros, asignación y pago; asignar/reasignar, registrar/consultar pago. Asignar conductor y vehículo: conductor + vehículo habilitado, resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, vehículos habilitados, edición, reemplazo de contraseña). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, conductores habilitados). Gestionar habilitaciones: solo agregar, sin eliminar mientras no haya un contrato que lo autorice. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña. | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
 | Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, pasajeros, vuelo, origen, destino, vehículo y estado. Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: Navegar (elegir Google Maps o Waze); Iniciar viaje en `ASIGNADO` y Finalizar viaje en `EN_CURSO`, con confirmación; sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme. El selector de fecha no agrega pantalla de historial. |
 
@@ -997,7 +1226,6 @@ Reglas de persistencia local:
 
 ### Decisiones abiertas
 
-- Cómo obtiene Android los catálogos que necesita, si el backend no los expone como recursos.
 - Cómo se actualiza el token FCM si cambia durante una sesión, si el backend lo registra en el
   login (RF13).
 - Cómo tratar un reintento cuyo cambio el servidor ya aplicó, sin duplicaciones ni conflictos
