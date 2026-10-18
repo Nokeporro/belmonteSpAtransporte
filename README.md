@@ -148,8 +148,8 @@ solicitud no se borra.
 | CU-10 Habilitar conductor para vehículo | ACT-03 | Relaciona un conductor (CU-07) con uno o más vehículos (CU-09); M:N. | Relación existente: se ignora sin duplicar. |
 | CU-11 Registrar pago de un viaje | ACT-03 | En un viaje no `CANCELADO`: monto, banco, medio de pago y tipo de recibo → pago `PENDIENTE` asociado al viaje. | Viaje `CANCELADO`: no se registra. |
 | CU-12 Actualizar estado de un pago | ACT-03 | Sobre un pago `PENDIENTE` (o `PAGADO`, solo para anularlo) marca `PAGADO`, `RECHAZADO` o `ANULADO` ([P2](#pago) desde `PENDIENTE`; [P3](#pago) `PAGADO` → `ANULADO`); anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)). | Estado terminal: no cambia. |
-| CU-13 Recuperar contraseña | ACT-01, ACT-03 | Ingresa su correo en "Recuperar contraseña". Si es de un Solicitante o Administrador: contraseña temporal aleatoria, guardada hasheada en `password_hash` con `password_temporal_expira` y enviada en texto plano solo a ese correo vía `EmailClient` (único momento en claro; nunca se persiste así, RNF01). Sirve para el login (CU-14) hasta expirar. | Correo inexistente o de un Conductor: mismo mensaje genérico. Expirada sin uso: pedir otra. |
-| CU-14 Iniciar sesión | ACT-01, ACT-03, ACT-04 | Cuenta autorregistrada (Solicitante, RF01), creada por el Administrador (Conductor, RF14) o por migración Flyway (Administrador). Envía correo, contraseña y el token FCM si existe (RF13). Se valida contra `USUARIO.password_hash` y se rechaza si `password_temporal_expira` no es nulo y ya pasó (RF21). El rol es la tabla (`SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR`) donde existe el `id_usuario`, único por `USUARIO_ROL_ACTIVO`. Se guarda o reemplaza `USUARIO.token_fcm` y se emite un JWT (`sub` = correo, `rol`, `exp`; RNF01) que el cliente adjunta en cada request y que el `SecurityFilterChain` valida aplicando el mapeo rol→endpoint. | Correo inexistente, contraseña incorrecta o temporal expirada: mismo error genérico. |
+| CU-13 Recuperar contraseña | ACT-01, ACT-03 | Ingresa su correo en "Recuperar contraseña". Si es de un Solicitante o Administrador: contraseña temporal aleatoria, guardada hasheada en `password_temporal_hash` con `password_temporal_expira`, sin tocar la contraseña actual, y enviada en texto plano solo a ese correo vía `EmailClient` (único momento en claro; nunca se persiste así, RNF01). Sirve para el login (CU-14) hasta expirar y obliga a cambiar la contraseña al entrar. | Correo inexistente o de un Conductor: mismo mensaje genérico. Expirada sin uso: pedir otra. Pedidos repetidos: [límite](#autenticación) por correo, sin aviso. |
+| CU-14 Iniciar sesión | ACT-01, ACT-03, ACT-04 | Cuenta autorregistrada (Solicitante, RF01), creada por el Administrador (Conductor, RF14) o por migración Flyway (Administrador). Envía correo, contraseña y el token FCM si existe (RF13). Se valida contra `USUARIO.password_hash` o contra la temporal vigente (`password_temporal_hash`, RF21), que obliga a cambiar la contraseña. El rol es la tabla (`SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR`) donde existe el `id_usuario`, único por `USUARIO_ROL_ACTIVO`. Se guarda o reemplaza `USUARIO.token_fcm` y se emiten un JWT (`sub` = correo, `rol`, `exp`, `sid`; RNF01) y un refresh token ([Autenticación](#autenticación)); el cliente adjunta el JWT en cada request y que el `SecurityFilterChain` valida aplicando el mapeo rol→endpoint. | Correo inexistente, contraseña incorrecta o temporal expirada: mismo error genérico. 5 fallos en 15 minutos bloquean el correo (429). |
 
 El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza su contraseña
 (CU-07/RF14), para que un desvinculado no recupere acceso por su cuenta.
@@ -180,13 +180,13 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 | **RF18** | Administrador | Registrar el pago de un viaje en cualquier estado previo a Cancelado (monto, banco, medio de pago, tipo de recibo); nace en Pendiente. |
 | **RF19** | Administrador | Marcar un pago Pagado, Rechazado o Anulado (p. ej. problema con el banco); Anulado cancela el viaje en Pendiente o Asignado. Reembolsado lo fija el sistema (RF15). |
 | **RF20** | Solicitante | Ver el estado de pago de sus viajes en el detalle de la solicitud. |
-| **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): temporal enviada al correo, con expiración. El Conductor no tiene este autoservicio (solo RF14). |
+| **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): temporal enviada al correo, con expiración, que no reemplaza la actual y obliga a cambiarla al entrar. El Conductor no tiene este autoservicio (solo RF14). |
 | **RF22** | Administrador | Reasignar una solicitud Asignado (conductor, vehículo o ambos) con las reglas de RF05; sigue Asignado, el viaje sale de la agenda de los reemplazados y se avisa por push al nuevo conductor, al conductor reemplazado y al solicitante (RF12). |
 
 ### Requisitos no funcionales
 
-- **RNF01 Seguridad:** contraseñas solo como hash; app↔backend con JWT con expiración
-  (CU-14); autorización por rol en un `SecurityFilterChain` centralizado. Única excepción al
+- **RNF01 Seguridad:** contraseñas solo como hash; app↔backend con JWT de acceso de 1 hora y refresh token
+  rotativo y revocable (CU-14); límites de intentos en las rutas públicas; autorización por rol en un `SecurityFilterChain` centralizado. Única excepción al
   "nunca en texto plano": la contraseña temporal de RF21, enviada una vez por correo y nunca
   guardada en claro.
 - **RNF02 Conectividad:** Internet continuo (Anexo §3.3); no es offline-first y crear o
@@ -240,7 +240,7 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU19 | RF18 | Media | 5 | Administrador: registrar pago | Viaje en cualquier estado salvo `CANCELADO`; hash único; banco, medio de pago y tipo de recibo desde catálogos; nace `PENDIENTE`. |
 | HU20 | RF19 | Media | 3 | Administrador: estado del pago | Transiciones [P2](#pago) `PENDIENTE` → `PAGADO`/`RECHAZADO`/`ANULADO`, [P3](#pago) `PAGADO` → `ANULADO` y [P4](#pago) `PAGADO` → `REEMBOLSADO` (solo automática, HU16); `RECHAZADO`, `ANULADO` y `REEMBOLSADO` terminales. Anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)) con los efectos de HU16 (agenda y push al conductor). |
 | HU21 | RF20 | Baja | 2 | Solicitante: estado de pago | En "Detalle de solicitud" (HU03), solo si el viaje tiene pago. |
-| HU22 | RF21 | Media | 3 | Solicitante/Administrador: recuperar contraseña | Solo esos roles; cualquier otro correo recibe el mismo mensaje genérico. La temporal expira; sin uso, se pide otra. |
+| HU22 | RF21 | Media | 3 | Solicitante/Administrador: recuperar contraseña | Solo esos roles; cualquier otro correo recibe el mismo mensaje genérico. La temporal no reemplaza la actual y expira; usarla obliga a cambiar la contraseña; sin uso, se pide otra. |
 | HU23 | RF22 | Media | 3 | Administrador: reasignar | [V2](#viaje) `ASIGNADO` → `ASIGNADO`, solo en `ASIGNADO`. Cambia conductor, vehículo o ambos con las reglas de HU05; sigue `ASIGNADO`; el viaje sale de la agenda de los reemplazados; push al nuevo conductor, al reemplazado y al solicitante (RF12); queda en `HISTORIAL_VIAJE`. |
 
 ## Modelamiento del problema
@@ -266,11 +266,18 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | USUARIO | nombre | VARCHAR(120) | NOT NULL | — |  |
 | USUARIO | correo | VARCHAR(150) | NOT NULL | UQ | Login. |
 | USUARIO | telefono | VARCHAR(20) | NULL | — | Opcional, para todos los roles. |
-| USUARIO | password_hash | VARCHAR(200) | NOT NULL | — | Nunca texto plano. |
-| USUARIO | password_temporal_expira | DATETIME | NULL | — | NULL: contraseña normal. Con valor: `password_hash` es una contraseña temporal válida hasta ese instante (RF21). Siempre NULL para CONDUCTOR. |
+| USUARIO | password_hash | VARCHAR(200) | NOT NULL | — | Contraseña normal (BCrypt). Nunca texto plano; recuperar la contraseña no la reemplaza. |
+| USUARIO | password_temporal_hash | VARCHAR(200) | NULL | — | Contraseña temporal pendiente (RF21), BCrypt; NULL si no hay. Siempre NULL para CONDUCTOR. |
+| USUARIO | password_temporal_expira | DATETIME | NULL | — | Vencimiento de `password_temporal_hash`; NULL junto con ella (RF21). Siempre NULL para CONDUCTOR. |
 | USUARIO | fecha_registro | DATETIME | NOT NULL | DEFAULT CURRENT_TIMESTAMP |  |
-| USUARIO | token_fcm | VARCHAR(255) | NULL | — | Token push del dispositivo actual; NULL hasta el primer login desde la app. Se reemplaza en cada login, no se duplica (RF13). |
+| USUARIO | token_fcm | VARCHAR(255) | NULL | UQ | Token push del último dispositivo del usuario; NULL hasta el primer login desde la app o tras cerrar sesión. Se reemplaza en el login o con `POST /auth/token-fcm` y, al guardarlo, se quita de cualquier otro usuario (RF13). |
 | USUARIO_ROL_ACTIVO | id_usuario | BIGINT UNSIGNED | NOT NULL | PK, FK → USUARIO | Exclusividad de rol: triggers `BEFORE INSERT` en `SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR` insertan aquí primero; la PK rechaza un segundo rol. Sin columnas propias. |
+| SESION | id_sesion | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT | Una por login con la contraseña normal o por renovación ([Autenticación](#autenticación)). |
+| SESION | id_usuario | BIGINT UNSIGNED | NOT NULL | FK → USUARIO |  |
+| SESION | refresh_hash | CHAR(64) | NOT NULL | UQ | SHA-256 hexadecimal del refresh token; el token nunca se guarda. |
+| SESION | fh_creacion | DATETIME | NOT NULL | DEFAULT CURRENT_TIMESTAMP |  |
+| SESION | fh_expira | DATETIME | NOT NULL | — | `fh_creacion` + `JWT_REFRESH_DIAS`. |
+| SESION | fh_revocada | DATETIME | NULL | — | Rotación, logout, cambio de contraseña o reuso; NULL mientras está vigente. |
 | EMPRESA | id_empresa | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
 | EMPRESA | razon_social | VARCHAR(50) | NOT NULL | — |  |
 | EMPRESA | rut | VARCHAR(15) | NOT NULL | UQ | Identificador legal único. |
@@ -368,6 +375,7 @@ erDiagram
     USUARIO ||--o| ADMINISTRADOR : extiende
     USUARIO ||--o| CONDUCTOR : extiende
     USUARIO ||--o| USUARIO_ROL_ACTIVO : "tiene rol activo"
+    USUARIO ||--o{ SESION : abre
     EMPRESA ||--o{ SOLICITANTE : emplea
     EMPRESA ||--o{ PAGO : paga
     ESTADO_CONDUCTOR ||--o{ CONDUCTOR : clasifica
@@ -398,7 +406,7 @@ erDiagram
 |---|---|
 | Base de datos | **MariaDB** (oficial): `InnoDB` (ACID), soporte directo en Spring (`MariaDBDialect`, `mariadb-java-client`), GPL v2, bajo consumo en desarrollo local. |
 | Backend | **Spring Boot 4.1**, Java 21, Gradle; API REST JSON para Android (Retrofit); `Controller` ➔ `Service` ➔ `Repository`; Spring Data JPA; Flyway. |
-| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/**` y `POST /api/v1/solicitantes` (autorregistro, RF01). |
+| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login`, `/refresh` y `/recuperar-password`, y `POST /api/v1/solicitantes` (autorregistro, RF01). |
 | Integraciones | Push con Firebase Admin SDK (FCM) desde la capa `Service`; correo con `spring-boot-starter-mail` a un SMTP configurable. Ambos después del commit, en otro hilo y sin afectar la operación ([Notificaciones externas](#notificaciones-externas)). |
 | Android | Kotlin + Jetpack Compose, MVVM con Repository ([Frontend (Android)](#frontend-android)). |
 
@@ -457,7 +465,7 @@ al iniciar. Las credenciales se cambian en cualquier entorno compartido.
 
 | Recurso | Clave de ruta | Roles | Alcance |
 |---|---|---|---|
-| `auth` | — | Público | Login (CU-14) y recuperación de contraseña (CU-13/RF21). |
+| `auth` | — | Público; `logout` y `token-fcm` con JWT de cualquier rol | Login (CU-14), renovación y cierre de sesión, token FCM (RF13) y recuperación de contraseña (CU-13/RF21). |
 | `catalogos` | — | Solicitante, Administrador, Conductor (lectura) | Solo `GET /api/v1/catalogos`: bancos, medios de pago, tipos de recibo, regiones y comunas. |
 | `usuarios` | `correo` | Solicitante, Administrador, Conductor | Cada uno solo su cuenta (RNF08). `POST` (cuenta sin rol): solo Administrador. El Conductor solo consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
 | `administradores` | `correo` | Administrador | Consulta; se crean por migración, no por API. |
@@ -517,12 +525,12 @@ ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede us
   [Ubicaciones desde Google Places](#ubicaciones-desde-google-places).
 
 Consultas por pantalla ([Navegación y pantallas](#navegación-y-pantallas)); al abrir una
-notificación, `GET /viajes/{folio}`:
+notificación, `GET /viajes/{folio}`; al cerrar sesión desde un Perfil, `POST /auth/logout`:
 
 | Pantalla | Llamadas |
 |---|---|
 | Inicio de aplicación | Ninguna: lee la sesión guardada. |
-| Login | `POST /auth/login`; luego `GET /catalogos`. |
+| Login | `POST /auth/login`; luego `GET /catalogos` o, con `cambioPasswordRequerido`, "Cambiar contraseña". |
 | Registro de solicitante | `POST /solicitantes`. |
 | Recuperar contraseña | `POST /auth/recuperar-password`. |
 | Mis solicitudes | `GET /viajes`. |
@@ -616,29 +624,66 @@ devuelven `ViajeDTOResponse`/`PagoDTOResponse`. Reglas y efectos en
 
 ### Autenticación
 
-| Método | Ruta | Acción |
-|---|---|---|
-| `POST` | `/api/v1/auth/login` | Autenticar con correo/contraseña y emitir el JWT (CU-14). |
-| `POST` | `/api/v1/auth/recuperar-password` | Pedir una contraseña temporal por correo (CU-13/RF21). |
+| Método | Ruta | JWT | Acción |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/login` | No | Autenticar con correo y contraseña y abrir una sesión (CU-14). |
+| `POST` | `/api/v1/auth/refresh` | No | Renovar el acceso con el refresh token, que rota. |
+| `POST` | `/api/v1/auth/logout` | Sí | Cerrar la sesión del JWT y borrar el token FCM. |
+| `POST` | `/api/v1/auth/token-fcm` | Sí | Reemplazar el token FCM del usuario (RF13). |
+| `POST` | `/api/v1/auth/recuperar-password` | No | Pedir una contraseña temporal por correo (CU-13/RF21). |
 
-Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse` y `RecuperarPasswordDTORequest`.
+Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshDTORequest`,
+`TokenFcmDTORequest` y `RecuperarPasswordDTORequest` ([Contratos JSON](#contratos-json)).
 
-- **Login:** recibe `correo`, `password` y, opcional, `tokenFcm` (RF13; se guarda en
-  `USUARIO.token_fcm` reemplazando al anterior). Responde `accessToken`, `tokenType` (`Bearer`),
-  `expiresIn` (segundos), `correo` y `rol`. Todo fallo (correo desconocido, contraseña
-  incorrecta, temporal vencida o usuario sin rol) da el mismo 401 "Credenciales inválidas".
-- **JWT:** HS256 con `JWT_SECRET`; `sub` (correo), `rol` y `exp` (`JWT_EXPIRATION_SECONDS`,
-  3600 s por defecto). Va en cada petición como `Authorization: Bearer <token>`. Sin endpoint
-  de renovación.
+- **Login:** recibe `correo`, `password` y, opcional, `tokenFcm`. La contraseña puede ser la
+  normal (`password_hash`) o la temporal vigente (`password_temporal_hash`, RF21):
+  - Con la normal: responde `accessToken` y `refreshToken`, y anula una temporal pendiente.
+  - Con la temporal: responde solo `accessToken` (`refreshToken` en `null`) y
+    `cambioPasswordRequerido: true`; la app abre "Cambiar contraseña" antes que cualquier otra
+    pantalla.
+
+  Todo fallo (correo desconocido, contraseña incorrecta, temporal vencida o usuario sin rol) da
+  el mismo 401 "Credenciales inválidas".
+- **JWT de acceso:** HS256 con `JWT_SECRET`; `sub` (correo), `rol`, `exp`
+  (`JWT_EXPIRATION_SECONDS`, 3600 s por defecto) y `sid` (la sesión; ausente si se entró con la
+  temporal). Va en cada petición como `Authorization: Bearer <token>`. Es stateless: no se
+  revoca y vale hasta su `exp`.
+- **Sesiones y refresh token:** cada login con la contraseña normal crea una fila en `SESION`.
+  El refresh token es un valor aleatorio de 256 bits en Base64url (43 caracteres); se entrega una
+  sola vez y solo se guarda su SHA-256.
+  - `POST /auth/refresh` con un refresh vigente revoca su sesión y abre otra (rotación): nuevo
+    `accessToken` y nuevo `refreshToken`, que vence a los `JWT_REFRESH_DIAS` (30) de emitido.
+    Responde como el login.
+  - Refresh desconocido, vencido o revocado: 401 "Sesión inválida". Presentar uno ya revocado se
+    trata como robo y revoca todas las sesiones del usuario.
+  - `POST /auth/logout` revoca la sesión `sid`, deja `USUARIO.token_fcm` en NULL y responde `204`.
+  - Cambiar la contraseña propia revoca las demás sesiones del usuario (la `sid` actual sigue);
+    el Administrador que reemplaza la de un Conductor revoca todas las del Conductor (CU-07).
 - **Contraseñas:** BCrypt.
 - **Recuperar contraseña:** solo Solicitante y Administrador (el Conductor recurre al
   Administrador, CU-07/RF14). Siempre `204`, exista o no el correo. Genera una temporal de 12
-  caracteres que reemplaza a la actual y vence a los `PASSWORD_TEMPORAL_MINUTOS` (30); se envía
-  por correo y nunca va a los logs. Cambiar la contraseña con `PUT /api/v1/usuarios/{correo}`
-  (con `passwordActual`, que puede ser la temporal vigente) anula la expiración.
+  caracteres, la guarda hasheada en `password_temporal_hash` con vencimiento a los
+  `PASSWORD_TEMPORAL_MINUTOS` (30) y la envía por correo; nunca va a los logs. **No reemplaza la
+  contraseña actual:** ambas sirven hasta que se use una, y un nuevo pedido reemplaza la temporal
+  anterior. Cambiar la contraseña con `PUT /api/v1/usuarios/{correo}` (con `passwordActual`, que
+  puede ser la temporal) deja la temporal en NULL.
+- **Token FCM (RF13):** `USUARIO.token_fcm` guarda el del último dispositivo del usuario. Se fija
+  en el login (`tokenFcm`) o con `POST /auth/token-fcm` si cambia durante la sesión, y se borra
+  con `logout`. Es único: al guardarlo se quita de cualquier otro usuario, para que una cuenta
+  anterior en el mismo teléfono no reciba sus push.
 - **Administrador inicial:** la migración `V3` crea `admin@belmontespa.cl` con una contraseña
-  temporal de desarrollo (en el comentario de la migración) que vence a los 30 días; se
-  reemplaza en cualquier entorno compartido.
+  temporal de desarrollo (en el comentario de la migración) en `password_temporal_hash`, que vence
+  a los 30 días, y un `password_hash` inutilizable: al entrar debe cambiarla. Se reemplaza en
+  cualquier entorno compartido.
+
+**Límites de intentos.** Contadores en memoria de la instancia (se pierden al reiniciar), por
+correo normalizado y por IP del cliente:
+
+| Ruta | Límite | Al excederlo |
+|---|---|---|
+| `POST /auth/login` | 5 fallos en 15 minutos por correo, exista o no; un login exitoso reinicia el contador. | El correo queda bloqueado 15 minutos: 429 con `Retry-After`, aun con la contraseña correcta. |
+| `POST /auth/recuperar-password` | 1 pedido cada 5 minutos y 5 por hora por correo. | `204` sin enviar correo, igual que con un correo inexistente. |
+| `POST /auth/login`, `/auth/refresh`, `/auth/recuperar-password` y `POST /solicitantes` | 20 peticiones por minuto por IP, sumadas. | 429 con `Retry-After`. |
 
 ### Contratos JSON
 
@@ -662,6 +707,8 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | DTO | Rutas | Campos |
 |---|---|---|
 | `LoginDTORequest` | `POST /auth/login` | `correo`, `password`, `tokenFcm?` |
+| `RefreshDTORequest` | `POST /auth/refresh` | `refreshToken` |
+| `TokenFcmDTORequest` | `POST /auth/token-fcm` | `tokenFcm` |
 | `RecuperarPasswordDTORequest` | `POST /auth/recuperar-password` | `correo` |
 | `SolicitanteDTORequest` | `POST /solicitantes`, `PUT /solicitantes/{correo}` | `nombre`, `correo`, `telefono?`, `password`, `passwordActual?`, `razonSocial`, `rutEmpresa` |
 | `ConductorDTORequest` | `POST /conductores`, `PUT /conductores/{correo}` | `nombre`, `correo`, `telefono?`, `password` |
@@ -695,7 +742,7 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 
 | DTO | Campos |
 |---|---|
-| `LoginDTOResponse` | `accessToken`, `tokenType` (`Bearer`), `expiresIn` (segundos), `correo`, `rol` (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`) |
+| `LoginDTOResponse` (login y `POST /auth/refresh`) | `accessToken`, `tokenType` (`Bearer`), `expiresIn` (segundos), `refreshToken?` (`null` si se entró con la temporal), `refreshExpiresIn?` (segundos), `cambioPasswordRequerido` (booleano), `correo`, `rol` (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`) |
 | `UsuarioDTOResponse`, `AdministradorDTOResponse` | `nombre`, `correo`, `telefono?`, `fechaRegistro` |
 | `ConductorDTOResponse` | Los de `UsuarioDTOResponse`, `estadoConductor` (`DISPONIBLE` u `OCUPADO`), `viajesAsignados` (cantidad de sus viajes `ASIGNADO`) y `folioEnCurso?` (su viaje `EN_CURSO`, si tiene) |
 | `SolicitanteDTOResponse` | Los de `UsuarioDTOResponse`, `razonSocial` y `rutEmpresa` |
@@ -761,6 +808,8 @@ backend guarda y devuelve el valor normalizado. Un fallo responde 400 con `messa
 | `monto` | Entero mayor que 0 (CLP). | — |
 | `codSbif`, `medioPago`, `tipoRecibo` | Deben existir en su catálogo. | `medioPago` y `tipoRecibo` en mayúsculas. |
 | `estado` | Uno de los valores de su DTO. | — |
+| `refreshToken` | 43 caracteres Base64url. | — |
+| `tokenFcm` | Opcional en el login, obligatorio en `/auth/token-fcm`; hasta 255 caracteres. | — |
 | `folio`, `hash`, `dniHash` | `folio`: `^TR-[1-9][0-9]{3,16}$`; `hash`: `^[0-9a-f]{32}$`; `dniHash`: 43 caracteres Base64url. En el cuerpo, un valor mal formado es 400; en la ruta, 404, igual que uno inexistente. | — |
 
 Orden de evaluación:
@@ -785,11 +834,12 @@ Los errores de la aplicación responden `ApiError`:
 | Código | Cuándo | Cuerpo |
 |---|---|---|
 | `400` | Validación del cuerpo ([Validaciones](#validaciones); `message` lista `campo: motivo`), JSON ilegible ("Cuerpo inválido"), parámetro mal formado (p. ej. `fecha`) o dato inexistente en su catálogo o geografía. | `ApiError` |
-| `401` | Sin token, o token alterado o vencido (cabecera `WWW-Authenticate: Bearer`); también el login fallido. | Vacío; el login fallido lleva `ApiError` |
+| `401` | Sin token, o token alterado o vencido (cabecera `WWW-Authenticate: Bearer`); también el login fallido y un refresh inválido. | Vacío; el login fallido lleva `ApiError` |
 | `403` | La matriz no autoriza ese método en esa ruta para el rol, o la ruta no figura en ella (cabecera `WWW-Authenticate`); también un recurso o cuenta ajena. | Vacío en los dos primeros casos; `ApiError` en el recurso ajeno |
 | `404` | El recurso no existe. | `ApiError` |
 | `405` | La matriz autoriza al rol en esa ruta pero el método no existe (p. ej. `PUT /moviles/{patente}` del Administrador, que tiene `moviles` completo). | `ApiError` |
 | `409` | Regla de negocio o restricción: correo o patente repetidos, transición inválida, capacidad superada, o rechazo de un trigger ("La operación viola una restricción de datos"). | `ApiError` |
+| `429` | Límite de intentos excedido ([Autenticación](#autenticación)); cabecera `Retry-After` en segundos. | `ApiError` |
 | `500` | Error inesperado; mensaje genérico ("Error interno"), detalle solo en el log. | `ApiError` |
 
 ## Estructura del backend
@@ -809,12 +859,12 @@ backend/
     │   ├── client/       EmailClient, FirebaseClient, FcmSender, FirebaseFcmSender, EnvioDiferido
     │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig
     │   ├── controller/   CrudController, AuthController, CatalogoController, {E}Controller
-    │   ├── dto/request/  {E}DTORequest, LoginDTORequest, RecuperarPasswordDTORequest,
+    │   ├── dto/request/  {E}DTORequest, LoginDTORequest, RefreshDTORequest, TokenFcmDTORequest, RecuperarPasswordDTORequest,
     │   │                 AsignarViajeDTORequest, CambiarEstadoViajeDTORequest, CambiarEstadoPagoDTORequest
     │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, ApiError
     │   ├── exception/    ApiExceptionHandler
-    │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, DetalleMovilConductorId, DetalleViajePasajeroId
-    │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository
+    │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, Sesion, DetalleMovilConductorId, DetalleViajePasajeroId
+    │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository, SesionRepository
     │   └── service/      CrudService, AuthService, {E}Service, UbicacionService
     ├── main/resources/   application.properties,
     │                     db/migration/ V1__esquema.sql, V2__triggers.sql, V3__datos_iniciales.sql
@@ -846,8 +896,8 @@ backend/
   `password_hash`); `DTOResponse` con la clave de negocio en vez del `id` y nunca
   `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
 - **Servicios y controladores**: `CrudService`/`CrudController` concentran el CRUD genérico y los
-  puntos de extensión del alcance "solo lo propio"; `AuthService`/`AuthController`, login y
-  recuperación; `ViajeService`/`PagoService` y sus controladores, asignación, estados,
+  puntos de extensión del alcance "solo lo propio"; `AuthService`/`AuthController`, login,
+  sesiones, token FCM y recuperación (los límites de intentos, en un filtro previo); `ViajeService`/`PagoService` y sus controladores, asignación, estados,
   cancelación y pagos. `ApiExceptionHandler` centraliza las respuestas de error.
 - **`config`**: `SecurityConfig` (cadena de seguridad), `JwtProvider` (emite y valida el JWT,
   CU-14), `FirebaseConfig` (envío FCM solo con credenciales).
@@ -879,7 +929,8 @@ Todo por variables de entorno; `application.properties` trae valores de desarrol
 | `DB_USER`, `DB_PASSWORD` | `belmonte`, `belmonte_dev` | Credenciales de la base. |
 | `DB_TIME_ZONE` | `America/Santiago` | Zona horaria de cada sesión. |
 | `JWT_SECRET` | valor de desarrollo | Clave Base64 de al menos 256 bits para firmar el JWT. |
-| `JWT_EXPIRATION_SECONDS` | `3600` | Vigencia del JWT. |
+| `JWT_EXPIRATION_SECONDS` | `3600` | Vigencia del JWT de acceso. |
+| `JWT_REFRESH_DIAS` | `30` | Vigencia del refresh token (sesión). |
 | `DNI_SECRET` | valor de desarrollo | Clave del HMAC-SHA256 de `PASAJERO.dni_hash`. |
 | `PASSWORD_TEMPORAL_MINUTOS` | `30` | Vigencia de la contraseña temporal (RF21). |
 | `SPRING_MAIL_HOST` | sin valor | Servidor SMTP; sin él el correo queda desactivado. |
@@ -951,7 +1002,7 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 
 | Pruebas | Cubren |
 |---|---|
-| `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y validación. |
+| `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y validación; sesiones (refresh, rotación, reuso, logout) y límites de intentos. |
 | `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña y 403 en cuentas ajenas. |
 | `FlotaIT` | Vehículos y habilitación de conductores. |
 | `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
@@ -1029,7 +1080,7 @@ autorización del backend.
 | Acceso | Contenido | Destino |
 |---|---|---|
 | Inicio de aplicación | Comprueba la sesión guardada. | Login o inicio del rol. |
-| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña". | Inicio del rol, registro o recuperación. |
+| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña". | Inicio del rol (o "Cambiar contraseña" si entró con la temporal), registro o recuperación. |
 | Registro de solicitante | Nombre, correo, teléfono, contraseña, razón social y RUT de empresa. | Login con el correo precargado. |
 | Recuperar contraseña | Correo y explicación de la temporal (Solicitante y Administrador). | Confirmación genérica y login. |
 
@@ -1045,9 +1096,9 @@ Reglas comunes:
 
 - Pantallas principales con barra inferior; formularios y detalles con flecha atrás. Salir de un
   formulario con cambios pide confirmar el descarte.
-- Iniciar sesión elimina el flujo de acceso del historial; cerrar sesión elimina el flujo
-  autenticado y la sesión local.
-- Sesión expirada: reautenticar antes de seguir con operaciones protegidas.
+- Iniciar sesión elimina el flujo de acceso del historial; cerrar sesión llama a
+  `POST /auth/logout` y elimina el flujo autenticado y la sesión local.
+- Sesión que no se puede renovar: reautenticar antes de seguir con operaciones protegidas.
 - Pulsar una notificación abre el detalle tras comprobar sesión, rol y acceso.
 - Cada pantalla contempla carga, contenido, lista vacía, error y sin conexión, según corresponda.
 - Durante un envío la acción se bloquea (sin pulsaciones duplicadas).
@@ -1061,7 +1112,11 @@ Reglas comunes:
   peticiones protegidas como `Authorization: Bearer <token>`.
 - Sin contraseñas en Room, DataStore ni logs. La sesión persistida se cifra con una clave de
   Android Keystore; DataStore no se considera cifrado por sí mismo.
-- Sin endpoint de renovación del JWT: al expirar la sesión, se pide login de nuevo.
+- `accessToken` y `refreshToken` se guardan cifrados como la sesión. Ante un 401 en una petición
+  protegida, OkHttp renueva una sola vez con `POST /auth/refresh` (sin renovaciones simultáneas)
+  y repite la petición; si la renovación falla, la sesión termina y se pide login. Con
+  `cambioPasswordRequerido` no hay refresh: tras cambiar la contraseña, la app inicia sesión con
+  la nueva.
 - Los errores HTTP se traducen a mensajes comprensibles, con tratamiento distinto para
   autenticación, permisos, validación, conflictos de negocio y conectividad.
 
@@ -1183,7 +1238,7 @@ Reglas de la cola (`operaciones_pendientes`):
 - Dos pulsaciones de la misma acción no crean dos operaciones.
 - El estado local pendiente no sobrescribe `estado_confirmado`.
 - Un conflicto detiene las operaciones posteriores de ese viaje.
-- Una sesión expirada pausa el envío hasta autenticarse con la misma cuenta.
+- Una sesión que no se puede renovar pausa el envío hasta autenticarse con la misma cuenta.
 - Al confirmar una operación, la actualización del viaje y el borrado de la operación van en una
   transacción.
 - Si se perdió la respuesta del servidor, se consulta el viaje antes de reintentar; el contrato
@@ -1210,7 +1265,9 @@ Reglas de persistencia local:
 - FCM notifica asignaciones, reasignaciones, cancelaciones y cambios de estado; la notificación identifica el
   viaje por su folio y provoca una consulta al backend para obtener datos actualizados.
 - La app gestiona los canales y el permiso de notificaciones cuando corresponde, obtiene el token
-  FCM y lo envía en el login. Cómo actualizarlo si cambia durante la sesión es una decisión abierta.
+  FCM y lo envía en el login; si cambia durante la sesión (`onNewToken`), lo envía con
+  `POST /auth/token-fcm`, y sin sesión lo guarda para el próximo login. Al cerrar sesión,
+  `POST /auth/logout` lo borra en el servidor.
 - Google Places selecciona direcciones y obtiene coordenadas; la clave del SDK tiene
   restricciones de aplicación y de API.
 - La ruta se abre por Intent en Google Maps o Waze; sin app compatible, aviso. El MVP no incluye
@@ -1236,7 +1293,5 @@ Reglas de persistencia local:
 
 ### Decisiones abiertas
 
-- Cómo se actualiza el token FCM si cambia durante una sesión, si el backend lo registra en el
-  login (RF13).
 - Cómo tratar un reintento cuyo cambio el servidor ya aplicó, sin duplicaciones ni conflictos
   incorrectos.

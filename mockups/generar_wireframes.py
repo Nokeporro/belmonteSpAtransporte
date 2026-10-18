@@ -854,8 +854,8 @@ GRUPOS = [
             Nota('Al terminar vuelve al login con el correo precargado. Si el RUT ya existe, la empresa '
                  'se reutiliza.')]),
         Pantalla('Recuperar contraseña', ['CU-13', 'RF21', 'HU22'], barra='Recuperar contraseña', atras=True, cuerpo=[
-            Nota('Te enviaremos una contraseña temporal al correo registrado. Reemplaza a la actual y vence '
-                 'en 30 minutos; si no la usas a tiempo, pide otra.'),
+            Nota('Te enviaremos una contraseña temporal al correo registrado. Tu contraseña actual sigue '
+                 'funcionando; la temporal vence en 30 minutos.'),
             Campo('Correo', 'crios@andesconsult.cl'), Boton('Enviar contraseña temporal'),
             Aviso('Si el correo pertenece a una cuenta habilitada, recibirás la contraseña temporal.'),
             Nota('Solo Solicitante y Administrador. Conductores: el Administrador reemplaza su contraseña.')]),
@@ -905,8 +905,8 @@ GRUPOS = [
             Campo('Contraseña actual', '••••••••'), Campo('Nueva contraseña', '••••••••'),
             Campo('Confirmar contraseña', '••••••••'),
             Boton('Guardar'),
-            Nota('Solo Solicitante y Administrador. Si entraste con una contraseña temporal, al cambiarla deja '
-                 'de vencer.')]),
+            Nota('Solo Solicitante y Administrador. Si entraste con una contraseña temporal, debes cambiarla '
+                 'antes de seguir.')]),
     ]),
     ('Administrador', 'recepcionista', [
         Pantalla('Solicitudes', ['CU-04', 'RF04', 'HU04'], barra='Solicitudes', badge='2', nav=NAV_ADM, cuerpo=[
