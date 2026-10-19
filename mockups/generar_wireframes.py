@@ -12,6 +12,7 @@ archivos generados no se editan a mano. Solo usa la librería estándar.
 Las pantallas siguen la especificación del README ("Navegación y pantallas", "Máquinas de
 estado"). Todos los datos son ficticios (RNF09).
 """
+import random
 from html import escape
 from pathlib import Path
 
@@ -48,6 +49,7 @@ ESTADOS = {
     'SYNC': ('Pendiente de sincronizar', 'aviso'),
     'ATRASADO': ('Atrasado', 'aviso'), 'VENCIDO': ('Vencido', 'peligro_borde'),
     'INACTIVO': ('Inactivo', 'tenue'), 'SOL_PENDIENTE': ('Por aprobar', 'aviso'),
+    'ABORDADO': ('Abordado', 'ok'), 'POR_ABORDAR': ('Por abordar', 'neutro'),
 }
 ESTILOS = {  # estilo → (texto, borde, fondo)
     'neutro': ('ink_soft', 'line_strong', None), 'info': ('info', 'info', 'info_soft'),
@@ -80,6 +82,7 @@ ICONOS = {  # trazos en una grilla de 24 × 24
     'carga': 'M12 3a9 9 0 1 1-9 9',
     'llave': 'M14 10a4 4 0 1 0-4 4 M12.8 12.8L20 20 M17 17l2-2',
     'salir': 'M10 5H5v14h5 M14 8l4 4-4 4 M18 12H9',
+    'qr': 'M4 4h6v6H4z M14 4h6v6h-6z M4 14h6v6H4z M14 14h2v2h-2z M18 18h2v2h-2z M18 14h2 M14 19h1',
 }
 
 
@@ -770,6 +773,95 @@ class Lista:
             f'<li>{icono_html("usuario", 13)}<span>{h(e)}</span></li>' for e in self.elementos) + '</ul>'
 
 
+class CodigoQR:
+    """QR de abordaje del vehículo: patrón ilustrativo de 21 × 21 módulos (no decodificable), patente y código."""
+
+    MODULOS = 21
+    LADO = 105  # px del patrón; margen blanco de 2 módulos alrededor
+
+    def __init__(self, patente, codigo):
+        self.patente, self.codigo = patente, codigo
+
+    def grupos(self):
+        return ' '.join(self.codigo[i:i + 4] for i in range(0, len(self.codigo), 4))
+
+    def oscuros(self):
+        n, azar = self.MODULOS, random.Random(self.patente + self.codigo)
+        marcas = [(0, 0), (0, n - 7), (n - 7, 0)]
+
+        def en_marca(f, c):
+            return any(mf - 1 <= f <= mf + 7 and mc - 1 <= c <= mc + 7 for mf, mc in marcas)
+
+        celdas = set()
+        for mf, mc in marcas:
+            for f in range(7):
+                for c in range(7):
+                    if f in (0, 6) or c in (0, 6) or (2 <= f <= 4 and 2 <= c <= 4):
+                        celdas.add((mf + f, mc + c))
+        for f in range(n):
+            for c in range(n):
+                if en_marca(f, c):
+                    continue
+                if f == 6 or c == 6:
+                    if (f + c) % 2 == 0:
+                        celdas.add((f, c))
+                elif azar.random() < 0.5:
+                    celdas.add((f, c))
+        return sorted(celdas)
+
+    def trazo(self):
+        return ' '.join(f'M{c + 2} {f + 2}h1v1h-1z' for f, c in self.oscuros())
+
+    def alto(self, w):
+        return self.LADO * (self.MODULOS + 4) / self.MODULOS + 34
+
+    def svg(self, out, x, y, w):
+        total = self.MODULOS + 4
+        lado = self.LADO * total / self.MODULOS
+        qx = x + (w - lado) / 2
+        rect(out, qx, y, lado, lado, '#FFFFFF', C['line_soft'], rx=6)
+        out.append(f'<path d="{self.trazo()}" fill="#111111" '
+                   f'transform="translate({qx:.1f},{y:.1f}) scale({lado / total:.3f})"/>')
+        cabe(self.grupos(), 10, w, 'código QR', mono=True)
+        texto(out, x + w / 2, y + lado + 15, self.patente, 11, C['ink'], mono=True, peso='600', ancla='middle')
+        texto(out, x + w / 2, y + lado + 30, self.grupos(), 10, C['ink_soft'], mono=True, ancla='middle')
+
+    def html(self):
+        total = self.MODULOS + 4
+        return (f'<div class="qr-box"><svg class="qr" viewBox="0 0 {total} {total}" role="img" '
+                f'aria-label="Código QR de abordaje del vehículo {h(self.patente)}"><path d="{self.trazo()}"/></svg>'
+                f'<p class="qr-plate">{h(self.patente)}</p><p class="qr-code">{h(self.grupos())}</p></div>')
+
+
+class Camara:
+    """Visor del lector QR a pantalla completa: fondo oscuro, marco, línea de lectura e indicación."""
+
+    def __init__(self, indicacion):
+        self.indicacion = indicacion
+
+    def lineas(self, w):
+        return partir(self.indicacion, 11, w - 24, donde='cámara')
+
+    def alto(self, w):
+        return 230
+
+    def svg(self, out, x, y, w):
+        hh = self.alto(w)
+        rect(out, x, y, w, hh, '#16181B', rx=10)
+        m = 120
+        fx, fy = x + (w - m) / 2, y + 34
+        for cx, cy, dx, dy in ((fx, fy, 1, 1), (fx + m, fy, -1, 1), (fx, fy + m, 1, -1), (fx + m, fy + m, -1, -1)):
+            out.append(f'<path d="M{cx + 18 * dx:.1f},{cy:.1f} H{cx:.1f} V{cy + 18 * dy:.1f}" fill="none" '
+                       f'stroke="{C["accent_soft"]}" stroke-width="3" stroke-linecap="round"/>')
+        linea(out, fx + 8, fy + m / 2, fx + m - 8, fy + m / 2, C['danger'], grosor=2)
+        for i, l in enumerate(self.lineas(w)):
+            texto(out, x + w / 2, fy + m + 30 + i * 15, l, 11, '#FFFFFF', ancla='middle')
+
+    def html(self):
+        return (f'<div class="camera"><div class="cam-frame"><span class="cam-laser"></span></div>'
+                f'<p>{h(self.indicacion)}</p></div>')
+
+
 class Dialogo:
     """Diálogo de confirmación sobre la pantalla (overlay)."""
 
@@ -900,8 +992,15 @@ GRUPOS = [
             Marca(), Campo('Correo electrónico', 'nombre@empresa.cl', vacio=True),
             Campo('Contraseña', '••••••••', vacio=True), Boton('Iniciar sesión'),
             Boton('Crear cuenta solicitante', 'fantasma'), Boton('Recuperar contraseña', 'fantasma'),
+            Boton('Abordar viaje', 'fantasma', icono='qr'),
             Nota('Conductores: usen las credenciales que entrega el Administrador. El rol lo define el '
                  'backend; no hay selector de rol.', centro=True)]),
+        Pantalla('Login en modo demo', ['CU-14', 'CU-19'], centro=True, cuerpo=[
+            Marca(), Aviso('Modo demostración: datos ficticios, sin conexión al servidor.'),
+            Campo('Correo electrónico', 'ireyes@belmonte.cl'), Campo('Contraseña', '••••••••'),
+            Boton('Iniciar sesión'), Boton('Abordar viaje', 'fantasma', icono='qr'),
+            Nota('Build demo: un servidor simulado dentro de la app responde la API; ninguna petición sale '
+                 'al backend.', centro=True)]),
         Pantalla('Registro de solicitante', ['RF01', 'HU01'], barra='Crear cuenta solicitante', atras=True, cuerpo=[
             Campo('Nombre de contacto', 'Constanza Ríos'),
             Campo('Correo', 'crios@andesconsult.cl'),
@@ -948,6 +1047,25 @@ GRUPOS = [
             Boton('Reintentar cierre'),
             Nota('El cierre ya se aceptó: el acceso protegido sigue bloqueado y no se permite otro login hasta '
                  'terminar la limpieza local.', centro=True)]),
+    ]),
+    ('Pasajero', 'sin cuenta', [
+        Pantalla('Abordar viaje', ['CU-19', 'RF28', 'HU29'], barra='Abordar viaje', atras=True, cuerpo=[
+            Aviso('Escanea el código QR de la puerta del vehículo.'),
+            Boton('Escanear código QR', icono='qr'), Boton('Ingresar código', 'secundario'),
+            Nota('Sin cuenta: te identificas con tu RUT o pasaporte, que no se guarda en el teléfono. '
+                 '"Ingresar código" pide la patente y el código escritos bajo el QR.')]),
+        Pantalla('Escanear código QR', ['CU-19', 'RF28', 'HU29'], cuerpo=[
+            Camara('Apunta al código QR de la puerta.'),
+            Nota('Lector de ZXing a pantalla completa; atrás cancela sin aviso. Sin permiso de cámara: su '
+                 'aviso, "Ingresar código" y, si ya no se puede pedir, "Abrir ajustes".')]),
+        Pantalla('Confirmar abordaje', ['CU-19', 'RF28', 'HU29'], barra='Confirmar abordaje', atras=True, cuerpo=[
+            KV('Vehículo', 'KXJR42'), Campo('Tipo de documento', 'RUT', icono='select'),
+            Campo('Documento', '12.345.678-5'), Boton('Confirmar abordaje'),
+            Nota('Busca tu viaje en este vehículo: Asignado dentro de la ventana de inicio o En curso. Sin '
+                 'coincidencia, el mismo aviso genérico.')]),
+        Pantalla('Abordaje registrado', ['CU-19', 'RF28', 'HU29'], barra='Abordar viaje', cuerpo=[
+            Aviso('Abordaje registrado a las 14:05. ¡Buen viaje!'), Boton('Volver al inicio'),
+            Nota('Repetir el escaneo responde la misma hora. Volver al inicio abre el Login sin sesión.')]),
     ]),
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
@@ -1047,12 +1165,15 @@ GRUPOS = [
             Botones(Boton('Rechazar', 'secundario'), Boton('Aprobar')),
             Nota('Se registró con el RUT de una empresa existente. Aprobar o rechazar le avisa por correo; '
                  'hasta entonces no puede iniciar sesión.')]),
-        Pantalla('Detalle de solicitud', ['CU-04', 'RF22', 'HU23', 'V2'], barra='Solicitud TR-1042',
+        Pantalla('Detalle de solicitud', ['CU-04', 'RF22', 'RF29', 'HU23', 'HU30', 'V2'], barra='Solicitud TR-1042',
                  sub='Andes Consultores SpA', atras=True, cuerpo=[
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
             KV('Pasajeros', '2'), Seccion('Asignación'), KV('Conductor', 'Iván Reyes'),
             KV('Vehículo', 'KXJR42'), Boton('Reasignar', 'secundario'),
+            Seccion('Abordaje'), Aviso('Abordaron 1 de 2. Faltan: Tomás Vidal.', tono='aviso'),
+            Item('Constanza Ríos', 'Abordó a las 14:05', derecha=Chip('ABORDADO')),
+            Item('Tomás Vidal', derecha=Chip('POR_ABORDAR')),
             Seccion('Pago'), KV('Estado', chip=Chip('PAGADO')), Boton('Ver pago', 'fantasma'),
             Boton('Cancelar viaje', 'peligro_sec'),
             Nota('Reasignar solo en Pendiente o Asignado sin vencer; cancelar, en Pendiente o Asignado. En En '
@@ -1121,10 +1242,13 @@ GRUPOS = [
             Campo('Serial GPS (opcional)', 'Opcional', vacio=True), Boton('Registrar vehículo'),
             Nota('Patente única y capacidad mayor que 0. El serial GPS es un dato de flota. Nace Disponible '
                  'y activo.')]),
-        Pantalla('Detalle de vehículo', ['CU-09', 'CU-10'], barra='KXJR42', atras=True, cuerpo=[
+        Pantalla('Detalle de vehículo', ['CU-09', 'CU-10', 'CU-19', 'HU29'], barra='KXJR42', atras=True, cuerpo=[
             Chip('DISPONIBLE', grande=True), KV('Capacidad', '4 pasajeros'), KV('Serial GPS', '50231'),
             Seccion('Conductores habilitados'), Lista('Iván Reyes', 'Paula Muñoz'),
-            Boton('Gestionar habilitaciones', 'secundario'), Boton('Desactivar', 'peligro_sec')]),
+            Boton('Gestionar habilitaciones', 'secundario'),
+            Seccion('Código QR de abordaje'), CodigoQR('KXJR42', '7F3A9C21B04E58D6'),
+            Nota('Imprímelo y pégalo en la puerta de entrada.', centro=True),
+            Boton('Desactivar', 'peligro_sec')]),
         Pantalla('Gestionar habilitaciones', ['CU-10', 'RF17', 'HU18'], barra='Habilitaciones',
                  sub='Vehículo KXJR42', atras=True, cuerpo=[
             Casilla('Iván Reyes', 'Ya habilitado', marcada=True, bloqueada=True),
@@ -1180,12 +1304,15 @@ GRUPOS = [
             Viaje('14:30', 'ASIGNADO', 'Constanza Ríos +1', 'Aeropuerto → Las Condes'),
             Viaje('18:45', 'ASIGNADO', 'Felipe Mora', 'Las Condes → Aeropuerto'),
             Nota('Varios viajes asignados por día. El selector de fecha muestra la agenda de otro día.')]),
-        Pantalla('Detalle de viaje', ['CU-03', 'RF08', 'RF09', 'HU08', 'HU09', 'V3', 'V4'], barra='Viaje TR-1042',
+        Pantalla('Detalle de viaje', ['CU-03', 'RF08', 'RF09', 'RF29', 'HU08', 'HU09', 'HU30', 'V3', 'V4'],
+                 barra='Viaje TR-1042',
                  atras=True, cuerpo=[
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'), KV('Vuelo', 'LA 1502'),
             KV('Solicitante', 'Constanza Ríos'), KV('Teléfono', '+56 9 5555 0101'),
             KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400'),
-            KV('Vehículo', 'KXJR42'), Seccion('Pasajeros'), Lista('Constanza Ríos', 'Tomás Vidal'),
+            KV('Vehículo', 'KXJR42'), Seccion('Abordaje'), Aviso('Abordaron 1 de 2. Faltan: Tomás Vidal.', tono='aviso'),
+            Item('Constanza Ríos', 'Abordó a las 14:05', derecha=Chip('ABORDADO')),
+            Item('Tomás Vidal', derecha=Chip('POR_ABORDAR')),
             Boton('Iniciar viaje'), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
             Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
@@ -1197,11 +1324,11 @@ GRUPOS = [
             Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Nota('Disponible desde las 17:45.', centro=True),
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec')]),
-        Pantalla('Confirmar inicio', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1042', atras=True,
+        Pantalla('Confirmar inicio', ['RF09', 'HU09', 'HU30', 'V3'], barra='Viaje TR-1042', atras=True,
                  cuerpo=NUEVA_SOLICITUD_FONDO,
                  overlay=Dialogo('¿Iniciar el viaje TR-1042?',
                                  'Pasará a En curso. Quedarás Ocupado y el vehículo KXJR42 En uso hasta '
-                                 'finalizarlo.',
+                                 'finalizarlo. Falta 1 pasajero por abordar.',
                                  [Boton('Volver', 'secundario'), Boton('Iniciar')])),
         Pantalla('Sin conexión', ['RF11', 'HU11', 'V3'], barra='Viaje TR-1042', atras=True, cuerpo=[
             Banner('Sin conexión. Los cambios se enviarán al reconectar.'),
@@ -1368,7 +1495,8 @@ def leyenda_svg(out, y):
                ('Retraso', ['ATRASADO', 'VENCIDO']),
              ('Pago', ['PAGO_PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO', 'REEMBOLSADO']),
              ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO', 'INACTIVO']),
-             ('Sin conexión', ['SYNC'])]
+             ('Sin conexión', ['SYNC']),
+             ('Abordaje', ['ABORDADO', 'POR_ABORDAR'])]
     for nombre, estados in filas:
         texto(out, MARGEN, y + 13, nombre.upper(), 10, C['ink_soft'], mono=True, espaciado=0.6)
         x = MARGEN + 170
@@ -1545,6 +1673,16 @@ h1{font-family:'IBM Plex Mono','Courier New',monospace;font-weight:700;font-size
 .plain-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12px;}
 .plain-list li{display:flex;align-items:center;gap:7px;color:var(--ink);}
 .plain-list svg{color:var(--ink-soft);}
+.qr-box{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.qr{width:125px;height:125px;background:#fff;border:1px solid var(--line-soft);border-radius:6px;}
+.qr path{fill:#111;}
+.qr-plate{margin:6px 0 0;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink);}
+.qr-code{margin:0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);}
+.camera{background:#16181b;border-radius:10px;height:230px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:24px;}
+.cam-frame{position:relative;width:120px;height:120px;border:3px solid var(--accent-soft);border-radius:4px;}
+.cam-laser{position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--danger);}
+.camera p{margin:0;padding:0 12px;color:#fff;font-size:11px;text-align:center;}
 .trip-card{border:1px solid var(--line-soft);border-left:4px solid var(--line-strong);border-radius:10px;
   padding:9px 12px;display:flex;flex-direction:column;gap:4px;}
 .trip-card.st-asignado{border-left-color:var(--info);}
@@ -1622,7 +1760,8 @@ def generar_html():
                ('Retraso', ['ATRASADO', 'VENCIDO']),
                ('Pago', ['PAGO_PENDIENTE', 'PAGADO', 'RECHAZADO', 'ANULADO', 'REEMBOLSADO']),
                ('Conductor / vehículo', ['DISPONIBLE', 'OCUPADO', 'EN_USO', 'INACTIVO']),
-               ('Sin conexión', ['SYNC'])]
+               ('Sin conexión', ['SYNC']),
+               ('Abordaje', ['ABORDADO', 'POR_ABORDAR'])]
     filas = ''.join(f'<div class="legend-row"><span class="legend-title">{h(n)}</span>' +
                     ''.join(Chip(e).html() for e in es) + '</div>' for n, es in leyenda)
     grupos = ''.join(

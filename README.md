@@ -1,7 +1,7 @@
 # Aplicacion de Belmonte Spa.
 ## Especificaciones del proyecto.
 
-**Ultima modificacion:** 18-10-2026
+**Ultima modificacion:** 19-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -70,7 +70,9 @@
     - [Restablecimiento local explícito](#restablecimiento-local-explícito)
     - [Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas)
   - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
+  - [Abordaje con código QR](#abordaje-con-código-qr)
   - [Compilación, firma y distribución](#compilación-firma-y-distribución)
+  - [Modo demostración sin backend](#modo-demostración-sin-backend)
   - [Pruebas Android](#pruebas-android)
   - [Decisiones cerradas](#decisiones-cerradas)
 - [Proceso de desarrollo](#proceso-de-desarrollo)
@@ -88,8 +90,8 @@ descrito; su revisión evalúa la coherencia y suficiencia de la especificación
 conformidad del código se revisa aparte.
 
 Belmonte SpA hace transporte privado corporativo (traslados ejecutivos y aeropuerto). El MVP
-móvil centraliza el flujo: captura de solicitudes, asignación a conductores y enlace con
-navegación externa (Google Maps/Waze).
+móvil centraliza el flujo: captura de solicitudes, asignación a conductores, abordaje de los
+pasajeros con un código QR y enlace con navegación externa (Google Maps/Waze).
 
 ### Cómo leer esta especificación
 
@@ -114,7 +116,7 @@ erróneos (horarios, direcciones), respuestas lentas y retraso en que el conduct
 | ID | Actor | Rol |
 |---|---|---|
 | ACT-01 | Cliente corporativo / Solicitante | Agenda el traslado (datos del viaje y del pasajero). |
-| ACT-02 | Pasajero | Quien viaja; puede no ser el solicitante. |
+| ACT-02 | Pasajero | Quien viaja; puede no ser el solicitante. Sin cuenta: registra su abordaje con el código QR del vehículo (CU-19). |
 | ACT-03 | Recepcionista / Administrador | Asigna solicitudes a conductores; gestiona flota (vehículos y habilitaciones) y pagos. |
 | ACT-04 | Conductor | Ejecuta el traslado; ve sus viajes del día y abre la ruta en un navegador externo. |
 | ACT-05 | Sistema de navegación externo (Google Maps / Waze) | Recibe las coordenadas por Intent y traza la ruta. Sin tabla: no hay datos propios que persistir. |
@@ -141,13 +143,13 @@ cambio registra su fecha/hora.
 | ID | Transición | Quién | Precondiciones | Efectos |
 |---|---|---|---|---|
 | V1 | alta → `PENDIENTE` | Solicitante aprobado (CU-01/RF02) | `fh_agenda` de 2 horas a 90 días desde ahora ([Validaciones](#validaciones); si no, 400) | La base genera el `folio` (`TR-` y un correlativo, inmutable; ver `VIAJE.folio`); `fh_creacion`. Push a los Administradores. |
-| V2 | `PENDIENTE`/`ASIGNADO` → `ASIGNADO` (asignar o reasignar) | Administrador (CU-04/RF05/RF22) | Viaje no vencido (ver Retraso; si no, 409 "El viaje está vencido"). Al menos un pasajero (`cantidad_pasajeros` ≥ 1). Conductor y vehículo activos y Disponibles (sin otro viaje `EN_CURSO`); conductor habilitado para el vehículo; pasajeros ≤ capacidad. Sin solapamiento: ni el conductor ni el vehículo tienen otro viaje `ASIGNADO` o `EN_CURSO` cuya ventana de inicio (ver V3) se cruce con la de este, es decir, con `abs(fh_agenda − fh_agenda del otro) < 2 horas` (a 2 horas exactas no se solapan). Al reasignar, la disponibilidad y el solapamiento se validan solo para lo que cambia (sin contar el propio viaje) y la habilitación para el par resultante. Sin reasignación automática. | `fh_asignacion`. No cambia el estado del conductor ni del vehículo: ambos pueden tener varios viajes `ASIGNADO`. Al reasignar puede cambiar solo el conductor, solo el vehículo o ambos; el viaje sale de la agenda de los reemplazados. Push al conductor (nuevo), al solicitante y, si cambia el conductor, al reemplazado. |
+| V2 | `PENDIENTE`/`ASIGNADO` → `ASIGNADO` (asignar o reasignar) | Administrador (CU-04/RF05/RF22) | Viaje no vencido (ver Retraso; si no, 409 "El viaje está vencido"). Al menos un pasajero (`cantidad_pasajeros` ≥ 1). Conductor y vehículo activos y Disponibles (sin otro viaje `EN_CURSO`); conductor habilitado para el vehículo; pasajeros ≤ capacidad. Sin solapamiento: ni el conductor ni el vehículo tienen otro viaje `ASIGNADO` o `EN_CURSO` cuya ventana de inicio (ver V3) se cruce con la de este, es decir, con `abs(fh_agenda − fh_agenda del otro) < 2 horas` (a 2 horas exactas no se solapan). Al reasignar, la disponibilidad y el solapamiento se validan solo para lo que cambia (sin contar el propio viaje) y la habilitación para el par resultante. Sin reasignación automática. | `fh_asignacion`. No cambia el estado del conductor ni del vehículo: ambos pueden tener varios viajes `ASIGNADO`. Al reasignar puede cambiar solo el conductor, solo el vehículo o ambos; el viaje sale de la agenda de los reemplazados y, si cambia el vehículo, los pasajeros vuelven a Por abordar ([Abordaje](#abordaje)). Push al conductor (nuevo), al solicitante y, si cambia el conductor, al reemplazado. |
 | V3 | `ASIGNADO` → `EN_CURSO` | Conductor asignado (RF09) | Dentro de la ventana de inicio: `fh_agenda − 1 hora ≤ ahora ≤ fh_agenda + 1 hora`. Conductor y vehículo Disponibles (sin otro viaje `EN_CURSO`). | `fh_inicio`; conductor → Ocupado, vehículo → En uso. Push al solicitante. |
 | V4 | `EN_CURSO` → `FINALIZADO` | Conductor asignado (RF09) | — | `fh_fin`; conductor y vehículo → Disponible. Push al solicitante. |
 | V5 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (cancelar) | Solicitante dueño (CU-08/RF15) | Viaje no vencido (ver Retraso). | Si había conductor: push al conductor y el viaje sale de su agenda ("Mis viajes", en su fecha). No cambia el estado de conductor ni vehículo (en `PENDIENTE`/`ASIGNADO` este viaje no los ocupa). Pago `PAGADO` → `REEMBOLSADO` con `monto_reembolsado` = 50 % del monto, redondeado hacia abajo (P4); `PENDIENTE` → `ANULADO` (P5); en otro estado el pago no cambia. No modifica `fh_fin`: el momento queda en `HISTORIAL_VIAJE`. |
 | V6 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (por anulación del pago) | Sistema, al anular el Administrador el pago (P2 o P3; CU-12/RF19) | — | Mismos efectos de V5 (agenda y push al conductor) sin reembolso, y push al solicitante. |
 | V7 | `PENDIENTE`/`ASIGNADO` → `CANCELADO` (por el Administrador) | Administrador (CU-15/RF23) | `motivo` obligatorio. | Guarda el `motivo`; agenda y push al conductor como en V5, y push al solicitante. Pago `PAGADO` → `REEMBOLSADO` (P4): con el viaje no vencido, `monto_reembolsado` = monto (100 %); vencido, el monto que fije el Administrador entre 0 y el monto (con 0 el pago no cambia). Pago `PENDIENTE` → `ANULADO` (P5). |
-| V8 | `ASIGNADO` → `PENDIENTE` (rechazo) | Conductor asignado (CU-16/RF24) | `motivo` obligatorio; solo con conexión (no va a la cola sin conexión). | Guarda el `motivo`; deja en NULL conductor, móvil y `fh_asignacion`; el viaje sale de su agenda. Push a los Administradores y al solicitante. El pago no cambia. |
+| V8 | `ASIGNADO` → `PENDIENTE` (rechazo) | Conductor asignado (CU-16/RF24) | `motivo` obligatorio; solo con conexión (no va a la cola sin conexión). | Guarda el `motivo`; deja en NULL conductor, móvil y `fh_asignacion`, y el abordaje de sus pasajeros ([Abordaje](#abordaje)); el viaje sale de su agenda. Push a los Administradores y al solicitante. El pago no cambia. |
 
 `CANCELADO` se suma a los 4 estados del Anexo (§3.2) para conservar la auditoría: la
 solicitud no se borra.
@@ -159,6 +161,36 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
 - **Vencido**, si `ahora > fh_agenda + 1 hora`: no se inicia (V3), no se asigna ni reasigna (V2)
   y no lo cancela el Solicitante (V5). Nada cambia solo: el Administrador lo cancela con V7 y
   decide el reembolso.
+
+### Abordaje
+
+El abordaje es una marca por pasajero dentro de su viaje (`DETALLE_VIAJE_PASAJERO.fh_abordaje`),
+no un estado del viaje ni del pasajero: con fecha, Abordado; en NULL, Por abordar. No cambia el
+estado del viaje, del conductor, del vehículo ni del pago.
+
+- **Registrar (CU-19/RF28):** `POST /api/v1/abordajes`, público, con la patente y el
+  `codigo_abordaje` del vehículo leídos del QR y el documento del pasajero. Los viajes
+  candidatos son los de ese vehículo `ASIGNADO` dentro de su ventana de inicio
+  (`fh_agenda − 1 hora ≤ ahora ≤ fh_agenda + 1 hora`, como V3) o `EN_CURSO`. El documento
+  normalizado, convertido en `dni_hash`, elige entre ellos el viaje en que viaja; si calza en
+  más de uno, el de `fh_agenda` más cercana a ahora. Fija `fh_abordaje` = ahora si estaba en
+  NULL y responde la marca guardada: repetir no la cambia.
+- **Rechazo:** patente inexistente, código distinto del de esa patente, vehículo sin viaje
+  candidato o documento que no está en ninguno responden el mismo 404 "No encontramos un
+  viaje para este documento en este vehículo"; nunca se revela si el documento viaja ni
+  cuándo (RNF08). No hay 409 de abordaje.
+- **Limpieza:** V2 que cambia el vehículo y V8 dejan en NULL el `fh_abordaje` de todos los
+  pasajeros del viaje, en la misma transacción. Un pasajero agregado a un viaje `ASIGNADO`
+  nace Por abordar.
+- **Arqueo (RF29):** "Abordaron X de N" (X, pasajeros con `fh_abordaje`; N,
+  `cantidad_pasajeros`) y la lista de los que faltan. Lo calcula la app desde los `pasajeros`
+  de `ViajeDTOResponse`; el backend no guarda contadores.
+- Se ejecuta bajo el mismo bloqueo de transporte que las transiciones
+  ([Concurrencia de operaciones de transporte](#concurrencia-de-operaciones-de-transporte)):
+  agotada la espera responde 503 sin cambios.
+- **Limitación aceptada:** el código impreso no caduca. Una foto del adhesivo permite marcar
+  a distancia a quien conozca el documento de un pasajero; la marca no cambia estados ni
+  pagos y el Conductor confirma en la puerta quién subió.
 
 ### Pago
 
@@ -219,6 +251,7 @@ validar y la app al mostrar, incluso sin conexión. Un viaje `PENDIENTE` o `ASIG
 | CU-16 Rechazar una asignación | ACT-04 | En el detalle de un viaje propio `ASIGNADO`, antes de iniciarlo: "Rechazar", motivo → [V8](#viaje); el viaje vuelve a `PENDIENTE` y sale de su agenda. | Sin conexión: no se ofrece (no se encola). Sin motivo: 400. |
 | CU-17 Aprobar un Solicitante | ACT-03 | Quien se registra con el RUT de una empresa existente queda `PENDIENTE` (RF01). El Administrador lo ve en "Cuentas por aprobar" y lo aprueba (puede crear solicitudes) o rechaza (no inicia sesión). | Cuenta ya revisada: 409. |
 | CU-18 Registrar un Administrador | ACT-03 | Un Administrador ingresa nombre, correo, teléfono opcional y una contraseña inicial, que queda como temporal por `ALTA_TEMPORAL_HORAS` y obliga a cambiarla al entrar. No se envía correo: quien lo registra le comunica la contraseña en persona. | Correo existente o campo faltante: rechazo. |
+| CU-19 Registrar abordaje | ACT-02 | Sin iniciar sesión, "Abordar viaje" en el Login: escanea el código QR de la puerta del vehículo (o ingresa su patente y código) y su documento (RUT o pasaporte) → se registra `fh_abordaje` en su viaje de ese vehículo ([Abordaje](#abordaje), [Abordaje con código QR](#abordaje-con-código-qr)). El Conductor y el Administrador ven el arqueo: cuántos y cuáles pasajeros faltan. | Código que no es de Belmonte: aviso, sin enviar. Sin viaje para ese documento en ese vehículo en este momento: 404 genérico, que no revela si el documento viaja (RNF08). Sin conexión: no se encola. Repetido: responde la misma hora. |
 
 El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza su contraseña
 (CU-07/RF14), para que un desvinculado no recupere acceso por su cuenta.
@@ -256,6 +289,8 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 | **RF25** | Administrador | Desactivar y reactivar conductores y vehículos sin viajes Asignado ni En Curso ([Conductor y vehículo](#conductor-y-vehículo)). |
 | **RF26** | Administrador | Aprobar o rechazar a los Solicitantes que se registran en una empresa existente (CU-17). |
 | **RF27** | Administrador | Registrar otra cuenta de Administrador con contraseña inicial temporal (CU-18). |
+| **RF28** | Pasajero | Registrar su abordaje sin cuenta, leyendo con la cámara el código QR de la puerta del vehículo asignado e identificándose con su documento (CU-19). |
+| **RF29** | Conductor, Administrador | Ver el arqueo de abordaje de un viaje: cuántos pasajeros abordaron y cuáles faltan. |
 
 ### Requisitos no funcionales
 
@@ -323,6 +358,8 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU26 | RF25 | Media | 3 | Administrador: dar de baja | Desactivar o reactivar un conductor o un vehículo desde su ficha; 409 con viajes `ASIGNADO` o `EN_CURSO`. Inactivo: no aparece en "Asignar"; un Conductor inactivo no inicia sesión. |
 | HU27 | RF26 | Media | 3 | Administrador: aprobar solicitantes | "Cuentas por aprobar" lista los `PENDIENTE` con su empresa; aprobar o rechazar avisa por correo al Solicitante. |
 | HU28 | RF27 | Baja | 2 | Administrador: registrar otro Administrador | Nombre, correo y contraseña inicial; teléfono opcional. Al entrar debe cambiar la contraseña. |
+| HU29 | RF28 | Alta | 5 | Pasajero: abordar con el código QR | Sin cuenta, desde el Login; lee el QR con la cámara o recibe patente y código escritos. Con su documento y el viaje `ASIGNADO` dentro de su ventana de inicio o `EN_CURSO` en ese vehículo, queda abordado con la hora; repetir responde la misma hora. Cualquier otro caso responde el mismo aviso genérico. El documento no se guarda en el teléfono. El Administrador ve el QR de cada vehículo en su detalle, con patente y código escritos debajo. |
+| HU30 | RF29 | Alta | 3 | Conductor: arqueo de abordaje | En el detalle del viaje (también el del Administrador), en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`: "Abordaron X de N", cada pasajero como Abordado o Por abordar y la lista de los que faltan. Se actualiza al abrir o deslizar. "Iniciar viaje" no exige abordaje completo: su confirmación avisa cuántos faltan. |
 
 ## Modelamiento del problema
 
@@ -389,6 +426,7 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | MOVIL | estado_movil_id_estado_mov | BIGINT UNSIGNED | NOT NULL | FK → ESTADO_MOVIL |  |
 | MOVIL | capacidad | INT | NOT NULL | — | Pasajeros. |
 | MOVIL | activo | BOOLEAN | NOT NULL | DEFAULT TRUE | Baja de un vehículo en taller o retirado (RF25): inactivo no es asignable. |
+| MOVIL | codigo_abordaje | CHAR(16) | NOT NULL | UQ | Código del QR de abordaje de la puerta ([Abordaje](#abordaje)): 16 hexadecimales en mayúsculas de 8 bytes aleatorios (`SecureRandom`), generados por el backend al registrar el vehículo. No cambia en el MVP; solo lo ve el Administrador. |
 | DETALLE_MOVIL_CONDUCTOR | id_movil | BIGINT UNSIGNED | NOT NULL | PK, FK → MOVIL | Habilitación vehículo↔conductor. |
 | DETALLE_MOVIL_CONDUCTOR | id_usuario | BIGINT UNSIGNED | NOT NULL | PK, FK → CONDUCTOR |  |
 | PASAJERO | id_pasajero | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
@@ -434,6 +472,7 @@ Las PK simples usan `AUTO_INCREMENT`. `Nulo` es explícito en cada atributo; `UQ
 | VIAJE | motivo | VARCHAR(200) | NULL | — | Motivo de la cancelación por el Administrador (V7) o del rechazo del Conductor (V8); el trigger lo registra en `HISTORIAL_VIAJE`. |
 | DETALLE_VIAJE_PASAJERO | id_viaje | BIGINT UNSIGNED | NOT NULL | PK, FK → VIAJE |  |
 | DETALLE_VIAJE_PASAJERO | id_pasajero | BIGINT UNSIGNED | NOT NULL | PK, FK → PASAJERO |  |
+| DETALLE_VIAJE_PASAJERO | fh_abordaje | DATETIME | NULL | — | Hora de Chile en que el pasajero registró su abordaje (CU-19); NULL, Por abordar. Vuelve a NULL con V2 que cambia el vehículo y con V8. |
 | HISTORIAL_VIAJE | id_historial | BIGINT UNSIGNED | NOT NULL | PK, AUTO_INCREMENT |  |
 | HISTORIAL_VIAJE | id_viaje | BIGINT UNSIGNED | NOT NULL | FK → VIAJE |  |
 | HISTORIAL_VIAJE | campo_modificado | VARCHAR(30) | NOT NULL | — | Uno de: `estado`, `conductor`, `movil`, `cantidad_pasajeros`, `pago`, `motivo` (ver [Decisiones de modelo](#decisiones-de-modelo)). |
@@ -458,6 +497,9 @@ El actor ACT-05 no tiene tabla: no hay datos propios que persistir.
   `ESTADO_MOVIL`, `ESTADO_PAGO`, `MEDIO_PAGO`, `TIPO_RECIBO`): agregar o renombrar un valor no altera el DDL.
 - **`VIAJE.cantidad_pasajeros`**: denormalización deliberada mantenida por trigger; evita un
   `COUNT(*)` en cada consulta de "viajes del día" (RNF03).
+- **`fh_abordaje` en `DETALLE_VIAJE_PASAJERO`**: el abordaje depende del par viaje-pasajero, no
+  del pasajero solo. Es una marca, no un catálogo de estados, y no genera fila en
+  `HISTORIAL_VIAJE` (solo audita columnas de `VIAJE`).
 - **`IDEMPOTENCIA`** guarda la respuesta y no solo la clave: un reintento cuya respuesta se perdió
   recibe lo mismo que habría recibido, en vez de un 409 por una transición que ya ocurrió.
   Las filas son temporales y no forman parte de la auditoría.
@@ -510,7 +552,7 @@ erDiagram
 |---|---|
 | Base de datos | **MariaDB** (oficial): `InnoDB` (ACID), soporte directo en Spring (`MariaDBDialect`, `mariadb-java-client`), GPL v2, bajo consumo en desarrollo local. |
 | Backend | **Spring Boot 4.1**, Java 21, Gradle; API REST JSON para Android (Retrofit); `Controller` ➔ `Service` ➔ `Repository`; Spring Data JPA; Flyway. |
-| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login`, `/refresh` y `/recuperar-password`, y `POST /api/v1/solicitantes` (autorregistro, RF01). |
+| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login`, `/refresh` y `/recuperar-password`, `POST /api/v1/solicitantes` (autorregistro, RF01) y `POST /api/v1/abordajes` (abordaje con QR, CU-19). |
 | Integraciones | Push con Firebase Admin SDK (FCM) desde la capa `Service`; correo con `spring-boot-starter-mail` a un SMTP configurable. Ambos después del commit, en otro hilo y sin afectar la operación ([Notificaciones externas](#notificaciones-externas)). |
 | Android | Kotlin + Jetpack Compose, MVVM con Repository ([Frontend (Android)](#frontend-android)). |
 
@@ -540,12 +582,14 @@ al iniciar. Las credenciales se cambian en cualquier entorno compartido.
 
 ### Entornos
 
-No hay entorno publicado: el sistema se entrega como demostración en un computador anfitrión.
+No hay entorno publicado: el sistema se entrega como demostración en un computador anfitrión,
+y la app también se demuestra sola, sin backend, con la build `demo`.
 
 | Entorno | Dónde | Backend y base | Correo | Push | App |
 |---|---|---|---|---|---|
 | Desarrollo | Equipo de cada integrante | Compose local y `./gradlew bootRun` | Mailpit | Opcional (sin `FIREBASE_CREDENTIALS_FILE` queda desactivado) | Debug contra `10.0.2.2` (emulador) |
 | Demostración | Un computador anfitrión en una red controlada (sala o hotspot) | El mismo compose y el backend con las variables de `.env.demo` | Proveedor transaccional ([Notificaciones externas](#notificaciones-externas)) | Firebase real | APK release contra la IP del anfitrión |
+| Demostración sin backend | Un teléfono o emulador, sin computador anfitrión | Ninguno: un servidor simulado dentro de la app ([Modo demostración sin backend](#modo-demostración-sin-backend)) | No se envía | Sin push | Build `demo` |
 
 - **Anfitrión:** IP fija en la red de la demo; el puerto `8080` se abre solo en esa red. MariaDB
   y Mailpit siguen escuchando solo en `127.0.0.1`.
@@ -558,7 +602,9 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
     Conductor activo habilitado para al menos un vehículo activo;
   - 2 empresas y 3 Solicitantes (1 `PENDIENTE` de aprobación);
   - viajes en los 5 estados, uno atrasado y uno vencido, con `fh_agenda` relativa a `NOW()`, y
-    pagos en los 5 estados.
+    pagos en los 5 estados;
+  - un `codigo_abordaje` fijo y ficticio por vehículo, para imprimir sus QR de prueba, y un
+    viaje `ASIGNADO` dentro de su ventana de inicio con un pasajero abordado y otro por abordar.
 
   Todas las cuentas usan la misma contraseña ficticia, escrita en un comentario al inicio del
   script (sin contraseña temporal pendiente).
@@ -599,8 +645,10 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
   solo dentro de las respuestas. Tampoco `ubicaciones`, que se crea y consulta solo como parte de
   `viajes`.
 - **`Idempotency-Key`:** encabezado opcional (UUID) en todo `POST` autenticado que crea algo o
-  cambia un estado, salvo las rutas `/auth/*`. También queda excluido el autorregistro público
-  `POST /solicitantes`, que no tiene un usuario autenticado con el que asociar la clave.
+  cambia un estado, salvo las rutas `/auth/*`. También quedan excluidos el autorregistro público
+  `POST /solicitantes`, que no tiene un usuario autenticado con el que asociar la clave, y el
+  abordaje público `POST /abordajes`, idempotente por naturaleza: repetirlo responde la misma
+  `fhAbordaje` ([Abordaje](#abordaje)).
   Repetir una petición protegida con la misma clave no la aplica dos
   veces: el backend guarda en `IDEMPOTENCIA` cada respuesta `2xx` junto con la clave y el usuario.
   - Misma clave, mismo usuario, método, ruta y cuerpo, dentro de `IDEMPOTENCIA_HORAS` (24): devuelve
@@ -648,6 +696,10 @@ pierde, la app informa que el registro puede haberse completado y ofrece iniciar
 recuperar contraseña ([Textos y tema](#textos-y-tema)); no repite automáticamente el registro. Un nuevo intento manual puede
 responder 409 por correo existente y no se interpreta como una cuenta creada por ese intento.
 
+El abordaje (`POST /abordajes`) tampoco participa en esta tabla: su efecto es fijar una marca
+que no se sobrescribe, así que un reintento con el mismo cuerpo responde la misma
+`fhAbordaje` sin efectos nuevos.
+
 ### Recursos y roles
 
 | Recurso | Clave de ruta | Roles | Alcance |
@@ -665,6 +717,7 @@ responder 409 por correo existente y no se interpreta como una cuenta creada por
 | `pasajeros` | `dni_hash` | Solicitante (los registra, CU-01); Administrador (lectura) | Solicitante y Conductor ven los pasajeros de sus viajes dentro de `viajes` (`ViajeDTOResponse`). |
 | `pasajeros-viaje` | `{folio}/{dni_hash}` | Solicitante (asocia pasajeros a su viaje, CU-01); Administrador (lectura) | El Solicitante solo en viajes propios; la lectura de pasajeros va en `viajes`. |
 | `viajes` | `folio` | Solicitante (propios, RF02/RF03); Administrador (todos, CU-04); Conductor (asignados, RF07/RF08) | Ver [Consultas y alcance por rol](#consultas-y-alcance-por-rol). |
+| `abordajes` | — | Público (solo `POST`, CU-19/RF28) | Registra el abordaje de un pasajero según [Abordaje](#abordaje); no tiene consulta propia: el arqueo va en `pasajeros` de `viajes`. |
 
 Sin token, o con uno alterado o vencido: 401. Rol o método que esta matriz no autoriza en la ruta, o
 ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede usar: 405 (ver [Errores](#errores)).
@@ -740,6 +793,7 @@ desde un Perfil, `POST /auth/logout` si hay conexión, sin impedir el cierre loc
 | Login | `POST /auth/login`; luego `GET /catalogos` o, con `cambioPasswordRequerido`, "Cambiar contraseña". |
 | Registro de solicitante | `POST /solicitantes`. |
 | Recuperar contraseña | `POST /auth/recuperar-password`. |
+| Abordar viaje (sin sesión) | `POST /abordajes`, sin JWT ([Abordaje con código QR](#abordaje-con-código-qr)). |
 | Mis solicitudes | `GET /viajes`. |
 | Nueva solicitud | Places ([Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), luego el [Flujo de una solicitud](#flujo-de-una-solicitud-cu-01--rf02). |
 | Detalle de solicitud (Solicitante) | `GET /viajes/{folio}` y, si trae `hashPago`, `GET /pagos/{hash}`; agregar pasajero, `POST /pasajeros` y `POST /pasajeros-viaje`; cancelar, `POST /viajes/{folio}/cancelar`. |
@@ -754,7 +808,7 @@ desde un Perfil, `POST /auth/logout` si hay conexión, sin impedir el cierre loc
 | Detalle de conductor | `GET /conductores/{correo}` y `GET /habilitaciones-movil-conductor?correo=`; editar o reemplazar la contraseña, `PUT /conductores/{correo}`; desactivar o reactivar, `POST /conductores/{correo}/activo`. |
 | Vehículos | `GET /moviles`. |
 | Registrar vehículo | `POST /moviles`. |
-| Detalle de vehículo | `GET /moviles/{patente}` y `GET /habilitaciones-movil-conductor?patente=`; desactivar o reactivar, `POST /moviles/{patente}/activo`. |
+| Detalle de vehículo | `GET /moviles/{patente}` (incluye `codigoAbordaje`, con el que la app genera el QR) y `GET /habilitaciones-movil-conductor?patente=`; desactivar o reactivar, `POST /moviles/{patente}/activo`. |
 | Gestionar habilitaciones | Desde el vehículo, `GET /conductores` y `GET /habilitaciones-movil-conductor?patente=`; desde el conductor, `GET /moviles` y `?correo=`. Un `POST /habilitaciones-movil-conductor` por cada par nuevo. |
 | Registrar pago | `GET /catalogos` (ya en memoria); `POST /pagos`. |
 | Detalle de pago | `GET /pagos/{hash}`; cambiar estado, `POST /pagos/{hash}/estado`. |
@@ -846,8 +900,9 @@ Chile con su nombre oficial, sin el prefijo "Región" (p. ej. "Metropolitana de 
 ### Acciones de negocio
 
 Métodos adicionales de `ViajeController`, `PagoController`, `ConductorController`,
-`MovilController` y `SolicitanteController`, fuera de `CrudController`; reciben el DTO de su
-fila ([Contratos JSON](#contratos-json)) y devuelven la respuesta del recurso. Reglas y efectos en
+`MovilController` y `SolicitanteController`, fuera de `CrudController`, y el único método de
+`AbordajeController`; reciben el DTO de su fila ([Contratos JSON](#contratos-json)) y devuelven
+la respuesta del recurso (el abordaje, `AbordajeDTOResponse`). Reglas y efectos en
 [Máquinas de estado](#máquinas-de-estado).
 
 | Método | Ruta | Rol | Cuerpo | Acción |
@@ -862,6 +917,7 @@ fila ([Contratos JSON](#contratos-json)) y devuelven la respuesta del recurso. R
 | `POST` | `/api/v1/moviles/{patente}/activo` | Administrador | `activo` | Desactivar o reactivar un vehículo (RF25); misma regla. |
 | `POST` | `/api/v1/solicitantes/{correo}/aprobar` | Administrador | — | `PENDIENTE` → `APROBADO` (CU-17/RF26); correo al Solicitante. 409 si ya fue revisado. |
 | `POST` | `/api/v1/solicitantes/{correo}/rechazar` | Administrador | — | `PENDIENTE` → `RECHAZADO` (CU-17/RF26); correo al Solicitante. 409 si ya fue revisado. |
+| `POST` | `/api/v1/abordajes` | Público (sin JWT) | `patente`, `codigoAbordaje`, `tipoDocumento`, `dni` | Registra el abordaje del pasajero (CU-19/RF28) según [Abordaje](#abordaje); `200` con `fhAbordaje`, también al repetir. Sin `Idempotency-Key`. |
 
 ### Autenticación
 
@@ -937,7 +993,8 @@ por usuario autenticado (el `sub` del JWT), en ventanas deslizantes: "en 15 minu
 |---|---|---|
 | `POST /auth/login` | 5 fallos en 15 minutos por correo, exista o no; un login exitoso reinicia el contador. | El correo queda bloqueado 15 minutos: 429 con `Retry-After`, aun con la contraseña correcta. |
 | `POST /auth/recuperar-password` | 1 pedido cada 5 minutos y 5 por hora por correo. | `204` sin enviar correo, igual que con un correo inexistente. |
-| `POST /auth/login`, `/auth/refresh`, `/auth/recuperar-password` y `POST /solicitantes` | 20 peticiones por minuto por IP, sumadas. | 429 con `Retry-After`. |
+| `POST /auth/login`, `/auth/refresh`, `/auth/recuperar-password`, `POST /solicitantes` y `POST /abordajes` | 20 peticiones por minuto por IP, sumadas. | 429 con `Retry-After`. |
+| `POST /abordajes` | 10 respuestas 404 en 15 minutos por IP. | La IP queda bloqueada 15 minutos en esa ruta: 429 con `Retry-After`, aun con datos correctos. |
 | Toda ruta con JWT (incluida la cola del Conductor) | 120 peticiones por minuto por usuario, sumadas entre rutas y métodos. | 429 con `Retry-After`; no se aplica nada. |
 
 ### Contratos JSON
@@ -982,6 +1039,7 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | `CancelarViajeDTORequest` | `POST /viajes/{folio}/cancelar` (Administrador; el Solicitante no envía cuerpo) | `motivo`, `montoReembolso?` |
 | `RechazarViajeDTORequest` | `POST /viajes/{folio}/rechazar` | `motivo` |
 | `ActivoDTORequest` | `POST /conductores/{correo}/activo`, `POST /moviles/{patente}/activo` | `activo` (booleano) |
+| `AbordajeDTORequest` | `POST /abordajes` | `patente`, `codigoAbordaje`, `tipoDocumento` (`RUT` o `PASAPORTE`), `dni` |
 
 - **`PUT`** (`UsuarioDTORequest` o `ConductorDTORequest`) reemplaza todos los campos editables: `nombre`, `telefono`
   (ausente o `null` lo borra) y, si viene, `password`. `correo` debe coincidir con el de la ruta:
@@ -996,7 +1054,8 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
   del viaje; no viene en el cuerpo. El banco se identifica por `codSbif`.
 - **`PasajeroDTORequest`**: `dni` es el único campo que lleva el documento en claro; el backend
   lo normaliza, calcula el `dni_hash` y lo descarta. `tipoDocumento` solo decide la validación
-  y no se guarda.
+  y no se guarda. `AbordajeDTORequest` trata `dni` igual: solo calcula el hash para buscar al
+  pasajero.
 
 **Respuestas** (`?` = puede ser `null`):
 
@@ -1007,11 +1066,12 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | `ConductorDTOResponse` | Los de `UsuarioDTOResponse`, `activo`, `estadoConductor` (`DISPONIBLE` u `OCUPADO`), `viajesAsignados` (cantidad de sus viajes `ASIGNADO`) y `folioEnCurso?` (su viaje `EN_CURSO`, si tiene) |
 | `SolicitanteDTOResponse` | Los de `UsuarioDTOResponse`, `razonSocial`, `rutEmpresa` y `estadoSolicitante` (`PENDIENTE`, `APROBADO` o `RECHAZADO`) |
 | `EmpresaDTOResponse` | `razonSocial`, `rut` |
-| `MovilDTOResponse` | `patente`, `capacidad`, `gpsSerial?`, `activo`, `estadoMovil` (`DISPONIBLE` o `EN_USO`) |
+| `MovilDTOResponse` | `patente`, `capacidad`, `gpsSerial?`, `activo`, `estadoMovil` (`DISPONIBLE` o `EN_USO`), `codigoAbordaje` (solo lo recibe el Administrador, único rol de `moviles`) |
 | `DetalleMovilConductorDTOResponse` | `patente`, `capacidad`, `estadoMovil`, `activoMovil`, `correoConductor`, `nombreConductor`, `estadoConductor`, `activoConductor` |
-| `PasajeroDTOResponse` | `dniHash`, `nombre?` (`null` solo en `POST /pasajeros` cuando el documento ya existía, RNF08) |
+| `PasajeroDTOResponse` | `dniHash`, `nombre?` (`null` solo en `POST /pasajeros` cuando el documento ya existía, RNF08), `fhAbordaje?` (solo dentro de `ViajeDTOResponse`; `null` si está Por abordar y en `POST /pasajeros`) |
 | `DetalleViajePasajeroDTOResponse` | `folio`, `dniHash`, `nombrePasajero` |
-| `ViajeDTOResponse` | `folio`, `estado`, `correoSolicitante`, `nombreSolicitante`, `telefonoSolicitante?`, `razonSocial` (empresa del Solicitante; RNF08), `origen` y `destino` (mismo objeto que en la petición), `fhCreacion`, `fhAgenda`, `fhAsignacion?`, `fhInicio?`, `fhFin?`, `numeroVuelo?`, `cantidadPasajeros`, `correoConductor?`, `nombreConductor?`, `patenteMovil?`, `hashPago?`, `estadoPago?` (ambos `null` para el Conductor), `motivo?` (de V7 o V8), `pasajeros` (lista de `PasajeroDTOResponse`, con `nombre`) |
+| `ViajeDTOResponse` | `folio`, `estado`, `correoSolicitante`, `nombreSolicitante`, `telefonoSolicitante?`, `razonSocial` (empresa del Solicitante; RNF08), `origen` y `destino` (mismo objeto que en la petición), `fhCreacion`, `fhAgenda`, `fhAsignacion?`, `fhInicio?`, `fhFin?`, `numeroVuelo?`, `cantidadPasajeros`, `correoConductor?`, `nombreConductor?`, `patenteMovil?`, `hashPago?`, `estadoPago?` (ambos `null` para el Conductor), `motivo?` (de V7 o V8), `pasajeros` (lista de `PasajeroDTOResponse`, con `nombre` y `fhAbordaje?`) |
+| `AbordajeDTOResponse` | `fhAbordaje` (la marca guardada; la misma si se repite) |
 | `PagoDTOResponse` | `hash`, `folio`, `monto`, `estadoPago` (`PENDIENTE`, `PAGADO`, `RECHAZADO`, `ANULADO` o `REEMBOLSADO`), `banco`, `codSbif`, `rutEmpresa`, `medioPago`, `tipoRecibo`, `fechaPago?`, `montoReembolsado?` |
 | `CatalogosDTOResponse` | `bancos` (lista de `{nombre, codSbif}`), `mediosPago` y `tiposRecibo` (listas de nombres), `regiones` (lista de `{nombre, comunas}`, con `comunas` como lista de nombres); todo por `nombre` |
 | `ApiError` | `timestamp`, `status`, `error`, `message`, `path` ([Errores](#errores)) |
@@ -1058,6 +1118,7 @@ backend guarda y devuelve el valor normalizado. Un fallo responde 400 con `messa
 | `dni` con `tipoDocumento` `PASAPORTE` | De 5 a 20 letras `A-Z` o dígitos, tras normalizar. | La de `PASAJERO.dni_hash` (sin espacios ni guiones, en mayúsculas). |
 | `tipoDocumento` | `RUT` o `PASAPORTE`. | — |
 | `patente` | Formato antiguo `AA1234` o actual `BBBB12`: `^([A-Z]{2}[0-9]{4}\|[A-Z]{4}[0-9]{2})$`. | En mayúsculas, sin espacios ni guion. |
+| `codigoAbordaje` | 16 hexadecimales: `^[0-9A-F]{16}$`. | En mayúsculas y sin espacios. |
 | `capacidad` | Entero de 1 a 20. | — |
 | `gpsSerial` | Opcional; entero mayor que 0. | — |
 | `fhAgenda` | `ahora + 2 horas ≤ fhAgenda ≤ ahora + 90 días`, en hora civil de Chile al recibir la petición; horario existente y no repetido, según el apartado siguiente. | Se truncan segundos y fracción (`14:30:45` → `14:30:00`) antes de validar. |
@@ -1231,25 +1292,25 @@ backend/
     │   ├── TransporteApplication.java
     │   ├── client/       EmailClient, FirebaseClient, FcmSender, FirebaseFcmSender, EnvioDiferido
     │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig, ClockConfig
-    │   ├── controller/   CrudController, AuthController, CatalogoController, {E}Controller
+    │   ├── controller/   CrudController, AuthController, CatalogoController, AbordajeController, {E}Controller
     │   ├── dto/request/  {E}DTORequest, LoginDTORequest, RefreshDTORequest, TokenFcmDTORequest, RecuperarPasswordDTORequest,
     │   │                 AsignarViajeDTORequest, CambiarEstadoViajeDTORequest, CambiarEstadoPagoDTORequest,
-    │   │                 CancelarViajeDTORequest, RechazarViajeDTORequest, ActivoDTORequest
-    │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, ApiError
+    │   │                 CancelarViajeDTORequest, RechazarViajeDTORequest, ActivoDTORequest, AbordajeDTORequest
+    │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, AbordajeDTOResponse, ApiError
     │   ├── exception/    ApiExceptionHandler
     │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, Sesion, Idempotencia, BloqueoNegocio,
     │   │                 DetalleMovilConductorId, DetalleViajePasajeroId, VencimientosUtc
     │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository,
     │   │                 SesionRepository, IdempotenciaRepository, BloqueoNegocioRepository
     │   └── service/      CrudService, AuthService, {E}Service, UbicacionService, IdempotenciaService,
-    │                     FechasChile
+    │                     AbordajeService, FechasChile
     ├── main/resources/   application.properties,
     │                     db/migration/ V1__esquema.sql, V2__triggers.sql, V3__datos_iniciales.sql (históricas),
     │                                   V4__… y siguientes (incrementales)
     ├── test/java/cl/belmontespa/transporte/
     │   ├── SeguridadIT, CuentasIT, FlotaIT, PasajeroIT, ViajeIT, PagoIT, NotificacionesIT,
     │   │   IdempotenciaIT, ConcurrenciaIT, MigracionesIT, ValidacionesIT, FechasChileIT,
-    │   │   VencimientosUtcIT, TransporteApplicationTests
+    │   │   VencimientosUtcIT, AbordajeIT, TransporteApplicationTests
     │   ├── client/       EmailClientTest, FirebaseClientTest
     │   ├── config/       JwtProviderTest, FirebaseConfigTest
     │   ├── model/        VencimientosUtcTest
@@ -1281,10 +1342,12 @@ backend/
 - **Servicios y controladores**: `CrudService`/`CrudController` concentran el CRUD genérico y los
   puntos de extensión del alcance "solo lo propio"; `AuthService`/`AuthController`, login,
   sesiones, token FCM y recuperación (los límites de intentos, en filtros: los públicos antes de validar el JWT y el por usuario después); `ViajeService`/`PagoService` y sus controladores, asignación, estados,
-  cancelación, rechazo y pagos; `ConductorService` y `MovilService`, además, `activo`;
+  cancelación, rechazo y pagos; `AbordajeService`/`AbordajeController`, el abordaje público
+  ([Abordaje](#abordaje)); `ConductorService` y `MovilService`, además, `activo` (y `MovilService`
+  genera el `codigo_abordaje` al registrar el vehículo);
   `SolicitanteService`, la aprobación y el rechazo; `AdministradorService`, el alta con contraseña
   temporal. `IdempotenciaService` envuelve solo los POST autenticados de negocio que reciben
-  `Idempotency-Key` (sin autorregistro ni `/auth/*`) y borra a
+  `Idempotency-Key` (sin autorregistro, abordaje ni `/auth/*`) y borra a
   diario las claves vencidas (`@Scheduled`). `ApiExceptionHandler` centraliza las respuestas de error.
 - **`config`**: `SecurityConfig` (cadena de seguridad), `JwtProvider` (emite y valida el JWT,
   CU-14), `FirebaseConfig` (envío FCM solo con credenciales), `ClockConfig` (bean `Clock` en
@@ -1306,7 +1369,7 @@ solo valida (`ddl-auto=validate`); Flyway administra el esquema al iniciar:
 | `V1__esquema.sql` | Esquema base histórico; se conserva una vez aplicado. |
 | `V2__triggers.sql` | Triggers base históricos; se conservan una vez aplicados. |
 | `V3__datos_iniciales.sql` | Carga inicial histórica; se conserva una vez aplicada. |
-| `V4` y siguientes | Cambios incrementales que llevan el esquema, triggers y datos iniciales al modelo y reglas de esta especificación; incluyen `BLOQUEO_NEGOCIO`. Cada versión tiene número único y descripción de su cambio. |
+| `V4` y siguientes | Cambios incrementales que llevan el esquema, triggers y datos iniciales al modelo y reglas de esta especificación; incluyen `BLOQUEO_NEGOCIO` y las columnas de abordaje: `DETALLE_VIAJE_PASAJERO.fh_abordaje` y `MOVIL.codigo_abordaje`, que la migración llena con `HEX(RANDOM_BYTES(8))` en los vehículos existentes antes de declararla `NOT NULL` y única. Cada versión tiene número único y descripción de su cambio. |
 
 #### Vencimientos técnicos en UTC
 
@@ -1382,8 +1445,8 @@ y [representación DATETIME](https://github.com/mariadb-corporation/mariadb-docs
 Para el volumen del MVP se serializan las escrituras operativas con una fila de coordinación
 en MariaDB: `BLOQUEO_NEGOCIO.nombre = 'TRANSPORTE'`.
 
-- Toda creación o modificación de viajes, asociaciones de pasajeros, pagos, habilitaciones
-  y activación de conductores o vehículos adquiere `SELECT ... FOR UPDATE` sobre esa fila
+- Toda creación o modificación de viajes, asociaciones de pasajeros (incluido el abordaje),
+  pagos, habilitaciones y activación de conductores o vehículos adquiere `SELECT ... FOR UPDATE` sobre esa fila
   (`BloqueoNegocioRepository`) antes de leer las precondiciones y antes de tomar otros bloqueos operativos. Se conserva
   hasta commit o rollback, en la misma transacción del cambio.
 - Después de adquirir el bloqueo se vuelven a leer estado, disponibilidad, agenda, capacidad
@@ -1554,8 +1617,8 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 - Sin avisos reales: correo a un SMTP en memoria (GreenMail) y push a un grabador que reemplaza a Firebase.
 - Cada prueba crea sus datos por la API real; no dependen del orden. Excepciones, por SQL directo
   y solo en estas pruebas:
-  - Ventana de inicio y retraso: como V1 no admite un `fhAgenda` a menos de 2 horas, crean el
-    viaje por la API y luego mueven su `fh_agenda`.
+  - Ventana de inicio, retraso y abordaje: como V1 no admite un `fhAgenda` a menos de 2 horas,
+    crean el viaje por la API y luego mueven su `fh_agenda`.
   - `IdempotenciaIT`: mueve `IDEMPOTENCIA.fh_creacion` para vencer una clave.
   - `ConcurrenciaIT`: retiene la fila `BLOQUEO_NEGOCIO` desde otra conexión para forzar el 503.
   - `MigracionesIT`: migra su esquema hasta la versión anterior (Flyway `target`), carga datos
@@ -1567,7 +1630,8 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | `ValidacionesIT` | Errores de varios campos con el separador LF y orden contractual; duplicados eliminados, rutas anidadas y varios motivos para el mismo campo; ausencia de valores personales en mensajes; JSON ilegible conserva "Cuerpo inválido". |
 | `FechasChileTest` / `FechasChileIT` | Reglas de zona para agenda inexistente/repetida, aritmética civil y truncado; límites de V1–V3 y retraso verificados también por la API contra MariaDB real, con los mismos casos de Android. |
 | `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña (con el JWT temporal solo se cambia la contraseña) y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login, sesiones revocadas) y reactivado. |
-| `FlotaIT` | Vehículos y habilitación de conductores; desactivar y reactivar vehículos y conductores (409 con viajes `ASIGNADO` o `EN_CURSO`; un inactivo no es asignable). |
+| `FlotaIT` | Vehículos y habilitación de conductores; desactivar y reactivar vehículos y conductores (409 con viajes `ASIGNADO` o `EN_CURSO`; un inactivo no es asignable); `codigoAbordaje` generado, único y ausente de las respuestas a otros roles. |
+| `AbordajeIT` | Ruta pública sin JWT; abordaje dentro de la ventana y en `EN_CURSO`; mismo 404 para patente inexistente, código ajeno, sin viaje candidato, documento que no viaja, fuera de ventana y otros estados; repetición con la misma hora; elección por documento entre dos viajes del vehículo; limpieza en V2 con cambio de vehículo y en V8, no al cambiar solo el conductor; `fhAbordaje` en `pasajeros` por rol; bloqueo por 10 respuestas 404 por IP (429). |
 | `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
 | `ViajeIT` | Creación y rango de `fhAgenda` (V1); alcance por rol (Conductor sin datos de pago, agenda con el `EN_CURSO` de ayer); ciclo Pendiente → Finalizado; asignación y reasignación con al menos un pasajero, activos, sin solapamiento y sin vencer (V2); ventana de inicio ± 1 hora (V3); cancelación del Solicitante solo sin vencer (V5), del Administrador con motivo (V7) y rechazo del Conductor (V8); historial (trigger); consultas por rol; reintento con la misma `Idempotency-Key` (respuesta repetida sin aplicar dos veces) y con otro cuerpo (409). |
 | `PagoIT` | Registro, estados (con `folio` en la respuesta) y cancelación del viaje al anular el pago; reembolso del 50 % en V5 y del 100 % o el monto fijado en V7 (con 0 sigue `PAGADO`), con su `montoReembolsado`; pago `PENDIENTE` anulado al cancelar (P5). |
@@ -1575,7 +1639,7 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 | `IdempotenciaIT` | Repetición antes y después de vencer la ventana, independientemente de la limpieza diaria; mismos bytes y respuesta, otro cuerpo 409, autorización vigente antes de repetir, ausencia de efectos duplicados y exclusión de autorregistro/auth. |
 | `ConcurrenciaIT` | Dos asignaciones incompatibles, cancelación contra inicio y pasajero contra asignación; transacciones independientes con bloqueo coordinado, resultado válido cualquiera sea el ganador y 503 sin efectos parciales cuando se agota la espera. |
-| `MigracionesIT` | Cadena completa en base vacía y actualización de una base con la versión anterior y datos ficticios; mismo esquema final, relaciones e historial conservados, sin modificar migraciones aplicadas. Migración de fechas técnicas anteriores a UTC: conversión única, invalidación de credenciales ambiguas y ventana de espera de claves ambiguas simulada con reloj fijo, sin descartarlas prematuramente. |
+| `MigracionesIT` | Cadena completa en base vacía y actualización de una base con la versión anterior y datos ficticios; mismo esquema final, relaciones e historial conservados, sin modificar migraciones aplicadas. Migración de fechas técnicas anteriores a UTC: conversión única, invalidación de credenciales ambiguas y ventana de espera de claves ambiguas simulada con reloj fijo, sin descartarlas prematuramente. Vehículos existentes con `codigo_abordaje` único asignado y pasajeros existentes Por abordar. |
 | `VencimientosUtcTest` / `VencimientosUtcIT` | Temporal de RF21, contraseña inicial de un Administrador nuevo (CU-18), temporal del Administrador inicial, refresh e idempotencia antes/en/después del límite; 24 horas reales y días técnicos al cruzar salto/solapamiento de Chile; UTC idéntico con zona de proceso distinta; mapeo SQL explícito y limpieza UTC. |
 
 ## Frontend (Android)
@@ -1615,6 +1679,7 @@ datos y los modelos de aplicación viven en `model/`. Ninguna interfaz expone en
 | `PagoRepository` | `obtenerPago`, `registrarPago`, `cambiarEstadoPago` | Detalle en memoria durante la pantalla; actualiza el resumen del viaje tras confirmar y refrescar. |
 | `SincronizacionRepository` | `observarPendientes`, `encolarCambio`, `procesarPendientes`, `descartarDesde`, `pausarCuenta`, `reanudarCuenta` | Room; consumido por `ViajeRepository` y Worker. `descartarDesde` afecta la operación elegida y las posteriores del mismo viaje. |
 | `MantenimientoRepository` | `observarMantenimiento`, `reintentarApertura`, `restablecerDatosLocales` | Marca durable en `mantenimiento.preferences_pb`; acciones `Resultado<Unit>`. `restablecerDatosLocales` también reanuda un restablecimiento ya confirmado ([Restablecimiento local explícito](#restablecimiento-local-explícito)). |
+| `AbordajeRepository` | `registrarAbordaje` | Sin sesión, sin Room ni cola: recibe `CodigoAbordaje(patente, codigo)`, `tipoDocumento` y `dni`, y devuelve `Resultado<Abordaje>` con `fhAbordaje`. No guarda el documento ([Abordaje con código QR](#abordaje-con-código-qr)). |
 
 Reglas comunes de las firmas y modelos:
 
@@ -1682,7 +1747,7 @@ cliente HTTP, base local, repositorios y `Clock` por proceso; los ViewModel son 
 | Desarrollo y build | Android Studio (desarrollo, depuración, emuladores, compilación); Kotlin; Gradle Kotlin DSL y catálogo de versiones; KSP (anotaciones de Room y herramientas que lo requieran). |
 | UI y estado | Jetpack Compose; Material 3 (tema y componentes); Navigation Compose (flujos por rol); AndroidX ViewModel; Kotlin Coroutines y Flow / StateFlow. |
 | Datos | Room / SQLite (caché de viajes y solicitudes, cola de cambios pendientes); Retrofit con convertidor JSON de Kotlin Serialization (DTO); OkHttp (transporte HTTP e incorporación del JWT); WorkManager (sincronización persistente de pendientes); DataStore (preferencias y metadatos pequeños); Android Keystore (claves que cifran la sesión persistida). |
-| Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze). |
+| Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze); ZXing Android Embedded (lectura del QR de abordaje con la cámara y generación del QR de cada vehículo). |
 | Pruebas | JUnit, AndroidX Test, Espresso y Compose UI Test. |
 
 **Versiones de partida.** Exactas en `android/gradle/libs.versions.toml` (sin `+` ni rangos);
@@ -1712,6 +1777,7 @@ Compose y Firebase por su BOM, que fija las versiones de sus librerías:
 | Firebase BoM | 35.0.2 | `firebase-messaging`. |
 | Plugin `google-services` | 4.5.0 | |
 | Places SDK (`com.google.android.libraries.places:places`) | 6.0.2 | |
+| `com.journeyapps:zxing-android-embedded` | 4.3.0 | Lector (`ScanContract`, `ScanOptions`) y generador (`BarcodeEncoder`); trae `com.google.zxing:core`. Requiere API 24 o superior, dentro del `minSdk` 26. |
 | JUnit | 4.13.2 | |
 | `androidx.test` | `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 | |
 | Turbine (`app.cash.turbine`) | 1.2.1 | |
@@ -1726,7 +1792,7 @@ infraestructura se debe verificar conjuntamente:
 
 - Resolución de todas las dependencias y sincronización de Gradle con JDK 21.
 - Generación de código de Room y Hilt mediante KSP.
-- Ejecución satisfactoria de `lintDebug`, `testDebugUnitTest` y `assembleDebug`.
+- Ejecución satisfactoria de `lintDebug`, `testDebugUnitTest`, `assembleDebug` y `assembleDemo`.
 - Instalación y apertura de la app en emuladores API 26 y API 36.
 - Generación de release mediante `assembleRelease`, con R8 y firma configurados según
   [Compilación, firma y distribución](#compilación-firma-y-distribución).
@@ -1749,16 +1815,18 @@ cl/belmontespa/transporte/
 ├── BelmonteApplication.kt, MainActivity.kt
 ├── di/, model/
 ├── data/
-│   ├── remote/     api/, dto/, interceptor/
+│   ├── remote/     api/, dto/, interceptor/, demo/
 │   ├── local/      database/, dao/, entity/
 │   └── mapper/, repository/, session/
-├── ui/             navigation/, components/, theme/, auth/, solicitante/, administrador/, conductor/
+├── ui/             navigation/, components/, theme/, auth/, abordaje/, solicitante/, administrador/, conductor/
 ├── notification/
 └── sync/
 ```
 
 Cada pantalla y su ViewModel van en su funcionalidad. `model` contiene los modelos de la app; las
-entidades Room y los DTO remotos quedan separados en `data`.
+entidades Room y los DTO remotos quedan separados en `data`. `ui/abordaje/` reúne el flujo sin
+sesión del pasajero ([Abordaje con código QR](#abordaje-con-código-qr)) y `data/remote/demo/`, el
+servidor simulado ([Modo demostración sin backend](#modo-demostración-sin-backend)).
 
 ### Navegación y pantallas
 
@@ -1773,17 +1841,18 @@ autorización del backend.
 | Acceso | Contenido | Destino |
 |---|---|---|
 | Inicio de aplicación | Comprueba mantenimiento local y cierre pendiente antes de restaurar la sesión. | Recuperación o limpieza local si corresponde; en otro caso Login o inicio del rol. |
-| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña". | Inicio del rol (o "Cambiar contraseña" si entró con la temporal), registro o recuperación. |
+| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña", "Abordar viaje". | Inicio del rol (o "Cambiar contraseña" si entró con la temporal), registro, recuperación o abordaje. |
 | Registro de solicitante | Nombre, correo, teléfono, contraseña, razón social y RUT de empresa. | Login con el correo precargado; si la empresa ya existía, aviso de que la cuenta espera aprobación (CU-17). |
 | Recuperar contraseña | Correo y explicación de la temporal (Solicitante y Administrador). | Confirmación genérica y login. |
+| Abordar viaje | Pasajero sin cuenta: "Escanear código QR" o "Ingresar código" (patente y código), luego tipo de documento, documento y "Confirmar abordaje" ([Abordaje con código QR](#abordaje-con-código-qr)). | "Abordaje registrado" con la hora y "Volver al inicio" (Login); no crea sesión. |
 
 El Conductor no tiene autorregistro ni recuperación por autoservicio.
 
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
 | Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior), salvo con una creación interrumpida de ese viaje, que primero ofrece "Continuar envío". "Mis solicitudes" y "Nueva solicitud" muestran el aviso de una creación interrumpida ([Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas)). Perfil: datos y empresa, cambio de contraseña, cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
-| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
-| Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado. Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación; "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
+| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje (HU30); "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar, y el código QR de abordaje con la patente y el código escritos debajo, para imprimirlo). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
+| Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje ("Abordaron X de N", cada pasajero Abordado o Por abordar y los que faltan; HU30). Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación (la de "Iniciar viaje" avisa cuántos pasajeros faltan por abordar, sin impedir el inicio); "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
 
 Reglas comunes:
 
@@ -1935,11 +2004,11 @@ Chips de estado (texto / borde / fondo):
 
 | Estilo | Estados | Colores |
 |---|---|---|
-| Neutro | `PENDIENTE` (viaje y pago) | `onSurfaceVariant` / `outline` / sin fondo |
+| Neutro | `PENDIENTE` (viaje y pago), Por abordar | `onSurfaceVariant` / `outline` / sin fondo |
 | Información | `ASIGNADO` | `tertiary` / `tertiary` / `tertiaryContainer` |
 | Lleno | `EN_CURSO`, `OCUPADO`, `EN_USO` | `onPrimary` / `primary` / `primary` |
 | Tenue | `FINALIZADO`, inactivo | `onSurfaceVariant` / `outlineVariant` / `surfaceVariant` |
-| Correcto | `PAGADO`, `DISPONIBLE` | `primary` / `primary` / `primaryContainer` |
+| Correcto | `PAGADO`, `DISPONIBLE`, Abordado | `primary` / `primary` / `primaryContainer` |
 | Peligro | `CANCELADO`, `RECHAZADO` | `error` / `error` / `errorContainer` |
 | Peligro, solo borde | `ANULADO`, vencido | `error` / `error` / sin fondo |
 | Aviso | `REEMBOLSADO`, atrasado, "Pendiente de sincronizar", cuenta por aprobar | aviso / aviso / contenedor de aviso |
@@ -1961,6 +2030,7 @@ incluida en el APK).
 | `BOLETA`, `FACTURA` | Boleta, Factura |
 | `RUT`, `PASAPORTE` | RUT, Pasaporte |
 | Retraso y cola (calculados en la app) | Atrasado, Vencido, Pendiente de sincronizar |
+| Abordaje (calculado en la app desde `fhAbordaje`) | Abordado, Por abordar |
 
 **Formatos de presentación** (la API mantiene los de [Contratos JSON](#contratos-json)):
 
@@ -1973,6 +2043,7 @@ incluida en el APK).
 | RUT | Con puntos y guion | `76.543.210-K` |
 | Teléfono | `+56 9 XXXX XXXX` | `+56 9 5555 0101` |
 | Patente, folio | Tal cual, en IBM Plex Mono | `KXJR42`, `TR-1042` |
+| Código de abordaje | 4 grupos de 4 separados por espacio, en IBM Plex Mono; al ingresarlo se aceptan con o sin espacios | `7F3A 9C21 B04E 58D6` |
 
 **Mensajes de error.** Textos en `strings.xml` (español); nunca se muestran trazas ni códigos
 técnicos.
@@ -1997,6 +2068,9 @@ técnicos.
 | Respuesta no reconocida (`Contrato`: código desconocido o cuerpo ilegible) | "La app no reconoce la respuesta del servidor. Inténtalo más tarde." Deshabilita las acciones sobre ese recurso. |
 | 503 (`Ocupado`) | "El sistema está ocupado. Inténtalo de nuevo." No se aplicó ningún cambio, así que reenviar con la misma clave es seguro. |
 | Sin app de navegación | "Instala Google Maps o Waze para navegar." |
+| QR que no es de un vehículo Belmonte | "Este código no es de un vehículo Belmonte." No se envía nada. |
+| 404 en el abordaje | "No encontramos un viaje para tu documento en este vehículo. Consulta al conductor." (en vez del texto general del 404). |
+| Permiso de cámara negado | "Permite el uso de la cámara para escanear el código." con "Ingresar código" y, si el sistema ya no muestra el diálogo, "Abrir ajustes". |
 | Lectura o escritura local fallida | "No pudimos acceder a los datos locales. Inténtalo de nuevo." con "Reintentar"; conserva el contenido anterior si puede leerse. |
 | Almacenamiento lleno | "No hay espacio para guardar los datos. Libera espacio e inténtalo de nuevo." |
 | Migración fallida o base ilegible | "No pudimos abrir los datos locales. Inténtalo de nuevo." en la pantalla "Datos locales no disponibles", con "Reintentar", "Cerrar sesión" y "Restablecer datos locales"; no recrea la base. |
@@ -2022,6 +2096,18 @@ técnicos.
 | Cierre de sesión incompleto (`CIERRE_PENDIENTE`) | "Estamos terminando el cierre de sesión. Inténtalo de nuevo." con "Reintentar cierre". |
 | Lista invalidada sin respuesta completa | "La lista necesita actualizarse." con "Actualizar". |
 | Restablecimiento local | Título, texto y botones exactos del diálogo en [Restablecimiento local explícito](#restablecimiento-local-explícito). |
+
+**Abordaje y modo demostración:**
+
+| Situación | Texto |
+|---|---|
+| Abordar viaje (indicación) | "Escanea el código QR de la puerta del vehículo." con "Escanear código QR" e "Ingresar código". |
+| Lector QR (indicación sobre la cámara) | "Apunta al código QR de la puerta." |
+| Abordaje registrado | "Abordaje registrado a las {hora}. ¡Buen viaje!" (`{hora}` en `HH:mm`) con "Volver al inicio". |
+| Arqueo (detalle del viaje) | "Abordaron {x} de {n}. Faltan: {nombres}.", con los nombres separados por coma; con todos a bordo, "Todos los pasajeros abordaron." |
+| Confirmación de inicio con pasajeros por abordar | "Falta 1 pasajero por abordar." o "Faltan {n} pasajeros por abordar." (recurso plural de `strings.xml`). |
+| Código QR del vehículo | "Imprímelo y pégalo en la puerta de entrada." |
+| Login en la build `demo` | "Modo demostración: datos ficticios, sin conexión al servidor." |
 
 **Listas vacías:**
 
@@ -2058,12 +2144,17 @@ TalkBack ([Pruebas Android](#pruebas-android), [Definición de terminado](#defin
   - Un chip se anuncia como "Estado: Asignado" (o "Pago: Pagado"); Atrasado y Vencido, igual.
   - Cada fila de lista es un solo elemento (`mergeDescendants`) que se anuncia como folio,
     pasajero, fecha y hora, ruta y estado.
+  - El arqueo es un solo elemento ("Abordaron 1 de 2. Faltan: Tomás Vidal."), y cada pasajero se
+    anuncia con su marca ("Constanza Ríos, Abordado"). El QR del vehículo tiene la
+    descripción "Código QR de abordaje del vehículo {patente}" y su código escrito es texto
+    seleccionable.
   - Los títulos de sección (`PASAJEROS`, `PAGO`…) son `heading()`.
   - Los errores de campo van en la semántica `error` del campo; los banners y avisos son regiones
     en vivo (`LiveRegionMode.Polite`).
   - El orden de foco sigue el orden visual; al abrir un diálogo u hoja, el foco va a su título.
 - **Gestos con alternativa:** "deslizar para actualizar" ofrece también la acción de accesibilidad
-  "Actualizar".
+  "Actualizar". Leer el QR con la cámara tiene la alternativa "Ingresar código" (patente y
+  código escritos bajo el QR).
 - **Orientación** vertical y horizontal, sin diseños propios para la horizontal: el contenido hace
   scroll.
 - **Movimiento:** con "Quitar animaciones" del sistema, las transiciones son instantáneas.
@@ -2101,7 +2192,8 @@ TalkBack ([Pruebas Android](#pruebas-android), [Definición de terminado](#defin
   envío (p. ej. tras un tiempo agotado); la cola sin conexión usa su `operacion_id`. Una acción
   nueva del usuario genera otra clave. Se excluye el autorregistro `POST /solicitantes`:
   no lleva clave ni se reintenta automáticamente; ante un resultado incierto ofrece Login
-  o Recuperar contraseña, según "Convenciones".
+  o Recuperar contraseña, según "Convenciones". El abordaje `POST /abordajes` tampoco lleva
+  clave ni JWT ([Abordaje con código QR](#abordaje-con-código-qr)).
 - Los errores HTTP se traducen a mensajes comprensibles, con tratamiento distinto para
   autenticación, permisos, validación, conflictos de negocio y conectividad.
 
@@ -2286,6 +2378,8 @@ solicitudes; no reemplaza la política de WorkManager.
 - Login, autorregistro (`POST /solicitantes`), recuperación de contraseña y refresh no se
   reintentan automáticamente. El logout tampoco se reintenta por red ni 5xx; ante un 401 sigue
   la fila 401 ([Cierre de sesión local y remoto](#cierre-de-sesión-local-y-remoto)).
+- El abordaje (`POST /abordajes`) sí sigue la tabla anterior, sin `Idempotency-Key`: repetirlo
+  con el mismo cuerpo responde la misma `fhAbordaje` ([Abordaje](#abordaje)).
 - Cada reintento de un POST conserva la misma `Idempotency-Key` y el cuerpo exacto del primer
   envío. La repetición por 401 tampoco genera otra clave ni reinicia el presupuesto de
   reintentos de red o 5xx.
@@ -2307,8 +2401,10 @@ solicitudes; no reemplaza la política de WorkManager.
   visible si es la de ese viaje o su lista. No hay sondeo periódico.
 - **Sin conexión:** se muestra lo guardado con el banner de [Textos y tema](#textos-y-tema); de
   las acciones de negocio, solo "Iniciar viaje" y "Finalizar viaje" del Conductor se encolan,
-  y las demás se deshabilitan hasta reconectar. Cerrar sesión localmente, descartar pendientes
-  y navegar en la app siguen disponibles; abrir Maps o Waze no envía una operación al backend.
+  y las demás se deshabilitan hasta reconectar. El abordaje del pasajero tampoco se encola:
+  sin conexión muestra el texto de "Sin conexión" y se reintenta a mano. Cerrar sesión
+  localmente, descartar pendientes y navegar en la app siguen disponibles; abrir Maps o Waze
+  no envía una operación al backend.
 - Room guarda esos cambios de estado marcados como pendientes de sincronización.
   WorkManager los envía cuando hay conexión y sesión válida, en orden por viaje, como trabajo
   único con red como requisito y backoff exponencial desde 30 segundos. Un cambio local
@@ -2412,6 +2508,7 @@ PK compuesta **`cuenta + folio`**. Las ubicaciones se guardan en la fila como in
 | `folio` | `String` | no | Viaje al que pertenece. |
 | `dni_hash` | `String` | no | Identificador entregado por el backend. |
 | `nombre` | `String` | no | Nombre del pasajero. |
+| `fh_abordaje` | `String?` | sí | Marca de abordaje informada por el servidor (`fhAbordaje`); NULL, Por abordar. El arqueo se calcula con estas filas. |
 
 PK compuesta **`cuenta + folio + dni_hash`**; `cuenta + folio` referencia a `viajes_cache` y eliminar un viaje de la caché elimina sus pasajeros. Se llena con `pasajeros` de `ViajeDTOResponse`. El RUT o pasaporte original no se persiste.
 
@@ -2953,14 +3050,58 @@ registros según [Cierre de sesión local y remoto](#cierre-de-sesión-local-y-r
   con una sola, la abre directo, y sin ninguna muestra el aviso de [Textos y tema](#textos-y-tema).
   El MVP no incluye motor de rutas, mapa embebido ni permiso de ubicación.
 
+### Abordaje con código QR
+
+Implementa CU-19/RF28 (flujo sin sesión, en `ui/abordaje/`) y el arqueo de RF29. Las reglas
+del servidor están en [Abordaje](#abordaje).
+
+- **QR del vehículo:** su contenido es el texto `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}`
+  (p. ej. `BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6`). "Detalle de vehículo" del Administrador
+  lo genera en el teléfono con `BarcodeEncoder` (formato `QR_CODE`, 512 × 512 px) y muestra
+  debajo la patente, el código en grupos de 4 y "Imprímelo y pégalo en la puerta de entrada."
+  La app no imprime ni comparte la imagen: el Administrador la imprime por otro medio.
+- **Entrada:** "Abordar viaje" se ofrece solo en el Login. El flujo no lee ni escribe la
+  sesión, Room ni la cola, y al terminar vuelve al Login sin sesión.
+- **Lectura con la cámara:** "Escanear código QR" pide el permiso `CAMERA` (el manifiesto
+  declara `android.hardware.camera.any` con `required="false"`) y abre el lector de ZXing con
+  `ScanContract`. Usa `ScanOptions` solo para `QR_CODE`, con la indicación de
+  [Textos y tema](#textos-y-tema), sin pitido y con orientación libre. Cancelar el lector
+  vuelve sin aviso. Con el permiso negado se muestra su aviso y "Ingresar código"; si el
+  sistema ya no muestra el diálogo, también "Abrir ajustes" (la ficha de la app en Ajustes).
+- **Validación local:** el contenido, en mayúsculas, debe cumplir
+  `^BELMONTE-ABORDAJE:([A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2}):[0-9A-F]{16}$`; si no, se muestra
+  "Este código no es de un vehículo Belmonte." y no se envía nada. "Ingresar código" pide
+  patente y código, normalizados según [Validaciones](#validaciones), con errores bajo cada
+  campo. Ambos caminos producen `CodigoAbordaje(patente, codigo)`.
+- **Confirmación:** muestra la patente, pide tipo de documento y documento (validados como
+  `dni`) y "Confirmar abordaje" envía `POST /abordajes` sin JWT ni `Idempotency-Key`. Con `200`
+  muestra "Abordaje registrado a las {hora}. ¡Buen viaje!" y "Volver al inicio". El 404, el
+  400, el 429, el 503 y la falta de conexión muestran sus textos de
+  [Textos y tema](#textos-y-tema); el formulario conserva los datos para reintentar a mano.
+- **Privacidad:** el documento vive solo en la memoria del ViewModel mientras la pantalla
+  existe. No va a `SavedStateHandle`, Room, DataStore ni logs
+  ([Estado y restauración de pantallas](#estado-y-restauración-de-pantallas)), y se descarta al
+  salir o con el abordaje registrado. Tras la muerte del proceso, el formulario vuelve vacío con
+  el aviso "El formulario se reinició. Ingresa de nuevo los datos."
+- **Arqueo (RF29):** el detalle del viaje del Conductor y del Administrador, en `ASIGNADO`,
+  `EN_CURSO` y `FINALIZADO`, muestra la sección "Abordaje" con el aviso "Abordaron X de N.
+  Faltan: …" y cada pasajero con su chip (Abordado con la hora, o Por abordar). Se calcula desde
+  `pasajeros_viaje_cache.fh_abordaje` y se actualiza con el refresco normal del detalle (al
+  abrir y al deslizar); no hay push ni sondeo. Sin conexión muestra lo guardado.
+- **Inicio con pasajeros por abordar:** si X < N, la confirmación de "Iniciar viaje" agrega
+  el aviso de faltantes; V3 no exige el abordaje y el inicio sigue permitido.
+
 ### Compilación, firma y distribución
 
 - JDK 21 para Gradle; `compileSdk` y `targetSdk` 36, `minSdk` 26 (Android 8.0, RNF05); las
   dependencias deben soportar ese mínimo.
+- **Tipos de build:** `debug`, `demo` y `release`. `demo` se declara con `initWith(debug)`, el
+  mismo `applicationId` y la firma de debug (instalarla reemplaza a la debug), y es la única con
+  `BuildConfig.DEMO = true` ([Modo demostración sin backend](#modo-demostración-sin-backend)).
 - **URL del backend** en `BuildConfig.API_BASE_URL`, por tipo de build: debug,
-  `http://10.0.2.2:8080/` (emulador estándar hacia el anfitrión); release, la propiedad Gradle
-  `belmonte.apiBaseUrl` con la IP del anfitrión de la demostración, obligatoria para compilar
-  release.
+  `http://10.0.2.2:8080/` (emulador estándar hacia el anfitrión); demo, `https://demo.invalid/`,
+  que nunca se contacta; release, la propiedad Gradle `belmonte.apiBaseUrl` con la IP del
+  anfitrión de la demostración, obligatoria para compilar release.
 - **HTTP:** `network_security_config` lo permite solo hacia `10.0.2.2` y hacia el host de la
   demostración ([Entornos](#entornos)); cualquier otro destino exige HTTPS.
 - **Claves de servicios:**
@@ -2978,6 +3119,70 @@ registros según [Cierre de sesión local y remoto](#cierre-de-sesión-local-y-r
   `MAYOR.MENOR.PARCHE`; el archivo se llama `belmonte-<versionName>.apk`.
 - **Distribución (RNF10):** el APK firmado y su SHA-256 se publican en GitHub Releases del
   repositorio; se instala permitiendo fuentes externas en el dispositivo.
+
+### Modo demostración sin backend
+
+La build `demo` muestra la app completa sin backend: un servidor simulado dentro del proceso
+responde la API y ninguna petición sale hacia el backend. Sirve para demostrar pantallas,
+navegación, Room, la cola sin conexión y el abordaje con QR en un teléfono o emulador. No
+reemplaza las pruebas contra el backend real (`FlujosE2ETest`).
+
+- **Punto de sustitución:** en `demo`, el cliente OkHttp agrega `DemoInterceptor` como último
+  interceptor de aplicación. Este responde toda petición a `/api/v1/` sin llamar a
+  `chain.proceed`, con el estado de `ServidorDemo`. Retrofit, DTO, el interceptor del JWT, la
+  renovación ante 401, `Idempotency-Key`, el mapeo de errores, Room, la cola y WorkManager son
+  los de las otras builds. `DemoInterceptor`, `ServidorDemo` y `DatosDemo` (en
+  `data/remote/demo/`) se construyen en `di/` solo si `BuildConfig.DEMO`, sin `@Inject`, para
+  que R8 los elimine de release.
+- **Red simulada:** si el dispositivo no tiene una red con Internet validada
+  (`ConnectivityManager`), el interceptor lanza `IOException`, igual que sin red; así el banner,
+  la caché y la cola se demuestran con el modo avión. Cada respuesta tarda 300 ms, para que se
+  vean los estados de carga.
+- **Respuestas:** mismas rutas, DTO, códigos HTTP y `ApiError` de la API
+  ([Contratos JSON](#contratos-json), [Errores](#errores)). `ServidorDemo` aplica:
+  - el login con las cuentas de la semilla: credenciales erróneas o Conductor inactivo, 401;
+    Solicitante por aprobar o rechazado, 403. Emite tokens opacos (`demo-…`) asociados a su
+    cuenta, con `expiresIn` de 3600 s y refresh rotativo de 30 días; el logout los revoca;
+  - el alcance de [Recursos y roles](#recursos-y-roles) y de
+    [Consultas y alcance por rol](#consultas-y-alcance-por-rol);
+  - V1–V8 y P1–P5 con sus precondiciones y efectos (estados, `fh_*`, disponibilidad,
+    capacidad, ventana de inicio, retraso, solapamiento y reembolsos), con el `Clock` de la app;
+  - la unicidad de correo, patente y hash de pago, y la reutilización de la empresa por RUT;
+  - el [Abordaje](#abordaje) completo, incluido el 404 genérico;
+  - la repetición por `Idempotency-Key`: misma clave, ruta y cuerpo devuelve la respuesta
+    guardada con `Idempotent-Replayed: true`; otro cuerpo, 409;
+  - los 400 con los mismos validadores de la app ([Validaciones](#validaciones)).
+- **Fuera del simulador:** límites (429), bloqueo (503), correos (recuperar contraseña responde
+  `204` sin efecto) y push: no se pide el permiso de notificaciones ni se envía el token FCM
+  (`POST /auth/token-fcm` responde `204`). Google Places sigue siendo el SDK real: crear una
+  solicitud necesita Internet y la clave de Places.
+- **Estado:** se siembra en el primer arranque desde `DatosDemo`, con fechas relativas al
+  `Clock`, y se guarda en `files/demo/servidor.json` (Kotlin Serialization) después de cada
+  cambio, con escritura atómica (archivo temporal y renombre). Si falta o no se puede leer, se
+  vuelve a sembrar. "Restablecer datos locales" no lo toca, porque simula al servidor. Para
+  volver al estado inicial se borran los datos de la app (Ajustes o
+  `adb shell pm clear cl.belmontespa.transporte`).
+- **Semilla (`DatosDemo`, RNF09):**
+  - el mismo mínimo que `database/demo.sql` ([Entornos](#entornos));
+  - los catálogos de pago;
+  - las regiones Metropolitana y de Valparaíso con sus comunas (una dirección de otra región
+    usa el selector de comuna con esas regiones);
+  - un `codigo_abordaje` fijo por vehículo;
+  - para el Conductor de demostración, un viaje `ASIGNADO` a las ahora + 30 minutos en su
+    vehículo, con 3 pasajeros y 1 ya abordado.
+
+  Un comentario al inicio de `DatosDemo` lista las cuentas, su contraseña ficticia común y los
+  documentos ficticios de los pasajeros.
+- **Abordaje en la demostración:** el QR de cada vehículo se ve en su detalle con una cuenta de
+  Administrador. Se escanea desde otro dispositivo con la build `demo` (misma semilla, mismo
+  código) o desde una impresión. En un emulador sin cámara se usa "Ingresar código".
+- **Aviso:** el Login de la build `demo` muestra "Modo demostración: datos ficticios, sin
+  conexión al servidor."
+- **Excepción acotada a RNF06:** `ServidorDemo` repite reglas del backend solo para demostrar
+  la app. El backend sigue siendo la autoridad: si difieren, gana este README y se corrige el
+  simulador.
+- **Comandos:** `./gradlew assembleDemo` genera el APK `demo`; `./gradlew installDemo` lo instala
+  en el emulador o teléfono conectado.
 
 ### Pruebas Android
 
@@ -3004,10 +3209,13 @@ cd android
 
 | Pruebas | Tipo | Cubren |
 |---|---|---|
-| `ValidacionesTest` | JVM | Cada regla de [Validaciones](#validaciones) replicada en la app: RUT (módulo 11), pasaporte, patente, teléfono, correo, `password` y rango de `fhAgenda`, con normalización. |
+| `ValidacionesTest` | JVM | Cada regla de [Validaciones](#validaciones) replicada en la app: RUT (módulo 11), pasaporte, patente, `codigoAbordaje`, teléfono, correo, `password` y rango de `fhAgenda`, con normalización. |
 | `RetrasoTest` | JVM | Ventana de inicio, Atrasado y Vencido en los extremos exactos (`fh_agenda` − 1 hora, `fh_agenda` y `fh_agenda` + 1 hora, un minuto antes y después). |
 | `FormatosTest` | JVM | Etiquetas y formatos de [Textos y tema](#textos-y-tema). |
 | `ErrorMapperTest` | JVM | Cada código HTTP y causa de red → su texto de "Mensajes de error"; varias líneas LF, orden determinista, varios motivos por campo, separación por el primer `: `, rutas anidadas, ruta sin control y formato inválido con aviso genérico. |
+| `CodigoAbordajeTest` | JVM | Contenido del QR válido e inválido (prefijo, patente antigua y actual, largo y caracteres del código, minúsculas), entrada manual con o sin espacios y su normalización a `CodigoAbordaje`. |
+| `AbordajeTest` | JVM con fakes + `MockWebServer` | `POST /abordajes` sin JWT ni `Idempotency-Key`; textos de 404, 400, 429, 503 y sin conexión, conservando el formulario; permiso de cámara negado y "Abrir ajustes"; el documento no llega a `SavedStateHandle`, Room, DataStore ni logs; arqueo y aviso de faltantes en la confirmación de inicio. |
+| `ServidorDemoTest` | JVM con reloj fijo | Semilla coherente (cuentas, habilitaciones, estados, códigos de abordaje y viaje en ventana); login, tokens y refresh; alcance por rol; V1–V8 y P1–P5; abordaje; repetición por `Idempotency-Key`; `IOException` sin red; persistencia atómica y nueva siembra con el archivo ilegible. |
 | `ApiContratoTest` | JVM + `MockWebServer` | Cada DTO contra los ejemplos de [Contratos JSON](#contratos-json): fechas sin zona, `null` y ausente, campos desconocidos ignorados; cabeceras `Authorization` e `Idempotency-Key`. |
 | `SesionTest` | JVM + `MockWebServer` | Una sola renovación ante varios 401 simultáneos, paso a `REAUTENTICACION_REQUERIDA` si falla (conservando datos y pendientes), sesión temporal sin refresh ni persistencia, refresh perdido sin reintento; logout con JWT vencido que renueva una vez y revoca, logout sin red o con fallo remoto que elimina la sesión local, y respuestas tardías que no restauran datos de la cuenta cerrada. |
 | `AlmacenamientoSesionTest` | Instrumentada para DataStore y Keystore reales; JVM para políticas mediante una interfaz sustituible | Cifrado/descifrado y contenido sin credenciales visibles, alteración de IV/cifrado/versión, clave ausente, error temporal distinto de corrupción, escritura fallida en login/refresh, tokens sustituidos juntos, generaciones tardías ignoradas, sesión temporal no persistida, logout y exclusión de nube/transferencia en las reglas de backup. |
@@ -3025,10 +3233,10 @@ cd android
 | `RetryAfterPersistenteTest` | JVM con reloj fijo + instrumentada para Room/WorkManager | Instante guardado con error/propietario en una transacción; antes/en/después del límite; reinicio, reautenticación y nueva activación no adelantan el envío; temporizador separado no bloquea un viaje nuevo elegible; operación posterior del mismo viaje bloqueada; backoff durable mayor que el plazo, cabecera 0 con mínimo de 30 segundos y saturación en 18000; cabecera ausente/inválida/overflow con mínimo de 60 segundos; ampliación de espera, fallo de escritura y comprobaciones sin aumentar contadores. |
 | `RecuperacionSolicitudTest` | JVM con fakes + instrumentada para Room | Interrupción antes de preparar todos los pasajeros, después de crear el viaje y antes de guardar el folio, y entre asociaciones; cuerpo y claves originales, respuestas repetidas sin duplicados, expiración que exige revisión y descarte que no cancela el viaje. Nunca persiste documentos ni contraseñas. |
 | `MigracionesRoomTest` | Instrumentada | Cada versión del esquema migra desde la 1 con `MigrationTestHelper`, sin perder caché ni cola. |
-| `NavegacionTest` | Instrumentada | Flujo por rol, cambio obligatorio de contraseña, historial tras login y logout, apertura por `data.tipo`. |
+| `NavegacionTest` | Instrumentada | Flujo por rol, cambio obligatorio de contraseña, historial tras login y logout, apertura por `data.tipo`; abordaje sin sesión desde el Login, que vuelve al Login sin crear sesión. |
 | `RestauracionPantallasTest` | Instrumentada | Rotación con formulario, diálogo o envío activo sin repetir peticiones; segundo plano y regreso; recreación de tarea después de muerte del proceso, reconstrucción desde las fuentes permitidas, formulario no enviado vacío con aviso y recuperación antes/después de crear un viaje. Verifica filtros/posición, notificación con descarte pendiente, doble pulsación y limpieza al cambiar de cuenta. Inspecciona que el estado guardado no contenga contraseñas, tokens, documentos, nombres ni direcciones. Recrear solo la actividad no sustituye el caso de muerte del proceso. |
 | `PantallasTest` | Instrumentada | Cada pantalla en los estados de los [mockups](mockups/wireframes-belmonte.html), con las verificaciones de [Accesibilidad](#accesibilidad) (estas, solo desde API 34). |
-| `FlujosE2ETest` | Instrumentada contra el backend real (`10.0.2.2:8080` con `database/demo.sql` recién cargado) | Solicitante: crea, agrega un pasajero y cancela. Administrador: aprueba una cuenta, asigna, registra y marca un pago. Conductor: inicia y finaliza (también sin conexión) y rechaza. Se corren antes de cada entrega, no en CI. |
+| `FlujosE2ETest` | Instrumentada contra el backend real (`10.0.2.2:8080` con `database/demo.sql` recién cargado) | Solicitante: crea, agrega un pasajero y cancela. Administrador: aprueba una cuenta, asigna, registra y marca un pago. Conductor: inicia y finaliza (también sin conexión) y rechaza. Pasajero: aborda con "Ingresar código" y el Conductor ve el arqueo. Se corren antes de cada entrega, no en CI. |
 
 ### Decisiones cerradas
 
@@ -3109,7 +3317,7 @@ GitHub Actions, `.github/workflows/ci.yml`, en cada `pull_request` y cada `push`
 | Job | Entorno | Pasos |
 |---|---|---|
 | `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` (valores de desarrollo, como el compose) y el healthcheck del compose | Crea `belmonte_migraciones_test` con root, como el comando de [Pruebas](#pruebas); luego `./gradlew test` en `backend/` con los `TEST_DB_*` por defecto; si falla, sube `build/reports/tests` como artefacto. |
-| `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Escribe `app/google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`; luego `./gradlew lintDebug testDebugUnitTest assembleDebug` en `android/`. Sube el reporte de lint y el APK debug como artefactos (7 días). |
+| `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Escribe `app/google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`; luego `./gradlew lintDebug testDebugUnitTest assembleDebug assembleDemo` en `android/`. Sube el reporte de lint y los APK debug y demo como artefactos (7 días). |
 
 - Secretos del repositorio: solo `GOOGLE_SERVICES_JSON` y `PLACES_API_KEY` (la misma clave de `local.properties`).
   El backend no necesita ninguno: sus pruebas usan valores de desarrollo, GreenMail y el grabador
@@ -3126,6 +3334,8 @@ Una HU o tarea está terminada cuando:
 - [ ] Tiene sus pruebas según [Pruebas](#pruebas) (backend) y [Pruebas Android](#pruebas-android), y CI
   está en verde.
 - [ ] Si toca datos o UI de Android, las instrumentadas pasan en local en API 26 y API 36.
+- [ ] Si cambia la API o una pantalla, la build `demo` la soporta: `ServidorDemo` responde igual
+  y la pantalla se puede recorrer sin backend ([Modo demostración sin backend](#modo-demostración-sin-backend)).
 - [ ] Cumple [Accesibilidad](#accesibilidad) y los textos de [Textos y tema](#textos-y-tema).
 - [ ] El README y los mockups describen lo implementado (si algo cambió, el PR `docs/` ya está
   fusionado).
@@ -3145,11 +3355,11 @@ Una HU o tarea está terminada cuando:
 | Sprint | Objetivo | HU | SP | Tareas técnicas |
 |---|---|---|---|---|
 | 1 | Base y cuentas | HU01, HU06, HU15, HU17, HU18, HU22, HU26, HU27, HU28 | 24 | CI y protección de `main`; migraciones históricas conservadas y evolución V4+; seguridad (sesiones, refresh, límites de intentos, `Idempotency-Key`); `GET /catalogos`; esqueleto de `android/` (tema, navegación por rol, sesión cifrada, Retrofit con sus interceptores). |
-| 2 | Solicitud, asignación y pagos | HU02, HU03, HU04, HU05, HU19, HU20 | 24 | Places y cotejo de comunas; esquema Room versión 1 con sus siete tablas; caché de consultas y recuperación de solicitudes interrumpidas; concurrencia de asignaciones y pagos. |
-| 3 | Conductor y notificaciones | HU07, HU08, HU09, HU10, HU12, HU13, HU14 | 25 | FCM en backend y app (canal, permiso, `data.tipo`); Intents de navegación. |
+| 2 | Solicitud, asignación y pagos | HU02, HU03, HU04, HU05, HU19, HU20 | 24 | Places y cotejo de comunas; esquema Room versión 1 con sus siete tablas; caché de consultas y recuperación de solicitudes interrumpidas; concurrencia de asignaciones y pagos; build `demo` con el servidor simulado y su semilla. |
+| 3 | Conductor, abordaje y notificaciones | HU07, HU08, HU09, HU10, HU12, HU13, HU14, HU29, HU30 | 33 | FCM en backend y app (canal, permiso, `data.tipo`); Intents de navegación; migración de abordaje, lector y generador QR (ZXing) y permiso de cámara. |
 | 4 | Cancelaciones, sin conexión y entrega | HU11, HU16, HU21, HU23, HU24, HU25 | 21 | Cola con WorkManager; `database/demo.sql` y `.env.demo.example`; `FlujosE2ETest`; pasada con TalkBack; APK release firmado de la entrega, `v1.0.0` y publicación en GitHub Releases. |
 
-Total: 94 SP. HU16 y HU24, de prioridad Alta, van en el sprint 4 porque sus efectos dependen de
+Total: 102 SP. HU16 y HU24, de prioridad Alta, van en el sprint 4 porque sus efectos dependen de
 los pagos (sprint 2) y de los push (sprint 3); el sprint 4 es más liviano para dejar tiempo a la
 entrega.
 
@@ -3182,15 +3392,17 @@ Los responsables concretos se acuerdan en la planificación sin cambiar los cont
 | I07 | 2 | Room versión 1: siete tablas, DAO, mapeadores, coordinador de caché, repositorios de viajes/recuperación y restablecimiento explícito. | I01, I03, I05 | `DaosTest`, `AdministracionCacheTest`, `InvalidacionConsultasTest`, `RestablecimientoLocalTest` y `CierreSesionDurableTest`: transacciones, aislamiento, orden, retención protegida, invalidación y fallos de almacenamiento. |
 | I08 | 2 | API de solicitudes, pasajeros, asignación y pagos; bloqueo e idempotencia integrados. | I02, I04 | `PasajeroIT`, `ViajeIT`, `PagoIT`, `IdempotenciaIT`, `ConcurrenciaIT`; carreras de asignación y respuestas repetidas sin efectos duplicados. |
 | I09 | 2 | Places, solicitud, recuperación, listas/detalles, asignación y pagos en Android. | I05, I07; integración con I08 | HU del sprint; `ReintentosTest`, `RecuperacionSolicitudTest`; cerrar proceso entre llamadas no duplica el viaje. |
-| I10 | 3 | Agenda, transiciones de Conductor y avisos backend. | I08 | Ventanas exactas, agenda al cruzar medianoche, `FechasChileIT`, disponibilidad y `NotificacionesIT`. |
-| I11 | 3 | Agenda y detalle Android, navegación externa, permiso/canal FCM y apertura por tipo. | I09; integración con I10 | HU del sprint, reloj fijo, sin app de navegación, permiso denegado y notificación con/sin sesión. |
+| I10 | 3 | Agenda, transiciones de Conductor, abordaje (migración, `POST /abordajes` y su límite) y avisos backend. | I08 | Ventanas exactas, agenda al cruzar medianoche, `FechasChileIT`, disponibilidad, `AbordajeIT` y `NotificacionesIT`. |
+| I11 | 3 | Agenda y detalle Android, navegación externa, permiso/canal FCM, apertura por tipo, abordaje con QR, arqueo y QR del vehículo. | I09; integración con I10 | HU del sprint, reloj fijo, sin app de navegación, permiso denegado, notificación con/sin sesión, `CodigoAbordajeTest` y `AbordajeTest`. |
 | I12 | 4 | Cancelación, reasignación y rechazo con efectos de pago y avisos en ambos lados. | I08, I10, I11 | V5–V8 y P2–P5, límites de reembolso y casos por rol. |
 | I13 | 4 | Worker y cola del Conductor, reautenticación, conflictos y retirada de acceso. | I07, I10, I11 | `SincronizacionWorkerTest` y `RetryAfterPersistenteTest`: propiedad de envío, cierre/reinicio, plazo 429 durable, contadores y ausencia de duplicados; sin limpiar pendientes por pedir login. |
 | I14 | 4 | Demostración, accesibilidad, E2E, firma y publicación. | I12, I13 | Demo reproducible, TalkBack, pruebas API 26/36, release con R8 y firma, APK y SHA-256. La publicación la realiza el equipo. |
+| I15 | 2 | Build `demo`: `DemoInterceptor`, `ServidorDemo` y `DatosDemo`; desde el sprint 3 cubre también el abordaje. | I05, I07 | `ServidorDemoTest`; `assembleDemo` en CI; todas las pantallas del sprint se recorren en la build `demo` sin red hacia el backend y Room se llena desde el simulador. |
 
 La creación recuperable de solicitudes se entrega con I09, no se posterga a I13: son flujos
 distintos. Backend y Android avanzan en paralelo contra contratos y fakes; la aceptación
-integrada de cada sprint exige ejecutar el flujo contra el backend real.
+integrada de cada sprint exige ejecutar el flujo contra el backend real y recorrerlo también en
+la build `demo`. I15 va al final de la tabla para no renumerar; se ejecuta en el sprint 2.
 
 **Formato obligatorio de cada tarea para implementación asistida por IA:** objetivo,
 referencia del README, requisitos aplicables, dependencias, componentes afectados,
