@@ -268,15 +268,20 @@ class Boton:
         'peligro_sec': ('danger', 'danger', None),
     }
 
-    def __init__(self, etiqueta, tipo='primario', deshabilitado=False, icono=None, chico=False):
+    def __init__(self, etiqueta, tipo='primario', deshabilitado=False, icono=None, chico=False, multilinea=False):
         self.etiqueta, self.tipo, self.deshabilitado = etiqueta, tipo, deshabilitado
-        self.icono, self.chico = icono, chico
+        self.icono, self.chico, self.multilinea = icono, chico, multilinea
 
     def ancho_propio(self):
         return medir(self.etiqueta, 11 if self.chico else 12.5, negrita=True) + (18 if self.chico else 28) + \
             (18 if self.icono else 0)
 
+    def lineas(self, w):
+        return partir(self.etiqueta, 12.5, w - 24, negrita=True, donde=f'botón "{self.etiqueta}"')
+
     def alto(self, w):
+        if self.multilinea:
+            return 34 + 15 * (len(self.lineas(w)) - 1)
         return 26 if self.chico else 34
 
     def svg(self, out, x, y, w):
@@ -286,6 +291,13 @@ class Boton:
         hh, tam = self.alto(w), (11 if self.chico else 12.5)
         grupo = []
         rect(grupo, x, y, w, hh, C[fc] if fc else 'none', C[bc] if bc else None, rx=8)
+        if self.multilinea:
+            ls = self.lineas(w)
+            by = y + hh / 2 + tam * 0.36 - 7.5 * (len(ls) - 1)
+            for i, l in enumerate(ls):
+                texto(grupo, x + w / 2, by + 15 * i, l, tam, C[tc], peso='500', ancla='middle')
+            out.extend(grupo)
+            return
         tw = medir(self.etiqueta, tam, negrita=True) + (18 if self.icono else 0)
         cabe(self.etiqueta, tam, w - 12, f'botón "{self.etiqueta}"', negrita=True)
         inicio = x + (w - tw) / 2
@@ -761,16 +773,22 @@ class Lista:
 class Dialogo:
     """Diálogo de confirmación sobre la pantalla (overlay)."""
 
-    def __init__(self, titulo, contenido, botones):
+    def __init__(self, titulo, contenido, botones, apilados=False):
         self.titulo, self.contenido, self.botones = titulo, contenido, botones
+        self.apilados = apilados
 
     def partes(self, w):
         return (partir(self.titulo, 13.5, w - 28, negrita=True, donde='diálogo'),
                 partir(self.contenido, 11, w - 28, donde='diálogo'))
 
+    def alto_botones(self, w):
+        if not self.apilados:
+            return 32
+        return sum(b.alto(w - 28) for b in self.botones) + 8 * (len(self.botones) - 1)
+
     def alto(self, w):
         tl, cl = self.partes(w)
-        return 16 + len(tl) * 18 + 6 + len(cl) * 15 + 14 + 32 + 14
+        return 16 + len(tl) * 18 + 6 + len(cl) * 15 + 14 + self.alto_botones(w) + 14
 
     def svg(self, out, x, y, w):
         tl, cl = self.partes(w)
@@ -783,11 +801,18 @@ class Dialogo:
         for l in cl:
             texto(out, x + 14, cy + 11, l, 11, C['ink_soft'])
             cy += 15
-        Botones(*self.botones).svg(out, x + 14, cy + 14, w - 28)
+        if not self.apilados:
+            Botones(*self.botones).svg(out, x + 14, cy + 14, w - 28)
+            return
+        by = cy + 14
+        for b in self.botones:
+            b.svg(out, x + 14, by, w - 28)
+            by += b.alto(w - 28) + 8
 
     def html(self):
+        botones = ''.join(b.html() for b in self.botones) if self.apilados else Botones(*self.botones).html()
         return (f'<div class="scrim"></div><div class="dialog"><h5>{h(self.titulo)}</h5>'
-                f'<p class="note">{h(self.contenido)}</p>{Botones(*self.botones).html()}</div>')
+                f'<p class="note">{h(self.contenido)}</p>{botones}</div>')
 
 
 class Hoja:
@@ -853,6 +878,11 @@ class Pantalla:
 NUEVA_SOLICITUD_FONDO = [Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 14:30'),
                          KV('Origen', 'Aeropuerto A. Merino Benítez'), KV('Destino', 'Av. Apoquindo 5400')]
 
+DATOS_LOCALES_FONDO = [
+    Marca(), Aviso('No pudimos abrir los datos locales. Inténtalo de nuevo.', tono='peligro'),
+    Boton('Reintentar'), Boton('Cerrar sesión', 'secundario', icono='salir'),
+    Boton('Restablecer datos locales', 'peligro_sec')]
+
 SOLICITUD_SIN_PASAJEROS = [
     Chip('PENDIENTE', grande=True), Seccion('Viaje'), KV('Horario', '26-09-2026 · 10:00'),
     KV('Origen', 'Av. Vitacura 2939'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
@@ -864,7 +894,8 @@ GRUPOS = [
     ('Transversal', 'acceso', [
         Pantalla('Inicio de aplicación', ['CU-14'], centro=True, cuerpo=[
             Marca(), Carga('Comprobando sesión…'),
-            Nota('Con una sesión válida abre el inicio de su rol; si no la hay o expiró, el login.', centro=True)]),
+            Nota('Revisa mantenimiento local y cierre pendiente; con sesión guardada abre el inicio de su rol '
+                 'sin esperar la red; sin sesión, el login.', centro=True)]),
         Pantalla('Login', ['CU-14', 'RF01', 'RF06', 'HU01', 'HU06'], centro=True, cuerpo=[
             Marca(), Campo('Correo electrónico', 'nombre@empresa.cl', vacio=True),
             Campo('Contraseña', '••••••••', vacio=True), Boton('Iniciar sesión'),
@@ -900,6 +931,23 @@ GRUPOS = [
             Aviso('Tus cambios pendientes se enviarán al volver a entrar.'),
             Nota('No se pudo renovar la sesión: la app conserva datos y pendientes de la cuenta. Entrar con '
                  'otra cuenta pide antes confirmar su descarte.', centro=True)]),
+        Pantalla('Datos locales no disponibles', ['RF11', 'HU11'], centro=True, cuerpo=DATOS_LOCALES_FONDO + [
+            Nota('La base local no abre. Reintentar no borra nada; Cerrar sesión deja la limpieza de esta cuenta '
+                 'pendiente hasta que la base abra.', centro=True)]),
+        Pantalla('Restablecer datos locales', ['RF11', 'HU11'], centro=True, cuerpo=DATOS_LOCALES_FONDO,
+                 overlay=Dialogo('¿Restablecer los datos locales?',
+                                 'Se borrarán los datos guardados de todas las cuentas en este dispositivo, los '
+                                 'cambios sin sincronizar y los registros de solicitudes interrumpidas. Se cerrará '
+                                 'tu sesión. Los cambios que ya recibió el servidor no se desharán. Si había un '
+                                 'envío sin confirmar, contacta al Administrador antes de repetirlo.',
+                                 [Boton('Cancelar', 'secundario'),
+                                  Boton('Borrar datos locales y cerrar sesión', 'peligro', multilinea=True)],
+                                 apilados=True)),
+        Pantalla('Cierre de sesión pendiente', ['CU-14', 'RF11'], centro=True, cuerpo=[
+            Marca(), Aviso('Estamos terminando el cierre de sesión. Inténtalo de nuevo.', tono='aviso'),
+            Boton('Reintentar cierre'),
+            Nota('El cierre ya se aceptó: el acceso protegido sigue bloqueado y no se permite otro login hasta '
+                 'terminar la limpieza local.', centro=True)]),
     ]),
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
@@ -986,6 +1034,12 @@ GRUPOS = [
                  derecha=Boton('Asignar', 'secundario', chico=True)),
             Nota('Cada fila abre el detalle; en las pendientes, "Asignar" abre directo la asignación. '
                  'Vencido: pasó una hora de su horario sin iniciar.')]),
+        Pantalla('Lista por actualizar', ['RF04', 'HU04', 'HU05'], barra='Solicitudes', nav=NAV_ADM, cuerpo=[
+            Boton('Cuentas por aprobar (1)', 'fantasma', icono='usuarios'),
+            Filtros(['Pendientes', 'Asignado', 'En curso', 'Finalizado', 'Cancelado', 'Todas'], 'Asignado'),
+            Aviso('La lista necesita actualizarse.', tono='aviso'), Boton('Actualizar', 'secundario'),
+            Nota('TR-1042 se asignó desde Pendientes: esta lista guardada aún no lo incluye. No es una lista '
+                 'vacía confirmada; se completa con la respuesta del servidor.')]),
         Pantalla('Cuentas por aprobar', ['CU-17', 'RF26', 'HU27'], barra='Cuentas por aprobar', atras=True,
                  cuerpo=[
             Item('Rodrigo Pérez', 'rperez@andesconsult.cl', 'Andes Consultores SpA · 76.543.210-K',

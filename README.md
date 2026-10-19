@@ -72,7 +72,7 @@
   - [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)
   - [Compilación, firma y distribución](#compilación-firma-y-distribución)
   - [Pruebas Android](#pruebas-android)
-  - [Decisiones abiertas](#decisiones-abiertas)
+  - [Decisiones cerradas](#decisiones-cerradas)
 - [Proceso de desarrollo](#proceso-de-desarrollo)
   - [Ramas y pull requests](#ramas-y-pull-requests)
   - [Integración continua](#integración-continua)
@@ -98,7 +98,9 @@ navegación externa (Google Maps/Waze).
   Anexo de Requerimiento) y no se implementa directamente.
 - **Rangos:** "de A a B" y "entre A y B" incluyen ambos extremos, salvo que se diga otra cosa.
 - **Hora:** "ahora" es la hora del servidor en `America/Santiago` al recibir la petición; las
-  fechas de negocio no llevan zona ([Contratos JSON](#contratos-json)).
+  fechas de negocio no llevan zona ([Contratos JSON](#contratos-json)). Los vencimientos
+  técnicos (sesiones, contraseñas temporales e idempotencia) se miden en UTC con `ahoraUtc`
+  ([Vencimientos técnicos en UTC](#vencimientos-técnicos-en-utc)).
 - **Códigos y etiquetas:** la API y la base usan códigos en mayúsculas (`EN_CURSO`); la app
   muestra su etiqueta en español ([Textos y tema](#textos-y-tema)).
 - **Obligatoriedad:** lo descrito es obligatorio. Lo que no se menciona no se implementa en el MVP
@@ -124,7 +126,10 @@ Pasajero no pertenece necesariamente a la empresa que paga (`PASAJERO` no tiene 
 ## Máquinas de estado
 
 Fuente única de las transiciones; los CU, RF, HU y la API remiten aquí. Toda transición
-inválida responde 409 y los triggers de `db/migration` la vuelven a validar.
+inválida responde 409. Los triggers de `db/migration` vuelven a validar los estados
+permitidos, la capacidad y la auditoría, pero no las reglas horarias (rango de `fh_agenda`,
+ventana de inicio, solapamiento y vencido): esas las valida solo el backend
+([Fechas y cambios de hora de Chile](#fechas-y-cambios-de-hora-de-chile)).
 
 ### Viaje
 
@@ -255,7 +260,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 ### Requisitos no funcionales
 
 - **RNF01 Seguridad:** contraseñas solo como hash; app↔backend con JWT de acceso de 1 hora y refresh token
-  rotativo y revocable (CU-14); límites de intentos en las rutas públicas; autorización por rol en un `SecurityFilterChain` centralizado. Única excepción al
+  rotativo y revocable (CU-14); límites de intentos en las rutas públicas y por usuario en las protegidas; autorización por rol en un `SecurityFilterChain` centralizado. Única excepción al
   "nunca en texto plano": la contraseña temporal de RF21, enviada una vez por correo y nunca
   guardada en claro.
 - **RNF02 Conectividad:** Internet continuo (Anexo §3.3); no es offline-first y crear o
@@ -606,7 +611,7 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
   - La fila de la clave se inserta al comienzo de la transacción del cambio: una segunda petición
     concurrente con la misma clave espera a la primera y, si esta confirmó, recibe la respuesta
     guardada.
-  - La vigencia es `ahora < fh_creacion + IDEMPOTENCIA_HORAS`; al alcanzar el límite, la fila
+  - La vigencia es `ahoraUtc < fh_creacion + IDEMPOTENCIA_HORAS × 3600 s`; al alcanzar el límite, la fila
     deja de ser reutilizable aunque aún exista. La limpieza diaria solo libera almacenamiento.
     Una petición con clave vencida se trata como nueva, retirando la fila vencida bajo bloqueo
     transaccional; no tiene garantía de repetición y vuelve a validar todas las reglas.
@@ -619,15 +624,15 @@ No hay entorno publicado: el sistema se entrega como demostración en un computa
 En una petición autenticada con clave se sigue el
 [orden de evaluación de toda petición](#validaciones), agrupado así:
 
-1. Pasos 1 a 5: JWT, rol, forma UUID de la clave (400 si falla) y existencia y acceso vigente al
-   recurso de la ruta. Perder acceso a un viaje responde 403 aunque exista una respuesta
-   guardada de una operación anterior; nunca se devuelve información fuera del alcance del
-   usuario.
-2. Paso 6: buscar la clave para ese usuario y comprobar su vigencia. Si sigue vigente, comparar
+1. Pasos 1 a 6: límites de intentos, JWT, rol, forma UUID de la clave (400 si falla) y
+   existencia y acceso vigente al recurso de la ruta. Perder acceso a un viaje responde 403
+   aunque exista una respuesta guardada de una operación anterior; nunca se devuelve
+   información fuera del alcance del usuario.
+2. Paso 7: buscar la clave para ese usuario y comprobar su vigencia. Si sigue vigente, comparar
    método, ruta y hash de los bytes UTF-8 del cuerpo (sin cuerpo equivale a bytes vacíos). Si
    difieren, responder 409; si coinciden, devolver la respuesta original sin reevaluar horario,
    estado ni efectos de negocio. El cliente conserva los mismos bytes en los reintentos.
-3. Pasos 7 a 10, si no hay una respuesta vigente: validar cuerpo, campos y recursos del cuerpo, y
+3. Pasos 8 a 11, si no hay una respuesta vigente: validar cuerpo, campos y recursos del cuerpo, y
    ejecutar las reglas de negocio en la transacción correspondiente. El registro de
    idempotencia y el cambio confirman juntos; un rollback no deja clave consumida ni avisos
    externos.
@@ -726,8 +731,8 @@ ruta fuera de ella: 403; método inexistente en una ruta que el rol sí puede us
 
 Consultas por pantalla ([Navegación y pantallas](#navegación-y-pantallas)); al abrir una
 notificación, su destino según `data.tipo` (`VIAJE`: `GET /viajes/{folio}`; ver
-[Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); al cerrar sesión desde un Perfil, `POST /auth/logout`
-  si hay conexión, sin impedir el cierre local cuando falla:
+[Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); al cerrar sesión
+desde un Perfil, `POST /auth/logout` si hay conexión, sin impedir el cierre local cuando falla:
 
 | Pantalla | Llamadas |
 |---|---|
@@ -778,12 +783,15 @@ Orden en la app al pulsar "Enviar solicitud", cada llamada con su `Idempotency-K
 ([Convenciones](#convenciones)):
 
 1. Un `POST /pasajeros` por pasajero. Si alguno falla, no se crea el viaje y el formulario
-   muestra el error.
+   muestra el error; corregirlo y enviar de nuevo reutiliza el mismo registro de recuperación
+   mientras `POST /viajes` no se haya enviado (fase `PREPARANDO`).
 2. `POST /viajes`. Un rechazo definitivo (400, 403, 404 o 409 de un envío nuevo) vuelve al
    formulario, que muestra el error y permite corregir y enviar de nuevo con otra clave. Un
    resultado incierto (sin respuesta, tiempo agotado o 5xx salvo 503) no crea otro viaje: se
    resuelve con la misma clave y el mismo cuerpo según la
    [Recuperación de solicitudes interrumpidas](#recuperación-de-solicitudes-interrumpidas).
+   Un 503 (`Ocupado`) tras sus reintentos no aplicó cambios en ese intento, pero no es un
+   rechazo definitivo: se repite con la misma clave y el mismo cuerpo ("Continuar envío").
 3. Un `POST /pasajeros-viaje` por pasajero. Si una asociación falla tras sus reintentos
    automáticos, la app abre igual el detalle del viaje ya creado: con 0 pasajeros muestra
    "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno", y ofrece
@@ -822,7 +830,7 @@ proceso no autoriza a crear otro viaje con una clave distinta si el resultado es
 2. Busca la comuna por nombre normalizado. El catálogo no repite nombres de comuna, así que la
    región solo desempataría si se repitieran: una región escrita distinto (p. ej. "Región del
    Libertador Gral. Bernardo O'Higgins") no rechaza una comuna que calza.
-3. Sin coincidencia responde 400 con `origen.comuna: no existe en el catálogo` (o
+3. Sin coincidencia responde 400 con `origen.comuna: No existe en el catálogo.` (o
    `destino.comuna`).
 4. Guarda y devuelve los nombres oficiales del catálogo, no los de Places.
 
@@ -921,14 +929,16 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `RefreshD
   cualquier entorno compartido.
 
 **Límites de intentos.** Contadores en memoria de la instancia (se pierden al reiniciar), por
-correo normalizado y por IP del cliente (la del socket; no se confía en `X-Forwarded-For`), en
-ventanas deslizantes: "en 15 minutos" son los 15 minutos anteriores a cada petición.
+correo normalizado, por IP del cliente (la del socket; no se confía en `X-Forwarded-For`) y
+por usuario autenticado (el `sub` del JWT), en ventanas deslizantes: "en 15 minutos" son los
+15 minutos anteriores a cada petición.
 
 | Ruta | Límite | Al excederlo |
 |---|---|---|
 | `POST /auth/login` | 5 fallos en 15 minutos por correo, exista o no; un login exitoso reinicia el contador. | El correo queda bloqueado 15 minutos: 429 con `Retry-After`, aun con la contraseña correcta. |
 | `POST /auth/recuperar-password` | 1 pedido cada 5 minutos y 5 por hora por correo. | `204` sin enviar correo, igual que con un correo inexistente. |
 | `POST /auth/login`, `/auth/refresh`, `/auth/recuperar-password` y `POST /solicitantes` | 20 peticiones por minuto por IP, sumadas. | 429 con `Retry-After`. |
+| Toda ruta con JWT (incluida la cola del Conductor) | 120 peticiones por minuto por usuario, sumadas entre rutas y métodos. | 429 con `Retry-After`; no se aplica nada. |
 
 ### Contratos JSON
 
@@ -980,7 +990,7 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
   `conductores` (el Administrador).
 - **Contraseña propia:** en `PUT /usuarios` con `password`, el dueño de la cuenta envía
   `passwordActual` (obligatoria; una temporal vigente cuenta como actual). Si falta o no coincide:
-  400 `passwordActual: no coincide`, sin más detalle. En `PUT /conductores` el Administrador
+  400 `passwordActual: No coincide.`, sin más detalle. En `PUT /conductores` el Administrador
   reemplaza la contraseña del Conductor sin `passwordActual` (CU-07).
 - **`PagoDTORequest`**: la empresa que paga (`PAGO.empresa_id_empresa`) es la del Solicitante
   del viaje; no viene en el cuerpo. El banco se identifica por `codSbif`.
@@ -1070,17 +1080,18 @@ Orden de evaluación de toda petición (la primera regla que falla decide la res
 1. Límite de intentos de una ruta pública excedido: 429.
 2. JWT ausente, alterado o vencido: 401. JWT de una contraseña temporal en una ruta no
    permitida: 403 "Debes cambiar la contraseña".
-3. Rol o ruta que la matriz no autoriza: 403; método inexistente en una ruta autorizada: 405.
-4. `Idempotency-Key` mal formada: 400.
-5. Recurso de la ruta (`folio`, `hash`, `patente`, `correo`, `dniHash`) mal formado o
+3. Usuario del JWT que excede su límite por minuto ([Autenticación](#autenticación)): 429.
+4. Rol o ruta que la matriz no autoriza: 403; método inexistente en una ruta autorizada: 405.
+5. `Idempotency-Key` mal formada: 400.
+6. Recurso de la ruta (`folio`, `hash`, `patente`, `correo`, `dniHash`) mal formado o
    inexistente: 404; fuera del alcance del usuario: 403. En cuentas ajenas, 403 exista o no
    ([Consultas y alcance por rol](#consultas-y-alcance-por-rol)).
-6. `Idempotency-Key` vigente del mismo usuario: la misma petición devuelve la respuesta
+7. `Idempotency-Key` vigente del mismo usuario: la misma petición devuelve la respuesta
    guardada; otra ruta u otro cuerpo, 409 ([Orden de evaluación e idempotencia](#orden-de-evaluación-e-idempotencia)).
-7. Cuerpo ilegible: 400 "Cuerpo inválido".
-8. Reglas de esta tabla, o dato inexistente en su catálogo o geografía: 400.
-9. Recurso del cuerpo inexistente (`folio`, `patente`, `correo`, `dniHash`): 404.
-10. Reglas de negocio y [Máquinas de estado](#máquinas-de-estado): 409. Un `estado` válido
+8. Cuerpo ilegible: 400 "Cuerpo inválido".
+9. Reglas de esta tabla, o dato inexistente en su catálogo o geografía: 400.
+10. Recurso del cuerpo inexistente (`folio`, `patente`, `correo`, `dniHash`): 404.
+11. Reglas de negocio y [Máquinas de estado](#máquinas-de-estado): 409. Un `estado` válido
     pero no permitido desde el estado actual es 409, no 400.
 
 Android aplica las mismas reglas antes de enviar (HU02), sin reemplazar las del backend.
@@ -1092,7 +1103,8 @@ operan sobre `LocalDateTime` en `America/Santiago`. Son horas civiles: `plusHour
 `minusHours(1)` y `plusDays(90)` se aplican a la fecha/hora local, sin convertir primero a
 UTC. En un cambio de hora, dos horas civiles pueden representar una duración real distinta
 de 120 minutos; esta es la regla del MVP. La ventana ±1 hora y el límite de solapamiento
-de 2 horas usan esa misma semántica en Android, backend y triggers MariaDB.
+de 2 horas usan esa misma semántica en Android y backend. Los triggers MariaDB no evalúan
+reglas horarias, así que no usan su propio `NOW()` para decidir una transición.
 
 - Cada evaluación captura una sola vez `ahora` desde el `Clock` y lo convierte a
   `America/Santiago`; no depende de la zona configurada en el teléfono o computador.
@@ -1116,7 +1128,11 @@ de 2 horas usan esa misma semántica en Android, backend y triggers MariaDB.
   calculadas de una ventana se comparan como valores civiles aunque caigan en un salto;
   no se resuelven a un instante ni se desplazan a una hora existente.
 - `fhCreacion`, `fhAsignacion`, `fhInicio` y `fhFin` son lecturas del reloj al ocurrir el
-  evento. Pueden caer en la hora repetida y se muestran tal cual; no se les aplica el
+  evento: `fh_creacion` la fija la base (`DEFAULT CURRENT_TIMESTAMP`, en la hora de Chile de
+  la sesión), y `fh_asignacion`, `fh_inicio` y `fh_fin` las escribe el backend con el `ahora`
+  de la evaluación. `USUARIO.fecha_registro` y `HISTORIAL_VIAJE.fecha_cambio` también son
+  lecturas de la base para auditoría. Ninguna participa en reglas de negocio.
+  Pueden caer en la hora repetida y se muestran tal cual; no se les aplica el
   rechazo reservado a la agenda seleccionada. No sirven para inferir duraciones reales
   entre eventos ni para desempatar auditorías: se conserva el orden por identificador
   del historial. El MVP no calcula duración real del viaje a partir de estas fechas.
@@ -1128,8 +1144,9 @@ Backend y Android utilizan las reglas horarias disponibles en sus runtimes; no c
 una fecha anual fija para la transición. Las pruebas encuentran un salto y un solapamiento
 de `America/Santiago` mediante `ZoneRules`, fijan el `Clock` y verifican la política anterior
 en ambos lados. También cubren las fronteras de V1–V3 y el cruce de medianoche. La verificación
-integrada compara esos casos con MariaDB; diferencias entre reglas horarias del entorno
-se corrigen antes de aceptar la entrega, sin normalizar silenciosamente la solicitud.
+integrada ejecuta esos casos por la API contra MariaDB real (guardado y lectura de las fechas
+con `DB_TIME_ZONE`); diferencias entre reglas horarias del entorno se corrigen antes de
+aceptar la entrega, sin normalizar silenciosamente la solicitud.
 
 Referencia para detectar cero, uno o dos desplazamientos válidos:
 [ZoneRules de Java 21](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/time/zone/ZoneRules.html).
@@ -1173,7 +1190,8 @@ separador final ni retorno CR. Un solo fallo usa el mismo formato, con una sola 
   por unidades UTF-16, sensible a mayúsculas, sin colación regional. La salida no depende
   del orden de propiedades JSON ni del recorrido de un conjunto de validadores.
 - Los motivos son mensajes de validación del servidor, sin incluir el valor rechazado,
-  documentos, contraseñas ni trazas. No contienen CR ni LF; pueden contener `:` porque
+  documentos, contraseñas ni trazas. Cada motivo empieza con mayúscula y termina en punto
+  (`passwordActual: No coincide.`). No contienen CR ni LF; pueden contener `:` porque
   el cliente separa cada línea únicamente por la primera aparición de `: `.
 - Android convierte las líneas válidas en errores por campo; si un campo tiene varios
   motivos, conserva su orden y los muestra separados por salto de línea bajo el mismo
@@ -1212,7 +1230,7 @@ backend/
     ├── main/java/cl/belmontespa/transporte/
     │   ├── TransporteApplication.java
     │   ├── client/       EmailClient, FirebaseClient, FcmSender, FirebaseFcmSender, EnvioDiferido
-    │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig
+    │   ├── config/       JwtProvider, SecurityConfig, FirebaseConfig, ClockConfig
     │   ├── controller/   CrudController, AuthController, CatalogoController, {E}Controller
     │   ├── dto/request/  {E}DTORequest, LoginDTORequest, RefreshDTORequest, TokenFcmDTORequest, RecuperarPasswordDTORequest,
     │   │                 AsignarViajeDTORequest, CambiarEstadoViajeDTORequest, CambiarEstadoPagoDTORequest,
@@ -1220,20 +1238,22 @@ backend/
     │   ├── dto/response/ {E}DTOResponse, LoginDTOResponse, CatalogosDTOResponse, ApiError
     │   ├── exception/    ApiExceptionHandler
     │   ├── model/        {E}, {C}, Ubicacion, HistorialViaje, Sesion, Idempotencia, BloqueoNegocio,
-    │   │                 DetalleMovilConductorId, DetalleViajePasajeroId
+    │   │                 DetalleMovilConductorId, DetalleViajePasajeroId, VencimientosUtc
     │   ├── repository/   {E}Repository, {C}Repository, UbicacionRepository, HistorialViajeRepository,
     │   │                 SesionRepository, IdempotenciaRepository, BloqueoNegocioRepository
-    │   └── service/      CrudService, AuthService, {E}Service, UbicacionService, IdempotenciaService
+    │   └── service/      CrudService, AuthService, {E}Service, UbicacionService, IdempotenciaService,
+    │                     FechasChile
     ├── main/resources/   application.properties,
     │                     db/migration/ V1__esquema.sql, V2__triggers.sql, V3__datos_iniciales.sql (históricas),
     │                                   V4__… y siguientes (incrementales)
     ├── test/java/cl/belmontespa/transporte/
     │   ├── SeguridadIT, CuentasIT, FlotaIT, PasajeroIT, ViajeIT, PagoIT, NotificacionesIT,
-    │   │   IdempotenciaIT, ConcurrenciaIT, MigracionesIT,
-    │   │   TransporteApplicationTests
+    │   │   IdempotenciaIT, ConcurrenciaIT, MigracionesIT, ValidacionesIT, FechasChileIT,
+    │   │   VencimientosUtcIT, TransporteApplicationTests
     │   ├── client/       EmailClientTest, FirebaseClientTest
     │   ├── config/       JwtProviderTest, FirebaseConfigTest
-    │   ├── service/      PasajeroServiceTest
+    │   ├── model/        VencimientosUtcTest
+    │   ├── service/      PasajeroServiceTest, FechasChileTest
     │   └── support/      IntegrationTest, Api, ReiniciarEsquemaConfig, ReiniciarEsquemaConfigTest,
     │                     NotificacionesTestConfig, FcmGrabador
     └── test/resources/   application-test.properties
@@ -1260,14 +1280,19 @@ backend/
   `password_hash`. Ningún `Controller` recibe ni devuelve un `Model`.
 - **Servicios y controladores**: `CrudService`/`CrudController` concentran el CRUD genérico y los
   puntos de extensión del alcance "solo lo propio"; `AuthService`/`AuthController`, login,
-  sesiones, token FCM y recuperación (los límites de intentos, en un filtro previo); `ViajeService`/`PagoService` y sus controladores, asignación, estados,
+  sesiones, token FCM y recuperación (los límites de intentos, en filtros: los públicos antes de validar el JWT y el por usuario después); `ViajeService`/`PagoService` y sus controladores, asignación, estados,
   cancelación, rechazo y pagos; `ConductorService` y `MovilService`, además, `activo`;
   `SolicitanteService`, la aprobación y el rechazo; `AdministradorService`, el alta con contraseña
   temporal. `IdempotenciaService` envuelve solo los POST autenticados de negocio que reciben
   `Idempotency-Key` (sin autorregistro ni `/auth/*`) y borra a
   diario las claves vencidas (`@Scheduled`). `ApiExceptionHandler` centraliza las respuestas de error.
 - **`config`**: `SecurityConfig` (cadena de seguridad), `JwtProvider` (emite y valida el JWT,
-  CU-14), `FirebaseConfig` (envío FCM solo con credenciales).
+  CU-14), `FirebaseConfig` (envío FCM solo con credenciales), `ClockConfig` (bean `Clock` en
+  `America/Santiago` y Jackson con `LocalDateTime` sin zona; ver [Datos iniciales](#datos-iniciales)).
+- **Fechas**: `FechasChile` aplica las reglas de zona y la aritmética civil de
+  [Fechas y cambios de hora de Chile](#fechas-y-cambios-de-hora-de-chile) (lo usa `ViajeService`);
+  `VencimientosUtc` es el `AttributeConverter` entre `Instant` y `LocalDateTime` con
+  `ZoneOffset.UTC`, solo para los campos de [Vencimientos técnicos en UTC](#vencimientos-técnicos-en-utc).
 - **`client`**: `EmailClient` (SMTP, RF21 y CU-17) y `FirebaseClient` (FCM, RF12/RF13, sobre
   `FcmSender`); `EnvioDiferido` los ejecuta después del commit y fuera de la transacción.
 
@@ -1300,7 +1325,7 @@ campos técnicos `USUARIO.password_temporal_expira`, `SESION.fh_creacion`, `SESI
   no convierte filas existentes.
 - Un minuto son 60 segundos, una hora 3600 y un día técnico 86400. Refresh usa
   `JWT_REFRESH_DIAS × 86400`; idempotencia, `IDEMPOTENCIA_HORAS × 3600`; contraseña temporal,
-  `PASSWORD_TEMPORAL_MINUTOS × 60`; alta inicial de Administrador, `ALTA_TEMPORAL_HORAS × 3600`.
+  `PASSWORD_TEMPORAL_MINUTOS × 60`; contraseña inicial de un Administrador nuevo (CU-18), `ALTA_TEMPORAL_HORAS × 3600`.
   La temporal del Administrador inicial conserva sus 30 días técnicos especificados.
 - La vigencia exige `ahoraUtc < venceUtc`; la igualdad ya está vencida. Las revocaciones
   siguen invalidando el refresh aunque no haya vencido. El `exp` del JWT utiliza segundos
@@ -1338,7 +1363,9 @@ y [representación DATETIME](https://github.com/mariadb-corporation/mariadb-docs
   ese número sigue libre al abrir la tarea.
 - Los cambios de columnas, tablas, catálogos, secuencia de folio y triggers se incorporan por
   versiones nuevas. Los triggers se reemplazan mediante migraciones, conservando sus reglas
-  defensivas y la auditoría; no mediante cambios manuales posteriores al arranque.
+  defensivas y la auditoría; no mediante cambios manuales posteriores al arranque. Si un
+  trigger histórico evalúa reglas horarias con `NOW()`, una migración incremental retira esa
+  comprobación ([Máquinas de estado](#máquinas-de-estado)).
 - Los folios existentes siguen siendo referencias estables. Si hay folios anteriores al
   formato `TR-`, la tarea de migración debe definir y aprobar su conversión y referencias
   antes de ejecutarla; nunca se renumeran silenciosamente datos ya entregados a clientes.
@@ -1536,9 +1563,9 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 
 | Pruebas | Cubren |
 |---|---|
-| `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y validación; sesiones (refresh, rotación, reuso, logout) y límites de intentos. |
+| `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), roles, ruta no listada, login y validación; sesiones (refresh, rotación, reuso, logout) y límites de intentos, incluido el límite por usuario de las rutas con JWT (429 sin efectos). |
 | `ValidacionesIT` | Errores de varios campos con el separador LF y orden contractual; duplicados eliminados, rutas anidadas y varios motivos para el mismo campo; ausencia de valores personales en mensajes; JSON ilegible conserva "Cuerpo inválido". |
-| `FechasChileTest` / `FechasChileIT` | Reglas de zona para agenda inexistente/repetida, aritmética civil y truncado; límites de V1–V3 y retraso verificados también contra triggers MariaDB, con los mismos casos de Android. |
+| `FechasChileTest` / `FechasChileIT` | Reglas de zona para agenda inexistente/repetida, aritmética civil y truncado; límites de V1–V3 y retraso verificados también por la API contra MariaDB real, con los mismos casos de Android. |
 | `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña (con el JWT temporal solo se cambia la contraseña) y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login, sesiones revocadas) y reactivado. |
 | `FlotaIT` | Vehículos y habilitación de conductores; desactivar y reactivar vehículos y conductores (409 con viajes `ASIGNADO` o `EN_CURSO`; un inactivo no es asignable). |
 | `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
@@ -1548,8 +1575,8 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 | `IdempotenciaIT` | Repetición antes y después de vencer la ventana, independientemente de la limpieza diaria; mismos bytes y respuesta, otro cuerpo 409, autorización vigente antes de repetir, ausencia de efectos duplicados y exclusión de autorregistro/auth. |
 | `ConcurrenciaIT` | Dos asignaciones incompatibles, cancelación contra inicio y pasajero contra asignación; transacciones independientes con bloqueo coordinado, resultado válido cualquiera sea el ganador y 503 sin efectos parciales cuando se agota la espera. |
-| `MigracionesIT` | Cadena completa en base vacía y actualización de una base con la versión anterior y datos ficticios; mismo esquema final, relaciones e historial conservados, sin modificar migraciones aplicadas. |
-| `VencimientosUtcTest` / `VencimientosUtcIT` | Temporal, alta inicial, refresh e idempotencia antes/en/después del límite; 24 horas reales y días técnicos al cruzar salto/solapamiento de Chile; UTC idéntico con zona de proceso distinta; mapeo SQL explícito y limpieza UTC. Migración de fechas anteriores: conversión única, invalidación de credenciales ambiguas y ventana de espera de claves ambiguas simulada con reloj fijo, sin descartarlas prematuramente. |
+| `MigracionesIT` | Cadena completa en base vacía y actualización de una base con la versión anterior y datos ficticios; mismo esquema final, relaciones e historial conservados, sin modificar migraciones aplicadas. Migración de fechas técnicas anteriores a UTC: conversión única, invalidación de credenciales ambiguas y ventana de espera de claves ambiguas simulada con reloj fijo, sin descartarlas prematuramente. |
+| `VencimientosUtcTest` / `VencimientosUtcIT` | Temporal de RF21, contraseña inicial de un Administrador nuevo (CU-18), temporal del Administrador inicial, refresh e idempotencia antes/en/después del límite; 24 horas reales y días técnicos al cruzar salto/solapamiento de Chile; UTC idéntico con zona de proceso distinta; mapeo SQL explícito y limpieza UTC. |
 
 ## Frontend (Android)
 
@@ -1580,13 +1607,14 @@ datos y los modelos de aplicación viven en `model/`. Ninguna interfaz expone en
 
 | Repositorio | Operaciones de contrato | Persistencia / resultado |
 |---|---|---|
-| `AuthRepository` | `observarSesion`, `iniciarSesion`, `registrarSolicitante`, `recuperarPassword`, `renovarSesion`, `actualizarTokenFcm`, `cerrarSesion` | Sesión normal cifrada; temporal solo en memoria. Observar devuelve `Flow<EstadoSesion>`; acciones, `Resultado<T>`. |
+| `AuthRepository` | `observarSesion`, `iniciarSesion`, `registrarSolicitante`, `recuperarPassword`, `renovarSesion`, `actualizarTokenFcm`, `cerrarSesion`, `reintentarCierre` | Sesión normal cifrada; temporal solo en memoria. Observar devuelve `Flow<EstadoSesion>`; acciones, `Resultado<T>`. `reintentarCierre` reanuda los pasos locales de un cierre pendiente. |
 | `CuentaRepository` | `obtenerPerfil`, `actualizarCuentaPropia`, `cambiarPassword`, `listarSolicitantesPendientes`, `aprobarSolicitante`, `rechazarSolicitante`, `registrarAdministrador` | Memoria por cuenta; acciones autorizadas por rol, según API. |
 | `CatalogoRepository` | `observarCatalogos`, `cargarCatalogos`, `limpiarCatalogos` | Memoria por sesión, una carga concurrente compartida; estados observables. |
 | `ViajeRepository` | `observarViajes`, `observarViaje`, `refrescarViajes`, `refrescarViaje`, `crearSolicitud`, `recuperarSolicitud`, `descartarRecuperacion`, `agregarPasajero`, `asignar`, `cancelar`, `rechazar`, `cambiarEstado` | Consultas `Flow<EstadoDatos<T>>` desde Room; mutaciones `Resultado<T>`. Coordina recuperación y cola sin que el ViewModel escriba en DAO. |
 | `FlotaRepository` | `listarConductores`, `obtenerConductor`, `registrarConductor`, `actualizarConductor`, `cambiarActivoConductor`, `listarMoviles`, `obtenerMovil`, `registrarMovil`, `cambiarActivoMovil`, `listarHabilitaciones`, `habilitar` | Caché en memoria según el alcance definido; acciones `Resultado<T>`. |
 | `PagoRepository` | `obtenerPago`, `registrarPago`, `cambiarEstadoPago` | Detalle en memoria durante la pantalla; actualiza el resumen del viaje tras confirmar y refrescar. |
 | `SincronizacionRepository` | `observarPendientes`, `encolarCambio`, `procesarPendientes`, `descartarDesde`, `pausarCuenta`, `reanudarCuenta` | Room; consumido por `ViajeRepository` y Worker. `descartarDesde` afecta la operación elegida y las posteriores del mismo viaje. |
+| `MantenimientoRepository` | `observarMantenimiento`, `reintentarApertura`, `restablecerDatosLocales` | Marca durable en `mantenimiento.preferences_pb`; acciones `Resultado<Unit>`. `restablecerDatosLocales` también reanuda un restablecimiento ya confirmado ([Restablecimiento local explícito](#restablecimiento-local-explícito)). |
 
 Reglas comunes de las firmas y modelos:
 
@@ -1624,12 +1652,22 @@ consulta confirmada sin elementos, no una consulta nunca realizada. Al enviar se
 la acción hasta obtener resultado; avisos y navegación se consumen una vez y no se repiten
 por recomposición. La UI no interpreta texto HTTP para decidir estados de negocio.
 
-**Estado de sesión:** `SIN_SESION`, `TEMPORAL`, `AUTENTICADA`, `RENOVANDO` y
-`REAUTENTICACION_REQUERIDA`. La última conserva datos y pendientes de la cuenta, pero no
-permite nuevos envíos protegidos. Volver a entrar con la misma cuenta permite reanudarlos;
-entrar con otra exige confirmar primero el descarte y limpieza de los datos anteriores.
-Solo el logout explícito ejecuta la limpieza completa de "Cierre de sesión local y remoto".
-Un fallo de descifrado también exige login; nunca se trata una sesión ilegible como válida.
+**Estado de sesión:** `SIN_SESION`, `TEMPORAL`, `AUTENTICADA`, `RENOVANDO`,
+`REAUTENTICACION_REQUERIDA`, `CIERRE_PENDIENTE` y `RECUPERACION_LOCAL`.
+
+- `REAUTENTICACION_REQUERIDA` conserva datos y pendientes de la cuenta, pero no permite
+  nuevos envíos protegidos. Volver a entrar con la misma cuenta permite reanudarlos.
+- Entrar con otra cuenta exige confirmar primero el descarte de los datos anteriores. Al
+  confirmarlo, la app aplica a la cuenta anterior los pasos locales de
+  [Cierre de sesión local y remoto](#cierre-de-sesión-local-y-remoto) (registro durable,
+  purga y retirada del sobre), sin intento remoto, y solo después envía el login nuevo.
+- La limpieza completa la ejecutan solo el logout explícito y ese descarte.
+- `CIERRE_PENDIENTE`: existe un registro de cierre (`logout_envelope`); el acceso protegido
+  queda bloqueado hasta terminar la limpieza ("Reintentar cierre").
+- `RECUPERACION_LOCAL`: la base local no abre, hay una marca de restablecimiento o falló la
+  lectura de la sesión o del mantenimiento; se muestra la pantalla de recuperación de
+  [Restablecimiento local explícito](#restablecimiento-local-explícito) o la opción de reintentar.
+- Un fallo de descifrado también exige login; nunca se trata una sesión ilegible como válida.
 
 Las respuestas llevan asociada la cuenta y la generación local de sesión que inició la
 petición: si esa cuenta salió o cambió, no pueden modificar la sesión ni sus cachés. Un
@@ -1755,9 +1793,11 @@ Reglas comunes:
   `POST /auth/logout` si hay conexión y elimina el flujo autenticado y la sesión local incluso
   si la llamada falla, según [Cierre de sesión local y remoto](#cierre-de-sesión-local-y-remoto).
 - Sesión que no se puede renovar: reautenticar antes de seguir con operaciones protegidas.
-- Los avisos de sesión, sincronización, recuperación y catálogos usan los textos de
-  [Textos y tema](#textos-y-tema) y aparecen en los mockups ("Sesión por renovar", "Solicitud
-  sin terminar", "Revisión requerida", "Registrar pago sin catálogos", "Viaje no disponible").
+- Los avisos de sesión, sincronización, recuperación, catálogos y datos locales usan los
+  textos de [Textos y tema](#textos-y-tema) y aparecen en los mockups ("Sesión por renovar",
+  "Datos locales no disponibles", "Restablecer datos locales", "Cierre de sesión pendiente",
+  "Solicitud sin terminar", "Revisión requerida", "Lista por actualizar", "Registrar pago sin
+  catálogos", "Viaje no disponible").
 - Pulsar una notificación abre su destino según `data.tipo` ([Notificaciones y navegación externa](#notificaciones-y-navegación-externa)) tras comprobar sesión y rol; sin sesión, pide login y luego lo abre.
 - Cada pantalla contempla carga, contenido, lista vacía, error y sin conexión, según corresponda.
 - Durante un envío la acción se bloquea (sin pulsaciones duplicadas).
@@ -1820,7 +1860,7 @@ que conserva únicamente los campos permitidos por ese protocolo.
 3. Reconstruir pantallas de consulta desde Room o la API según su alcance de caché; no
    suponer que el contenido que antes estaba en memoria sigue disponible.
 4. Un formulario no enviado se abre vacío y muestra "El formulario se reinició. Ingresa
-   nuevamente los datos". Las contraseñas y documentos se solicitan otra vez.
+   de nuevo los datos." Las contraseñas y documentos se solicitan otra vez.
 5. Si existe una creación recuperable, ofrecer el protocolo de "Recuperación de solicitudes
    interrumpidas"; no interpretarla como formulario nuevo ni generar otras claves.
 6. La cola del Conductor conserva las operaciones y aplica su recuperación segura por
@@ -1952,14 +1992,15 @@ técnicos.
 | 403 con contraseña temporal | "Debes cambiar la contraseña." y se abre "Cambiar contraseña". |
 | 404 | "No encontramos este registro." |
 | 409 | El `message` del backend (p. ej. "El correo ya está registrado"); luego se recargan los datos. |
-| 429 | "Demasiados intentos. Espera {n} minutos." (`n` desde `Retry-After`, redondeado hacia arriba) |
+| 429 | "Demasiados intentos. Espera {n} minutos." (`n` desde `Retry-After`, redondeado hacia arriba; con `n` = 1, "Espera 1 minuto.", como recurso plural de `strings.xml`) |
 | 500 | "Ocurrió un error inesperado. Inténtalo más tarde." |
+| Respuesta no reconocida (`Contrato`: código desconocido o cuerpo ilegible) | "La app no reconoce la respuesta del servidor. Inténtalo más tarde." Deshabilita las acciones sobre ese recurso. |
 | 503 (`Ocupado`) | "El sistema está ocupado. Inténtalo de nuevo." No se aplicó ningún cambio, así que reenviar con la misma clave es seguro. |
 | Sin app de navegación | "Instala Google Maps o Waze para navegar." |
-| Lectura o escritura local fallida | "No pudimos acceder a los datos locales. Intenta nuevamente." con "Reintentar"; conserva el contenido anterior si puede leerse. |
-| Almacenamiento lleno | "No hay espacio para guardar los datos. Libera espacio e intenta nuevamente." |
-| Migración fallida o base ilegible | "No pudimos abrir los datos locales. Intenta nuevamente" con "Reintentar"; no recrea la base. |
-| Restablecimiento local fallido | "No pudimos restablecer los datos locales. Intenta nuevamente." con "Reintentar restablecimiento". |
+| Lectura o escritura local fallida | "No pudimos acceder a los datos locales. Inténtalo de nuevo." con "Reintentar"; conserva el contenido anterior si puede leerse. |
+| Almacenamiento lleno | "No hay espacio para guardar los datos. Libera espacio e inténtalo de nuevo." |
+| Migración fallida o base ilegible | "No pudimos abrir los datos locales. Inténtalo de nuevo." en la pantalla "Datos locales no disponibles", con "Reintentar", "Cerrar sesión" y "Restablecer datos locales"; no recrea la base. |
+| Restablecimiento local fallido | "No pudimos restablecer los datos locales. Inténtalo de nuevo." con "Reintentar restablecimiento". |
 
 **Avisos de sesión, sincronización y recuperación:**
 
@@ -1973,6 +2014,14 @@ técnicos.
 | Retirada de acceso a un viaje | "El viaje ya no está disponible para tu cuenta. Los cambios pendientes no se enviaron." |
 | Fallo de sincronización sin `message` del servidor | "No pudimos sincronizar el cambio." |
 | Catálogos sin cargar | "No pudimos cargar los datos del formulario." con "Reintentar". |
+| Sesión no guardada (login o refresh) | "No pudimos guardar la sesión. Inténtalo de nuevo." |
+| Lectura temporal de la sesión fallida | "No pudimos leer tu sesión. Inténtalo de nuevo." con "Reintentar". |
+| Sesión guardada ilegible | "No pudimos recuperar tu sesión. Inicia sesión de nuevo." |
+| Formulario reiniciado tras terminar el proceso | "El formulario se reinició. Ingresa de nuevo los datos." |
+| Cierre de sesión no iniciado | "No pudimos iniciar el cierre de sesión. Inténtalo de nuevo." |
+| Cierre de sesión incompleto (`CIERRE_PENDIENTE`) | "Estamos terminando el cierre de sesión. Inténtalo de nuevo." con "Reintentar cierre". |
+| Lista invalidada sin respuesta completa | "La lista necesita actualizarse." con "Actualizar". |
+| Restablecimiento local | Título, texto y botones exactos del diálogo en [Restablecimiento local explícito](#restablecimiento-local-explícito). |
 
 **Listas vacías:**
 
@@ -2116,7 +2165,7 @@ Una versión desconocida no se interpreta con el formato actual.
 - Si el servidor renovó los tokens pero falla su guardado, se exige reautenticación y se
   conserva la cola. El refresh anterior no se reutiliza automáticamente. Las credenciales
   anteriores dejan de utilizarse y la marca durable impide reutilizarlas al reiniciar.
-- Un fallo de escritura en login informa que no se pudo guardar la sesión y no abre el flujo
+- Un fallo de escritura en login informa "No pudimos guardar la sesión. Inténtalo de nuevo." y no abre el flujo
   autenticado. Nunca se recurre a persistir el contenido en texto plano.
 
 **Lectura y fallos:**
@@ -2125,9 +2174,9 @@ Una versión desconocida no se interpreta con el formato actual.
 |---|---|
 | No existe registro | `SIN_SESION`. |
 | Registro íntegro y descifrable | Con mantenimiento local resuelto y sin cierre pendiente, restaurar la identidad y aplicar las reglas de sesión existentes; `renovacionEnCurso = true` exige login según el protocolo anterior. |
-| Contenido alterado, formato desconocido o clave perdida/inutilizable | Invalidar las credenciales locales y pedir login con "No pudimos recuperar tu sesión. Inicia sesión nuevamente". |
-| Fallo temporal de lectura o del servicio criptográfico | Bloquear acceso protegido y ofrecer reintentar; no destruir automáticamente la clave ni interpretar el fallo como ausencia de sesión. |
-| Fallo de escritura | Informar que no se pudo guardar la sesión; sin persistencia alternativa en claro. |
+| Contenido alterado, formato desconocido o clave perdida/inutilizable | Invalidar las credenciales locales y pedir login con "No pudimos recuperar tu sesión. Inicia sesión de nuevo." |
+| Fallo temporal de lectura o del servicio criptográfico | Bloquear acceso protegido y mostrar "No pudimos leer tu sesión. Inténtalo de nuevo." con "Reintentar"; no destruir automáticamente la clave ni interpretar el fallo como ausencia de sesión. |
+| Fallo de escritura | Mostrar "No pudimos guardar la sesión. Inténtalo de nuevo."; sin persistencia alternativa en claro. |
 
 Invalidar credenciales no elimina automáticamente Room ni sus pendientes. Esos datos
 permanecen inaccesibles hasta autenticar la cuenta correspondiente o confirmar su descarte.
@@ -2190,13 +2239,13 @@ Referencias de implementación: [DataStore](https://developer.android.com/topic/
 **Errores e interrupciones:**
 
 - Si no se puede guardar el registro inicial, el cierre no ha sido aceptado: mostrar
-  "No pudimos iniciar el cierre de sesión. Intenta nuevamente."; no afirmar que se cerró
+  "No pudimos iniciar el cierre de sesión. Inténtalo de nuevo."; no afirmar que se cerró
   ni borrar datos parcialmente. Se bloquean envíos protegidos en esa ejecución hasta que
   el usuario reintente o cancele el cierre fallido. Al cancelar se conserva la sesión;
   no existe una garantía de cierre durable mientras no pueda escribirse su registro.
 - Si el registro ya se guardó y falla borrar credenciales, purgar Room o retirar el propio
-  registro, conservarlo y mostrar "Estamos terminando el cierre de sesión. Intenta
-  nuevamente." con "Reintentar cierre". Se mantiene bloqueado el acceso protegido;
+  registro, conservarlo y mostrar "Estamos terminando el cierre de sesión. Inténtalo
+  de nuevo." con "Reintentar cierre". Se mantiene bloqueado el acceso protegido;
   nunca se anuncia éxito ni se permite un login nuevo sobre una limpieza incompleta.
 - Arranque y Worker leen DataStore antes de restaurar sesión o enviar. La presencia de
   `logout_envelope` prevalece sobre cualquier `session_envelope`, aunque este sea válido:
@@ -2295,7 +2344,7 @@ solicitudes; no reemplaza la política de WorkManager.
 - Si `GET /viajes/{folio}` responde 403 o 404, se impide abrir su detalle y se detienen los
   envíos de ese viaje. Un fallo de red de esa consulta no confirma pérdida de acceso.
 - Si había operaciones pendientes, se informa "El viaje ya no está disponible para tu
-  cuenta. Los cambios pendientes no se enviaron". Se prepara ese aviso antes de retirar
+  cuenta. Los cambios pendientes no se enviaron." Se prepara ese aviso antes de retirar
   los datos; si se detecta en segundo plano se entrega como aviso genérico al volver a la app,
   sin conservar datos del pasajero para mostrarlo.
 - Se eliminan operaciones pendientes, asociaciones de consultas, pasajeros y viaje de esa
@@ -2462,6 +2511,10 @@ Reglas de la cola (`operaciones_pendientes`):
   queda en `CONFLICTO`. La respuesta depende del estado vigente, no de la tarea de limpieza.
 
 **Espera durable de un 429 en la cola:**
+
+El backend responde 429 a `POST /viajes/{folio}/estado` cuando el Conductor supera el límite
+por usuario de las rutas con JWT ([Autenticación](#autenticación)); esa respuesta no aplicó
+el cambio.
 
 - Al recibirlo se captura el instante de recepción del `Clock`. `Retry-After` es un entero
   de segundos no negativo según el contrato; se calcula `recepcionEn + segundos × 1000`
@@ -2680,7 +2733,7 @@ protección y siguen sus contratos. La falta de aparición en una lista no equiv
 | Error de una transacción | Rollback local completo; conservar el estado anterior y mostrar el error. No revierte una operación ya confirmada por el servidor. |
 | Error temporal de lectura o escritura | Mostrar aviso y ofrecer reintentar; no recrear la base ni presentar un error como lista vacía. |
 | Almacenamiento lleno | Informar y conservar pendientes; no repetir una acción remota con otra clave ni borrar su seguimiento para liberar espacio. |
-| Migración fallida o base ilegible | Bloquear flujos que requieren persistencia y mostrar "No pudimos abrir los datos locales. Intenta nuevamente". |
+| Migración fallida o base ilegible | Bloquear flujos que requieren persistencia y mostrar "No pudimos abrir los datos locales. Inténtalo de nuevo." |
 | Restablecimiento de la base | Solo como acción expresa del usuario, según [Restablecimiento local explícito](#restablecimiento-local-explícito); nunca automático ni parte de un reintento genérico. |
 
 Mientras la persistencia esté indisponible no se envían operaciones que necesiten registrar
@@ -2699,7 +2752,7 @@ idempotente; el error de disco no autoriza una nueva acción ni una segunda clav
 #### Restablecimiento local explícito
 
 **Entrada y alcance:** ante un fallo de apertura por migración o base ilegible, la app muestra
-una pantalla de recuperación local antes de cargar datos protegidos. No requiere que Room
+la pantalla de recuperación local "Datos locales no disponibles" antes de cargar datos protegidos. No requiere que Room
 abra ni que haya conexión o sesión válida. Ofrece "Reintentar", "Cerrar sesión" y la acción
 secundaria "Restablecer datos locales". Un fallo transitorio de consulta o disco lleno no
 abre automáticamente esta confirmación. No se añade una opción de borrado rutinario al Perfil.
@@ -2707,7 +2760,13 @@ Un registro de cierre cifrado irrecuperable también permite llegar a esta panta
 la misma confirmación y alcance de borrado, aunque Room todavía pudiera abrirse.
 
 - "Reintentar" vuelve a intentar la apertura sin eliminar archivos. "Cerrar sesión" aplica
-  su protocolo y no equivale a autorizar el borrado completo de una base ilegible.
+  su protocolo y no equivale a autorizar el borrado completo de una base ilegible. Como Room
+  no abre, omite el paso 1 (no se pueden leer pendientes) y su confirmación advierte que los
+  cambios sin sincronizar de la cuenta se descartarán al completar la limpieza. Guarda el
+  registro de cierre, intenta el logout remoto y elimina `session_envelope`; la purga de Room
+  queda pendiente en ese registro (`CIERRE_PENDIENTE`, "Estamos terminando el cierre de
+  sesión. Inténtalo de nuevo."). Se completa con "Reintentar cierre" cuando la base vuelva a
+  abrir o mediante "Restablecer datos locales".
 - "Restablecer datos locales" abre el diálogo **"¿Restablecer los datos locales?"**, con
   texto exacto: "Se borrarán los datos guardados de todas las cuentas en este dispositivo,
   los cambios sin sincronizar y los registros de solicitudes interrumpidas. Se cerrará tu
@@ -2753,7 +2812,7 @@ de mejor esfuerzo y no se conservan credenciales para reintentarlo. Los pasos lo
 idempotentes: archivo o sobre ya ausentes cuentan como eliminados.
 
 Ante un fallo después de iniciar, conservar la marca y mostrar "No pudimos restablecer los
-datos locales. Intenta nuevamente." con "Reintentar restablecimiento". No mostrar éxito ni
+datos locales. Inténtalo de nuevo." con "Reintentar restablecimiento". No mostrar éxito ni
 abrir Login utilizable hasta completar el protocolo. No iniciar nuevos envíos al reiniciar.
 Una lectura fallida del DataStore de mantenimiento bloquea el arranque protegido con opción
 de reintentar; nunca se interpreta como marca `false`. No se borra por manejadores de corrupción.
@@ -2816,6 +2875,11 @@ Protocolo de recuperación:
 1. Al confirmar "Enviar solicitud" se guarda en una transacción la creación en `PREPARANDO`,
    el cuerpo del viaje, su clave y las filas de pasajeros. Las respuestas de preparación
    guardan de inmediato cada `dni_hash`. No se envía `POST /viajes` hasta tenerlos todos.
+   Si falla un `POST /pasajeros`, el formulario sigue abierto con ese registro: corregirlo y
+   enviar de nuevo actualiza en una transacción el cuerpo, las filas y los nombres, y conserva
+   los `dni_hash` de los pasajeros sin cambios y la `clave_creacion`, que aún no se usó. Salir
+   del formulario pide confirmar el descarte del registro. El aviso de creación interrumpida
+   no se muestra mientras ese formulario siga abierto.
 2. Si el proceso termina en `PREPARANDO`, se conservan los hashes ya obtenidos y se pide de
    nuevo el documento de los pasajeros que falten, mostrando su `nombre`; no se puede
    recuperar su documento desde Room. Repetir su alta no duplica el pasajero por las reglas de `POST /pasajeros`.
@@ -2839,7 +2903,7 @@ Protocolo de recuperación:
 8. Si el resultado de la creación o de una asociación sigue incierto al cumplirse
    `IDEMPOTENCIA_HORAS` desde su primer intento local, se pasa a `REVISION_REQUERIDA` y no
    se repite automáticamente esa operación. Se informa "No pudimos confirmar el resultado.
-   Contacta al Administrador antes de crear otra solicitud"; se muestra el folio si se conoce.
+   Contacta al Administrador antes de crear otra solicitud."; se muestra el folio si se conoce.
    El límite se aplica de forma conservadora desde el primer envío local, sin asumir que la
    limpieza diaria del servidor amplía la ventana garantizada.
 9. Descartar pide confirmación y elimina únicamente el registro de recuperación. Si existe
@@ -2854,7 +2918,10 @@ clave, conservando los hashes de pasajeros preparados. Un 409 de clave ya utiliz
 otro cuerpo no prueba ausencia de viaje: se trata como incertidumbre y exige recuperar el
 envío original o revisión. Si hubo un intento previo incierto, otro error posterior tampoco
 autoriza a crear con clave distinta sin resolver primero ese intento. Un timeout, 5xx o
-interrupción no se considera prueba de rechazo definitivo.
+interrupción no se considera prueba de rechazo definitivo. Un 503 (`Ocupado`) no aplicó
+cambios en ese intento, pero no prueba que otro intento con la misma clave no los aplicara:
+se reintenta con la misma clave y el mismo cuerpo ("Continuar envío") y nunca habilita una
+clave nueva.
 
 En cualquier fase, finalizar o descartar una recuperación no deshace pasajeros ya creados
 ni asociaciones confirmadas. El cierre de sesión permite resolver o descartar también estos
@@ -2929,7 +2996,9 @@ cd android
   HTTP con `MockWebServer`; `Flow` con Turbine y `kotlinx-coroutines-test`.
 - La app toma "ahora" de un `Clock` inyectado; las pruebas lo fijan para que la ventana de
   inicio, el retraso y los formatos no dependan de la hora real.
-- Room en memoria; WorkManager con `work-testing`; Hilt con `@HiltAndroidTest` y
+- Room en memoria, salvo las pruebas que necesitan el archivo real (`MigracionesRoomTest`,
+  `RestablecimientoLocalTest` y los fallos de apertura de `AdministracionCacheTest`), que usan
+  una base en un archivo temporal propio de la prueba; WorkManager con `work-testing`; Hilt con `@HiltAndroidTest` y
   `HiltTestApplication` como aplicación de prueba.
 - Solo datos ficticios (RNF09), con los mismos ejemplos de los mockups.
 
@@ -2949,7 +3018,7 @@ cd android
 | `SincronizacionWorkerTest` | Instrumentada | Tabla de resultados de la cola, orden por viaje, recuperación de `ENVIANDO` solo sin ejecución anterior activa, propietario por WorkRequest, contadores total/5xx separados y respeto de Retry-After; respuesta repetida que confirma sin escribir la caché; error persistido, descarte y detención al retirar acceso o cerrar sesión. |
 | `DaosTest` | Instrumentada | PK y UQ, borrado en cascada de pasajeros, consultas `Flow`, transacciones de confirmación y purga por cuenta; tablas y restricciones del registro de recuperación. |
 | `AdministracionCacheTest` | JVM con fakes y reloj fijo; instrumentada para Room | Claves canónicas y cambio del día en Chile; lista vacía frente a nunca cargada; orden numérico del folio; reemplazo atómico de consulta/pasajeros y rollback; respuestas coordinadas sin sobrescritura tardía ni bloqueo anidado; repetición idempotente seguida de GET fallido; limpieza antes/en/después de 30 días y reloj atrasado; protección de pendientes, recuperación, viajes activos y pantallas observadas; aislamiento por cuenta; errores de disco, apertura y migración sin borrado automático ni reenvío con otra clave. |
-| `FechasChileTest` / `FechasChileIT` | JVM en Android y backend; integración con MariaDB | Salto y solapamiento detectados con reglas de zona, rechazo de agenda inexistente/repetida, horario ordinario aceptado, truncado previo y precisión de `ahora`, aritmética civil de V1–V3 y retraso, 90 días calendario, medianoche y zona distinta del dispositivo. Backend y triggers producen el mismo resultado en los límites. |
+| `FechasChileTest` / `FechasChileIT` | JVM en Android y backend; integración con MariaDB | Salto y solapamiento detectados con reglas de zona, rechazo de agenda inexistente/repetida, horario ordinario aceptado, truncado previo y precisión de `ahora`, aritmética civil de V1–V3 y retraso, 90 días calendario, medianoche y zona distinta del dispositivo. Backend y Android producen el mismo resultado en los límites. |
 | `RestablecimientoLocalTest` | JVM con fakes + instrumentada | Reintentar no borra; cancelar confirmación no modifica; advertencia de todas las cuentas y resultado remoto incierto; corrupción sin eliminación automática; marca durable previa, cancelación de trabajo y cese de accesos; sobre no eliminable bloquea; fallo de borrado/apertura conserva marca; interrupción tras cada paso y reanudación idempotente; DataStore ilegible bloquea; nueva base vacía y sesión cerrada; sin reenvíos ni borrado de la base de WorkManager. |
 | `CierreSesionDurableTest` | JVM con fakes + instrumentada para DataStore/Room/Keystore | Registro previo cifrado con AAD propia; fallo al iniciar no anuncia éxito; fallo de borrado de sesión, purga o retirada del registro bloquea acceso; muerte tras cada paso reanuda limpieza sin logout remoto repetido; sobre antiguo válido ignorado; cierre temporal; registro ilegible y prioridad del restablecimiento; aislamiento de otras cuentas y respuestas de refresh tardías. |
 | `InvalidacionConsultasTest` | JVM con fakes + instrumentada para Room | Pendiente asignado deja de mostrarse en Pendientes sin borrar su fila/cola; filtros de fecha y agendas; invalidación de otras consultas en la misma transacción; asociaciones nuevas solo con respuesta completa; lista invalidada sin filas no se anuncia como vacía confirmada; fallo de refresco conserva marca; ausencia de ciclos de refresco y de invalidación optimista por la cola. |
@@ -2961,7 +3030,7 @@ cd android
 | `PantallasTest` | Instrumentada | Cada pantalla en los estados de los [mockups](mockups/wireframes-belmonte.html), con las verificaciones de [Accesibilidad](#accesibilidad) (estas, solo desde API 34). |
 | `FlujosE2ETest` | Instrumentada contra el backend real (`10.0.2.2:8080` con `database/demo.sql` recién cargado) | Solicitante: crea, agrega un pasajero y cancela. Administrador: aprueba una cuenta, asigna, registra y marca un pago. Conductor: inicia y finaliza (también sin conexión) y rechaza. Se corren antes de cada entrega, no en CI. |
 
-### Decisiones abiertas
+### Decisiones cerradas
 
 Las decisiones enumeradas a continuación están cerradas y no se reabren al implementar.
 No quedan pendientes los siete puntos de precisión identificados en las revisiones documentales;
