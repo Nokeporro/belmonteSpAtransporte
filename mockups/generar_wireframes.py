@@ -997,8 +997,9 @@ GRUPOS = [
                  'backend; no hay selector de rol.', centro=True)]),
         Pantalla('Login en modo demo', ['CU-14', 'CU-19'], centro=True, cuerpo=[
             Marca(), Aviso('Modo demostración: datos ficticios, sin conexión al servidor.'),
-            Campo('Correo electrónico', 'ireyes@belmonte.cl'), Campo('Contraseña', '••••••••'),
-            Boton('Iniciar sesión'), Boton('Abordar viaje', 'fantasma', icono='qr'),
+            Campo('Correo electrónico', 'ireyes@belmontespa.cl'), Campo('Contraseña', '••••••••'),
+            Boton('Iniciar sesión'), Boton('Crear cuenta solicitante', 'fantasma'),
+            Boton('Recuperar contraseña', 'fantasma'), Boton('Abordar viaje', 'fantasma', icono='qr'),
             Nota('Build demo: un servidor simulado dentro de la app responde la API; ninguna petición sale '
                  'al backend.', centro=True)]),
         Pantalla('Registro de solicitante', ['RF01', 'HU01'], barra='Crear cuenta solicitante', atras=True, cuerpo=[
@@ -1006,7 +1007,7 @@ GRUPOS = [
             Campo('Correo', 'crios@andesconsult.cl'),
             Campo('Teléfono (opcional)', '+56 9 5555 0101'), Campo('Contraseña', '••••••••'),
             Seccion('Empresa'), Campo('Razón social', 'Andes Consultores SpA'),
-            Campo('RUT de la empresa', '76.543.210-K'), Boton('Crear cuenta'),
+            Campo('RUT de la empresa', '76.543.210-3'), Boton('Crear cuenta'),
             Nota('Al terminar vuelve al login con el correo precargado. Si el RUT ya existe, la cuenta '
                  'espera la aprobación de un Administrador.')]),
         Pantalla('Recuperar contraseña', ['CU-13', 'RF21', 'HU22'], barra='Recuperar contraseña', atras=True, cuerpo=[
@@ -1025,7 +1026,7 @@ GRUPOS = [
                  'guardar, la app inicia sesión con la nueva.')]),
         Pantalla('Sesión por renovar', ['CU-14', 'RF11', 'HU11'], centro=True, cuerpo=[
             Marca(), Aviso('Tu sesión terminó. Inicia sesión de nuevo.', tono='aviso'),
-            Campo('Correo electrónico', 'ireyes@belmonte.cl'),
+            Campo('Correo electrónico', 'ireyes@belmontespa.cl'),
             Campo('Contraseña', '••••••••', vacio=True), Boton('Iniciar sesión'),
             Aviso('Tus cambios pendientes se enviarán al volver a entrar.'),
             Nota('No se pudo renovar la sesión: la app conserva datos y pendientes de la cuenta. Entrar con '
@@ -1048,11 +1049,11 @@ GRUPOS = [
             Nota('El cierre ya se aceptó: el acceso protegido sigue bloqueado y no se permite otro login hasta '
                  'terminar la limpieza local.', centro=True)]),
     ]),
-    ('Pasajero', 'sin cuenta', [
+    ('Pasajero', 'con o sin cuenta', [
         Pantalla('Abordar viaje', ['CU-19', 'RF28', 'HU29'], barra='Abordar viaje', atras=True, cuerpo=[
             Aviso('Escanea el código QR de la puerta del vehículo.'),
             Boton('Escanear código QR', icono='qr'), Boton('Ingresar código', 'secundario'),
-            Nota('Sin cuenta: te identificas con tu RUT o pasaporte, que no se guarda en el teléfono. '
+            Nota('No necesitas cuenta: te identificas con tu RUT o pasaporte, que no se guarda en el teléfono. '
                  '"Ingresar código" pide la patente y el código escritos bajo el QR.')]),
         Pantalla('Escanear código QR', ['CU-19', 'RF28', 'HU29'], cuerpo=[
             Camara('Apunta al código QR de la puerta.'),
@@ -1060,12 +1061,13 @@ GRUPOS = [
                  'aviso, "Ingresar código" y, si ya no se puede pedir, "Abrir ajustes".')]),
         Pantalla('Confirmar abordaje', ['CU-19', 'RF28', 'HU29'], barra='Confirmar abordaje', atras=True, cuerpo=[
             KV('Vehículo', 'KXJR42'), Campo('Tipo de documento', 'RUT', icono='select'),
-            Campo('Documento', '12.345.678-5'), Boton('Confirmar abordaje'),
+            Campo('Documento', '15.234.567-4'), Boton('Confirmar abordaje'),
             Nota('Busca tu viaje en este vehículo: Asignado dentro de la ventana de inicio o En curso. Sin '
                  'coincidencia, el mismo aviso genérico.')]),
         Pantalla('Abordaje registrado', ['CU-19', 'RF28', 'HU29'], barra='Abordar viaje', cuerpo=[
             Aviso('Abordaje registrado a las 14:05. ¡Buen viaje!'), Boton('Volver al inicio'),
-            Nota('Repetir el escaneo responde la misma hora. Volver al inicio abre el Login sin sesión.')]),
+            Nota('Repetir el escaneo responde la misma hora. Volver al inicio abre el Login, o Mis solicitudes '
+                 'si se entró desde el Perfil.')]),
     ]),
     ('Solicitante', 'cliente corporativo', [
         Pantalla('Mis solicitudes', ['RF03', 'HU03'], barra='Mis solicitudes', nav=NAV_SOL, cuerpo=[
@@ -1093,7 +1095,7 @@ GRUPOS = [
             Campo('Origen', 'Aeropuerto A. Merino B.', 'pin'),
             Campo('Destino', 'Av. Apoquindo 5400', 'pin'),
             Nota('Origen y destino solo desde las sugerencias de Google Places, con coordenadas.'),
-            Seccion('Pasajeros (2)'), Pasajero('Constanza Ríos', 'RUT 15.234.567-8'),
+            Seccion('Pasajeros (2)'), Pasajero('Constanza Ríos', 'RUT 15.234.567-4'),
             Pasajero('Tomás Vidal', 'Pasaporte P4471023'), Boton('Agregar pasajero', 'fantasma', icono='mas'),
             Campo('N.º de vuelo (opcional)', 'LA 1502'), Boton('Enviar solicitud')]),
         Pantalla('Detalle de solicitud', ['CU-01', 'RF03', 'RF20', 'HU03', 'HU21'], barra='Solicitud TR-1042', atras=True,
@@ -1113,7 +1115,7 @@ GRUPOS = [
                               'Se registra y se asocia al viaje. Con vehículo asignado, no más pasajeros que '
                               'su capacidad.',
                               cuerpo=[Campo('Nombre', 'Marcela Soto'),
-                                      Fila(Campo('Documento', 'RUT', 'select'), Campo('Número', '16.789.012-3'),
+                                      Fila(Campo('Documento', 'RUT', 'select'), Campo('Número', '16.789.012-1'),
                                            pesos=(2, 3)),
                                       Botones(Boton('Volver', 'secundario'), Boton('Agregar'))])),
         Pantalla('Confirmar cancelación', ['CU-08', 'RF15', 'HU16', 'V5', 'P4', 'P5'], barra='Solicitud TR-1042',
@@ -1129,10 +1131,11 @@ GRUPOS = [
             Seccion('Pago'), KV('Estado', chip=Chip('REEMBOLSADO')), KV('Monto', '$48.000'),
             KV('Devuelto 50 %', '$24.000'),
             Nota('Tras cancelar se queda en el detalle con el nuevo estado. Ya no se ofrece "Cancelar".')]),
-        Pantalla('Perfil', ['RF01'], barra='Perfil', nav=NAV_SOL, activa=1, cuerpo=[
+        Pantalla('Perfil', ['RF01', 'CU-19'], barra='Perfil', nav=NAV_SOL, activa=1, cuerpo=[
             Persona('Constanza Ríos', 'crios@andesconsult.cl'), KV('Teléfono', '+56 9 5555 0101'),
-            Seccion('Empresa'), KV('Razón social', 'Andes Consultores SpA'), KV('RUT', '76.543.210-K'),
+            Seccion('Empresa'), KV('Razón social', 'Andes Consultores SpA'), KV('RUT', '76.543.210-3'),
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
+            Boton('Abordar viaje', 'secundario', icono='qr'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
         Pantalla('Cambiar contraseña', ['RF21'], barra='Cambiar contraseña', atras=True, cuerpo=[
             Campo('Contraseña actual', '••••••••'), Campo('Nueva contraseña', '••••••••'),
@@ -1160,7 +1163,7 @@ GRUPOS = [
                  'vacía confirmada; se completa con la respuesta del servidor.')]),
         Pantalla('Cuentas por aprobar', ['CU-17', 'RF26', 'HU27'], barra='Cuentas por aprobar', atras=True,
                  cuerpo=[
-            Item('Rodrigo Pérez', 'rperez@andesconsult.cl', 'Andes Consultores SpA · 76.543.210-K',
+            Item('Rodrigo Pérez', 'rperez@andesconsult.cl', 'Andes Consultores SpA · 76.543.210-3',
                  derecha=Chip('SOL_PENDIENTE')),
             Botones(Boton('Rechazar', 'secundario'), Boton('Aprobar')),
             Nota('Se registró con el RUT de una empresa existente. Aprobar o rechazar le avisa por correo; '
@@ -1209,20 +1212,20 @@ GRUPOS = [
                  'de 2 h. La capacidad debe cubrir a los pasajeros.')]),
         Pantalla('Conductores', ['CU-07'], barra='Conductores', nav=NAV_ADM, activa=1, cuerpo=[
             Boton('Registrar conductor', icono='mas'),
-            Item('Iván Reyes', 'ireyes@belmonte.cl', derecha=Chip('DISPONIBLE')),
-            Item('Paula Muñoz', 'pmunoz@belmonte.cl', derecha=Chip('DISPONIBLE')),
-            Item('Jorge Lara', 'jlara@belmonte.cl', derecha=Chip('OCUPADO')),
-            Item('Marta Soto', 'msoto@belmonte.cl', derecha=Chip('INACTIVO')),
+            Item('Iván Reyes', 'ireyes@belmontespa.cl', derecha=Chip('DISPONIBLE')),
+            Item('Paula Muñoz', 'pmunoz@belmontespa.cl', derecha=Chip('DISPONIBLE')),
+            Item('Jorge Lara', 'jlara@belmontespa.cl', derecha=Chip('OCUPADO')),
+            Item('Marta Soto', 'msoto@belmontespa.cl', derecha=Chip('INACTIVO')),
             Nota('Ocupado solo mientras tiene un viaje en curso. Inactivo: dado de baja; no inicia sesión ni '
                  'se asigna.')]),
         Pantalla('Registrar conductor', ['CU-07', 'RF14', 'HU15'], barra='Registrar conductor', atras=True, cuerpo=[
-            Campo('Nombre', 'Paula Muñoz'), Campo('Correo', 'pmunoz@belmonte.cl'),
+            Campo('Nombre', 'Paula Muñoz'), Campo('Correo', 'pmunoz@belmontespa.cl'),
             Campo('Teléfono (opcional)', '+56 9 5555 0202'), Campo('Contraseña inicial', '••••••••'),
             Boton('Registrar conductor'),
             Nota('La contraseña la define el Administrador (no se genera sola) y se guarda como hash. El '
                  'Conductor no tiene autorregistro.')]),
         Pantalla('Detalle de conductor', ['CU-07', 'CU-10', 'RF14'], barra='Iván Reyes', atras=True, cuerpo=[
-            Chip('DISPONIBLE', grande=True), KV('Correo', 'ireyes@belmonte.cl'),
+            Chip('DISPONIBLE', grande=True), KV('Correo', 'ireyes@belmontespa.cl'),
             KV('Teléfono', '+56 9 5555 0303'), Seccion('Vehículos habilitados'),
             Item('KXJR42', '4 pasajeros', derecha=Chip('DISPONIBLE')),
             Item('LPHT17', '6 pasajeros', derecha=Chip('DISPONIBLE')),
@@ -1280,13 +1283,13 @@ GRUPOS = [
             Nota('Desde Pagado solo se puede anular. Al cancelar el viaje, Pagado pasa a Reembolsado y '
                  'Pendiente a Anulado. Anular cancela el viaje si está Pendiente o Asignado.')]),
         Pantalla('Perfil', ['RF21'], barra='Perfil', nav=NAV_ADM, activa=3, cuerpo=[
-            Persona('Andrea Castro', 'recepcion@belmonte.cl'), KV('Rol', 'Administrador'),
+            Persona('Andrea Castro', 'recepcion@belmontespa.cl'), KV('Rol', 'Administrador'),
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
             Boton('Registrar administrador', 'secundario', icono='mas'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
         Pantalla('Registrar administrador', ['CU-18', 'RF27', 'HU28'], barra='Registrar administrador',
                  atras=True, cuerpo=[
-            Campo('Nombre', 'Tomás Ibarra'), Campo('Correo', 'tibarra@belmonte.cl'),
+            Campo('Nombre', 'Tomás Ibarra'), Campo('Correo', 'tibarra@belmontespa.cl'),
             Campo('Teléfono (opcional)', 'Opcional', vacio=True), Campo('Contraseña inicial', '••••••••'),
             Boton('Registrar administrador'),
             Nota('La contraseña inicial es temporal: vence en 72 horas y debe cambiarse al entrar.')]),
@@ -1317,10 +1320,12 @@ GRUPOS = [
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec'),
             Nota('Iniciar desde 1 h antes hasta 1 h después del horario. Rechazar, con motivo y conexión, '
                  'devuelve el viaje a Pendiente.')]),
-        Pantalla('Antes de la ventana', ['RF09', 'HU09', 'V3'], barra='Viaje TR-1049', atras=True, cuerpo=[
+        Pantalla('Antes de la ventana', ['RF09', 'RF29', 'HU09', 'HU30', 'V3'], barra='Viaje TR-1049', atras=True,
+                 cuerpo=[
             Chip('ASIGNADO', grande=True), KV('Horario', '24-09-2026 · 18:45'),
             KV('Origen', 'Av. Isidora Goyenechea 3000'), KV('Destino', 'Aeropuerto A. Merino Benítez'),
-            Seccion('Pasajeros'), Lista('Felipe Mora'),
+            Seccion('Abordaje'), Aviso('Abordaron 0 de 1. Faltan: Felipe Mora.', tono='aviso'),
+            Item('Felipe Mora', derecha=Chip('POR_ABORDAR')),
             Boton('Iniciar viaje', deshabilitado=True), Boton('Finalizar viaje', 'secundario', deshabilitado=True),
             Nota('Disponible desde las 17:45.', centro=True),
             Boton('Navegar al origen', 'secundario', icono='brujula'), Boton('Rechazar', 'peligro_sec')]),
@@ -1362,7 +1367,7 @@ GRUPOS = [
                               'Asignado: navega al origen; En curso: al destino. Solo apps instaladas; sin '
                               'ninguna, aviso.')),
         Pantalla('Perfil', ['RF06'], barra='Perfil', nav=NAV_CON, activa=1, cuerpo=[
-            Persona('Iván Reyes', 'ireyes@belmonte.cl'), KV('Teléfono', '+56 9 5555 0303'),
+            Persona('Iván Reyes', 'ireyes@belmontespa.cl'), KV('Teléfono', '+56 9 5555 0303'),
             Nota('Tu contraseña la gestiona el Administrador; no hay cambio ni recuperación por autoservicio.'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
     ]),
