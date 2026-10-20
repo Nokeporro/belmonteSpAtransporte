@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Textos de la app, solo en español de Chile (README, Textos y tema). -->
+<resources>
+    <string name="app_name">Belmonte</string>
+    <string name="marca" translatable="false">BELMONTE</string>
+    <string name="marca_lema">Traslados corporativos</string>
+
+    <!-- Acciones comunes -->
+    <string name="accion_volver">Volver</string>
+    <string name="accion_reintentar">Reintentar</string>
+    <string name="accion_actualizar">Actualizar</string>
+    <string name="accion_cerrar_sesion">Cerrar sesión</string>
+
+    <!-- Barras inferiores por rol -->
+    <string name="nav_mis_solicitudes">Mis solicitudes</string>
+    <string name="nav_perfil">Perfil</string>
+    <string name="nav_solicitudes">Solicitudes</string>
+    <string name="nav_conductores">Conductores</string>
+    <string name="nav_vehiculos">Vehículos</string>
+    <string name="nav_mis_viajes">Mis viajes</string>
+
+    <!-- Inicio y acceso -->
+    <string name="inicio_comprobando_sesion">Comprobando sesión…</string>
+    <string name="login_correo">Correo electrónico</string>
+    <string name="login_password">Contraseña</string>
+    <string name="login_iniciar_sesion">Iniciar sesión</string>
+    <string name="login_crear_cuenta">Crear cuenta solicitante</string>
+    <string name="login_recuperar_password">Recuperar contraseña</string>
+    <string name="login_abordar_viaje">Abordar viaje</string>
+    <string name="login_nota_conductores">Conductores: usen las credenciales que entrega el Administrador.</string>
+    <string name="aviso_modo_demo">Modo demostración: datos ficticios, sin conexión al servidor.</string>
+    <string name="titulo_registro_solicitante">Crear cuenta solicitante</string>
+    <string name="titulo_recuperar_password">Recuperar contraseña</string>
+    <string name="titulo_abordar_viaje">Abordar viaje</string>
+    <string name="titulo_cambiar_password">Cambiar contraseña</string>
+    <string name="aviso_cambio_password_obligatorio">Debes cambiar la contraseña: entraste con una contraseña temporal.</string>
+    <string name="pantalla_en_construccion">Pantalla en construcción.</string>
+
+    <!-- Errores -->
+    <string name="error_sin_conexion">Sin conexión. Revisa tu red e inténtalo de nuevo.</string>
+    <string name="error_sin_datos_guardados">No hay datos guardados. Conéctate para cargarlos.</string>
+    <string name="error_tiempo_agotado">El servidor no respondió a tiempo. Inténtalo de nuevo.</string>
+    <string name="error_inesperado">Ocurrió un error inesperado. Inténtalo más tarde.</string>
+    <string name="error_credenciales">Correo o contraseña incorrectos.</string>
+    <string name="error_sesion_terminada">Tu sesión terminó. Inicia sesión de nuevo.</string>
+    <string name="error_sin_permiso">No tienes permiso para ver esto.</string>
+    <string name="error_cuenta_pendiente">Tu cuenta espera la aprobación de un Administrador.</string>
+    <string name="error_cuenta_rechazada">Tu cuenta no fue aprobada. Contacta a Belmonte SpA.</string>
+    <string name="error_debes_cambiar_password">Debes cambiar la contraseña.</string>
+    <string name="error_no_encontrado">No encontramos este registro.</string>
+    <string name="error_revisa_datos">Revisa los datos ingresados.</string>
+    <string name="error_registro_sin_respuesta">No pudimos confirmar el registro. Tu cuenta puede existir: inicia sesión o recupera tu contraseña.</string>
+    <string name="error_solicitud_sin_respuesta">No pudimos confirmar el envío. Revisa «Mis solicitudes» antes de enviarla de nuevo.</string>
+    <string name="error_sincronizacion">No pudimos sincronizar el cambio.</string>
+    <string name="error_catalogos">No pudimos cargar los datos del formulario.</string>
+    <string name="error_datos_locales">No pudimos acceder a los datos locales. Inténtalo de nuevo.</string>
+    <string name="error_sin_app_navegacion">Instala Google Maps o Waze para navegar.</string>
+
+    <!-- Sesión y sincronización -->
+    <string name="banner_sin_conexion_conductor">Sin conexión. Los cambios se enviarán al reconectar.</string>
+    <string name="aviso_pendientes_al_volver">Tus cambios pendientes se enviarán al volver a entrar.</string>
+    <string name="aviso_pendientes_otra_cuenta">Hay cambios sin enviar de otra cuenta. Si continúas, se descartarán.</string>
+    <string name="aviso_formulario_reiniciado">El formulario se reinició. Ingresa de nuevo los datos.</string>
+
+    <!-- Solicitudes y viajes -->
+    <string name="aviso_faltan_pasajeros">Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno.</string>
+    <string name="aviso_sin_pasajeros_asignar">Sin pasajeros: no se puede asignar.</string>
+    <string name="iniciar_disponible_desde">Disponible desde las %1$s</string>
+    <string name="iniciar_vencido">Vencido: avisa al Administrador</string>
+    <plurals name="faltan_por_abordar">
+        <item quantity="one">Falta %d pasajero por abordar.</item>
+        <item quantity="other">Faltan %d pasajeros por abordar.</item>
+    </plurals>
+
+    <!-- Abordaje con código QR -->
+    <string name="abordaje_indicacion">Escanea el código QR de la puerta del vehículo.</string>
+    <string name="abordaje_escanear">Escanear código QR</string>
+    <string name="abordaje_ingresar_codigo">Ingresar código</string>
+    <string name="abordaje_lector_indicacion">Apunta al código QR de la puerta.</string>
+    <string name="abordaje_qr_ajeno">Este código no es de un vehículo Belmonte.</string>
+    <string name="abordaje_no_encontrado">No encontramos un viaje para tu documento en este vehículo. Consulta al conductor.</string>
+    <string name="abordaje_camara_negada">Permite el uso de la cámara para escanear el código.</string>
+    <string name="abordaje_abrir_ajustes">Abrir ajustes</string>
+    <string name="abordaje_confirmar">Confirmar abordaje</string>
+    <string name="abordaje_registrado">Abordaje registrado a las %1$s. ¡Buen viaje!</string>
+    <string name="abordaje_volver_inicio">Volver al inicio</string>
+    <string name="qr_vehiculo_indicacion">Imprímelo y pégalo en la puerta de entrada.</string>
+    <string name="qr_vehiculo_descripcion">Código QR de abordaje del vehículo %1$s</string>
+    <string name="arqueo_faltan">Abordaron %1$d de %2$d. Faltan: %3$s.</string>
+    <string name="arqueo_todos">Todos los pasajeros abordaron.</string>
+
+    <!-- Listas vacías -->
+    <string name="vacio_mis_solicitudes">Aún no tienes solicitudes. Crea la primera con «Nueva solicitud».</string>
+    <string name="vacio_solicitudes_pendientes">No hay solicitudes pendientes.</string>
+    <string name="vacio_cuentas_por_aprobar">No hay cuentas por aprobar.</string>
+    <string name="vacio_mis_viajes">No tienes viajes para este día.</string>
+    <string name="vacio_conductores_disponibles">No hay conductores disponibles. Espera a que terminen sus viajes o registra o reactiva uno.</string>
+
+    <!-- Etiquetas de los códigos de la API (la app nunca muestra el código) -->
+    <string name="chip_descripcion">Estado: %1$s</string>
+    <string name="estado_viaje_pendiente">Pendiente</string>
+    <string name="estado_viaje_asignado">Asignado</string>
+    <string name="estado_viaje_en_curso">En curso</string>
+    <string name="estado_viaje_finalizado">Finalizado</string>
+    <string name="estado_viaje_cancelado">Cancelado</string>
+    <string name="estado_pago_pendiente">Pendiente</string>
+    <string name="estado_pago_pagado">Pagado</string>
+    <string name="estado_pago_rechazado">Rechazado</string>
+    <string name="estado_pago_anulado">Anulado</string>
+    <string name="estado_pago_reembolsado">Reembolsado</string>
+    <string name="estado_conductor_disponible">Disponible</string>
+    <string name="estado_conductor_ocupado">Ocupado</string>
+    <string name="estado_movil_disponible">Disponible</string>
+    <string name="estado_movil_en_uso">En uso</string>
+    <string name="estado_solicitante_pendiente">Por aprobar</string>
+    <string name="estado_solicitante_aprobado">Aprobado</string>
+    <string name="estado_solicitante_rechazado">Rechazado</string>
+    <string name="medio_pago_transferencia">Transferencia</string>
+    <string name="medio_pago_tarjeta_debito">Tarjeta de débito</string>
+    <string name="medio_pago_tarjeta_credito">Tarjeta de crédito</string>
+    <string name="medio_pago_efectivo">Efectivo</string>
+    <string name="tipo_recibo_boleta">Boleta</string>
+    <string name="tipo_recibo_factura">Factura</string>
+    <string name="tipo_documento_rut">RUT</string>
+    <string name="tipo_documento_pasaporte">Pasaporte</string>
+    <string name="rol_solicitante">Solicitante</string>
+    <string name="rol_administrador">Administrador</string>
+    <string name="rol_conductor">Conductor</string>
+    <string name="etiqueta_atrasado">Atrasado</string>
+    <string name="etiqueta_vencido">Vencido</string>
+    <string name="etiqueta_pendiente_sincronizar">Pendiente de sincronizar</string>
+    <string name="etiqueta_abordado">Abordado</string>
+    <string name="etiqueta_por_abordar">Por abordar</string>
+    <string name="etiqueta_inactivo">Inactivo</string>
+</resources>

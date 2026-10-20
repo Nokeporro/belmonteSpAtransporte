@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo de la ventana antes de que Compose dibuje (el tema completo está en ui/theme/Color.kt). -->
+<resources>
+    <color name="fondo_claro">#FFF3F2EE</color>
+    <color name="fondo_oscuro">#FF15171A</color>
+</resources>
