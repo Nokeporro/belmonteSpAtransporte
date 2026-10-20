@@ -752,7 +752,7 @@ sincroniza con JDK 21, pasan `lintDebug`, `testDebugUnitTest`, `assembleDebug` y
 abre en API 26 y 36 y `assembleRelease` firma con R8.
 
 ```text
-android/app/src/main/java/cl/belmontespa/transporte/
+android/app/src/main/java/cl/belmontespa/myapplication/
 ├── BelmonteApplication.kt, MainActivity.kt
 ├── di/            RepositorioModule y demás módulos de Hilt
 ├── model/         modelos de la app, Resultado y ErrorApp
