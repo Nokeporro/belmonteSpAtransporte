@@ -1,5 +1,0 @@
-<resources>
-    <style name="Theme.Belmonte" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/fondo_oscuro</item>
-    </style>
-</resources>
