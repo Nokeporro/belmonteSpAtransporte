@@ -125,14 +125,40 @@ val Rol.etiqueta: Int
         Rol.CONDUCTOR -> R.string.rol_conductor
     }
 
-/** Estados que calcula la app y no vienen de la API. */
-enum class EtiquetaCalculada(@param:StringRes val etiqueta: Int, val estiloChip: EstiloChip) {
+// Devuelve el texto del estado cuando está activo.
+// Si está inactivo, utiliza la etiqueta común "Inactivo".
+@StringRes
+fun EstadoConductor.etiqueta(activo: Boolean): Int =
+    if (activo) etiqueta else EtiquetaCalculada.INACTIVO.etiqueta
+
+// El estado inactivo utiliza el estilo tenue del README.
+fun EstadoConductor.estiloChip(activo: Boolean): EstiloChip =
+    if (activo) estiloChip else EtiquetaCalculada.INACTIVO.estiloChip
+
+// Aplica la misma regla a los vehículos.
+@StringRes
+fun EstadoMovil.etiqueta(activo: Boolean): Int =
+    if (activo) etiqueta else EtiquetaCalculada.INACTIVO.etiqueta
+
+fun EstadoMovil.estiloChip(activo: Boolean): EstiloChip =
+    if (activo) estiloChip else EtiquetaCalculada.INACTIVO.estiloChip
+
+// Agrupa etiquetas visuales que no son estados recibidos de la API.
+// Las anotaciones indican que etiqueta contiene un recurso strings.xml.
+enum class EtiquetaCalculada(
+    @param:StringRes
+    @get:StringRes
+    val etiqueta: Int,
+    val estiloChip: EstiloChip,
+) {
     ATRASADO(R.string.etiqueta_atrasado, EstiloChip.AVISO),
     VENCIDO(R.string.etiqueta_vencido, EstiloChip.PELIGRO_BORDE),
-    PENDIENTE_SINCRONIZAR(R.string.etiqueta_pendiente_sincronizar, EstiloChip.AVISO),
+    PENDIENTE_SINCRONIZAR(
+        R.string.etiqueta_pendiente_sincronizar,
+        EstiloChip.AVISO,
+    ),
     ABORDADO(R.string.etiqueta_abordado, EstiloChip.CORRECTO),
     POR_ABORDAR(R.string.etiqueta_por_abordar, EstiloChip.NEUTRO),
 
-    /** Un `activo` falso reemplaza al estado del conductor o del vehículo. */
     INACTIVO(R.string.etiqueta_inactivo, EstiloChip.TENUE),
 }

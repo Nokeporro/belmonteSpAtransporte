@@ -17,31 +17,79 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.ui.theme.BelmonteTema
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 
-/** Los 8 estilos de chip de README (Textos y tema): texto / borde / fondo. */
-enum class EstiloChip { NEUTRO, INFORMACION, LLENO, TENUE, CORRECTO, PELIGRO, PELIGRO_BORDE, AVISO }
+enum class EstiloChip {
+    NEUTRO,
+    INFORMACION,
+    LLENO,
+    TENUE,
+    CORRECTO,
+    PELIGRO,
+    PELIGRO_BORDE,
+    AVISO,
+}
 
-private data class ColoresChip(val texto: Color, val borde: Color, val fondo: Color)
+private data class ColoresChip(
+    val texto: Color,
+    val borde: Color,
+    val fondo: Color,
+)
 
 @Composable
 private fun EstiloChip.colores(): ColoresChip {
-    val c = MaterialTheme.colorScheme
+    val esquema = MaterialTheme.colorScheme
     val extendidos = BelmonteTema.extendidos
+
     return when (this) {
-        EstiloChip.NEUTRO -> ColoresChip(c.onSurfaceVariant, c.outline, Color.Transparent)
-        EstiloChip.INFORMACION -> ColoresChip(c.tertiary, c.tertiary, c.tertiaryContainer)
-        EstiloChip.LLENO -> ColoresChip(c.onPrimary, c.primary, c.primary)
-        EstiloChip.TENUE -> ColoresChip(c.onSurfaceVariant, c.outlineVariant, c.surfaceVariant)
-        EstiloChip.CORRECTO -> ColoresChip(c.primary, c.primary, c.primaryContainer)
-        EstiloChip.PELIGRO -> ColoresChip(c.error, c.error, c.errorContainer)
-        EstiloChip.PELIGRO_BORDE -> ColoresChip(c.error, c.error, Color.Transparent)
-        EstiloChip.AVISO -> ColoresChip(extendidos.aviso, extendidos.aviso, extendidos.contenedorAviso)
+        EstiloChip.NEUTRO -> ColoresChip(
+            esquema.onSurfaceVariant,
+            esquema.outline,
+            Color.Transparent,
+        )
+
+        EstiloChip.INFORMACION -> ColoresChip(
+            esquema.tertiary,
+            esquema.tertiary,
+            esquema.tertiaryContainer,
+        )
+
+        EstiloChip.LLENO -> ColoresChip(
+            esquema.onPrimary,
+            esquema.primary,
+            esquema.primary,
+        )
+
+        EstiloChip.TENUE -> ColoresChip(
+            esquema.onSurfaceVariant,
+            esquema.outlineVariant,
+            esquema.surfaceVariant,
+        )
+
+        EstiloChip.CORRECTO -> ColoresChip(
+            esquema.primary,
+            esquema.primary,
+            esquema.primaryContainer,
+        )
+
+        EstiloChip.PELIGRO -> ColoresChip(
+            esquema.error,
+            esquema.error,
+            esquema.errorContainer,
+        )
+
+        EstiloChip.PELIGRO_BORDE -> ColoresChip(
+            esquema.error,
+            esquema.error,
+            Color.Transparent,
+        )
+
+        EstiloChip.AVISO -> ColoresChip(
+            extendidos.aviso,
+            extendidos.aviso,
+            extendidos.contenedorAviso,
+        )
     }
 }
 
-/**
- * Chip de estado: píldora con borde de 1 dp y texto en mayúsculas. El color nunca es el único
- * indicador: siempre lleva su etiqueta, y TalkBack lo anuncia como "Estado: Asignado".
- */
 @Composable
 fun EstadoChip(
     etiqueta: String,
@@ -50,9 +98,21 @@ fun EstadoChip(
     grande: Boolean = false,
 ) {
     val colores = estilo.colores()
-    val descripcion = stringResource(R.string.chip_descripcion, etiqueta)
+    val descripcion = stringResource(
+        R.string.chip_descripcion,
+        etiqueta,
+    )
+
+    val espaciado = if (grande) {
+        Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+    } else {
+        Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+    }
+
     Surface(
-        modifier = modifier.clearAndSetSemantics { contentDescription = descripcion },
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = descripcion
+        },
         shape = CircleShape,
         color = colores.fondo,
         contentColor = colores.texto,
@@ -60,12 +120,12 @@ fun EstadoChip(
     ) {
         Text(
             text = etiqueta.uppercase(),
-            style = if (grande) EstilosMono.chipGrande else EstilosMono.chip,
-            modifier = if (grande) {
-                Modifier.padding(horizontal = 14.dp, vertical = 5.dp)
+            style = if (grande) {
+                EstilosMono.chipGrande
             } else {
-                Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                EstilosMono.chip
             },
+            modifier = espaciado,
         )
     }
 }

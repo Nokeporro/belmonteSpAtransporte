@@ -2,6 +2,7 @@ package cl.belmontespa.myapplication.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -16,6 +17,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 
@@ -47,10 +49,19 @@ fun BarraSuperior(
                 }
             },
             navigationIcon = {
+                // La pantalla decide si permite volver y qué acción corresponde.
                 if (onVolver != null) {
-                    IconButton(onClick = onVolver) {
+                    IconButton(
+                        onClick = onVolver,
+                        // Garantiza un área táctil mínima de 48 × 48 dp.
+                        modifier = Modifier.sizeIn(
+                            minWidth = 48.dp,
+                            minHeight = 48.dp,
+                        ),
+                    ) {
                         Icon(
-                            painterResource(R.drawable.ic_atras),
+                            painter = painterResource(R.drawable.ic_atras),
+                            // TalkBack anuncia la acción del botón.
                             contentDescription = stringResource(R.string.accion_volver),
                         )
                     }

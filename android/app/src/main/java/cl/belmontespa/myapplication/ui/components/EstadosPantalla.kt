@@ -3,7 +3,10 @@ package cl.belmontespa.myapplication.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -16,39 +19,89 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 
-// Cada pantalla contempla carga, contenido, vacío, error y sin conexión (README, Navegación y pantallas).
-
+// Representa una carga inicial, con un mensaje opcional.
 @Composable
-fun PantallaCargando(modifier: Modifier = Modifier, texto: String? = null) {
+fun PantallaCargando(
+    modifier: Modifier = Modifier,
+    texto: String? = null,
+) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(
+            16.dp,
+            Alignment.CenterVertically,
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         CircularProgressIndicator()
-        if (texto != null) Text(texto, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (texto != null) {
+            Text(
+                text = texto,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
+// Se utiliza cuando una consulta terminó y no encontró elementos.
+// La pantalla que lo llama debe proporcionar el texto de strings.xml.
 @Composable
-fun PantallaVacia(texto: String, modifier: Modifier = Modifier) {
+fun PantallaVacia(
+    texto: String,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(texto, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = texto,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
+// Muestra el error y permite que el usuario solicite otro intento.
+// Dibujar esta pantalla no ejecuta el reintento automáticamente.
 @Composable
-fun PantallaError(texto: String, onReintentar: () -> Unit, modifier: Modifier = Modifier) {
+fun PantallaError(
+    texto: String,
+    onReintentar: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(
+            16.dp,
+            Alignment.CenterVertically,
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(texto, textAlign = TextAlign.Center)
-        OutlinedButton(onClick = onReintentar) { Text(stringResource(R.string.accion_reintentar)) }
+        Text(
+            text = texto,
+            textAlign = TextAlign.Center,
+        )
+
+        // Altura mínima, sin impedir que crezca con el tamaño del texto.
+        OutlinedButton(
+            onClick = onReintentar,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.accion_reintentar),
+            )
+        }
     }
 }

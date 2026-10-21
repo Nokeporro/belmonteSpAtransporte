@@ -70,6 +70,22 @@ class FormatosTest {
     }
 
     @Test
+    fun codigoDeAbordajeNormalizaEspaciosYMayusculas() {
+        val entradas = listOf(
+            "7F3A 9C21 B04E 58D6",
+            "7f3a9c21b04e58d6",
+            "  7f3a  9c21 b04e 58d6  ",
+        )
+
+        entradas.forEach { entrada ->
+            assertEquals(
+                "7F3A 9C21 B04E 58D6",
+                Formatos.codigoAbordaje(entrada),
+            )
+        }
+    }
+
+    @Test
     fun cadaEstadoTieneElEstiloDeSuChip() {
         val esperado = mapOf(
             EstiloChip.NEUTRO to listOf(EstadoViaje.PENDIENTE.estiloChip, EstadoPago.PENDIENTE.estiloChip, EtiquetaCalculada.POR_ABORDAR.estiloChip),

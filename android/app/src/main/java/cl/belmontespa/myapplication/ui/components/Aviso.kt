@@ -20,7 +20,12 @@ import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.ui.theme.BelmonteTema
 
-enum class TonoAviso { INFORMACION, AVISO, PELIGRO }
+// Los tres tipos de aviso que puede mostrar la interfaz.
+enum class TonoAviso {
+    INFORMACION,
+    AVISO,
+    PELIGRO,
+}
 
 /** Recuadro de aviso: texto y borde del tono sobre su fondo suave (p. ej. "Faltan pasajeros…"). */
 @Composable
@@ -61,18 +66,35 @@ fun BannerSinConexion(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(painterResource(R.drawable.ic_sin_red), contentDescription = null)
-            Text(stringResource(R.string.banner_sin_conexion_conductor), style = MaterialTheme.typography.bodyMedium)
+            // El ícono es decorativo: el texto ya explica que no hay conexión.
+            Icon(
+                painter = painterResource(R.drawable.ic_sin_red),
+                contentDescription = null,
+            )
+
+            Text(
+                text = stringResource(R.string.banner_sin_conexion_conductor),
+                style = MaterialTheme.typography.bodyMedium,
+            )
         }
     }
 }
 
+// El primer color es el del texto y borde; el segundo, el fondo.
+// Se obtienen del tema activo para soportar claro y oscuro.
 @Composable
 private fun coloresTono(tono: TonoAviso): Pair<Color, Color> {
-    val c = MaterialTheme.colorScheme
+    val esquema = MaterialTheme.colorScheme
+    val extendidos = BelmonteTema.extendidos
+
     return when (tono) {
-        TonoAviso.INFORMACION -> c.tertiary to c.tertiaryContainer
-        TonoAviso.AVISO -> BelmonteTema.extendidos.aviso to BelmonteTema.extendidos.contenedorAviso
-        TonoAviso.PELIGRO -> c.error to c.errorContainer
+        TonoAviso.INFORMACION ->
+            esquema.tertiary to esquema.tertiaryContainer
+
+        TonoAviso.AVISO ->
+            extendidos.aviso to extendidos.contenedorAviso
+
+        TonoAviso.PELIGRO ->
+            esquema.error to esquema.errorContainer
     }
 }
