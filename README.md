@@ -122,7 +122,7 @@ necesariamente a la empresa que paga (`PASAJERO` no tiene FK a `EMPRESA`).
 - **RNF03 Tiempo de respuesta:** consultas en menos de 2 s con 4G/Wi-Fi; un push llega en segundos.
 - **RNF04 Usabilidad en terreno:** botones grandes y pocos pasos para el Conductor;
   [Accesibilidad](#accesibilidad) WCAG 2.1 AA.
-- **RNF05 Compatibilidad:** Android 16.0 (API 36) o superior; el backend expone solo JSON REST.
+- **RNF05 Compatibilidad:** Android 8.0 (API 26) o superior; el backend expone solo JSON REST.
 - **RNF06 Mantenibilidad:** `Controller-Service-Repository` en el backend y
   `View-ViewModel-Repository` en Android; cada regla se cambia en un solo lugar.
 - **RNF07 Servicios externos:** Google Places, FCM y un correo transaccional por SMTP, dentro de
