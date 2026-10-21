@@ -53,12 +53,11 @@ public class AuthService {
 	@Transactional
 	public LoginDTOResponse login(LoginDTORequest request) {
 		Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(request.correo())
-				.filter(u -> passwordEncoder.matches(request.password(), u.getPasswordHash()))
-				.filter(u -> u.getPasswordTemporalExpira() == null
-						|| u.getPasswordTemporalExpira().isAfter(LocalDateTime.now()))
+				.filter(u -> contrasenaValida(request.password(), u))
 				.orElseThrow(AuthService::credencialesInvalidas);
 		String rol = rol(usuario.getIdUsuario());
 		if (request.tokenFcm() != null && !request.tokenFcm().isBlank()) {
+			usuarioRepository.quitarTokenFcm(request.tokenFcm(), usuario.getIdUsuario());
 			usuario.setTokenFcm(request.tokenFcm());
 		}
 		return new LoginDTOResponse(jwtProvider.generar(usuario.getCorreo(), rol), "Bearer",
@@ -73,10 +72,21 @@ public class AuthService {
 						|| administradorRepository.existsById(u.getIdUsuario()))
 				.ifPresent(usuario -> {
 					String passwordTemporal = passwordTemporal();
-					usuario.setPasswordHash(passwordEncoder.encode(passwordTemporal));
+					usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
 					usuario.setPasswordTemporalExpira(LocalDateTime.now().plusMinutes(minutosPasswordTemporal));
 					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal, minutosPasswordTemporal);
 				});
+	}
+
+	// Sirve la contraseña normal o, mientras no venza, la temporal (RF21): ninguna reemplaza a la otra.
+	private boolean contrasenaValida(String password, Usuario usuario) {
+		if (passwordEncoder.matches(password, usuario.getPasswordHash())) {
+			return true;
+		}
+		return usuario.getPasswordTemporalHash() != null
+				&& usuario.getPasswordTemporalExpira() != null
+				&& usuario.getPasswordTemporalExpira().isAfter(LocalDateTime.now())
+				&& passwordEncoder.matches(password, usuario.getPasswordTemporalHash());
 	}
 
 	// Rol único por USUARIO_ROL_ACTIVO.

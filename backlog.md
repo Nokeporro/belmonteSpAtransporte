@@ -100,7 +100,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — |
 | 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — |
 | 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — |
-| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta |
+| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Hecha |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar |
 | 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar |
@@ -226,6 +226,28 @@ espera que asignar deje al conductor Ocupado, y `PagoIT.anulaSegunEstado` espera
 anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el código.
 
 ### T07 Migración de cuentas, flota y pagos
+
+**Hecha el 21-10** en `V4__cuentas_flota_pagos.sql` (T08 sigue con `V5`). `./gradlew test` en
+`backend/` contra la MariaDB 11.4 del compose pasa completo: 134 pruebas, sin fallos, incluidas
+`MigracionesIT` y la validación de las entidades (`ddl-auto=validate`). Antes de migrar una base de
+desarrollo con datos, respaldarla (README, "Persistencia y transacciones"). Además de lo que sigue:
+- **Datos existentes:**
+  - la temporal pendiente de cualquier cuenta (también la del Administrador) pasa a
+    `password_temporal_hash`, y `password_hash` queda en `*`;
+  - los usuarios que comparten un `token_fcm` lo pierden todos;
+  - un vehículo en `MANTENCION` queda `DISPONIBLE` e inactivo.
+- **Código que acompaña al esquema:**
+  - `AuthService.login` acepta la contraseña normal o la temporal vigente;
+  - `recuperarPassword` escribe en `password_temporal_hash` y ya no reemplaza la actual (era un punto
+    de HU22);
+  - `UsuarioService.reemplazarDatos` anula la temporal al cambiar la contraseña;
+  - `login` quita el `token_fcm` a otras cuentas (`UsuarioRepository.quitarTokenFcm`, que HU14
+    reutiliza);
+  - `SolicitanteService` crea a todos `APROBADO`; HU01 agrega el `PENDIENTE`.
+- **Pruebas:** `CuentasIT` y `NotificacionesIT` ya no esperan que la temporal reemplace la clave, y
+  `MigracionesIT` cubre la cadena sobre una base vacía y sobre una con datos (T08 la extiende).
+
+Lo que pedía el ítem:
 
 - **`usuario`:**
   - agregar `password_temporal_hash`; hoy la temporal se escribe sobre `password_hash`, según el
@@ -409,9 +431,8 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 
 ### HU22
 
-- **Recuperar contraseña:**
-  - la temporal se guarda en `password_temporal_hash`, sin reemplazar la actual;
-  - el correo usa el texto del README; hoy `client/EmailClient.java` usa otro.
+- **Recuperar contraseña:** el correo usa el texto del README; hoy `client/EmailClient.java` usa otro.
+  (La temporal ya se guarda en `password_temporal_hash` sin reemplazar la actual: T07.)
 - **`PUT /usuarios/{correo}`:**
   - exige `passwordActual` si viene `password`;
   - el `correo` no cambia.

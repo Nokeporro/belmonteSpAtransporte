@@ -46,7 +46,12 @@ public class Pago {
 	@JoinColumn(name = "tipo_recibo_id", nullable = false)
 	private TipoRecibo tipoRecibo;
 
-	@Column(name = "fecha_pago", nullable = false)
+	// NULL hasta que el pago pasa a PAGADO (P2).
+	@Column(name = "fecha_pago")
 	private LocalDateTime fechaPago;
+
+	// NULL salvo que el pago se haya reembolsado (P4).
+	@Column(name = "monto_reembolsado")
+	private Integer montoReembolsado;
 
 }

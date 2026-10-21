@@ -73,6 +73,7 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 		usuario.setTelefono(telefono);
 		if (password != null && !password.isBlank()) {
 			usuario.setPasswordHash(passwordEncoder.encode(password));
+			usuario.setPasswordTemporalHash(null);
 			usuario.setPasswordTemporalExpira(null);
 		}
 	}

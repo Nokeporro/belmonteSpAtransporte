@@ -6,13 +6,36 @@ import cl.belmontespa.transporte.support.Api;
 import cl.belmontespa.transporte.support.Api.Cuenta;
 import cl.belmontespa.transporte.support.Api.Resp;
 import cl.belmontespa.transporte.support.IntegrationTest;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @DisplayName("Cuentas: registro, edición, recuperación y acceso a la cuenta propia")
 class CuentasIT extends IntegrationTest {
+
+	private static final String TEMPORAL = "Temporal12345";
+
+	@Autowired
+	private JdbcTemplate jdbc;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
+
+	// Deja una temporal conocida por SQL, sin pasar por el correo.
+	private void dejarTemporal(String correo, String clave, LocalDateTime vence) {
+		jdbc.update("UPDATE usuario SET password_temporal_hash = ?, password_temporal_expira = ? WHERE correo = ?",
+				passwordEncoder.encode(clave), vence, correo);
+	}
+
+	private String temporalGuardada(String correo) {
+		return jdbc.queryForObject("SELECT password_temporal_hash FROM usuario WHERE correo = ?", String.class,
+				correo);
+	}
 
 	private static String rutUnico() {
 		long n = System.nanoTime() % 1_000_000;
@@ -195,14 +218,74 @@ class CuentasIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("reemplaza la clave del solicitante, pero no la de un conductor")
+		@DisplayName("guarda una temporal para el solicitante, pero no para un conductor")
 		void soloSolicitanteYAdministrador() {
 			Cuenta solicitante = api.solicitante();
 			Cuenta conductor = api.conductor();
 			api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(solicitante.correo()));
 			api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(conductor.correo()));
-			assertThat(api.iniciarSesion(solicitante.correo(), Api.CLAVE).status()).isEqualTo(401);
-			assertThat(api.iniciarSesion(conductor.correo(), Api.CLAVE).status()).isEqualTo(200);
+			assertThat(temporalGuardada(solicitante.correo())).isNotNull();
+			assertThat(temporalGuardada(conductor.correo())).isNull();
+		}
+
+		@Test
+		@DisplayName("la temporal no reemplaza la contraseña actual: sirven las dos")
+		void sirvenLasDos() {
+			Cuenta ana = api.solicitante();
+			dejarTemporal(ana.correo(), TEMPORAL, LocalDateTime.now().plusMinutes(30));
+			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
+			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(200);
+		}
+
+		@Test
+		@DisplayName("una temporal vencida no sirve, pero la contraseña actual sí")
+		void temporalVencida() {
+			Cuenta ana = api.solicitante();
+			dejarTemporal(ana.correo(), TEMPORAL, LocalDateTime.now().minusMinutes(1));
+			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(401);
+			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
+		}
+
+		@Test
+		@DisplayName("cambiar la contraseña anula la temporal pendiente")
+		void cambiarLaContrasenaAnulaLaTemporal() {
+			Cuenta ana = api.solicitante();
+			dejarTemporal(ana.correo(), TEMPORAL, LocalDateTime.now().plusMinutes(30));
+			String cuerpo = """
+					{"nombre":"Ana","correo":"%s","password":"NuevaClave987"}""".formatted(ana.correo());
+			Api.exigir(api.put("/usuarios/" + ana.correo(), ana.token(), cuerpo), "cambiar clave", 200);
+			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(401);
+			assertThat(temporalGuardada(ana.correo())).isNull();
+		}
+	}
+
+	@Nested
+	@DisplayName("Token FCM único (RF13)")
+	class TokenFcm {
+
+		private List<String> duenos(String token) {
+			return jdbc.queryForList("SELECT correo FROM usuario WHERE token_fcm = ?", String.class, token);
+		}
+
+		@Test
+		@DisplayName("un token que usaba otra cuenta pasa a la que inicia sesión después")
+		void pasaALaUltimaCuenta() {
+			Cuenta ana = api.solicitante();
+			Cuenta beto = api.solicitante();
+			String token = "fcm-compartido-" + System.nanoTime();
+			Api.exigir(api.iniciarSesion(ana.correo(), Api.CLAVE, token), "login de ana", 200);
+			Api.exigir(api.iniciarSesion(beto.correo(), Api.CLAVE, token), "login de beto", 200);
+			assertThat(duenos(token)).containsExactly(beto.correo());
+		}
+
+		@Test
+		@DisplayName("repetir el token de la misma cuenta no falla")
+		void mismaCuenta() {
+			Cuenta ana = api.solicitante();
+			String token = "fcm-propio-" + System.nanoTime();
+			Api.exigir(api.iniciarSesion(ana.correo(), Api.CLAVE, token), "primer login", 200);
+			Api.exigir(api.iniciarSesion(ana.correo(), Api.CLAVE, token), "segundo login", 200);
+			assertThat(duenos(token)).containsExactly(ana.correo());
 		}
 	}
 

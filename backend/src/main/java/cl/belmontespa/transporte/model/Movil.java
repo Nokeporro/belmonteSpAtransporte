@@ -31,4 +31,8 @@ public class Movil {
 	@Column(name = "capacidad", nullable = false)
 	private Integer capacidad;
 
+	// Nace activo; un inactivo no se asigna (RF25).
+	@Column(name = "activo", nullable = false)
+	private boolean activo = true;
+
 }

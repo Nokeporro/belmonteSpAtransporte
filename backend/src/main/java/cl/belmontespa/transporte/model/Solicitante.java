@@ -26,4 +26,9 @@ public class Solicitante {
 	@JoinColumn(name = "empresa_id_empresa", nullable = false)
 	private Empresa empresa;
 
+	// Pendiente de revisión, Aprobado o Rechazado (RF26).
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "estado_solicitante_id", nullable = false)
+	private EstadoSolicitante estadoSolicitante;
+
 }

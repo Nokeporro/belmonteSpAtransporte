@@ -26,4 +26,8 @@ public class Conductor {
 	@JoinColumn(name = "estado_conductor_id_estado", nullable = false)
 	private EstadoConductor estadoConductor;
 
+	// Nace activo; un inactivo no se asigna ni inicia sesión (RF25).
+	@Column(name = "activo", nullable = false)
+	private boolean activo = true;
+
 }
