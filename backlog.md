@@ -92,6 +92,18 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 ## Etapa 1: Prueba 2
 
+**Actualización del 22-10-2026 — P1 de A:**
+
+- [x] HU01: registro y login del Solicitante.
+- [x] HU06: login del Conductor.
+- [x] HU02: nueva solicitud con Google Places y pasajeros.
+- [x] HU03: historial y estado de las solicitudes propias.
+
+Estas cuatro historias quedan **Listo** respecto de su implementación. Pasaron 204 pruebas del
+backend, 60 pruebas JVM Android y 32 instrumentadas en API 36, además de lint y la compilación demo.
+El cierre de entrega aún requiere Places con clave real, API 26, TalkBack, CI, aprobación y fusión
+en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no cambia.
+
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | — |
@@ -114,10 +126,10 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
 | 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | Listo |
-| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Implementado | En revisión |
-| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | En revisión |
-| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Implementado | En revisión |
-| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Alcance y filtros propios | En revisión |
+| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Implementado | Listo |
+| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | Listo |
+| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Implementado | Listo |
+| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Alcance y filtros propios | Listo |
 | 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | — |
 | 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | — |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | — |

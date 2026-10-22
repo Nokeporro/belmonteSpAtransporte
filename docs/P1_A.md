@@ -58,7 +58,9 @@ Verificación local del 22-10-2026:
   al 200 % de texto. Dos pasadas previas fallaron por un diálogo de ANR de System UI del emulador;
   la pasada completa quedó en verde al cerrarlo. No se modificó la app para eludir esos fallos.
 
-Antes de marcar las historias terminadas quedan la comprobación con Places real, la revisión en API 26,
-la pasada de accesibilidad y la aprobación del otro integrante exigidas por el README.
+La implementación de las cuatro historias está marcada como lista en el README y el backlog.
+Para cerrar la entrega quedan la comprobación con Places real, la revisión en API 26,
+la pasada de accesibilidad, CI en verde, la aprobación del otro integrante y la fusión en `main`
+exigidas por el README.
 
 Referencia del SDK: [Autocomplete (New)](https://developers.google.com/maps/documentation/places/android-sdk/place-autocomplete).
