@@ -7,7 +7,6 @@ import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.model.Conductor;
 import cl.belmontespa.transporte.model.DetalleMovilConductorId;
-import cl.belmontespa.transporte.model.DetalleViajePasajero;
 import cl.belmontespa.transporte.model.EstadoSolicitud;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.model.Viaje;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,6 +40,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	static final String EN_CURSO = "EN_CURSO";
 	static final String FINALIZADO = "FINALIZADO";
 	static final String CANCELADO = "CANCELADO";
+
+	// Estados que entran a la agenda del Conductor.
+	private static final Set<String> AGENDA = Set.of(ASIGNADO, EN_CURSO, FINALIZADO);
 
 	private final ViajeRepository viajeRepository;
 	private final EstadoSolicitudRepository estadoSolicitudRepository;
@@ -92,8 +95,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 
 	@Override
 	protected ViajeDTOResponse aResponse(Viaje viaje) {
-		return ViajeDTOResponse.from(viaje, detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
-				.stream().map(DetalleViajePasajero::getPasajero).toList());
+		return ViajeDTOResponse.from(viaje, detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje()));
 	}
 
 	// CU-01/RF02: la solicitud nace Pendiente; el folio lo genera Viaje.@PrePersist.
@@ -197,46 +199,58 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// Todos los viajes (Administrador, sin filtro): lo reciente primero.
-	@Override
+	// RF04: todos los viajes (con el estado y la fecha del filtro, si vienen).
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listar() {
-		return viajeRepository.findAll().stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.RECIENTES_PRIMERO)
-				.toList();
+	public List<ViajeDTOResponse> listarDelAdministrador(FiltroViajes filtro) {
+		List<Viaje> viajes = filtro.estado() == null
+				? viajeRepository.findAll()
+				: viajeRepository.findByEstadoNombreEstado(filtro.estado());
+		return filtrados(viajes, filtro);
 	}
 
-	// RF03: historial del Solicitante, lo reciente primero.
+	// RF03: historial del Solicitante, con los mismos filtros.
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarDeSolicitante(String correoSolicitante) {
+	public List<ViajeDTOResponse> listarDeSolicitante(String correoSolicitante, FiltroViajes filtro) {
 		Long idUsuario = solicitanteService.buscarOFallar(correoSolicitante).getIdUsuario();
-		return viajeRepository.findBySolicitanteIdUsuario(idUsuario).stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.RECIENTES_PRIMERO)
-				.toList();
+		return filtrados(viajeRepository.findBySolicitanteIdUsuario(idUsuario), filtro);
 	}
 
-	// RF04: p. ej. las solicitudes Pendientes de asignación; el sentido depende del estado.
+	// RF07: sin `estado`, la agenda de `fecha` (hoy por omisión): sus ASIGNADO, EN_CURSO y FINALIZADO
+	// del día, más su EN_CURSO de un día anterior cuando la fecha es hoy, para que pueda finalizarlo.
+	// Con `estado`, sus viajes en ese estado (y en esa fecha, si viene). Un viaje cancelado sale de la
+	// agenda (CU-08).
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarPorEstado(String nombreEstado) {
-		String estado = nombreEstado.toUpperCase(Locale.ROOT);
-		return viajeRepository.findByEstadoNombreEstado(estado).stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.paraEstado(estado))
-				.toList();
-	}
-
-	// RF07/CU-02: viajes del día del Conductor, lo próximo primero; los cancelados salen (CU-08).
-	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarDelDia(String correoConductor, LocalDate dia) {
+	public List<ViajeDTOResponse> listarDelConductor(String correoConductor, FiltroViajes filtro) {
 		Long idUsuario = conductorService.buscarOFallar(correoConductor).getIdUsuario();
-		return viajeRepository.findByConductorIdUsuarioAndFhAgendaBetween(
-						idUsuario, dia.atStartOfDay(), dia.plusDays(1).atStartOfDay().minusNanos(1))
-				.stream()
-				.filter(viaje -> !CANCELADO.equals(viaje.getEstado().getNombreEstado()))
+		List<Viaje> suyos = viajeRepository.findByConductorIdUsuario(idUsuario);
+		if (filtro.estado() != null) {
+			return filtrados(suyos, filtro);
+		}
+		LocalDate hoy = LocalDate.now(clock);
+		LocalDate dia = filtro.fecha() == null ? hoy : filtro.fecha();
+		return suyos.stream()
+				.filter(viaje -> enLaAgenda(viaje, dia, hoy))
 				.map(this::aResponse)
 				.sorted(OrdenViajes.PROXIMOS_PRIMERO)
+				.toList();
+	}
+
+	private static boolean enLaAgenda(Viaje viaje, LocalDate dia, LocalDate hoy) {
+		String estado = viaje.getEstado().getNombreEstado();
+		LocalDate agendado = viaje.getFhAgenda().toLocalDate();
+		boolean delDia = AGENDA.contains(estado) && agendado.equals(dia);
+		boolean enCursoAnterior = EN_CURSO.equals(estado) && dia.equals(hoy) && agendado.isBefore(hoy);
+		return delDia || enCursoAnterior;
+	}
+
+	// El estado y la fecha se aplican aquí; el sentido del orden depende del estado (OrdenViajes).
+	private List<ViajeDTOResponse> filtrados(List<Viaje> viajes, FiltroViajes filtro) {
+		return viajes.stream()
+				.filter(viaje -> filtro.estado() == null
+						|| filtro.estado().equals(viaje.getEstado().getNombreEstado()))
+				.filter(viaje -> filtro.fecha() == null || filtro.fecha().equals(viaje.getFhAgenda().toLocalDate()))
+				.map(this::aResponse)
+				.sorted(filtro.estado() == null ? OrdenViajes.RECIENTES_PRIMERO : OrdenViajes.paraEstado(filtro.estado()))
 				.toList();
 	}
 

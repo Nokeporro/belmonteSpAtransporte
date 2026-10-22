@@ -43,7 +43,9 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             if (pantalla == PantallaDemo.CAMBIO_OBLIGATORIO) Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
         }
         PantallaDemo.SESION_EXPIRADA -> { Aviso(stringResource(R.string.error_sesion_terminada), TonoAviso.AVISO); Enlace(R.string.login_iniciar_sesion, PantallaDemo.LOGIN, "") }
-        PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES, PantallaDemo.MIS_VIAJES -> ListaViajes()
+        PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES -> ListaViajes()
+        // «Solicitudes» del Administrador la dibuja SolicitudesScreen, desde PantallaT06 (HU04).
+        PantallaDemo.SOLICITUDES -> Unit
         PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN,
         PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA,
         PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
@@ -188,7 +190,6 @@ internal fun detallePara(rol: Rol?) = when(rol) {
 @Composable
 private fun ContextoPantalla.ListaViajes() {
     if (pantalla == PantallaDemo.MIS_SOLICITUDES) Enlace(R.string.accion_nueva_solicitud, PantallaDemo.NUEVA_SOLICITUD, "")
-    if (pantalla == PantallaDemo.SOLICITUDES) BotonAncho(stringResource(R.string.cuentas_pendientes_cantidad, estado.pendientes.size), { navegar(PantallaDemo.CUENTAS_PENDIENTES, "") }, tipo = TipoBoton.SECUNDARIO)
     if (pantalla != PantallaDemo.MIS_VIAJES) {
         Selector("estado", R.string.campo_estado, listOf(Opcion("TODOS", stringResource(R.string.filtro_todos))) + EstadoViaje.entries.map { Opcion(it.name, stringResource(it.etiqueta)) }, alElegir = vm::actualizar)
     } else {
@@ -198,7 +199,7 @@ private fun ContextoPantalla.ListaViajes() {
         Accion(R.string.campo_fecha, { DatePickerDialog(contexto, { _, y, m, d -> vm.campo("agenda", LocalDate.of(y, m + 1, d).toString()); vm.actualizar() }, fecha.year, fecha.monthValue - 1, fecha.dayOfMonth).show() }, TipoBoton.SECUNDARIO)
     }
     Accion(R.string.accion_actualizar, vm::actualizar, TipoBoton.SECUNDARIO)
-    if (estado.viajes.isEmpty()) Text(stringResource(if (pantalla == PantallaDemo.MIS_SOLICITUDES) R.string.vacio_mis_solicitudes else if (pantalla == PantallaDemo.MIS_VIAJES) R.string.vacio_mis_viajes else R.string.aviso_sin_resultados))
+    if (estado.viajes.isEmpty()) Text(stringResource(if (pantalla == PantallaDemo.MIS_SOLICITUDES) R.string.vacio_mis_solicitudes else R.string.vacio_mis_viajes))
     estado.viajes.forEach { viaje -> Bloque(viaje.folio) {
         EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip)
         Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraLista(viaje.fhAgenda))
@@ -211,7 +212,6 @@ private fun ContextoPantalla.ListaViajes() {
             else -> detallePara(estado.cuenta?.rol)
         }
         Enlace(R.string.accion_ver_detalle, detalle, viaje.folio)
-        if (pantalla == PantallaDemo.SOLICITUDES && viaje.estado == EstadoViaje.PENDIENTE && viaje.cantidadPasajeros > 0 && !vm.ahora().isAfter(viaje.fhAgenda.plusHours(1))) Enlace(R.string.accion_asignar, PantallaDemo.ASIGNAR, viaje.folio)
     } }
 }
 

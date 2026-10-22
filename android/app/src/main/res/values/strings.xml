@@ -291,6 +291,9 @@
     <string name="accion_ver_escenarios">Escenarios de demostración</string>
     <string name="accion_revisar">Revisar</string>
     <string name="filtro_todos">Todos</string>
+    <!-- Filtros de «Solicitudes» del Administrador (HU04); el resto reutiliza las etiquetas de estado. -->
+    <string name="filtro_pendientes">Pendientes</string>
+    <string name="filtro_todas">Todas</string>
     <string name="qr_formato">BELMONTE-ABORDAJE:%1$s:%2$s</string>
     <string name="aviso_notificacion">Hay novedades en este viaje. Revisa su detalle.</string>
     <string name="cuentas_pendientes_cantidad">Cuentas por aprobar: %1$d</string>

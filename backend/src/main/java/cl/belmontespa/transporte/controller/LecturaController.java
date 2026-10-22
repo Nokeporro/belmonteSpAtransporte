@@ -36,7 +36,7 @@ public abstract class LecturaController<R> {
 		exigirAccesoPrevio(clave, auth);
 		R recurso = service().obtener(clave);
 		exigirAcceso(clave, recurso, auth);
-		return recurso;
+		return paraRol(recurso, auth);
 	}
 
 	protected List<R> listarPara(Authentication auth, Map<String, String> filtros) {
@@ -55,6 +55,12 @@ public abstract class LecturaController<R> {
 	}
 
 	protected void exigirAcceso(String clave, R recurso, Authentication auth) {
+	}
+
+	// Lo que el rol no debe ver se quita aquí, después de comprobar el acceso (p. ej. el pago de un
+	// viaje, que el Conductor recibe en null).
+	protected R paraRol(R recurso, Authentication auth) {
+		return recurso;
 	}
 
 	protected static void exigirFormato(boolean valido) {
