@@ -60,7 +60,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     private var pantalla: PantallaDemo? = null
     private var referencia = ""
     private var consulta: Job? = null
-    fun campo(clave: String, valor: String) { mutable.update { it.copy(campos = it.campos + (clave to valor), modificado = pantalla !in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES), error = null, aviso = null) } }
+    fun campo(clave: String, valor: String) { mutable.update { it.copy(campos = it.campos + (clave to valor), modificado = pantalla != PantallaDemo.MIS_SOLICITUDES, error = null, aviso = null) } }
     fun consumirDestino() { mutable.update { it.copy(destino = null) } }
     fun aviso(id: Int) { mutable.update { it.copy(aviso = id) } }
     fun error(error: ErrorApp) { mutable.update { it.copy(error = error) } }
@@ -100,10 +100,9 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 }
                 if (p == PantallaDemo.DETALLE_VEHICULO) mutable.update { it.copy(movil = repos.flota.obtenerMovil(id).valor(), habilitaciones = repos.flota.listarHabilitaciones(patente = id).valor()) }
                 if (p == PantallaDemo.DETALLE_PAGO) mutable.update { it.copy(pago = repos.pagos.obtenerPago(id).valor()) }
-                val listado = p in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES, PantallaDemo.NOTIFICACION)
+                val listado = p in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.NOTIFICACION)
                 if (listado) {
-                    val filtro = FiltroViajes(estado = valor("estado").takeIf { it.isNotBlank() && it != "TODOS" }?.let(EstadoViaje::valueOf),
-                        fecha = if (p == PantallaDemo.MIS_VIAJES && valor("agenda").isNotBlank()) LocalDate.parse(valor("agenda")) else null)
+                    val filtro = FiltroViajes(estado = valor("estado").takeIf { it.isNotBlank() && it != "TODOS" }?.let(EstadoViaje::valueOf))
                     mutable.update { it.copy(cargando = false) }
                     repos.viajes.observarViajes(filtro).collect { datos -> mutable.update { it.copy(viajes = datos, cargando = false) } }
                 } else if (p in pantallasDeViaje && id.isNotBlank()) {

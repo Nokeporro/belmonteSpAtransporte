@@ -1,6 +1,7 @@
 package cl.belmontespa.myapplication.ui.administrador
 
 import androidx.lifecycle.SavedStateHandle
+import cl.belmontespa.myapplication.RelojMovil
 import cl.belmontespa.myapplication.data.repository.CuentaRepository
 import cl.belmontespa.myapplication.data.repository.ViajeRepository
 import cl.belmontespa.myapplication.model.Cuenta
@@ -17,8 +18,6 @@ import cl.belmontespa.myapplication.model.Solicitante
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.viajeDePrueba
 import java.io.IOException
-import java.time.Clock
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
@@ -255,13 +254,6 @@ class SolicitudesViewModelTest {
         rutEmpresa = "76543210-3",
         estado = EstadoSolicitante.PENDIENTE,
     )
-}
-
-/** Reloj que se puede mover, para recalcular el retraso sin esperar. */
-private class RelojMovil(var ahora: LocalDateTime, private val zona: ZoneId) : Clock() {
-    override fun getZone(): ZoneId = zona
-    override fun withZone(zone: ZoneId?): Clock = this
-    override fun instant(): Instant = ahora.atZone(zona).toInstant()
 }
 
 /** Guarda lo que le piden y devuelve los viajes de `todos` que calzan con el estado del filtro. */

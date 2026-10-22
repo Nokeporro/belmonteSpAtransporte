@@ -31,6 +31,7 @@ import cl.belmontespa.myapplication.ui.auth.AccesoViewModel
 import cl.belmontespa.myapplication.ui.auth.mensajeLogin
 import cl.belmontespa.myapplication.ui.components.*
 import cl.belmontespa.myapplication.ui.conductor.ConductorViewModel
+import cl.belmontespa.myapplication.ui.conductor.MisViajesScreen
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
 import cl.belmontespa.myapplication.ui.solicitante.SolicitanteViewModel
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
@@ -64,6 +65,11 @@ fun PantallaT06(
     // «Solicitudes» del Administrador tiene su propia pantalla y su ViewModel (HU04).
     if (pantalla == PantallaDemo.SOLICITUDES) {
         SolicitudesScreen(onNavegar = onNavegar)
+        return
+    }
+    // «Mis viajes» del Conductor tiene su pantalla y su ViewModel (HU07).
+    if (pantalla == PantallaDemo.MIS_VIAJES) {
+        MisViajesScreen(onNavegar = onNavegar)
         return
     }
     // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).

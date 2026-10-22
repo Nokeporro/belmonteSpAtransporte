@@ -1,6 +1,5 @@
 package cl.belmontespa.myapplication.ui.pantallas
 
-import android.app.DatePickerDialog
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
@@ -19,8 +18,6 @@ import cl.belmontespa.myapplication.ui.components.*
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 import cl.belmontespa.myapplication.util.Formatos
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 // Las variantes comparten datos y controles, pero conservan sus rutas y títulos de los mockups.
 @Composable
@@ -43,7 +40,9 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             if (pantalla == PantallaDemo.CAMBIO_OBLIGATORIO) Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
         }
         PantallaDemo.SESION_EXPIRADA -> { Aviso(stringResource(R.string.error_sesion_terminada), TonoAviso.AVISO); Enlace(R.string.login_iniciar_sesion, PantallaDemo.LOGIN, "") }
-        PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES -> ListaViajes()
+        PantallaDemo.MIS_SOLICITUDES -> ListaViajes()
+        // «Mis viajes» la dibuja MisViajesScreen, desde PantallaT06 (HU07).
+        PantallaDemo.MIS_VIAJES -> Unit
         // «Solicitudes» del Administrador la dibuja SolicitudesScreen, desde PantallaT06 (HU04).
         PantallaDemo.SOLICITUDES -> Unit
         // «Asignar conductor y vehículo» la dibuja AsignarScreen, desde PantallaT06 (HU05).
@@ -182,24 +181,16 @@ internal fun detallePara(rol: Rol?) = when(rol) {
 
 @Composable
 private fun ContextoPantalla.ListaViajes() {
-    if (pantalla == PantallaDemo.MIS_SOLICITUDES) Enlace(R.string.accion_nueva_solicitud, PantallaDemo.NUEVA_SOLICITUD, "")
-    if (pantalla != PantallaDemo.MIS_VIAJES) {
-        Selector("estado", R.string.campo_estado, listOf(Opcion("TODOS", stringResource(R.string.filtro_todos))) + EstadoViaje.entries.map { Opcion(it.name, stringResource(it.etiqueta)) }, alElegir = vm::actualizar)
-    } else {
-        val contexto = LocalContext.current
-        val fecha = vm.valor("agenda").takeIf(String::isNotBlank)?.let(LocalDate::parse) ?: vm.ahora().toLocalDate()
-        Dato(R.string.campo_fecha, fecha.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")))
-        Accion(R.string.campo_fecha, { DatePickerDialog(contexto, { _, y, m, d -> vm.campo("agenda", LocalDate.of(y, m + 1, d).toString()); vm.actualizar() }, fecha.year, fecha.monthValue - 1, fecha.dayOfMonth).show() }, TipoBoton.SECUNDARIO)
-    }
+    Enlace(R.string.accion_nueva_solicitud, PantallaDemo.NUEVA_SOLICITUD, "")
+    Selector("estado", R.string.campo_estado, listOf(Opcion("TODOS", stringResource(R.string.filtro_todos))) + EstadoViaje.entries.map { Opcion(it.name, stringResource(it.etiqueta)) }, alElegir = vm::actualizar)
     Accion(R.string.accion_actualizar, vm::actualizar, TipoBoton.SECUNDARIO)
-    if (estado.viajes.isEmpty()) Text(stringResource(if (pantalla == PantallaDemo.MIS_SOLICITUDES) R.string.vacio_mis_solicitudes else R.string.vacio_mis_viajes))
+    if (estado.viajes.isEmpty()) Text(stringResource(R.string.vacio_mis_solicitudes))
     estado.viajes.forEach { viaje -> Bloque(viaje.folio) {
         EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip)
         Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraLista(viaje.fhAgenda))
         Text(viaje.origen.direccion + " → " + viaje.destino.direccion)
         Text(pluralStringResource(R.plurals.solicitud_cantidad_pasajeros, viaje.cantidadPasajeros, viaje.cantidadPasajeros))
         val detalle = when {
-            estado.cuenta?.rol == Rol.CONDUCTOR && viaje.estado == EstadoViaje.ASIGNADO && vm.ahora().isBefore(viaje.fhAgenda.minusHours(1)) -> PantallaDemo.ANTES_VENTANA
             viaje.cantidadPasajeros == 0 && estado.cuenta?.rol == Rol.ADMINISTRADOR -> PantallaDemo.SIN_PASAJEROS_ADMIN
             viaje.cantidadPasajeros == 0 && estado.cuenta?.rol == Rol.SOLICITANTE -> PantallaDemo.SOLICITUD_SIN_PASAJEROS
             else -> detallePara(estado.cuenta?.rol)
