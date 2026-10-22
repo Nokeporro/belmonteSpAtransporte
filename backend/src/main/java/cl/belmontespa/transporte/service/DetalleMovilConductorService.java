@@ -8,6 +8,7 @@ import cl.belmontespa.transporte.model.DetalleMovilConductorId;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.repository.DetalleMovilConductorRepository;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,11 @@ public class DetalleMovilConductorService extends CrudService<DetalleMovilConduc
 	@Override
 	protected JpaRepository<DetalleMovilConductor, DetalleMovilConductorId> repositorio() {
 		return detalleRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("movil.patente", "conductor.usuario.nombre");
 	}
 
 	@Override

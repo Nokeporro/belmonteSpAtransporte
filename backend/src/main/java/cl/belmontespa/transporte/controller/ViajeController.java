@@ -8,6 +8,7 @@ import cl.belmontespa.transporte.service.CrudService;
 import cl.belmontespa.transporte.service.ViajeService;
 import cl.belmontespa.transporte.validation.Reglas;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -28,9 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
 public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTOResponse> {
 
 	private final ViajeService viajeService;
+	private final Clock clock;
 
-	public ViajeController(ViajeService viajeService) {
+	public ViajeController(ViajeService viajeService, Clock clock) {
 		this.viajeService = viajeService;
+		this.clock = clock;
 	}
 
 	@Override
@@ -88,9 +91,10 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 		return viajeService.cancelar(folio, auth.getName());
 	}
 
-	private static LocalDate fecha(String valor) {
+	// Sin `fecha`, la agenda es la de hoy en hora de Chile.
+	private LocalDate fecha(String valor) {
 		if (valor == null) {
-			return LocalDate.now();
+			return LocalDate.now(clock);
 		}
 		try {
 			return LocalDate.parse(valor);

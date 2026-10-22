@@ -13,10 +13,12 @@ import cl.belmontespa.transporte.repository.MedioPagoRepository;
 import cl.belmontespa.transporte.repository.PagoRepository;
 import cl.belmontespa.transporte.repository.TipoReciboRepository;
 import cl.belmontespa.transporte.repository.ViajeRepository;
+import cl.belmontespa.transporte.validation.Reglas;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -39,11 +41,12 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 	private final MedioPagoRepository medioPagoRepository;
 	private final TipoReciboRepository tipoReciboRepository;
 	private final SolicitanteService solicitanteService;
+	private final Clock clock;
 
 	public PagoService(PagoRepository pagoRepository, ViajeRepository viajeRepository,
 			EstadoPagoRepository estadoPagoRepository, BancoRepository bancoRepository,
 			MedioPagoRepository medioPagoRepository, TipoReciboRepository tipoReciboRepository,
-			SolicitanteService solicitanteService) {
+			SolicitanteService solicitanteService, Clock clock) {
 		this.pagoRepository = pagoRepository;
 		this.viajeRepository = viajeRepository;
 		this.estadoPagoRepository = estadoPagoRepository;
@@ -51,6 +54,7 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		this.medioPagoRepository = medioPagoRepository;
 		this.tipoReciboRepository = tipoReciboRepository;
 		this.solicitanteService = solicitanteService;
+		this.clock = clock;
 	}
 
 	@Override
@@ -85,7 +89,7 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		pago.setTipoRecibo(tipoReciboRepository.findByNombre(request.tipoRecibo())
 				.orElseThrow(() -> catalogoInvalido("tipo de recibo", request.tipoRecibo())));
 		pago.setEmpresa(viaje.getSolicitante().getEmpresa());
-		pago.setFechaPago(LocalDateTime.now());
+		pago.setFechaPago(LocalDateTime.now(clock));
 		viaje.setPago(pago);
 		return pago;
 	}
@@ -106,14 +110,26 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return aResponse(pago);
 	}
 
-	// RF20: pagos de los viajes del Solicitante.
+	// Todos los pagos, por folio descendente. El pago no guarda su folio: es el del viaje que lo
+	// referencia (viaje.pago_id), por eso la lista parte de los viajes.
+	@Override
+	@Transactional(readOnly = true)
+	public List<PagoDTOResponse> listar() {
+		return pagosPorFolioDescendente(viajeRepository.findByPagoIsNotNull());
+	}
+
+	// RF20: pagos de los viajes del Solicitante, por folio descendente.
 	@Transactional(readOnly = true)
 	public List<PagoDTOResponse> listarDeSolicitante(String correo) {
 		Solicitante solicitante = solicitanteService.buscarOFallar(correo);
-		return viajeRepository.findBySolicitanteIdUsuarioOrderByFhAgendaDesc(solicitante.getIdUsuario()).stream()
-				.map(Viaje::getPago)
-				.filter(Objects::nonNull)
-				.map(this::aResponse)
+		return pagosPorFolioDescendente(viajeRepository.findBySolicitanteIdUsuario(solicitante.getIdUsuario()));
+	}
+
+	private List<PagoDTOResponse> pagosPorFolioDescendente(List<Viaje> viajes) {
+		return viajes.stream()
+				.filter(viaje -> viaje.getPago() != null)
+				.sorted(Comparator.comparing(Viaje::getFolio, Reglas.FOLIO_POR_NUMERO).reversed())
+				.map(viaje -> aResponse(viaje.getPago()))
 				.toList();
 	}
 

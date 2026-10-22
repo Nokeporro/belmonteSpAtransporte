@@ -103,7 +103,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | Listo |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
-| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | — |
+| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | Listo |
 | 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | 3 ajustar | — |
 | 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | — |
 | 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | 3 hechas, 4 ajustar, 1 falta | — |

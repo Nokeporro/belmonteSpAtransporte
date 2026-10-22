@@ -9,6 +9,7 @@ import cl.belmontespa.transporte.repository.MovilRepository;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,11 @@ public class MovilService extends CrudService<Movil, String, MovilDTORequest, Mo
 	@Override
 	protected JpaRepository<Movil, Long> repositorio() {
 		return movilRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("patente");
 	}
 
 	@Override

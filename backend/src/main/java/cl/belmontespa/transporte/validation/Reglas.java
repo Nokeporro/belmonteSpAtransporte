@@ -1,5 +1,6 @@
 package cl.belmontespa.transporte.validation;
 
+import java.util.Comparator;
 import java.util.regex.Pattern;
 
 // Reglas de la tabla "Validaciones" del README, compartidas por los DTO de entrada y por las
@@ -17,11 +18,19 @@ public final class Reglas {
 	// Mensaje de @Size cuando la regla es solo un máximo: "Debe tener como máximo 150 caracteres."
 	public static final String MAXIMO = "{validacion.maximo}";
 
+	// El folio se ordena por su número (TR-9999 antes que TR-10000), no como texto.
+	public static final Comparator<String> FOLIO_POR_NUMERO = Comparator.comparingLong(Reglas::numeroDeFolio);
+
 	private static final Pattern FOLIO_RE = Pattern.compile(FOLIO);
 	private static final Pattern HASH_PAGO_RE = Pattern.compile(HASH_PAGO);
 	private static final Pattern DNI_HASH_RE = Pattern.compile(DNI_HASH);
 
 	private Reglas() {
+	}
+
+	// "TR-1001" → 1001. Solo para un folio que cumple FOLIO (a lo más 17 dígitos, cabe en un long).
+	public static long numeroDeFolio(String folio) {
+		return Long.parseLong(folio.substring("TR-".length()));
 	}
 
 	public static boolean esFolio(String valor) {

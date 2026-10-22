@@ -16,6 +16,7 @@ import cl.belmontespa.transporte.repository.DetalleViajePasajeroRepository;
 import cl.belmontespa.transporte.repository.EstadoSolicitudRepository;
 import cl.belmontespa.transporte.repository.ViajeRepository;
 import jakarta.persistence.EntityManager;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -51,13 +52,14 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	private final UbicacionService ubicacionService;
 	private final FirebaseClient firebaseClient;
 	private final EntityManager entityManager;
+	private final Clock clock;
 
 	public ViajeService(ViajeRepository viajeRepository, EstadoSolicitudRepository estadoSolicitudRepository,
 			DetalleViajePasajeroRepository detalleViajePasajeroRepository,
 			DetalleMovilConductorRepository detalleMovilConductorRepository,
 			SolicitanteService solicitanteService, ConductorService conductorService, MovilService movilService,
 			PagoService pagoService, UbicacionService ubicacionService, FirebaseClient firebaseClient,
-			EntityManager entityManager) {
+			EntityManager entityManager, Clock clock) {
 		this.viajeRepository = viajeRepository;
 		this.estadoSolicitudRepository = estadoSolicitudRepository;
 		this.detalleViajePasajeroRepository = detalleViajePasajeroRepository;
@@ -69,6 +71,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		this.ubicacionService = ubicacionService;
 		this.firebaseClient = firebaseClient;
 		this.entityManager = entityManager;
+		this.clock = clock;
 	}
 
 	@Override
@@ -136,7 +139,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setConductor(conductor);
 		viaje.setMovil(movil);
 		viaje.setEstado(estado(ASIGNADO));
-		viaje.setFhAsignacion(LocalDateTime.now());
+		viaje.setFhAsignacion(LocalDateTime.now(clock));
 		conductorService.cambiarEstado(conductor, ConductorService.OCUPADO);
 		movilService.cambiarEstado(movil, MovilService.EN_USO);
 		Map<String, String> datos = Map.of("folio", viaje.getFolio());
@@ -158,9 +161,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		String actual = viaje.getEstado().getNombreEstado();
 		String nuevo = request.estado().toUpperCase(Locale.ROOT);
 		if (EN_CURSO.equals(nuevo) && ASIGNADO.equals(actual)) {
-			viaje.setFhInicio(LocalDateTime.now());
+			viaje.setFhInicio(LocalDateTime.now(clock));
 		} else if (FINALIZADO.equals(nuevo) && EN_CURSO.equals(actual)) {
-			viaje.setFhFin(LocalDateTime.now());
+			viaje.setFhFin(LocalDateTime.now(clock));
 			liberar(viaje);
 		} else {
 			throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -181,7 +184,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		}
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		viaje.setEstado(estado(CANCELADO));
-		viaje.setFhFin(LocalDateTime.now());
+		viaje.setFhFin(LocalDateTime.now(clock));
 		liberar(viaje);
 		if (viaje.getPago() != null) {
 			pagoService.anular(viaje.getPago());
@@ -194,30 +197,46 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// RF03: historial del Solicitante.
+	// Todos los viajes (Administrador, sin filtro): lo reciente primero.
+	@Override
+	@Transactional(readOnly = true)
+	public List<ViajeDTOResponse> listar() {
+		return viajeRepository.findAll().stream()
+				.map(this::aResponse)
+				.sorted(OrdenViajes.RECIENTES_PRIMERO)
+				.toList();
+	}
+
+	// RF03: historial del Solicitante, lo reciente primero.
 	@Transactional(readOnly = true)
 	public List<ViajeDTOResponse> listarDeSolicitante(String correoSolicitante) {
 		Long idUsuario = solicitanteService.buscarOFallar(correoSolicitante).getIdUsuario();
-		return viajeRepository.findBySolicitanteIdUsuarioOrderByFhAgendaDesc(idUsuario).stream()
-				.map(this::aResponse).toList();
+		return viajeRepository.findBySolicitanteIdUsuario(idUsuario).stream()
+				.map(this::aResponse)
+				.sorted(OrdenViajes.RECIENTES_PRIMERO)
+				.toList();
 	}
 
-	// RF04: p. ej. las solicitudes Pendientes de asignación.
+	// RF04: p. ej. las solicitudes Pendientes de asignación; el sentido depende del estado.
 	@Transactional(readOnly = true)
 	public List<ViajeDTOResponse> listarPorEstado(String nombreEstado) {
-		return viajeRepository.findByEstadoNombreEstadoOrderByFhAgenda(nombreEstado.toUpperCase(Locale.ROOT))
-				.stream().map(this::aResponse).toList();
+		String estado = nombreEstado.toUpperCase(Locale.ROOT);
+		return viajeRepository.findByEstadoNombreEstado(estado).stream()
+				.map(this::aResponse)
+				.sorted(OrdenViajes.paraEstado(estado))
+				.toList();
 	}
 
-	// RF07/CU-02: viajes del día del Conductor; los cancelados salen de la lista (CU-08).
+	// RF07/CU-02: viajes del día del Conductor, lo próximo primero; los cancelados salen (CU-08).
 	@Transactional(readOnly = true)
 	public List<ViajeDTOResponse> listarDelDia(String correoConductor, LocalDate dia) {
 		Long idUsuario = conductorService.buscarOFallar(correoConductor).getIdUsuario();
-		return viajeRepository.findByConductorIdUsuarioAndFhAgendaBetweenOrderByFhAgenda(
+		return viajeRepository.findByConductorIdUsuarioAndFhAgendaBetween(
 						idUsuario, dia.atStartOfDay(), dia.plusDays(1).atStartOfDay().minusNanos(1))
 				.stream()
 				.filter(viaje -> !CANCELADO.equals(viaje.getEstado().getNombreEstado()))
 				.map(this::aResponse)
+				.sorted(OrdenViajes.PROXIMOS_PRIMERO)
 				.toList();
 	}
 

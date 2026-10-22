@@ -11,6 +11,7 @@ import cl.belmontespa.transporte.repository.ConductorRepository;
 import cl.belmontespa.transporte.repository.SolicitanteRepository;
 import cl.belmontespa.transporte.repository.UsuarioRepository;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,12 +33,13 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtProvider jwtProvider;
 	private final EmailClient emailClient;
+	private final Clock clock;
 	private final long minutosPasswordTemporal;
 	private final SecureRandom random = new SecureRandom();
 
 	public AuthService(UsuarioRepository usuarioRepository, AdministradorRepository administradorRepository,
 			ConductorRepository conductorRepository, SolicitanteRepository solicitanteRepository,
-			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, EmailClient emailClient,
+			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, EmailClient emailClient, Clock clock,
 			@Value("${app.password-temporal.minutos:30}") long minutosPasswordTemporal) {
 		this.usuarioRepository = usuarioRepository;
 		this.administradorRepository = administradorRepository;
@@ -46,6 +48,7 @@ public class AuthService {
 		this.passwordEncoder = passwordEncoder;
 		this.jwtProvider = jwtProvider;
 		this.emailClient = emailClient;
+		this.clock = clock;
 		this.minutosPasswordTemporal = minutosPasswordTemporal;
 	}
 
@@ -73,7 +76,7 @@ public class AuthService {
 				.ifPresent(usuario -> {
 					String passwordTemporal = passwordTemporal();
 					usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
-					usuario.setPasswordTemporalExpira(LocalDateTime.now().plusMinutes(minutosPasswordTemporal));
+					usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusMinutes(minutosPasswordTemporal));
 					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal, minutosPasswordTemporal);
 				});
 	}
@@ -85,7 +88,7 @@ public class AuthService {
 		}
 		return usuario.getPasswordTemporalHash() != null
 				&& usuario.getPasswordTemporalExpira() != null
-				&& usuario.getPasswordTemporalExpira().isAfter(LocalDateTime.now())
+				&& usuario.getPasswordTemporalExpira().isAfter(LocalDateTime.now(clock))
 				&& passwordEncoder.matches(password, usuario.getPasswordTemporalHash());
 	}
 

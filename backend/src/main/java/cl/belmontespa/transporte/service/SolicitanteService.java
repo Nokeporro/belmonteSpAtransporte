@@ -7,6 +7,7 @@ import cl.belmontespa.transporte.model.Solicitante;
 import cl.belmontespa.transporte.repository.EstadoSolicitanteRepository;
 import cl.belmontespa.transporte.repository.SolicitanteRepository;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +34,11 @@ public class SolicitanteService
 	@Override
 	protected JpaRepository<Solicitante, Long> repositorio() {
 		return solicitanteRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("usuario.nombre", "usuario.correo");
 	}
 
 	@Override

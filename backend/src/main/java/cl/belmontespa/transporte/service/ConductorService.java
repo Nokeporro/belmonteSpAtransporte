@@ -7,6 +7,7 @@ import cl.belmontespa.transporte.model.EstadoConductor;
 import cl.belmontespa.transporte.repository.ConductorRepository;
 import cl.belmontespa.transporte.repository.EstadoConductorRepository;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +31,11 @@ public class ConductorService extends CrudService<Conductor, String, ConductorDT
 	@Override
 	protected JpaRepository<Conductor, Long> repositorio() {
 		return conductorRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("usuario.nombre", "usuario.correo");
 	}
 
 	@Override

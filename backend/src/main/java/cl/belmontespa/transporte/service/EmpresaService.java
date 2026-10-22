@@ -4,6 +4,7 @@ import cl.belmontespa.transporte.dto.response.EmpresaDTOResponse;
 import cl.belmontespa.transporte.model.Empresa;
 import cl.belmontespa.transporte.repository.EmpresaRepository;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,11 @@ public class EmpresaService extends CrudService<Empresa, String, Void, EmpresaDT
 	@Override
 	protected JpaRepository<Empresa, Long> repositorio() {
 		return empresaRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("razonSocial", "rut");
 	}
 
 	@Override

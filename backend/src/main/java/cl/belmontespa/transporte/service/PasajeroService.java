@@ -12,6 +12,7 @@ import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,11 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 	@Override
 	protected JpaRepository<Pasajero, Long> repositorio() {
 		return pasajeroRepository;
+	}
+
+	@Override
+	protected Sort orden() {
+		return Sort.by("nombre", "dniHash");
 	}
 
 	@Override

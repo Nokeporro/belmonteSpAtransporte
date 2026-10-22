@@ -8,6 +8,7 @@ import cl.belmontespa.myapplication.model.EstadoPago
 import cl.belmontespa.myapplication.model.EstadoSolicitante
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.MedioPago
+import cl.belmontespa.myapplication.model.Retraso
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.TipoDocumento
 import cl.belmontespa.myapplication.model.TipoRecibo
@@ -136,3 +137,10 @@ enum class EtiquetaCalculada(@param:StringRes val etiqueta: Int, val estiloChip:
     /** Un `activo` falso reemplaza al estado del conductor o del vehículo. */
     INACTIVO(R.string.etiqueta_inactivo, EstiloChip.TENUE),
 }
+
+/** El chip de un retraso calculado con `Viaje.retraso(clock)`. */
+val Retraso.etiquetaCalculada: EtiquetaCalculada
+    get() = when (this) {
+        Retraso.ATRASADO -> EtiquetaCalculada.ATRASADO
+        Retraso.VENCIDO -> EtiquetaCalculada.VENCIDO
+    }

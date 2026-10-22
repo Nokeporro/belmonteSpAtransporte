@@ -2,6 +2,7 @@ package cl.belmontespa.transporte.service;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,9 +36,16 @@ public abstract class CrudService<E, K, Q, R> {
 		throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED);
 	}
 
+	// Orden fijo de la lista (README, "Consultas → Orden"). Los textos los ordena la base, con la
+	// collation de la columna (utf8mb4_unicode_ci); el último criterio es la clave única, solo para
+	// que el orden sea determinista.
+	protected Sort orden() {
+		return Sort.unsorted();
+	}
+
 	@Transactional(readOnly = true)
 	public List<R> listar() {
-		return repositorio().findAll().stream().map(this::aResponse).toList();
+		return repositorio().findAll(orden()).stream().map(this::aResponse).toList();
 	}
 
 	@Transactional(readOnly = true)
