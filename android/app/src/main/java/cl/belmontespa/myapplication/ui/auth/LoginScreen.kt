@@ -46,11 +46,16 @@ fun LoginScreen(
     onRecuperarPassword: () -> Unit,
     onAbordarViaje: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
+    correoInicial: String = "",
+    mostrarSesionExpirada: Boolean = false,
+    modoDemoForzado: Boolean? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    // El correo confirmado vuelve al Login sin transportar la contraseña.
+    androidx.compose.runtime.LaunchedEffect(correoInicial) { if (correoInicial.isNotBlank()) viewModel.cambiarCorreo(correoInicial) }
     LoginContenido(
-        estado = estado,
-        modoDemo = viewModel.modoDemo,
+        estado = if (mostrarSesionExpirada && estado.error == null) estado.copy(error = R.string.error_sesion_terminada) else estado,
+        modoDemo = modoDemoForzado ?: viewModel.modoDemo,
         onCorreo = viewModel::cambiarCorreo,
         onPassword = viewModel::cambiarPassword,
         onIniciarSesion = viewModel::iniciarSesion,

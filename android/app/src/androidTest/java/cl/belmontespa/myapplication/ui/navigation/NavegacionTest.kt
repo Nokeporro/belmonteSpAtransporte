@@ -20,10 +20,14 @@ import dagger.hilt.android.testing.UninstallModules
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.Before
+import javax.inject.Inject
+import kotlinx.coroutines.runBlocking
+import cl.belmontespa.myapplication.data.session.SesionStore
 
 /** Flujo por rol, cambio obligatorio de contraseña e historial tras el login y el cierre de sesión. */
 @HiltAndroidTest
-@UninstallModules(RepositorioModule::class)
+
 class NavegacionTest {
 
     @get:Rule(order = 0)
@@ -37,6 +41,8 @@ class NavegacionTest {
     val auth: AuthRepository = AuthFalso()
 
     private val falso get() = auth as AuthFalso
+    @Inject lateinit var sesiones: SesionStore
+    @Before fun preparar() { hilt.inject() }
 
     @Test
     fun sinSesionAbreElLogin() {
@@ -74,7 +80,8 @@ class NavegacionTest {
         // Desde el Login no se vuelve al flujo autenticado: atrás cierra la app.
         val actividad = compose.activity
         pressBackUnconditionally()
-        assertTrue(actividad.isFinishing || actividad.isDestroyed)
+        // Android 12 o superior puede enviar la actividad raíz al fondo.
+        compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
     }
 
     @Test
@@ -87,7 +94,56 @@ class NavegacionTest {
         esperarTexto(R.string.login_iniciar_sesion)
     }
 
+    @Test
+    fun perderLaSesionDesdePerfilAbreElLoginSinHistorial() {
+        entrarComo(Rol.SOLICITANTE)
+        esperarTexto(R.string.nav_perfil)
+
+        compose.onNodeWithText(texto(R.string.nav_perfil)).performClick()
+        esperarTexto(R.string.accion_cerrar_sesion)
+
+        // Representa el estado emitido al vencer la sesión.
+        // El vencimiento del reloj se comprueba en SesionStoreTest.
+        compose.runOnIdle {
+            falso.sesion.value = EstadoSesion.SinSesion
+        }
+        esperarTexto(R.string.login_iniciar_sesion)
+
+        // Atrás no debe recuperar el perfil de la sesión anterior.
+        val actividad = compose.activity
+        pressBackUnconditionally()
+        // Android 12 o superior puede enviar la actividad raíz al fondo.
+        compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
+    }
+
+    @Test
+    fun completarCambioObligatorioAbreElInicioDelRol() {
+        esperarTexto(R.string.login_iniciar_sesion)
+        val sesion = sesion(Rol.ADMINISTRADOR)
+
+        compose.runOnIdle {
+            falso.sesion.value = EstadoSesion.Temporal(sesion)
+        }
+        esperarTexto(R.string.aviso_cambio_password_obligatorio)
+
+        // Representa el resultado de cambiar correctamente la contraseña.
+        // Aquí se verifica la navegación, no el formulario ni el backend.
+        compose.runOnIdle {
+            falso.sesion.value = EstadoSesion.Autenticada(sesion)
+        }
+        esperarTexto(R.string.nav_solicitudes)
+        esperarTexto(R.string.nav_conductores)
+        esperarTexto(R.string.nav_vehiculos)
+
+        // El cambio obligatorio no debe permanecer detrás del inicio.
+        val actividad = compose.activity
+        pressBackUnconditionally()
+        // Android 12 o superior puede enviar la actividad raíz al fondo.
+        compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
+    }
+
     private fun entrarComo(rol: Rol) {
+        runBlocking { sesiones.guardar(sesion(rol)) }
         falso.sesion.value = EstadoSesion.Autenticada(sesion(rol))
     }
 
@@ -98,7 +154,7 @@ class NavegacionTest {
 
     private fun sesion(rol: Rol) = Sesion(
         token = "prueba",
-        correo = "prueba@belmontespa.cl",
+        correo = when(rol) { Rol.SOLICITANTE -> "crios@andesconsult.cl"; Rol.ADMINISTRADOR -> "recepcion@belmontespa.cl"; Rol.CONDUCTOR -> "ireyes@belmontespa.cl" },
         rol = rol,
         expiraEn = Long.MAX_VALUE,
     )

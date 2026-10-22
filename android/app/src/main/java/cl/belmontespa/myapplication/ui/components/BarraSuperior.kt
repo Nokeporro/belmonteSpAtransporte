@@ -13,6 +13,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -35,7 +36,9 @@ fun BarraSuperior(
     acciones: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier) {
+        // El título puede ocupar más de una línea con el texto ampliado.
         TopAppBar(
+            expandedHeight = 64.dp * LocalDensity.current.fontScale.coerceAtLeast(1f),
             title = {
                 Column {
                     Text(titulo, modifier = Modifier.semantics { heading() })

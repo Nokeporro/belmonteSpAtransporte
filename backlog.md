@@ -92,47 +92,47 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 ## Etapa 1: Prueba 2
 
-| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend |
-|---|---|---|---|---|---|---|---|---|
-| 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — |
-| 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — |
-| 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — |
-| 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — |
-| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — |
-| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta |
-| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta |
-| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar |
-| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar |
-| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | 3 ajustar |
-| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 |
-| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | 3 hechas, 4 ajustar, 1 falta |
-| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Usa HU04 y HU08 |
-| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar |
-| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar |
-| 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 |
-| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar |
-| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar |
-| 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend |
-| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta |
-| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 |
-| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | 4 ajustar |
-| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | 1 ajustar |
-| 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 |
-| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | 3 ajustar |
-| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | 3 ajustar |
-| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar |
-| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar |
-| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar |
-| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan |
-| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan |
-| 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 |
-| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta |
-| 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 |
-| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar |
-| 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — |
-| 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — |
-| 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — |
+| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | — |
+| 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | — |
+| 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | — |
+| 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | — |
+| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | — |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
+| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | — |
+| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | — |
+| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | — |
+| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | — |
+| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | 3 ajustar | — |
+| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | — |
+| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | 3 hechas, 4 ajustar, 1 falta | — |
+| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Usa HU04 y HU08 | — |
+| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | — |
+| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | — |
+| 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | — |
+| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | — |
+| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | — |
+| 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | — |
+| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | — |
+| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | — |
+| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | 4 ajustar | — |
+| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | 1 ajustar | — |
+| 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
+| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | 3 ajustar | — |
+| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | 3 ajustar | — |
+| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar | — |
+| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar | — |
+| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
+| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
+| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
+| 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | — |
+| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | — |
+| 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | — |
+| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
+| 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
+| 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — | — |
+| 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — | — |
 
 SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
@@ -185,18 +185,18 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
 ## Etapa 2: Unidad 3
 
-| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend |
-|---|---|---|---|---|---|---|---|---|
-| 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — |
-| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 2 faltan |
-| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Ajustar push |
-| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar push |
-| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend |
-| 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes |
-| 46 | T16 | `database/demo.sql` | B | E2 | — | — | T15 | — |
-| 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — |
-| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — |
-| 49 | T19 | APK release `v1.0.0` en GitHub Releases | A | E2 | — | — | T17, T18 | — |
+| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
+|---|---|---|---|---|---|---|---|---|---|
+| 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | — |
+| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 2 faltan | — |
+| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Ajustar push | — |
+| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar push | — |
+| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | — |
+| 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes | — |
+| 46 | T16 | `database/demo.sql` | B | E2 | — | — | T15 | — | — |
+| 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — | — |
+| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — | — |
+| 49 | T19 | APK release `v1.0.0` en GitHub Releases | A | E2 | — | — | T17, T18 | — | — |
 
 SP de la Etapa 2: A, 8; B, 13.
 

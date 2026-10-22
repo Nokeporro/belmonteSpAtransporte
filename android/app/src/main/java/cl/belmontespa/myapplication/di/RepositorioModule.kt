@@ -36,6 +36,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositorioModule {
+    // La UI recibe valores del modelo; no accede a la implementación de DatosDemo.
+    @Provides
+    @javax.inject.Named("ubicaciones_demo")
+    fun ubicacionesDemo(): List<cl.belmontespa.myapplication.model.Ubicacion> =
+        if (BuildConfig.MODO_LOCAL) cl.belmontespa.myapplication.data.local.DatosDemo.ubicaciones else emptyList()
+
     @Provides
     @Singleton
     fun auth(local: Provider<AuthLocalRepository>, remota: Provider<AuthRemoteRepository>): AuthRepository =

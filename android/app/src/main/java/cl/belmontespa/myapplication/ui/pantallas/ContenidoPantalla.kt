@@ -1,0 +1,340 @@
+package cl.belmontespa.myapplication.ui.pantallas
+
+import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import cl.belmontespa.myapplication.BuildConfig
+import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.*
+import cl.belmontespa.myapplication.ui.components.*
+import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
+import cl.belmontespa.myapplication.ui.theme.EstilosMono
+import cl.belmontespa.myapplication.util.Formatos
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
+// Las variantes comparten datos y controles, pero conservan sus rutas y títulos de los mockups.
+@Composable
+internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
+    when (pantalla) {
+        PantallaDemo.REGISTRO -> {
+            Campo("nombre", R.string.campo_nombre); Campo("correo", R.string.campo_correo, KeyboardType.Email)
+            Campo("telefono", R.string.campo_telefono, KeyboardType.Phone); Campo("password", R.string.campo_password, KeyboardType.Password)
+            Campo("razonSocial", R.string.campo_razon_social); Campo("rutEmpresa", R.string.campo_rut_empresa)
+            Accion(R.string.login_crear_cuenta)
+            if (estado.aviso in listOf(R.string.aviso_registro_aprobado, R.string.aviso_registro_pendiente)) Accion(R.string.login_iniciar_sesion, { navegar(PantallaDemo.LOGIN, vm.valor("correo")) }, TipoBoton.SECUNDARIO)
+        }
+        PantallaDemo.RECUPERAR -> { Campo("correo", R.string.campo_correo, KeyboardType.Email); Accion(R.string.login_recuperar_password) }
+        PantallaDemo.CAMBIO_OBLIGATORIO, PantallaDemo.CAMBIAR_PASSWORD -> {
+            if (pantalla == PantallaDemo.CAMBIO_OBLIGATORIO) Aviso(stringResource(R.string.aviso_cambio_password_obligatorio), TonoAviso.AVISO)
+            Campo("passwordActual", R.string.campo_password_actual, KeyboardType.Password)
+            Campo("passwordNueva", R.string.campo_password_nueva, KeyboardType.Password)
+            Campo("confirmacion", R.string.campo_confirmacion, KeyboardType.Password)
+            Accion(R.string.accion_guardar)
+            if (pantalla == PantallaDemo.CAMBIO_OBLIGATORIO) Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
+        }
+        PantallaDemo.SESION_EXPIRADA -> { Aviso(stringResource(R.string.error_sesion_terminada), TonoAviso.AVISO); Enlace(R.string.login_iniciar_sesion, PantallaDemo.LOGIN, "") }
+        PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES, PantallaDemo.MIS_VIAJES -> ListaViajes()
+        PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN,
+        PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA,
+        PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
+        PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
+        PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
+        PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> {
+            estado.viaje?.let { Dato(R.string.campo_folio, it.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(it.fhAgenda)) }
+            Aviso(stringResource(if (pantalla == PantallaDemo.CANCELAR_VIAJE) R.string.aviso_cancelar_viaje else R.string.aviso_cancelar_solicitud), TonoAviso.AVISO)
+            if (pantalla == PantallaDemo.CANCELAR_VIAJE) {
+                Campo("motivo", R.string.campo_motivo)
+                if (estado.viaje?.estadoPago == EstadoPago.PAGADO && estado.viaje.fhAgenda.plusHours(1).isBefore(vm.ahora())) Campo("reembolso", R.string.campo_reembolso, KeyboardType.Number)
+            }
+            Accion(R.string.accion_confirmar, tipo = TipoBoton.PELIGRO)
+            Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
+        }
+        PantallaDemo.SOLICITUD_CANCELADA -> {
+            if (estado.viaje?.estado == EstadoViaje.CANCELADO) Aviso(stringResource(R.string.aviso_solicitud_cancelada), TonoAviso.INFORMACION)
+            else Aviso(stringResource(R.string.error_no_encontrado), TonoAviso.AVISO)
+            Dato(R.string.campo_folio, estado.viaje?.folio)
+            Enlace(R.string.accion_volver_solicitudes, PantallaDemo.MIS_SOLICITUDES, "")
+        }
+        PantallaDemo.PERFIL_SOLICITANTE, PantallaDemo.PERFIL_ADMIN, PantallaDemo.PERFIL_CONDUCTOR -> Perfil()
+        PantallaDemo.CUENTAS_PENDIENTES -> {
+            if (estado.pendientes.isEmpty()) Text(stringResource(R.string.vacio_cuentas_por_aprobar))
+            estado.pendientes.forEach { cuenta -> Bloque(cuenta.nombre) {
+                Dato(R.string.campo_correo, cuenta.correo); Dato(R.string.campo_empresa, cuenta.razonSocial)
+                Dato(R.string.campo_rut_empresa, Formatos.rut(cuenta.rutEmpresa))
+                Accion(R.string.accion_aprobar, { vm.ejecutar("aprobar", cuenta.correo) })
+                Accion(R.string.accion_rechazar, { vm.ejecutar("rechazarCuenta", cuenta.correo) }, TipoBoton.PELIGRO)
+            } }
+        }
+        PantallaDemo.ASIGNAR -> {
+            estado.viaje?.let { Dato(R.string.campo_folio, it.folio); Dato(R.string.campo_pasajeros, it.cantidadPasajeros.toString()) }
+            Selector("conductor", R.string.campo_conductor, estado.conductores.filter { it.activo }.map {
+                Opcion(it.correo, it.nombre + " · " + it.viajesAsignados + (it.folioEnCurso?.let { f -> " · $f" } ?: ""), it.estado == EstadoConductor.DISPONIBLE)
+            })
+            val habilitadas = estado.habilitaciones.filter { it.correoConductor == vm.valor("conductor") }.map { it.patente }.toSet()
+            Selector("vehiculo", R.string.campo_vehiculo, estado.moviles.filter { it.activo && it.patente in habilitadas }.map { Opcion(it.patente, it.patente + " · " + it.capacidad, it.estado == EstadoMovil.DISPONIBLE && it.capacidad >= (estado.viaje?.cantidadPasajeros ?: 1)) })
+            Accion(R.string.accion_asignar, habilitada = vm.valor("conductor").isNotBlank() && vm.valor("vehiculo").isNotBlank())
+        }
+        PantallaDemo.CONDUCTORES -> {
+            Enlace(R.string.t06_registrar_conductor, PantallaDemo.REGISTRAR_CONDUCTOR, "")
+            if (estado.conductores.isEmpty()) Text(stringResource(R.string.aviso_sin_resultados))
+            estado.conductores.forEach { conductor -> Bloque(conductor.nombre) {
+                Dato(R.string.campo_correo, conductor.correo)
+                EstadoChip(stringResource(conductor.estado.etiqueta(conductor.activo)), conductor.estado.estiloChip(conductor.activo))
+                Enlace(R.string.accion_ver_detalle, PantallaDemo.DETALLE_CONDUCTOR, conductor.correo)
+            } }
+        }
+        PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
+            Campo("nombre", R.string.campo_nombre); Campo("correo", R.string.campo_correo, KeyboardType.Email)
+            Campo("telefono", R.string.campo_telefono, KeyboardType.Phone); Campo("password", R.string.campo_password, KeyboardType.Password)
+            Accion(R.string.accion_guardar)
+        }
+        PantallaDemo.DETALLE_CONDUCTOR -> estado.conductor?.let { conductor ->
+            Dato(R.string.campo_correo, conductor.correo)
+            EstadoChip(stringResource(conductor.estado.etiqueta(conductor.activo)), conductor.estado.estiloChip(conductor.activo))
+            Campo("nombre", R.string.campo_nombre); Campo("telefono", R.string.campo_telefono, KeyboardType.Phone)
+            Campo("password", R.string.campo_password_nueva, KeyboardType.Password); Accion(R.string.accion_guardar)
+            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
+            Accion(if (conductor.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoConductor") }, TipoBoton.SECUNDARIO)
+        }
+        PantallaDemo.VEHICULOS -> {
+            Enlace(R.string.t06_registrar_vehiculo, PantallaDemo.REGISTRAR_VEHICULO, "")
+            if (estado.moviles.isEmpty()) Text(stringResource(R.string.aviso_sin_resultados))
+            estado.moviles.forEach { movil -> Bloque(movil.patente) {
+                Dato(R.string.campo_capacidad, movil.capacidad.toString())
+                EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
+                Enlace(R.string.accion_ver_detalle, PantallaDemo.DETALLE_VEHICULO, movil.patente)
+            } }
+        }
+        PantallaDemo.REGISTRAR_VEHICULO -> { Campo("patente", R.string.campo_patente); Campo("capacidad", R.string.campo_capacidad, KeyboardType.Number); Campo("gps", R.string.campo_gps, KeyboardType.Number); Accion(R.string.accion_guardar) }
+        PantallaDemo.DETALLE_VEHICULO -> estado.movil?.let { movil ->
+            Dato(R.string.campo_patente, movil.patente); Dato(R.string.campo_capacidad, movil.capacidad.toString())
+            EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
+            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
+            QrVehiculo(movil)
+            Accion(if (movil.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoMovil") }, TipoBoton.SECUNDARIO)
+        }
+        PantallaDemo.HABILITACIONES -> {
+            Selector("conductor", R.string.campo_conductor, estado.conductores.filter { it.activo }.map { Opcion(it.correo, it.nombre) })
+            Selector("vehiculo", R.string.campo_vehiculo, estado.moviles.filter { it.activo }.map { Opcion(it.patente, it.patente) })
+            Accion(R.string.accion_habilitar, habilitada = vm.valor("conductor").isNotBlank() && vm.valor("vehiculo").isNotBlank())
+            HabilitacionesResumen()
+        }
+        PantallaDemo.REGISTRAR_PAGO -> {
+            Dato(R.string.campo_folio, estado.viaje?.folio)
+            Campo("monto", R.string.campo_monto, KeyboardType.Number)
+            Selector("banco", R.string.campo_banco, estado.catalogos?.bancos.orEmpty().map { Opcion(it.codSbif.toString(), it.nombre) })
+            Selector("medioPago", R.string.campo_medio_pago, MedioPago.entries.map { Opcion(it.name, stringResource(it.etiqueta)) })
+            Selector("tipoRecibo", R.string.campo_tipo_recibo, TipoRecibo.entries.map { Opcion(it.name, stringResource(it.etiqueta)) })
+            Accion(R.string.accion_registrar_pago)
+        }
+        PantallaDemo.DETALLE_PAGO -> estado.pago?.let { pago ->
+            Dato(R.string.campo_folio, pago.folio); Dato(R.string.campo_monto, Formatos.monto(pago.monto))
+            EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
+            Dato(R.string.campo_banco, pago.banco); Dato(R.string.campo_medio_pago, stringResource(pago.medioPago.etiqueta)); Dato(R.string.campo_tipo_recibo, stringResource(pago.tipoRecibo.etiqueta))
+            pago.montoReembolsado?.let { Dato(R.string.campo_reembolso, Formatos.monto(it)) }
+            if (estado.cuenta?.rol == Rol.ADMINISTRADOR) {
+                if (pago.estado == EstadoPago.PENDIENTE) {
+                    Accion(R.string.accion_pagar, { vm.ejecutar("pago", "PAGADO") })
+                    Accion(R.string.accion_rechazar, { vm.ejecutar("pago", "RECHAZADO") }, TipoBoton.SECUNDARIO)
+                }
+                if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
+            }
+        }
+        PantallaDemo.CONFIRMAR_INICIO -> {
+            estado.viaje?.let { viaje ->
+                Dato(R.string.campo_folio, viaje.folio)
+                val faltan = viaje.pasajeros.count { it.fhAbordaje == null }
+                if (faltan > 0) Aviso(pluralStringResource(R.plurals.faltan_por_abordar, faltan, faltan), TonoAviso.AVISO)
+                Text(stringResource(R.string.aviso_iniciar)); Accion(R.string.accion_confirmar, alto56 = true)
+                Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
+            }
+        }
+        PantallaDemo.NAVEGAR -> AbrirNavegacion()
+        PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> PantallaAbordaje()
+        PantallaDemo.NOTIFICACION -> {
+            Aviso(stringResource(R.string.aviso_notificacion), TonoAviso.INFORMACION)
+            estado.viajes.forEach { viaje -> Bloque(stringResource(R.string.notificacion_nuevo_viaje)) { Dato(R.string.campo_folio, viaje.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(viaje.fhAgenda)); Enlace(R.string.accion_ver_viaje, detallePara(estado.cuenta?.rol), viaje.folio) } }
+            // Los escenarios son explícitos y solo existen en la build demo.
+            // No se presentan como notificaciones push recibidas del servidor.
+            if (BuildConfig.MODO_LOCAL && estado.cuenta?.rol == Rol.CONDUCTOR) {
+                val viaje = estado.viajes.firstOrNull()
+                if (viaje != null) {
+                    Enlace(R.string.t06_sin_conexion, PantallaDemo.SIN_CONEXION, viaje.folio)
+                    Enlace(R.string.t06_conflicto, PantallaDemo.CONFLICTO, viaje.folio)
+                }
+            }
+        }
+        PantallaDemo.INICIO -> Text(stringResource(R.string.inicio_comprobando_sesion))
+        PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> Enlace(R.string.login_iniciar_sesion, PantallaDemo.LOGIN, "")
+    }
+}
+
+internal fun detallePara(rol: Rol?) = when(rol) {
+    Rol.ADMINISTRADOR -> PantallaDemo.DETALLE_ADMIN
+    Rol.CONDUCTOR -> PantallaDemo.DETALLE_VIAJE
+    else -> PantallaDemo.DETALLE_SOLICITUD
+}
+
+@Composable
+private fun ContextoPantalla.ListaViajes() {
+    if (pantalla == PantallaDemo.MIS_SOLICITUDES) Enlace(R.string.accion_nueva_solicitud, PantallaDemo.NUEVA_SOLICITUD, "")
+    if (pantalla == PantallaDemo.SOLICITUDES) BotonAncho(stringResource(R.string.cuentas_pendientes_cantidad, estado.pendientes.size), { navegar(PantallaDemo.CUENTAS_PENDIENTES, "") }, tipo = TipoBoton.SECUNDARIO)
+    if (pantalla != PantallaDemo.MIS_VIAJES) {
+        Selector("estado", R.string.campo_estado, listOf(Opcion("TODOS", stringResource(R.string.filtro_todos))) + EstadoViaje.entries.map { Opcion(it.name, stringResource(it.etiqueta)) }, alElegir = vm::actualizar)
+    } else {
+        val contexto = LocalContext.current
+        val fecha = vm.valor("agenda").takeIf(String::isNotBlank)?.let(LocalDate::parse) ?: vm.ahora().toLocalDate()
+        Dato(R.string.campo_fecha, fecha.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")))
+        Accion(R.string.campo_fecha, { DatePickerDialog(contexto, { _, y, m, d -> vm.campo("agenda", LocalDate.of(y, m + 1, d).toString()); vm.actualizar() }, fecha.year, fecha.monthValue - 1, fecha.dayOfMonth).show() }, TipoBoton.SECUNDARIO)
+    }
+    Accion(R.string.accion_actualizar, vm::actualizar, TipoBoton.SECUNDARIO)
+    if (estado.viajes.isEmpty()) Text(stringResource(if (pantalla == PantallaDemo.MIS_SOLICITUDES) R.string.vacio_mis_solicitudes else if (pantalla == PantallaDemo.MIS_VIAJES) R.string.vacio_mis_viajes else R.string.aviso_sin_resultados))
+    estado.viajes.forEach { viaje -> Bloque(viaje.folio) {
+        EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip)
+        Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraLista(viaje.fhAgenda))
+        Text(viaje.origen.direccion + " → " + viaje.destino.direccion)
+        Text(pluralStringResource(R.plurals.solicitud_cantidad_pasajeros, viaje.cantidadPasajeros, viaje.cantidadPasajeros))
+        val detalle = when {
+            estado.cuenta?.rol == Rol.CONDUCTOR && viaje.estado == EstadoViaje.ASIGNADO && vm.ahora().isBefore(viaje.fhAgenda.minusHours(1)) -> PantallaDemo.ANTES_VENTANA
+            viaje.cantidadPasajeros == 0 && estado.cuenta?.rol == Rol.ADMINISTRADOR -> PantallaDemo.SIN_PASAJEROS_ADMIN
+            viaje.cantidadPasajeros == 0 && estado.cuenta?.rol == Rol.SOLICITANTE -> PantallaDemo.SOLICITUD_SIN_PASAJEROS
+            else -> detallePara(estado.cuenta?.rol)
+        }
+        Enlace(R.string.accion_ver_detalle, detalle, viaje.folio)
+        if (pantalla == PantallaDemo.SOLICITUDES && viaje.estado == EstadoViaje.PENDIENTE && viaje.cantidadPasajeros > 0 && !vm.ahora().isAfter(viaje.fhAgenda.plusHours(1))) Enlace(R.string.accion_asignar, PantallaDemo.ASIGNAR, viaje.folio)
+    } }
+}
+
+@Composable
+private fun ContextoPantalla.DetalleViaje() {
+    val viaje = estado.viaje ?: return
+    val ahora = vm.ahora()
+    val editable = viaje.estado in listOf(EstadoViaje.PENDIENTE, EstadoViaje.ASIGNADO)
+    val vencido = editable && ahora.isAfter(viaje.fhAgenda.plusHours(1))
+    if (pantalla == PantallaDemo.SIN_CONEXION) { BannerSinConexion(); EstadoChip(stringResource(R.string.etiqueta_pendiente_sincronizar), EstiloChip.AVISO); Aviso(stringResource(R.string.aviso_sincronizacion_demo), TonoAviso.INFORMACION) }
+    if (pantalla == PantallaDemo.CONFLICTO) {
+        Aviso(stringResource(R.string.aviso_escenario_conflicto), TonoAviso.INFORMACION)
+        Enlace(R.string.accion_descartar_cambio, PantallaDemo.DETALLE_VIAJE)
+        Aviso(stringResource(R.string.aviso_cambio_conflicto), TonoAviso.PELIGRO); Accion(R.string.accion_actualizar, vm::actualizar, TipoBoton.SECUNDARIO) }
+    Dato(R.string.campo_folio, viaje.folio)
+    EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip)
+    if (editable && ahora.isAfter(viaje.fhAgenda)) EstadoChip(stringResource(if (vencido) R.string.etiqueta_vencido else R.string.etiqueta_atrasado), if (vencido) EstiloChip.PELIGRO_BORDE else EstiloChip.AVISO)
+    Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(viaje.fhAgenda))
+    Dato(R.string.campo_origen, viaje.origen.direccion); Dato(R.string.campo_destino, viaje.destino.direccion)
+    Dato(R.string.campo_nombre, viaje.nombreSolicitante); Dato(R.string.campo_empresa, viaje.razonSocial)
+    Dato(R.string.campo_telefono, viaje.telefonoSolicitante?.let(Formatos::telefono))
+    Dato(R.string.campo_vuelo, viaje.numeroVuelo); Dato(R.string.campo_conductor, viaje.nombreConductor); Dato(R.string.campo_patente, viaje.patenteMovil)
+    if (viaje.pasajeros.isEmpty()) Aviso(stringResource(R.string.aviso_faltan_pasajeros), TonoAviso.AVISO)
+    else Bloque(stringResource(R.string.campo_pasajeros)) { viaje.pasajeros.forEach { pasajero ->
+        Text(pasajero.nombre)
+        EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
+    } }
+    when (estado.cuenta?.rol) {
+        Rol.SOLICITANTE -> {
+            if (editable) Enlace(R.string.accion_agregar_pasajero, PantallaDemo.AGREGAR_PASAJERO)
+            if (editable && !vencido) Enlace(R.string.accion_cancelar_solicitud, PantallaDemo.CONFIRMAR_CANCELACION)
+            viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
+        }
+        Rol.ADMINISTRADOR -> {
+            if (editable && !vencido && viaje.cantidadPasajeros > 0) Enlace(if (viaje.estado == EstadoViaje.ASIGNADO) R.string.accion_reasignar else R.string.accion_asignar, PantallaDemo.ASIGNAR)
+            if (editable) Enlace(R.string.t06_cancelar_viaje, PantallaDemo.CANCELAR_VIAJE)
+            if (viaje.hashPago == null && viaje.estado != EstadoViaje.CANCELADO) Enlace(R.string.accion_registrar_pago, PantallaDemo.REGISTRAR_PAGO)
+            viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
+            Arqueo(viaje)
+        }
+        Rol.CONDUCTOR -> {
+            Arqueo(viaje)
+            if (viaje.estado in listOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO)) {
+                Enlace(R.string.accion_navegar, PantallaDemo.NAVEGAR)
+                if (ahora.isBefore(viaje.fhAgenda.minusHours(1))) Aviso(stringResource(R.string.iniciar_disponible_desde, Formatos.hora(viaje.fhAgenda.minusHours(1))), TonoAviso.INFORMACION)
+                if (vencido) Aviso(stringResource(R.string.iniciar_vencido), TonoAviso.AVISO)
+                Accion(R.string.accion_iniciar, { navegar(PantallaDemo.CONFIRMAR_INICIO, id) }, habilitada = viaje.estado == EstadoViaje.ASIGNADO && !vencido && !ahora.isBefore(viaje.fhAgenda.minusHours(1)), alto56 = true)
+                var confirmarFin by remember { mutableStateOf(false) }
+                Accion(R.string.accion_finalizar, { confirmarFin = true }, habilitada = viaje.estado == EstadoViaje.EN_CURSO, alto56 = true)
+                if (confirmarFin) AlertDialog(onDismissRequest = { confirmarFin = false }, text = { Text(stringResource(R.string.aviso_finalizar)) }, confirmButton = { TextButton(onClick = { confirmarFin = false; vm.ejecutar("finalizar") }) { Text(stringResource(R.string.accion_confirmar)) } }, dismissButton = { TextButton(onClick = { confirmarFin = false }) { Text(stringResource(R.string.accion_cancelar)) } })
+                if (viaje.estado == EstadoViaje.ASIGNADO) {
+                    Campo("motivo", R.string.campo_motivo)
+                    Accion(R.string.accion_rechazar, { vm.ejecutar("rechazarViaje") }, TipoBoton.PELIGRO, habilitada = vm.valor("motivo").isNotBlank(), alto56 = true)
+                }
+            }
+        }
+        null -> Unit
+    }
+    Dato(R.string.campo_motivo, viaje.motivo)
+}
+
+@Composable
+private fun ContextoPantalla.FormularioPasajero(borrador: Boolean) {
+    Campo(if (borrador) "pasajeroNombre" else "nombre", R.string.campo_nombre)
+    Selector("tipoDocumento", R.string.campo_tipo_documento, TipoDocumento.entries.map { Opcion(it.name, stringResource(it.etiqueta)) })
+    Campo("documento", R.string.campo_documento)
+}
+@Composable
+private fun ContextoPantalla.NuevaSolicitudFormulario() {
+    FechaHora()
+    var lugares by remember { mutableStateOf(emptyList<Ubicacion>()) }
+    LaunchedEffect(Unit) { lugares = vm.lugares() }
+    Aviso(stringResource(R.string.aviso_demo_lugares), TonoAviso.INFORMACION)
+    Selector("origen", R.string.campo_origen, lugares.map { Opcion(it.direccion, it.direccion) })
+    Selector("destino", R.string.campo_destino, lugares.map { Opcion(it.direccion, it.direccion) })
+    Campo("vuelo", R.string.campo_vuelo)
+    FormularioPasajero(true)
+    Accion(R.string.accion_agregar_pasajero, vm::agregarPasajero, TipoBoton.SECUNDARIO)
+    estado.pasajeros.forEachIndexed { i, p -> Bloque(p.nombre) {
+        Accion(R.string.accion_editar, { vm.editarPasajero(i) }, TipoBoton.SECUNDARIO)
+        Accion(R.string.accion_quitar, { vm.quitarPasajero(i) }, TipoBoton.SECUNDARIO)
+    } }
+    Accion(R.string.accion_guardar, habilitada = estado.pasajeros.isNotEmpty() && vm.valor("origen").isNotBlank() && vm.valor("destino").isNotBlank())
+}
+@Composable
+private fun ContextoPantalla.Perfil() {
+    estado.cuenta?.let { cuenta ->
+        Dato(R.string.campo_nombre, cuenta.nombre); Dato(R.string.campo_correo, cuenta.correo)
+        Dato(R.string.campo_telefono, cuenta.telefono?.let(Formatos::telefono))
+        Dato(R.string.campo_empresa, cuenta.razonSocial); Dato(R.string.campo_rut_empresa, cuenta.rutEmpresa?.let(Formatos::rut))
+        Dato(R.string.campo_registrado, Formatos.fechaHoraDetalle(cuenta.fechaRegistro))
+        if (cuenta.rol != Rol.CONDUCTOR) Enlace(R.string.accion_cambiar_password, PantallaDemo.CAMBIAR_PASSWORD, "")
+        if (cuenta.rol == Rol.SOLICITANTE) Enlace(R.string.login_abordar_viaje, PantallaDemo.ABORDAR, "")
+        if (cuenta.rol == Rol.ADMINISTRADOR) { Enlace(R.string.t06_registrar_admin, PantallaDemo.REGISTRAR_ADMIN, ""); Enlace(R.string.t06_cuentas_pendientes, PantallaDemo.CUENTAS_PENDIENTES, "") }
+        if (BuildConfig.MODO_LOCAL) Enlace(R.string.accion_ver_escenarios, PantallaDemo.NOTIFICACION, "")
+    }
+    Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
+}
+@Composable
+private fun ContextoPantalla.HabilitacionesResumen() {
+    estado.habilitaciones.forEach { h -> Bloque(h.patente) { Text(h.nombreConductor); EstadoChip(stringResource(h.estadoMovil.etiqueta(h.activoMovil)), h.estadoMovil.estiloChip(h.activoMovil)) } }
+}
+@Composable
+private fun Arqueo(viaje: Viaje) {
+    if (viaje.cantidadPasajeros == 0) return
+    val abordaron = viaje.pasajeros.count { it.fhAbordaje != null }
+    val texto = if (abordaron == viaje.cantidadPasajeros) stringResource(R.string.arqueo_todos)
+        else stringResource(R.string.arqueo_faltan, abordaron, viaje.cantidadPasajeros, viaje.pasajeros.filter { it.fhAbordaje == null }.joinToString { it.nombre })
+    // Un solo texto permite que TalkBack anuncie el arqueo completo.
+    Aviso(texto, TonoAviso.INFORMACION)
+}
+@Composable
+private fun ContextoPantalla.AbrirNavegacion() {
+    val contexto = LocalContext.current
+    val viaje = estado.viaje ?: return
+    val punto = if (viaje.estado == EstadoViaje.EN_CURSO) viaje.destino else viaje.origen
+    Dato(R.string.campo_destino, punto.direccion)
+    Text(stringResource(R.string.aviso_elegir_aplicacion))
+    listOf("Google Maps" to "com.google.android.apps.maps", "Waze" to "com.waze").forEach { (nombre, paquete) ->
+        BotonAncho(nombre, {
+            val uri = if (paquete == "com.waze") "waze://?ll=${punto.latitud},${punto.longitud}&navigate=yes" else "google.navigation:q=${punto.latitud},${punto.longitud}"
+            try { contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(paquete)) }
+            catch (e: android.content.ActivityNotFoundException) { vm.aviso(R.string.error_sin_app_navegacion) }
+        }, alto56 = true)
+    }
+}
