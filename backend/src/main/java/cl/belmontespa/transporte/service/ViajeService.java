@@ -114,42 +114,91 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// CU-04/RF05: también reasigna un viaje Asignado (HU05), liberando al conductor y móvil previos.
+	// CU-04/RF05, V2: asigna un viaje Pendiente o reasigna uno Asignado (RF22). Al reasignar solo se
+	// valida lo que cambia. V2 no cambia el estado del conductor ni del móvil: solo lo hace V3.
 	@Transactional
 	public ViajeDTOResponse asignar(String folio, AsignarViajeDTORequest request) {
 		Viaje viaje = buscarOFallar(folio);
-		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
 		Movil movil = movilService.buscarOFallar(request.patente());
-		boolean mismoConductor = viaje.getConductor() != null
-				&& viaje.getConductor().getIdUsuario().equals(conductor.getIdUsuario());
-		boolean mismoMovil = viaje.getMovil() != null && viaje.getMovil().getIdMovil().equals(movil.getIdMovil());
-		if (!mismoConductor && !ConductorService.DISPONIBLE.equals(conductor.getEstadoConductor().getEstado())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El conductor no está disponible");
+		exigirEstado(viaje, PENDIENTE, ASIGNADO);
+		LocalDateTime ahora = LocalDateTime.now(clock);
+		if (ahora.isAfter(viaje.getFhAgenda().plusHours(1))) {
+			throw conflicto("El viaje está vencido");
 		}
-		if (!mismoMovil && !MovilService.DISPONIBLE.equals(movil.getEstadoMovil().getNombre())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El móvil no está disponible");
+		int pasajeros = Objects.requireNonNullElse(viaje.getCantidadPasajeros(), 0);
+		if (pasajeros == 0) {
+			throw conflicto("El viaje no tiene pasajeros");
+		}
+		Conductor anterior = viaje.getConductor();
+		boolean cambiaConductor = anterior == null || !anterior.getIdUsuario().equals(conductor.getIdUsuario());
+		boolean cambiaMovil = viaje.getMovil() == null || !viaje.getMovil().getIdMovil().equals(movil.getIdMovil());
+		if (!cambiaConductor && !cambiaMovil) {
+			return aResponse(viaje);
+		}
+		if (cambiaConductor) {
+			if (!conductor.isActivo()) {
+				throw conflicto("El conductor no está activo");
+			}
+			if (!ConductorService.DISPONIBLE.equals(conductor.getEstadoConductor().getEstado())) {
+				throw conflicto("El conductor no está disponible");
+			}
+		}
+		if (cambiaMovil) {
+			if (!movil.isActivo()) {
+				throw conflicto("El móvil no está activo");
+			}
+			if (!MovilService.DISPONIBLE.equals(movil.getEstadoMovil().getNombre())) {
+				throw conflicto("El móvil no está disponible");
+			}
 		}
 		if (!detalleMovilConductorRepository.existsById(
 				new DetalleMovilConductorId(movil.getIdMovil(), conductor.getIdUsuario()))) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El conductor no está habilitado para el móvil");
+			throw conflicto("El conductor no está habilitado para el móvil");
 		}
-		if (Objects.requireNonNullElse(viaje.getCantidadPasajeros(), 0) > movil.getCapacidad()) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Los pasajeros superan la capacidad del móvil");
+		if (cambiaMovil && pasajeros > movil.getCapacidad()) {
+			throw conflicto("Los pasajeros superan la capacidad del móvil");
 		}
-		liberar(viaje);
+		if (cambiaConductor && haySolape(viaje, viajeRepository.findByConductorIdUsuario(conductor.getIdUsuario()))) {
+			throw conflicto("El conductor ya tiene un viaje a menos de 2 horas");
+		}
+		if (cambiaMovil && haySolape(viaje, viajeRepository.findByMovilIdMovil(movil.getIdMovil()))) {
+			throw conflicto("El móvil ya tiene un viaje a menos de 2 horas");
+		}
 		viaje.setConductor(conductor);
 		viaje.setMovil(movil);
 		viaje.setEstado(estado(ASIGNADO));
-		viaje.setFhAsignacion(LocalDateTime.now(clock));
-		conductorService.cambiarEstado(conductor, ConductorService.OCUPADO);
-		movilService.cambiarEstado(movil, MovilService.EN_USO);
+		viaje.setFhAsignacion(ahora);
+		if (cambiaMovil) {
+			// Otro vehículo, otro QR: los pasajeros vuelven a Por abordar.
+			detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
+					.forEach(detalle -> detalle.setFhAbordaje(null));
+		}
 		Map<String, String> datos = Map.of("folio", viaje.getFolio());
 		firebaseClient.notificar(conductor.getUsuario().getTokenFcm(),
 				"Nuevo viaje asignado", "Viaje " + viaje.getFolio() + " para " + viaje.getFhAgenda(), datos);
 		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
 				"Viaje asignado", "Tu viaje " + viaje.getFolio() + " ya tiene conductor y vehículo", datos);
+		if (cambiaConductor && anterior != null) {
+			firebaseClient.notificar(anterior.getUsuario().getTokenFcm(),
+					"Viaje reasignado", "El viaje " + viaje.getFolio() + " fue asignado a otro conductor",
+					Map.of("tipo", "AGENDA", "folio", viaje.getFolio()));
+		}
 		return aResponse(viaje);
+	}
+
+	// V2: ninguno de los dos con otro viaje Asignado o En curso a menos de 2 horas (extremos excluidos).
+	private static boolean haySolape(Viaje viaje, List<Viaje> deLaMismaFlota) {
+		LocalDateTime desde = viaje.getFhAgenda().minusHours(2);
+		LocalDateTime hasta = viaje.getFhAgenda().plusHours(2);
+		return deLaMismaFlota.stream()
+				.filter(otro -> !otro.getIdViaje().equals(viaje.getIdViaje()))
+				.filter(otro -> Set.of(ASIGNADO, EN_CURSO).contains(otro.getEstado().getNombreEstado()))
+				.anyMatch(otro -> otro.getFhAgenda().isAfter(desde) && otro.getFhAgenda().isBefore(hasta));
+	}
+
+	private static ResponseStatusException conflicto(String mensaje) {
+		return new ResponseStatusException(HttpStatus.CONFLICT, mensaje);
 	}
 
 	// CU-05/RF09: Asignado → En Curso → Finalizado, solo por el conductor del viaje.
@@ -164,6 +213,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		String nuevo = request.estado().toUpperCase(Locale.ROOT);
 		if (EN_CURSO.equals(nuevo) && ASIGNADO.equals(actual)) {
 			viaje.setFhInicio(LocalDateTime.now(clock));
+			// V3: desde aquí el conductor está Ocupado y el móvil En uso (la ventana de ± 1 h es de HU09).
+			conductorService.cambiarEstado(viaje.getConductor(), ConductorService.OCUPADO);
+			movilService.cambiarEstado(viaje.getMovil(), MovilService.EN_USO);
 		} else if (FINALIZADO.equals(nuevo) && EN_CURSO.equals(actual)) {
 			viaje.setFhFin(LocalDateTime.now(clock));
 			liberar(viaje);
@@ -177,7 +229,8 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// CU-08/RF15: libera conductor y móvil, anula el pago y avisa al conductor.
+	// CU-08/RF15: anula el pago y avisa al conductor. Un viaje Pendiente o Asignado no ocupa a nadie
+	// (solo V3 lo hace), así que no hay nada que liberar.
 	@Transactional
 	public ViajeDTOResponse cancelar(String folio, String correoSolicitante) {
 		Viaje viaje = buscarOFallar(folio);
@@ -187,7 +240,6 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		viaje.setEstado(estado(CANCELADO));
 		viaje.setFhFin(LocalDateTime.now(clock));
-		liberar(viaje);
 		if (viaje.getPago() != null) {
 			pagoService.anular(viaje.getPago());
 		}
@@ -254,7 +306,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 				.toList();
 	}
 
-	// Conductor y móvil vuelven a Disponible; el viaje conserva la referencia para el historial.
+	// V4: conductor y móvil vuelven a Disponible; el viaje conserva la referencia para el historial.
 	private void liberar(Viaje viaje) {
 		if (viaje.getConductor() != null) {
 			conductorService.cambiarEstado(viaje.getConductor(), ConductorService.DISPONIBLE);

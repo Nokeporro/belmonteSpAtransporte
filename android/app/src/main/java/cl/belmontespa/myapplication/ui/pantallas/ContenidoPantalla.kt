@@ -46,6 +46,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES -> ListaViajes()
         // «Solicitudes» del Administrador la dibuja SolicitudesScreen, desde PantallaT06 (HU04).
         PantallaDemo.SOLICITUDES -> Unit
+        // «Asignar conductor y vehículo» la dibuja AsignarScreen, desde PantallaT06 (HU05).
+        PantallaDemo.ASIGNAR -> Unit
         PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN,
         PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA,
         PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
@@ -76,15 +78,6 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 Accion(R.string.accion_aprobar, { vm.ejecutar("aprobar", cuenta.correo) })
                 Accion(R.string.accion_rechazar, { vm.ejecutar("rechazarCuenta", cuenta.correo) }, TipoBoton.PELIGRO)
             } }
-        }
-        PantallaDemo.ASIGNAR -> {
-            estado.viaje?.let { Dato(R.string.campo_folio, it.folio); Dato(R.string.campo_pasajeros, it.cantidadPasajeros.toString()) }
-            Selector("conductor", R.string.campo_conductor, estado.conductores.filter { it.activo }.map {
-                Opcion(it.correo, it.nombre + " · " + it.viajesAsignados + (it.folioEnCurso?.let { f -> " · $f" } ?: ""), it.estado == EstadoConductor.DISPONIBLE)
-            })
-            val habilitadas = estado.habilitaciones.filter { it.correoConductor == vm.valor("conductor") }.map { it.patente }.toSet()
-            Selector("vehiculo", R.string.campo_vehiculo, estado.moviles.filter { it.activo && it.patente in habilitadas }.map { Opcion(it.patente, it.patente + " · " + it.capacidad, it.estado == EstadoMovil.DISPONIBLE && it.capacidad >= (estado.viaje?.cantidadPasajeros ?: 1)) })
-            Accion(R.string.accion_asignar, habilitada = vm.valor("conductor").isNotBlank() && vm.valor("vehiculo").isNotBlank())
         }
         PantallaDemo.CONDUCTORES -> {
             Enlace(R.string.t06_registrar_conductor, PantallaDemo.REGISTRAR_CONDUCTOR, "")

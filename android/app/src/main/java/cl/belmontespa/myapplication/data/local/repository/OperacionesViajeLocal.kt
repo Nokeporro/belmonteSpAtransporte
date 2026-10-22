@@ -4,7 +4,6 @@ import cl.belmontespa.myapplication.data.local.Hashes
 import cl.belmontespa.myapplication.data.local.entity.*
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
-import java.time.Duration
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -58,17 +57,22 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
     suspend fun asignar(folio: String, correo: String, patente: String): Resultado<Unit> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
         val v = local.viaje(folio)
-        exigir(v.estado in listOf("PENDIENTE", "ASIGNADO") && !v.vencido(local), "El viaje ya no se puede asignar.")
         val u = local.usuario(correo)
+        exigir(u.rol == "CONDUCTOR", "La cuenta no es de un conductor.")
         val m = local.db.movilDao().obtener(patente) ?: falla(ErrorApp.NoEncontrado)
-        exigir(u.rol == "CONDUCTOR" && u.activo && m.activo && u.estadoConductor == "DISPONIBLE" && m.estadoMovil == "DISPONIBLE", "Selecciona conductor y vehículo disponibles.")
-        exigir(v.cantidadPasajeros in 1..m.capacidad, "Revisa la cantidad de pasajeros y la capacidad.")
-        exigir(local.db.habilitacionDao().observarDelConductor(correo).first().any { it.patente == patente }, "El vehículo no está habilitado para el conductor.")
-        val agenda = FechaIso.leer(v.fhAgenda)
-        exigir(local.viajes().none { otro -> otro.folio != folio && otro.estado in listOf("ASIGNADO", "EN_CURSO") &&
-            (otro.correoConductor == correo || otro.patenteMovil == patente) &&
-            kotlin.math.abs(Duration.between(agenda, FechaIso.leer(otro.fhAgenda)).toMinutes()) < 120 }, "Hay otro viaje a menos de dos horas.")
-        if (v.patenteMovil != patente) local.db.viajePasajeroDao().limpiarAbordaje(folio)
+        val ocupados = local.viajes().filter { it.folio != folio && it.estado in listOf("ASIGNADO", "EN_CURSO") }
+        val conductor = ParticipanteAsignacion(u.activo, u.estadoConductor == "DISPONIBLE",
+            ocupados.filter { it.correoConductor == correo }.map { FechaIso.leer(it.fhAgenda) }, v.correoConductor == correo)
+        val movil = ParticipanteAsignacion(m.activo, m.estadoMovil == "DISPONIBLE",
+            ocupados.filter { it.patenteMovil == patente }.map { FechaIso.leer(it.fhAgenda) }, v.patenteMovil == patente)
+        val habilitado = local.db.habilitacionDao().observarDelConductor(correo).first().any { it.patente == patente }
+        val conflicto = conflictoDeAsignacion(EstadoViaje.valueOf(v.estado), FechaIso.leer(v.fhAgenda), v.cantidadPasajeros,
+            local.ahora(), conductor, movil, m.capacidad, habilitado)
+        exigir(conflicto == null, conflicto.orEmpty())
+        // Repetir la misma asignación no cambia nada: ni fecha de asignación ni abordaje.
+        if (conductor.yaAsignado && movil.yaAsignado) return@ejecutar
+        // Otro vehículo, otro QR: los pasajeros vuelven a Por abordar.
+        if (!movil.yaAsignado) local.db.viajePasajeroDao().limpiarAbordaje(folio)
         local.db.viajeDao().guardar(v.copy(estado = "ASIGNADO", correoConductor = correo, nombreConductor = u.nombre,
             patenteMovil = patente, fhAsignacion = FechaIso.texto(local.ahora()), motivo = null))
     }

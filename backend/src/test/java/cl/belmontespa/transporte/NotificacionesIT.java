@@ -116,6 +116,67 @@ class NotificacionesIT extends IntegrationTest {
 		}
 
 		@Test
+		@DisplayName("reasignar a otro conductor avisa al reemplazado, con tipo AGENDA")
+		void reasignarAvisaAlReemplazado() {
+			Cuenta solicitante = api.solicitante();
+			Flota primera = api.flota(4);
+			Flota segunda = api.flota(4);
+			api.dispositivo(solicitante);
+			String tokenReemplazado = api.dispositivo(primera.conductor());
+			String tokenNuevo = api.dispositivo(segunda.conductor());
+			String folio = api.viajeAsignado(solicitante, primera);
+			esperarEnvios(2);
+			fcm.limpiar();
+
+			api.asignarOk(folio, segunda.conductor().correo(), segunda.patente());
+
+			esperarEnvios(3);
+			Envio alReemplazado = fcm.para(tokenReemplazado).getFirst();
+			assertThat(alReemplazado.titulo()).isEqualTo("Viaje reasignado");
+			assertThat(alReemplazado.mensaje()).isEqualTo("El viaje " + folio + " fue asignado a otro conductor");
+			assertThat(alReemplazado.datos()).containsEntry("tipo", "AGENDA").containsEntry("folio", folio);
+			assertThat(fcm.para(tokenNuevo).getFirst().titulo()).isEqualTo("Nuevo viaje asignado");
+		}
+
+		@Test
+		@DisplayName("reasignar solo el móvil no genera aviso de reemplazo: el conductor es el mismo")
+		void reasignarSoloElMovil() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			String otroMovil = api.movil(4);
+			api.habilitarOk(otroMovil, flota.conductor().correo());
+			api.dispositivo(solicitante);
+			api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(2);
+			fcm.limpiar();
+
+			api.asignarOk(folio, flota.conductor().correo(), otroMovil);
+
+			esperarEnvios(2);
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).extracting(Envio::titulo)
+					.containsExactlyInAnyOrder("Nuevo viaje asignado", "Viaje asignado");
+		}
+
+		@Test
+		@DisplayName("repetir la misma asignación no avisa a nadie")
+		void asignacionSinCambios() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			api.dispositivo(solicitante);
+			api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(2);
+			fcm.limpiar();
+
+			api.asignarOk(folio, flota.conductor().correo(), flota.patente());
+
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).isEmpty();
+		}
+
+		@Test
 		@DisplayName("EN_CURSO y FINALIZADO avisan al solicitante")
 		void cambioDeEstado() {
 			Cuenta solicitante = api.solicitante();

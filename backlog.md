@@ -109,7 +109,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | 3 hechas, 4 ajustar, 1 falta | — |
 | 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Usa HU04 y HU08 | — |
 | 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | Listo |
-| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | — |
+| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | Listo |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | — |
 | 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | — |
 | 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | — |

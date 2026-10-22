@@ -238,8 +238,18 @@ public class Api {
 
 	/** Crea un viaje PENDIENTE a tres días y devuelve su folio. */
 	public String viaje(Cuenta solicitante) {
-		return exigir(post("/viajes", solicitante.token(), cuerpoViaje(LocalDateTime.now().plusDays(3), "Providencia")),
+		return viaje(solicitante, LocalDateTime.now().plusDays(3));
+	}
+
+	/** Crea un viaje PENDIENTE para esa hora y devuelve su folio. */
+	public String viaje(Cuenta solicitante, LocalDateTime fhAgenda) {
+		return exigir(post("/viajes", solicitante.token(), cuerpoViaje(fhAgenda, "Providencia")),
 				"crear viaje", 201).texto("$.folio");
+	}
+
+	/** Agrega un pasajero nuevo al viaje: V2 no asigna un viaje sin pasajeros. */
+	public void conPasajero(Cuenta solicitante, String folio) {
+		agregarPasajeroOk(solicitante, folio, pasajero(solicitante));
 	}
 
 	public Resp verViaje(String folio) {
@@ -276,9 +286,15 @@ public class Api {
 		exigir(cancelar(folio, solicitante.token()), "cancelar " + folio, 200);
 	}
 
-	/** Viaje ASIGNADO a un conductor y móvil nuevos; devuelve el folio. */
+	/** Viaje con un pasajero, ASIGNADO a un conductor y móvil nuevos; devuelve el folio. */
 	public String viajeAsignado(Cuenta solicitante, Flota flota) {
-		String folio = viaje(solicitante);
+		return viajeAsignado(solicitante, flota, LocalDateTime.now().plusDays(3));
+	}
+
+	/** Lo mismo para esa hora: sirve para dar varios viajes al mismo conductor sin que se solapen. */
+	public String viajeAsignado(Cuenta solicitante, Flota flota, LocalDateTime fhAgenda) {
+		String folio = viaje(solicitante, fhAgenda);
+		conPasajero(solicitante, folio);
 		asignarOk(folio, flota.conductor().correo(), flota.patente());
 		return folio;
 	}

@@ -102,6 +102,45 @@ class RepositoriosT06Test {
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), resultado)
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
     }
+    // V2 no cambia el estado de nadie: Ocupado y En uso los marca V3, al iniciar el viaje.
+    @Test fun asignarNoCambiaElEstadoDelConductorNiDelVehiculo() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        assertTrue(viajes.asignar("TR-1051", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
+        val guardado = local.viaje("TR-1051")
+        assertEquals("ASIGNADO", guardado.estado)
+        assertEquals("pmunoz@belmontespa.cl", guardado.correoConductor)
+        assertNotNull(guardado.fhAsignacion)
+        assertEquals("DISPONIBLE", local.usuario("pmunoz@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
+    }
+    @Test fun unConductorOcupadoNoSePuedeAsignar() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor no está disponible")),
+            viajes.asignar("TR-1051", "jlara@belmontespa.cl", "GZRW90"))
+        assertEquals("PENDIENTE", local.viaje("TR-1051").estado)
+    }
+    @Test fun otroViajeDelConductorAMenosDeDosHorasEsConflicto() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // TR-1047 es una hora antes que TR-1042, el viaje de Iván Reyes.
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje a menos de 2 horas")),
+            viajes.asignar("TR-1047", "ireyes@belmontespa.cl", "KXJR42"))
+        assertEquals("PENDIENTE", local.viaje("TR-1047").estado)
+    }
+    @Test fun reasignarSoloElVehiculoVuelveAPorAbordar() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // LPHT17 tiene TR-1049 casi cuatro horas después: no choca.
+        assertTrue(viajes.asignar("TR-1042", "ireyes@belmontespa.cl", "LPHT17") is Resultado.Exito)
+        assertEquals("LPHT17", local.viaje("TR-1042").patenteMovil)
+        assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
+    }
+    @Test fun repetirLaAsignacionNoCambiaNada() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val viajeAntes = local.viaje("TR-1042")
+        val pasajerosAntes = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
+        assertTrue(viajes.asignar("TR-1042", "ireyes@belmontespa.cl", "KXJR42") is Resultado.Exito)
+        assertEquals(viajeAntes, local.viaje("TR-1042"))
+        assertEquals(pasajerosAntes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
+    }
 }
 private class PreferenciasRepositorio : DataStore<Preferences> {
     private val estado = MutableStateFlow(emptyPreferences())

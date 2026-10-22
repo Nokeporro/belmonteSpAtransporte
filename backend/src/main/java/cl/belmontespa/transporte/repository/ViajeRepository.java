@@ -30,6 +30,10 @@ public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 			"origen.comuna.region", "destino.comuna.region", "conductor.usuario", "movil", "pago.estadoPago"})
 	List<Viaje> findByConductorIdUsuario(Long idUsuario);
 
+	// V2: viajes del móvil, para comprobar que ninguno quede a menos de 2 horas de otro.
+	@EntityGraph(attributePaths = {"estado"})
+	List<Viaje> findByMovilIdMovil(Long idMovil);
+
 	// Todos los viajes (Administrador sin estado).
 	@Override
 	@EntityGraph(attributePaths = {"estado", "solicitante.usuario", "solicitante.empresa",

@@ -67,6 +67,7 @@ class ViajeConsultasIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			pendienteDelDia = viajeEn(ana, dia.atTime(9, 0));
 			asignadoDelDia = viajeEn(ana, dia.atTime(15, 0));
+			api.conPasajero(ana, asignadoDelDia);
 			api.asignarOk(asignadoDelDia, flota.conductor().correo(), flota.patente());
 			pendienteDelOtroDia = viajeEn(ana, otroDia.atTime(9, 0));
 		}

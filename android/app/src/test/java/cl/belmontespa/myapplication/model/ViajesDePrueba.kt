@@ -9,6 +9,8 @@ internal fun viajeDePrueba(
     estado: EstadoViaje = EstadoViaje.PENDIENTE,
     cantidadPasajeros: Int = 1,
     nombreSolicitante: String = "Marcela Soto",
+    correoConductor: String? = null,
+    patenteMovil: String? = null,
 ): Viaje {
     val lugar = Ubicacion("Av. Providencia 1234", "Providencia", "Metropolitana de Santiago", -33.4261, -70.611)
     return Viaje(
@@ -27,9 +29,9 @@ internal fun viajeDePrueba(
         fhFin = null,
         numeroVuelo = null,
         cantidadPasajeros = cantidadPasajeros,
-        correoConductor = null,
-        nombreConductor = null,
-        patenteMovil = null,
+        correoConductor = correoConductor,
+        nombreConductor = correoConductor?.let { "Conductor" },
+        patenteMovil = patenteMovil,
         hashPago = null,
         estadoPago = null,
         motivo = null,
