@@ -11,8 +11,12 @@ public record UsuarioDTORequest(
 		@NotBlank @Size(min = 2, max = 120) String nombre,
 		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correo,
 		@Pattern(regexp = Reglas.TELEFONO) String telefono,
-		@Contrasena String password
+		@Contrasena String password,
+		String passwordActual
 ) {
+	public UsuarioDTORequest(String nombre, String correo, String telefono, String password) {
+		this(nombre, correo, telefono, password, null);
+	}
 
 	public UsuarioDTORequest {
 		nombre = Normalizar.texto(nombre);

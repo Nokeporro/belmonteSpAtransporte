@@ -49,7 +49,15 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 	@Override
 	protected List<ViajeDTOResponse> listarPara(Authentication auth, Map<String, String> filtros) {
 		if (tieneRol(auth, SOL)) {
-			return viajeService.listarDeSolicitante(auth.getName());
+			String estado = filtros.get("estado");
+			if (estado != null && !java.util.Set.of("PENDIENTE", "ASIGNADO", "EN_CURSO", "FINALIZADO", "CANCELADO").contains(estado)) {
+				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "estado: Valor inválido.");
+			}
+			LocalDate dia = filtros.containsKey("fecha") ? fecha(filtros.get("fecha")) : null;
+			return viajeService.listarDeSolicitante(auth.getName()).stream()
+					.filter(v -> estado == null || estado.equals(v.estado()))
+					.filter(v -> dia == null || dia.equals(v.fhAgenda().toLocalDate()))
+					.sorted(cl.belmontespa.transporte.service.OrdenViajes.paraEstado(estado)).toList();
 		}
 		if (tieneRol(auth, CON)) {
 			return viajeService.listarDelDia(auth.getName(), fecha(filtros.get("fecha")));

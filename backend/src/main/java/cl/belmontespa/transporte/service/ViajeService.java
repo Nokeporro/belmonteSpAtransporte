@@ -101,10 +101,22 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	public ViajeDTOResponse crear(ViajeDTORequest request, String correoSolicitante) {
 		Viaje viaje = new Viaje();
 		viaje.setSolicitante(solicitanteService.buscarOFallar(correoSolicitante));
-		viaje.setOrigen(ubicacionService.obtenerOCrear(request.origen()));
-		viaje.setDestino(ubicacionService.obtenerOCrear(request.destino()));
+		if (!"APROBADO".equals(viaje.getSolicitante().getEstadoSolicitante().getEstado())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La cuenta debe estar aprobada");
+		}
+		LocalDateTime ahora = LocalDateTime.now(clock);
+		LocalDateTime agenda = request.fhAgenda().withSecond(0).withNano(0);
+		if (agenda.isBefore(ahora.plusHours(2)) || agenda.isAfter(ahora.plusDays(90))) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fhAgenda: Debe estar entre 2 horas y 90 días desde ahora.");
+		}
+		if (request.origen().latitud().compareTo(request.destino().latitud()) == 0
+				&& request.origen().longitud().compareTo(request.destino().longitud()) == 0) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "destino: Debe ser distinto del origen.");
+		}
+		viaje.setOrigen(ubicacionService.obtenerOCrear(request.origen(), "origen"));
+		viaje.setDestino(ubicacionService.obtenerOCrear(request.destino(), "destino"));
 		viaje.setEstado(estado(PENDIENTE));
-		viaje.setFhAgenda(request.fhAgenda());
+		viaje.setFhAgenda(agenda);
 		viaje.setNumeroVuelo(request.numeroVuelo());
 		viajeRepository.saveAndFlush(viaje);
 		// fh_creacion y cantidad_pasajeros los completa la base de datos.

@@ -39,6 +39,10 @@ public class EmpresaService extends CrudService<Empresa, String, Void, EmpresaDT
 	}
 
 	// RF01: el registro del Solicitante reutiliza la empresa si el RUT ya existe.
+	boolean existe(String rut) {
+		return empresaRepository.findByRut(rut).isPresent();
+	}
+
 	Empresa obtenerOCrear(String razonSocial, String rut) {
 		return empresaRepository.findByRut(rut)
 				.orElseGet(() -> empresaRepository.save(nueva(razonSocial, rut)));

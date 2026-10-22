@@ -121,7 +121,14 @@ public class Api {
 
 	public String admin() {
 		if (tokenAdmin == null) {
-			tokenAdmin = login(ADMIN_CORREO, ADMIN_CLAVE);
+			Resp login = exigir(iniciarSesion(ADMIN_CORREO, ADMIN_CLAVE), "login administrador", 200);
+			tokenAdmin = login.texto("$.accessToken");
+			if (Boolean.TRUE.equals(login.json("$.cambioPasswordRequerido"))) {
+				exigir(put("/usuarios/" + ADMIN_CORREO, tokenAdmin, """
+						{"nombre":"Administrador","correo":"%s","password":"%s","passwordActual":"%s"}
+						""".formatted(ADMIN_CORREO, ADMIN_CLAVE, ADMIN_CLAVE)), "cambiar temporal inicial", 200);
+				tokenAdmin = login(ADMIN_CORREO, ADMIN_CLAVE);
+			}
 		}
 		return tokenAdmin;
 	}
@@ -203,12 +210,13 @@ public class Api {
 
 	public Resp pasajero(String token, String dni, String nombre) {
 		return post("/pasajeros", token, """
-				{"dni":"%s","nombre":"%s"}""".formatted(dni, nombre));
+				{"tipoDocumento":"RUT","dni":"%s","nombre":"%s"}""".formatted(dni, nombre));
 	}
 
 	/** Crea un pasajero con DNI único y devuelve su dniHash. */
 	public String pasajero(Cuenta solicitante) {
-		String dni = "%d-K".formatted(10_000_000 + CONTADOR.incrementAndGet());
+		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
+		String dni = cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 		return exigir(pasajero(solicitante.token(), dni, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
 	}
 

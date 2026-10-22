@@ -31,24 +31,36 @@ public class DetalleViajePasajeroController {
 	}
 
 	@GetMapping
-	public List<DetalleViajePasajeroDTOResponse> listar() {
-		return detalleService.listar();
+	public List<DetalleViajePasajeroDTOResponse> listar(Authentication auth) {
+		return detalleService.listar().stream().filter(d -> esAdmin(auth)
+				|| viajeService.obtener(d.folio()).correoSolicitante().equalsIgnoreCase(auth.getName())).toList();
 	}
 
 	@GetMapping("/{folio}/{dniHash}")
-	public DetalleViajePasajeroDTOResponse obtener(@PathVariable String folio, @PathVariable String dniHash) {
+	public DetalleViajePasajeroDTOResponse obtener(@PathVariable String folio, @PathVariable String dniHash, Authentication auth) {
+		exigirAcceso(folio, auth);
 		return detalleService.obtener(new DetalleViajePasajeroService.Clave(folio, dniHash));
 	}
 
 	// Solo el Solicitante dueño del viaje agrega pasajeros.
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public DetalleViajePasajeroDTOResponse crear(@Valid @RequestBody DetalleViajePasajeroDTORequest request,
+	public org.springframework.http.ResponseEntity<DetalleViajePasajeroDTOResponse> crear(@Valid @RequestBody DetalleViajePasajeroDTORequest request,
 			Authentication auth) {
 		String dueno = viajeService.obtener(request.folio()).correoSolicitante();
 		if (!dueno.equalsIgnoreCase(auth.getName())) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 		}
-		return detalleService.crear(request);
+		boolean existente = detalleService.existe(request.folio(), request.dniHash());
+		return org.springframework.http.ResponseEntity.status(existente ? HttpStatus.OK : HttpStatus.CREATED).body(detalleService.crear(request));
+	}
+
+	private boolean esAdmin(Authentication auth) {
+		return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+	}
+
+	private void exigirAcceso(String folio, Authentication auth) {
+		if (!esAdmin(auth) && !viajeService.obtener(folio).correoSolicitante().equalsIgnoreCase(auth.getName())) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+		}
 	}
 }

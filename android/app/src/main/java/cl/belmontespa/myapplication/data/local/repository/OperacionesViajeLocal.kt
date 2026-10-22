@@ -15,20 +15,21 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
         val sesion = local.sesion(Rol.SOLICITANTE)
         val u = local.usuario(sesion.correo)
         exigir(u.estadoSolicitante == "APROBADO", "La cuenta debe estar aprobada.")
-        exigir(!s.fhAgenda.isBefore(local.ahora().plusHours(2)) && !s.fhAgenda.isAfter(local.ahora().plusDays(90)), "La fecha debe estar entre 2 horas y 90 días desde ahora.")
-        exigir(s.pasajeros.isNotEmpty() && s.pasajeros.all { it.nombre.isNotBlank() && it.dni.isNotBlank() }, "Agrega al menos un pasajero con nombre y documento.")
+        validar(cl.belmontespa.myapplication.util.Validaciones.solicitud(s, local.ahora()))
+        val origen = normalizarLugar(s.origen, "origen")
+        val destino = normalizarLugar(s.destino, "destino")
         exigir(s.pasajeros.map { Hashes.documento(it.dni) }.distinct().size == s.pasajeros.size, "Hay pasajeros repetidos.")
         val numero = (local.viajes().maxOfOrNull { it.folioCorrelativo } ?: 1000) + 1
         val folio = "TR-$numero"
         val v = ViajeEntity(
             folio = folio, estado = "PENDIENTE", correoSolicitante = u.correo, nombreSolicitante = u.nombre,
             telefonoSolicitante = u.telefono, razonSocial = u.razonSocial!!,
-            origenDireccion = s.origen.direccion, origenComuna = s.origen.comuna, origenRegion = s.origen.region,
-            origenLatitud = s.origen.latitud, origenLongitud = s.origen.longitud,
-            destinoDireccion = s.destino.direccion, destinoComuna = s.destino.comuna, destinoRegion = s.destino.region,
-            destinoLatitud = s.destino.latitud, destinoLongitud = s.destino.longitud,
-            fhCreacion = FechaIso.texto(local.ahora()), fhAgenda = FechaIso.texto(s.fhAgenda),
-            fhAsignacion = null, fhInicio = null, fhFin = null, numeroVuelo = s.numeroVuelo,
+            origenDireccion = origen.direccion, origenComuna = origen.comuna, origenRegion = origen.region,
+            origenLatitud = origen.latitud, origenLongitud = origen.longitud,
+            destinoDireccion = destino.direccion, destinoComuna = destino.comuna, destinoRegion = destino.region,
+            destinoLatitud = destino.latitud, destinoLongitud = destino.longitud,
+            fhCreacion = FechaIso.texto(local.ahora()), fhAgenda = FechaIso.texto(s.fhAgenda.withSecond(0).withNano(0)),
+            fhAsignacion = null, fhInicio = null, fhFin = null, numeroVuelo = cl.belmontespa.myapplication.util.Validaciones.vuelo(s.numeroVuelo),
             cantidadPasajeros = s.pasajeros.size, correoConductor = null, nombreConductor = null,
             patenteMovil = null, hashPago = null, estadoPago = null, motivo = null,
             folioCorrelativo = numero, descargadoEn = local.clock.millis(),
@@ -36,6 +37,16 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
         local.db.viajeDao().guardar(v)
         s.pasajeros.forEach { insertarPasajero(folio, it) }
         folio
+    }
+    private fun normalizarLugar(lugar: Ubicacion, campo: String): Ubicacion {
+        val nombre = cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(lugar.comuna)
+        val region = cl.belmontespa.myapplication.data.local.DatosDemo.regiones.firstOrNull { r -> r.comunas.any {
+            cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(it) == nombre
+        } } ?: falla(ErrorApp.Validacion(mapOf("$campo.comuna" to "No existe en el catálogo.")))
+        val comuna = region.comunas.first { cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(it) == nombre }
+        return lugar.copy(direccion = lugar.direccion.trim(), comuna = comuna, region = region.nombre,
+            latitud = lugar.latitud.toBigDecimal().setScale(6, java.math.RoundingMode.HALF_UP).toDouble(),
+            longitud = lugar.longitud.toBigDecimal().setScale(6, java.math.RoundingMode.HALF_UP).toDouble())
     }
     private suspend fun insertarPasajero(folio: String, p: NuevoPasajero) {
         val hash = Hashes.documento(p.dni)
@@ -47,9 +58,9 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
         local.sesion(Rol.SOLICITANTE)
         val v = local.alcance(folio)
         exigir(v.estado in listOf("PENDIENTE", "ASIGNADO"), "El viaje ya no admite pasajeros.")
-        exigir(p.nombre.isNotBlank() && p.dni.isNotBlank(), "Ingresa nombre y documento.")
+        validar(cl.belmontespa.myapplication.util.Validaciones.pasajero(p))
         val anteriores = local.db.viajePasajeroDao().obtenerDelViaje(folio)
-        exigir(anteriores.none { it.dniHash == Hashes.documento(p.dni) }, "El pasajero ya está en este viaje.")
+        if (anteriores.any { it.dniHash == Hashes.documento(p.dni) }) return@ejecutar Unit
         val capacidad = v.patenteMovil?.let { local.db.movilDao().obtener(it)?.capacidad }
         exigir(capacidad == null || anteriores.size < capacidad, "El vehículo no tiene capacidad disponible.")
         insertarPasajero(folio, p)

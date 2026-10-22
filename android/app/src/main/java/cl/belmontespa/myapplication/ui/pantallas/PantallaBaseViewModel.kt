@@ -38,6 +38,7 @@ data class EstadoPantallaDemo(
     val pasajeros: List<NuevoPasajero> = emptyList(),
     val destino: Pair<PantallaDemo, String>? = null,
     val horaAbordaje: LocalDateTime? = null,
+    val ubicaciones: Map<String, Ubicacion> = emptyMap(),
 )
 
 // La UI recibe solo interfaces: no conoce Room, entidades ni implementaciones demo.
@@ -61,6 +62,28 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     private var referencia = ""
     private var consulta: Job? = null
     fun campo(clave: String, valor: String) { mutable.update { it.copy(campos = it.campos + (clave to valor), modificado = pantalla !in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES, PantallaDemo.MIS_VIAJES), error = null, aviso = null) } }
+    fun seleccionarLugar(campo: String, lugar: Ubicacion) {
+        val catalogos = mutable.value.catalogos
+        val region = catalogos?.regiones?.firstOrNull { r -> r.comunas.any {
+            cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(it) == cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(lugar.comuna)
+        } }
+        val comuna = region?.comunas?.firstOrNull {
+            cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(it) == cl.belmontespa.myapplication.util.Validaciones.nombreCatalogo(lugar.comuna)
+        }
+        val seleccionado = lugar.copy(comuna = comuna.orEmpty(), region = region?.nombre ?: lugar.region)
+        mutable.update { it.copy(ubicaciones = it.ubicaciones + (campo to seleccionado),
+            campos = it.campos + mapOf(campo to lugar.direccion, "$campo.region" to seleccionado.region, "$campo.comuna" to seleccionado.comuna), modificado = true, error = null) }
+    }
+    fun corregirComuna(campo: String, comuna: String) {
+        val lugar = mutable.value.ubicaciones[campo] ?: return
+        val region = mutable.value.catalogos?.regiones?.find { comuna in it.comunas } ?: return
+        seleccionarLugar(campo, lugar.copy(comuna = comuna, region = region.nombre))
+    }
+    fun seleccionarRegion(campo: String) {
+        val lugar = mutable.value.ubicaciones[campo] ?: return
+        mutable.update { it.copy(ubicaciones = it.ubicaciones + (campo to lugar.copy(region = valor("$campo.region"), comuna = "")),
+            campos = it.campos + ("$campo.comuna" to ""), modificado = true) }
+    }
     fun consumirDestino() { mutable.update { it.copy(destino = null) } }
     fun aviso(id: Int) { mutable.update { it.copy(aviso = id) } }
     fun error(error: ErrorApp) { mutable.update { it.copy(error = error) } }
@@ -124,6 +147,11 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     fun agregarPasajero() {
         if (valor("pasajeroNombre").isBlank() || valor("documento").isBlank()) { aviso(R.string.aviso_campos_obligatorios); return }
         val nuevo = NuevoPasajero(TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento"), valor("pasajeroNombre"))
+        val errores = cl.belmontespa.myapplication.util.Validaciones.pasajero(nuevo)
+        if (errores.isNotEmpty()) { error(ErrorApp.Validacion(errores.mapKeys { if (it.key == "nombre") "pasajeroNombre" else "documento" })); return }
+        if (mutable.value.pasajeros.any { cl.belmontespa.myapplication.util.Validaciones.documento(it.dni) == cl.belmontespa.myapplication.util.Validaciones.documento(nuevo.dni) }) {
+            error(ErrorApp.Validacion(mapOf("documento" to "El pasajero ya está en la solicitud."))); return
+        }
         mutable.update { it.copy(pasajeros = it.pasajeros + nuevo, campos = it.campos + mapOf("pasajeroNombre" to "", "documento" to ""), modificado = true) }
     }
     fun quitarPasajero(indice: Int) { mutable.update { it.copy(pasajeros = it.pasajeros.filterIndexed { i, _ -> i != indice }, modificado = true) } }
@@ -164,9 +192,8 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             repos.cuentas.cambiarPassword(valor("passwordActual"), valor("passwordNueva")).valor(); aviso(R.string.aviso_password_guardada)
                         }
                         PantallaDemo.NUEVA_SOLICITUD -> {
-                            val lugares = repos.ubicacionesDemo
-                            val origen = lugares.find { it.direccion == valor("origen") } ?: throw FalloPantalla(ErrorApp.Validacion(mapOf("origen" to "Selecciona el origen.")))
-                            val destinoLugar = lugares.find { it.direccion == valor("destino") } ?: throw FalloPantalla(ErrorApp.Validacion(mapOf("destino" to "Selecciona el destino.")))
+                            val origen = mutable.value.ubicaciones["origen"] ?: throw FalloPantalla(ErrorApp.Validacion(mapOf("origen" to "Selecciona el origen desde Google Places.")))
+                            val destinoLugar = mutable.value.ubicaciones["destino"] ?: throw FalloPantalla(ErrorApp.Validacion(mapOf("destino" to "Selecciona el destino desde Google Places.")))
                             val folio = repos.viajes.crearSolicitud(NuevaSolicitud(LocalDateTime.of(LocalDate.parse(valor("fecha")), LocalTime.parse(valor("hora"))), origen, destinoLugar, valor("vuelo").ifBlank { null }, mutable.value.pasajeros)).valor()
                             destino = PantallaDemo.DETALLE_SOLICITUD to folio
                         }

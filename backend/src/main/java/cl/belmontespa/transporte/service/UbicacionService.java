@@ -24,10 +24,12 @@ public class UbicacionService {
 	}
 
 	// Reutiliza la ubicación si ya existe (UNIQUE direccion + comuna + coordenadas, RF10).
-	Ubicacion obtenerOCrear(ViajeDTORequest.Ubicacion datos) {
-		Comuna comuna = comunaRepository.findByNombreAndRegionNombre(datos.comuna(), datos.region())
+	Ubicacion obtenerOCrear(ViajeDTORequest.Ubicacion datos, String campo) {
+		Comuna comuna = comunaRepository.findAll().stream()
+				.filter(c -> normalizar(c.getNombre()).equals(normalizar(datos.comuna())))
+				.findFirst()
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-						"La comuna " + datos.comuna() + " no existe en la región " + datos.region()));
+						campo + ".comuna: No existe en el catálogo."));
 		BigDecimal latitud = datos.latitud().setScale(6, RoundingMode.HALF_UP);
 		BigDecimal longitud = datos.longitud().setScale(6, RoundingMode.HALF_UP);
 		return ubicacionRepository.findByDireccionAndComunaAndLatitudAndLongitud(
@@ -40,5 +42,11 @@ public class UbicacionService {
 					ubicacion.setLongitud(longitud);
 					return ubicacionRepository.save(ubicacion);
 				});
+	}
+
+	static String normalizar(String texto) {
+		return java.text.Normalizer.normalize(texto, java.text.Normalizer.Form.NFD)
+				.replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT).trim()
+				.replaceFirst("^region(?: de la| del| de)?\\s+", "").replaceAll("\\s+", " ");
 	}
 }

@@ -20,10 +20,12 @@ public abstract class CrudController<Q, R> extends LecturaController<R> {
 	protected abstract CrudService<?, String, Q, R> service();
 
 	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public R crear(@Valid @RequestBody Q request, Authentication auth) {
-		return crearPara(request, auth);
+	public org.springframework.http.ResponseEntity<R> crear(@Valid @RequestBody Q request, Authentication auth) {
+		R respuesta = crearPara(request, auth);
+		return org.springframework.http.ResponseEntity.status(estadoCreacion(respuesta)).body(respuesta);
 	}
+
+	protected HttpStatus estadoCreacion(R respuesta) { return HttpStatus.CREATED; }
 
 	protected R crearPara(Q request, Authentication auth) {
 		return service().crear(request);

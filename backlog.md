@@ -114,10 +114,10 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
 | 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | Listo |
-| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | 3 ajustar | — |
-| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | — |
-| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | 3 hechas, 4 ajustar, 1 falta | — |
-| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Usa HU04 y HU08 | — |
+| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Implementado | En revisión |
+| 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | En revisión |
+| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Implementado | En revisión |
+| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Alcance y filtros propios | En revisión |
 | 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | — |
 | 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | — |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | — |

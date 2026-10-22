@@ -16,10 +16,12 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 
 	private final UsuarioRepository usuarioRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final java.time.Clock clock;
 
-	public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+	public UsuarioService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, java.time.Clock clock) {
 		this.usuarioRepository = usuarioRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.clock = clock;
 	}
 
 	@Override
@@ -34,6 +36,18 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 
 	@Override
 	protected void reemplazar(Usuario usuario, UsuarioDTORequest request) {
+		if (!usuario.getCorreo().equalsIgnoreCase(request.correo())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "correo: Debe coincidir con el de la ruta.");
+		}
+		if (request.password() != null && !request.password().isBlank()) {
+			String actual = request.passwordActual();
+			boolean normal = actual != null && passwordEncoder.matches(actual, usuario.getPasswordHash());
+			boolean temporal = actual != null && usuario.getPasswordTemporalHash() != null
+					&& usuario.getPasswordTemporalExpira() != null
+					&& usuario.getPasswordTemporalExpira().isAfter(java.time.LocalDateTime.now(clock))
+					&& passwordEncoder.matches(actual, usuario.getPasswordTemporalHash());
+			if (!normal && !temporal) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "passwordActual: No coincide.");
+		}
 		reemplazarDatos(usuario, request.nombre(), request.correo(), request.telefono(), request.password());
 	}
 
