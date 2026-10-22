@@ -33,11 +33,6 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 	}
 
 	@Override
-	protected Usuario nuevaEntidad(UsuarioDTORequest request) {
-		return nuevo(request.nombre(), request.correo(), request.telefono(), request.password());
-	}
-
-	@Override
 	protected void reemplazar(Usuario usuario, UsuarioDTORequest request) {
 		reemplazarDatos(usuario, request.nombre(), request.correo(), request.telefono(), request.password());
 	}

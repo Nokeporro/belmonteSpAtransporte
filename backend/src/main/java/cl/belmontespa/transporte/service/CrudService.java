@@ -22,11 +22,15 @@ public abstract class CrudService<E, K, Q, R> {
 
 	protected abstract Optional<E> buscar(K clave);
 
-	protected abstract E nuevaEntidad(Q request);
-
 	protected abstract R aResponse(E entidad);
 
-	// PUT solo existe en usuarios, conductores y solicitantes (README, "CRUD REST").
+	// POST solo existe donde el README lo declara; en usuarios y empresas la cuenta o la
+	// fila nace por su rol, así que no hay ruta que llegue aquí.
+	protected E nuevaEntidad(Q request) {
+		throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED);
+	}
+
+	// PUT solo existe en usuarios y conductores (README, "CRUD REST").
 	protected void reemplazar(E entidad, Q request) {
 		throw new ResponseStatusException(HttpStatus.METHOD_NOT_ALLOWED);
 	}

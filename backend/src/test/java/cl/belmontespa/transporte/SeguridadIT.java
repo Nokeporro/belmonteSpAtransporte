@@ -12,7 +12,10 @@ import java.util.Base64;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -24,6 +27,12 @@ class SeguridadIT extends IntegrationTest {
 
 	@Value("${app.jwt.secret}")
 	private String secretoJwt;
+
+	@Autowired
+	private JdbcTemplate jdbc;
+
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
 	@Test
 	@DisplayName("sin token, un recurso protegido responde 401")
@@ -91,7 +100,7 @@ class SeguridadIT extends IntegrationTest {
 		Api.Resp resp = Api.exigir(api.iniciarSesion(Api.ADMIN_CORREO, Api.ADMIN_CLAVE), "login admin", 200);
 		assertThat(resp.texto("$.accessToken")).isNotBlank();
 		assertThat(resp.texto("$.tokenType")).isEqualToIgnoringCase("Bearer");
-		assertThat(resp.entero("$.expiresIn")).isPositive();
+		assertThat(resp.entero("$.expiresIn")).isEqualTo(28_800);
 		assertThat(resp.texto("$.correo")).isEqualTo(Api.ADMIN_CORREO);
 	}
 
@@ -108,21 +117,52 @@ class SeguridadIT extends IntegrationTest {
 	@Test
 	@DisplayName("un usuario sin rol no puede iniciar sesión")
 	void usuarioSinRolNoInicia() {
+		// Ninguna ruta crea usuarios sin rol (no hay POST /usuarios): se inserta por SQL.
 		String correo = "sinrol-" + System.nanoTime() + "@test.cl";
-		Api.exigir(api.post("/usuarios", api.admin(), """
-				{"nombre":"Sin rol","correo":"%s","password":"%s"}""".formatted(correo, Api.CLAVE)),
-				"crear usuario sin rol", 201);
+		jdbc.update("INSERT INTO usuario (nombre, correo, password_hash) VALUES (?, ?, ?)",
+				"Sin rol", correo, passwordEncoder.encode(Api.CLAVE));
 		assertThat(api.iniciarSesion(correo, Api.CLAVE).status()).isEqualTo(401);
 	}
 
 	@Test
-	@DisplayName("el login valida el cuerpo y responde un ApiError con los campos que faltan")
+	@DisplayName("las rutas que el README ya no tiene responden 403: POST /usuarios, POST /empresas y PUT /solicitantes")
+	void rutasQueSobranResponden403() {
+		Cuenta solicitante = api.solicitante();
+		String usuario = """
+				{"nombre":"Otro","correo":"otro-%d@test.cl","password":"%s"}""".formatted(System.nanoTime(), Api.CLAVE);
+		String empresa = """
+				{"razonSocial":"Empresa","rut":"76543210-3"}""";
+		assertThat(api.post("/usuarios", api.admin(), usuario).status()).isEqualTo(403);
+		assertThat(api.post("/usuarios", solicitante.token(), usuario).status()).isEqualTo(403);
+		assertThat(api.post("/empresas", solicitante.token(), empresa).status()).isEqualTo(403);
+		assertThat(api.post("/empresas", api.admin(), empresa).status()).isEqualTo(403);
+		assertThat(api.put("/solicitantes/" + solicitante.correo(), solicitante.token(),
+				api.cuerpoSolicitante(solicitante.correo(), "76543210-3", "Empresa")).status()).isEqualTo(403);
+	}
+
+	@Test
+	@DisplayName("el conductor no edita su cuenta por PUT /usuarios; el administrador y el solicitante sí")
+	void conductorNoUsaPutUsuarios() {
+		Cuenta conductor = api.conductor();
+		String cuerpo = """
+				{"nombre":"Conductor Renombrado","correo":"%s"}""".formatted(conductor.correo());
+		assertThat(api.put("/usuarios/" + conductor.correo(), conductor.token(), cuerpo).status()).isEqualTo(403);
+
+		Cuenta solicitante = api.solicitante();
+		String propio = """
+				{"nombre":"Solicitante Renombrado","correo":"%s"}""".formatted(solicitante.correo());
+		assertThat(api.put("/usuarios/" + solicitante.correo(), solicitante.token(), propio).status())
+				.isEqualTo(200);
+	}
+
+	@Test
+	@DisplayName("el login valida el cuerpo y responde un ApiError con una línea por campo que falta")
 	void loginInvalidoResponde400() {
 		Api.Resp resp = api.post("/auth/login", null, "{}");
 		assertThat(resp.status()).isEqualTo(400);
 		assertThat(resp.entero("$.status")).isEqualTo(400);
 		assertThat(resp.texto("$.path")).isEqualTo("/api/v1/auth/login");
-		assertThat(resp.texto("$.message")).contains("correo").contains("password");
+		assertThat(resp.texto("$.message")).isEqualTo("correo: Es obligatorio.\npassword: Es obligatorio.");
 	}
 
 	@Test

@@ -72,8 +72,18 @@ class PasajeroIT extends IntegrationTest {
 		Cuenta solicitante = api.solicitante();
 		String folio = api.viaje(solicitante);
 		String pasajero = api.pasajero(solicitante);
-		assertThat(api.agregarPasajero(solicitante.token(), "NOEXISTE", pasajero).status()).isEqualTo(404);
-		assertThat(api.agregarPasajero(solicitante.token(), folio, "hash-que-no-existe").status()).isEqualTo(404);
+		assertThat(api.agregarPasajero(solicitante.token(), "TR-9999999", pasajero).status()).isEqualTo(404);
+		assertThat(api.agregarPasajero(solicitante.token(), folio, "A".repeat(43)).status()).isEqualTo(404);
+	}
+
+	@Test
+	@DisplayName("un folio o un dniHash mal formado en el cuerpo responde 400")
+	void formatosInvalidos() {
+		Cuenta solicitante = api.solicitante();
+		String folio = api.viaje(solicitante);
+		String pasajero = api.pasajero(solicitante);
+		assertThat(api.agregarPasajero(solicitante.token(), "NOEXISTE", pasajero).status()).isEqualTo(400);
+		assertThat(api.agregarPasajero(solicitante.token(), folio, "hash-que-no-existe").status()).isEqualTo(400);
 	}
 
 	@Test

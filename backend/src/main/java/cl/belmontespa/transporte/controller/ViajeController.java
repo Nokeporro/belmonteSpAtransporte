@@ -6,6 +6,7 @@ import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.service.CrudService;
 import cl.belmontespa.transporte.service.ViajeService;
+import cl.belmontespa.transporte.validation.Reglas;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -35,6 +36,11 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 	@Override
 	protected CrudService<?, String, ViajeDTORequest, ViajeDTOResponse> service() {
 		return viajeService;
+	}
+
+	@Override
+	protected void validarClave(String folio) {
+		exigirFormato(Reglas.esFolio(folio));
 	}
 
 	@Override

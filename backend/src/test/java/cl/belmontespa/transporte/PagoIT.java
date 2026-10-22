@@ -65,7 +65,9 @@ class PagoIT extends IntegrationTest {
 			String cancelado = api.viaje(solicitante);
 			api.cancelarOk(cancelado, solicitante);
 			assertThat(api.pagar(api.admin(), cancelado, 12, "TRANSFERENCIA", 1_000).status()).isEqualTo(409);
-			assertThat(api.pagar(api.admin(), "NOEXISTE", 12, "TRANSFERENCIA", 1_000).status()).isEqualTo(404);
+			assertThat(api.pagar(api.admin(), "TR-9999999", 12, "TRANSFERENCIA", 1_000).status()).isEqualTo(404);
+			// Un folio mal formado en el cuerpo es una regla de validación: 400.
+			assertThat(api.pagar(api.admin(), "NOEXISTE", 12, "TRANSFERENCIA", 1_000).status()).isEqualTo(400);
 		}
 
 		@Test

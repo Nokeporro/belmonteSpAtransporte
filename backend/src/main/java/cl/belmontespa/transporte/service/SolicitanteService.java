@@ -53,13 +53,6 @@ public class SolicitanteService
 	}
 
 	@Override
-	protected void reemplazar(Solicitante solicitante, SolicitanteDTORequest request) {
-		usuarioService.reemplazarDatos(solicitante.getUsuario(),
-				request.nombre(), request.correo(), request.telefono(), request.password());
-		solicitante.setEmpresa(empresaService.obtenerOCrear(request.razonSocial(), request.rutEmpresa()));
-	}
-
-	@Override
 	protected SolicitanteDTOResponse aResponse(Solicitante solicitante) {
 		return SolicitanteDTOResponse.from(solicitante);
 	}

@@ -3,6 +3,7 @@ package cl.belmontespa.transporte.support;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import cl.belmontespa.transporte.validation.Reglas;
 import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -307,8 +308,10 @@ public class Api {
 
 	// --- datos únicos ---
 
+	/** RUT de empresa ya normalizado (sin puntos) y con dígito verificador válido. */
 	private static String rut(int n) {
-		return "%d.%03d.%03d-%d".formatted(70 + n % 20, n / 1000 % 1000, n % 1000, n % 10);
+		String cuerpo = "%d%03d%03d".formatted(70 + n % 20, n / 1000 % 1000, n % 1000);
+		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 	}
 
 	private static String nuevaPatente() {

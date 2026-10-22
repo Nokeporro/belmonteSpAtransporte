@@ -29,12 +29,31 @@ class FlotaIT extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("rechaza patente en minúsculas, patente corta y capacidad no positiva con 400")
+	@DisplayName("rechaza patentes que no son AA1234 ni BBBB12, capacidad fuera de 1 a 20 y gpsSerial no positivo con 400")
 	void datosInvalidos() {
-		assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil("ab1234", 2)).status()).isEqualTo(400);
-		assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil("AB12", 2)).status()).isEqualTo(400);
-		assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil("ZZ9999", 0)).status()).isEqualTo(400);
-		assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil("ZZ9999", -1)).status()).isEqualTo(400);
+		for (String patente : new String[] {"AB12", "A1B234", "ABC123", "AB123456", "AB-12"}) {
+			assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil(patente, 2)).status())
+					.as("patente %s", patente).isEqualTo(400);
+		}
+		for (int capacidad : new int[] {0, -1, 21}) {
+			assertThat(api.post("/moviles", api.admin(), api.cuerpoMovil("ZZ9999", capacidad)).status())
+					.as("capacidad %d", capacidad).isEqualTo(400);
+		}
+		String gpsCero = """
+				{"patente":"ZZ9999","capacidad":2,"gpsSerial":0}""";
+		assertThat(api.post("/moviles", api.admin(), gpsCero).status()).isEqualTo(400);
+	}
+
+	@Test
+	@DisplayName("normaliza la patente a mayúsculas, sin espacios ni guion, y admite capacidad 1 y 20")
+	void normalizaPatente() {
+		String sufijo = "%04d".formatted(System.nanoTime() % 10_000);
+		String escrita = " zz-" + sufijo + " ";
+		Resp resp = Api.exigir(api.post("/moviles", api.admin(), api.cuerpoMovil(escrita, 20)), "crear móvil", 201);
+		assertThat(resp.texto("$.patente")).isEqualTo("ZZ" + sufijo);
+		assertThat(resp.entero("$.capacidad")).isEqualTo(20);
+		assertThat(api.get("/moviles/ZZ" + sufijo, api.admin()).status()).isEqualTo(200);
+		assertThat(api.movil(1)).isNotBlank();
 	}
 
 	@Test

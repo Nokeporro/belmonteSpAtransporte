@@ -4,12 +4,7 @@ import cl.belmontespa.transporte.dto.request.SolicitanteDTORequest;
 import cl.belmontespa.transporte.dto.response.SolicitanteDTOResponse;
 import cl.belmontespa.transporte.service.CrudService;
 import cl.belmontespa.transporte.service.SolicitanteService;
-import jakarta.validation.Valid;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,12 +29,5 @@ public class SolicitanteController extends CrudController<SolicitanteDTORequest,
 		if (tieneRol(auth, SOL)) {
 			exigirPropio(correo, auth);
 		}
-	}
-
-	@PutMapping("/{clave}")
-	@PreAuthorize("#clave.equalsIgnoreCase(authentication.name)")
-	public SolicitanteDTOResponse actualizar(@PathVariable String clave,
-			@Valid @RequestBody SolicitanteDTORequest request) {
-		return solicitanteService.actualizar(clave, request);
 	}
 }

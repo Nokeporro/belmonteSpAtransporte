@@ -1,11 +1,18 @@
 package cl.belmontespa.transporte.dto.request;
 
-import jakarta.validation.constraints.Email;
+import cl.belmontespa.transporte.validation.Normalizar;
+import cl.belmontespa.transporte.validation.Reglas;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public record AsignarViajeDTORequest(
-		@NotBlank @Email @Size(max = 150) String correoConductor,
-		@NotBlank @Pattern(regexp = "^[A-Z]{2}[A-Z0-9]{2}[0-9]{2}$") String patente
-) {}
+		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correoConductor,
+		@NotBlank @Pattern(regexp = Reglas.PATENTE) String patente
+) {
+
+	public AsignarViajeDTORequest {
+		correoConductor = Normalizar.correo(correoConductor);
+		patente = Normalizar.patente(patente);
+	}
+}

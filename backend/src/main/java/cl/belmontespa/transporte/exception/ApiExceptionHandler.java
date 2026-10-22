@@ -3,6 +3,11 @@ package cl.belmontespa.transporte.exception;
 import cl.belmontespa.transporte.dto.response.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,6 +16,7 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -23,17 +29,27 @@ import org.springframework.web.server.ResponseStatusException;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
+	private static final Set<String> OBLIGATORIEDAD = Set.of("NotNull", "NotBlank", "NotEmpty");
+
 	@ExceptionHandler(ResponseStatusException.class)
 	public ResponseEntity<ApiError> statusExplicito(ResponseStatusException e, HttpServletRequest request) {
 		return error(e.getStatusCode(), e.getReason(), request);
 	}
 
+	// Una línea "campo: motivo" por campo fallido (README, "Errores"), en orden alfabético del
+	// campo; si un campo falla varias reglas, gana "Es obligatorio." y luego el motivo menor.
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiError> validacion(MethodArgumentNotValidException e, HttpServletRequest request) {
-		String campos = e.getBindingResult().getFieldErrors().stream()
-				.map(campo -> campo.getField() + ": " + campo.getDefaultMessage())
-				.collect(Collectors.joining("; "));
-		return error(HttpStatus.BAD_REQUEST, campos, request);
+		Map<String, String> motivos = new TreeMap<>();
+		e.getBindingResult().getFieldErrors().stream()
+				.sorted(Comparator.comparing((FieldError campo) -> !OBLIGATORIEDAD.contains(campo.getCode()))
+						.thenComparing(campo -> Objects.toString(campo.getDefaultMessage(), "")))
+				.forEach(campo -> motivos.putIfAbsent(campo.getField(),
+						Objects.requireNonNullElse(campo.getDefaultMessage(), "Valor inválido.")));
+		String lineas = motivos.entrySet().stream()
+				.map(motivo -> motivo.getKey() + ": " + motivo.getValue())
+				.collect(Collectors.joining("\n"));
+		return error(HttpStatus.BAD_REQUEST, lineas, request);
 	}
 
 	@ExceptionHandler(HttpMessageNotReadableException.class)

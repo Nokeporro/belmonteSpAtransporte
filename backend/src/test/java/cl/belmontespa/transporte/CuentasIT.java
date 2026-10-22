@@ -6,6 +6,7 @@ import cl.belmontespa.transporte.support.Api;
 import cl.belmontespa.transporte.support.Api.Cuenta;
 import cl.belmontespa.transporte.support.Api.Resp;
 import cl.belmontespa.transporte.support.IntegrationTest;
+import cl.belmontespa.transporte.validation.Reglas;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -37,9 +38,15 @@ class CuentasIT extends IntegrationTest {
 				correo);
 	}
 
+	// RUT normalizado (sin puntos) y con dígito verificador válido.
 	private static String rutUnico() {
-		long n = System.nanoTime() % 1_000_000;
-		return "75.%03d.%03d-5".formatted(n / 1000, n % 1000);
+		String cuerpo = "75%06d".formatted(System.nanoTime() % 1_000_000);
+		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
+	}
+
+	// "75123456-D" → "75.123.456-D": el formato con que lo escribe una persona.
+	private static String conPuntos(String rut) {
+		return rut.substring(0, 2) + "." + rut.substring(2, 5) + "." + rut.substring(5);
 	}
 
 	private static String correoUnico(String prefijo) {
@@ -79,6 +86,35 @@ class CuentasIT extends IntegrationTest {
 					.status()).isEqualTo(400);
 			String corta = api.cuerpoSolicitante(correoUnico("b"), rutUnico(), "X").replace(Api.CLAVE, "corta");
 			assertThat(api.post("/solicitantes", null, corta).status()).isEqualTo(400);
+		}
+
+		@Test
+		@DisplayName("guarda el correo en minúsculas, el teléfono como +56… y el RUT sin puntos")
+		void normaliza() {
+			String correo = correoUnico("Norm");
+			String rut = rutUnico();
+			String cuerpo = """
+					{"nombre":"  Ana Pérez  ","correo":"  %s  ","telefono":"9 5555-0101","password":"%s",\
+					"razonSocial":" Transportes Norte ","rutEmpresa":"%s"}"""
+					.formatted(correo.toUpperCase(), Api.CLAVE, conPuntos(rut));
+			Resp resp = Api.exigir(api.post("/solicitantes", null, cuerpo), "registrar con datos sin normalizar", 201);
+			assertThat(resp.texto("$.correo")).isEqualTo(correo.toLowerCase());
+			assertThat(resp.texto("$.nombre")).isEqualTo("Ana Pérez");
+			assertThat(resp.texto("$.telefono")).isEqualTo("+56955550101");
+			assertThat(resp.texto("$.razonSocial")).isEqualTo("Transportes Norte");
+			assertThat(resp.texto("$.rutEmpresa")).isEqualTo(rut);
+			assertThat(api.login(correo.toLowerCase(), Api.CLAVE)).isNotBlank();
+		}
+
+		@Test
+		@DisplayName("un RUT con dígito verificador incorrecto responde 400")
+		void rutConDigitoIncorrecto() {
+			String rut = rutUnico();
+			char incorrecto = rut.charAt(rut.length() - 1) == '0' ? '1' : '0';
+			String conDvMalo = rut.substring(0, rut.length() - 1) + incorrecto;
+			Resp resp = api.post("/solicitantes", null, api.cuerpoSolicitante(correoUnico("dv"), conDvMalo, "Empresa"));
+			assertThat(resp.status()).isEqualTo(400);
+			assertThat(resp.texto("$.message")).isEqualTo("rutEmpresa: Debe ser un RUT válido, como 76543210-3.");
 		}
 
 		@Test
@@ -179,14 +215,12 @@ class CuentasIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("el solicitante edita su empresa; otro solicitante o el administrador reciben 403")
-		void editaSolicitante() {
+		@DisplayName("PUT /solicitantes/{correo} no existe: responde 403 a todos, incluido el dueño")
+		void noSeEditaPorSolicitantes() {
 			Cuenta ana = api.solicitante();
 			Cuenta beto = api.solicitante();
 			String cuerpo = api.cuerpoSolicitante(ana.correo(), rutUnico(), "Empresa Renombrada");
-			Resp resp = Api.exigir(api.put("/solicitantes/" + ana.correo(), ana.token(), cuerpo), "editar solicitante",
-					200);
-			assertThat(resp.texto("$.razonSocial")).isEqualTo("Empresa Renombrada");
+			assertThat(api.put("/solicitantes/" + ana.correo(), ana.token(), cuerpo).status()).isEqualTo(403);
 			assertThat(api.put("/solicitantes/" + ana.correo(), beto.token(), cuerpo).status()).isEqualTo(403);
 			assertThat(api.put("/solicitantes/" + ana.correo(), api.admin(), cuerpo).status()).isEqualTo(403);
 		}
