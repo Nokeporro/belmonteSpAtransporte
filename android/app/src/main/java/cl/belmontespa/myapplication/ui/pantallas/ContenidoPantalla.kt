@@ -198,6 +198,7 @@ private fun ContextoPantalla.ListaViajes() {
         Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraLista(viaje.fhAgenda))
         Text(viaje.origen.direccion + " → " + viaje.destino.direccion)
         Text(pluralStringResource(R.plurals.solicitud_cantidad_pasajeros, viaje.cantidadPasajeros, viaje.cantidadPasajeros))
+        if (pantalla == PantallaDemo.MIS_SOLICITUDES && viaje.pasajeros.isNotEmpty()) Text(viaje.pasajeros.joinToString { it.nombre })
         val detalle = when {
             estado.cuenta?.rol == Rol.CONDUCTOR && viaje.estado == EstadoViaje.ASIGNADO && vm.ahora().isBefore(viaje.fhAgenda.minusHours(1)) -> PantallaDemo.ANTES_VENTANA
             viaje.cantidadPasajeros == 0 && estado.cuenta?.rol == Rol.ADMINISTRADOR -> PantallaDemo.SIN_PASAJEROS_ADMIN
@@ -275,11 +276,8 @@ private fun ContextoPantalla.FormularioPasajero(borrador: Boolean) {
 @Composable
 private fun ContextoPantalla.NuevaSolicitudFormulario() {
     FechaHora()
-    var lugares by remember { mutableStateOf(emptyList<Ubicacion>()) }
-    LaunchedEffect(Unit) { lugares = vm.lugares() }
-    Aviso(stringResource(R.string.aviso_demo_lugares), TonoAviso.INFORMACION)
-    Selector("origen", R.string.campo_origen, lugares.map { Opcion(it.direccion, it.direccion) })
-    Selector("destino", R.string.campo_destino, lugares.map { Opcion(it.direccion, it.direccion) })
+    SelectorPlaces("origen", R.string.campo_origen)
+    SelectorPlaces("destino", R.string.campo_destino)
     Campo("vuelo", R.string.campo_vuelo)
     FormularioPasajero(true)
     Accion(R.string.accion_agregar_pasajero, vm::agregarPasajero, TipoBoton.SECUNDARIO)

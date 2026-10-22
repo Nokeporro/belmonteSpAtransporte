@@ -36,7 +36,7 @@ class PasajeroServiceTest {
 	}
 
 	private String hash(PasajeroService servicio, String dni) {
-		return servicio.crear(new PasajeroDTORequest(dni, "Pasajero")).dniHash();
+		return servicio.hashDni(dni);
 	}
 
 	@Test
@@ -91,7 +91,7 @@ class PasajeroServiceTest {
 		var respuesta = servicio.crear(new PasajeroDTORequest("12.345.678-5", "Otro nombre"));
 
 		assertThat(respuesta.dniHash()).isEqualTo("hash-existente");
-		assertThat(respuesta.nombre()).isEqualTo("Ya registrado");
+		assertThat(respuesta.nombre()).isNull();
 		verify(repositorio, never()).save(any(Pasajero.class));
 	}
 }

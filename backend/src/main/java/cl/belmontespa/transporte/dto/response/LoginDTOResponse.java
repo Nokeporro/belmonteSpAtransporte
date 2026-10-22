@@ -5,5 +5,6 @@ public record LoginDTOResponse(
 		String tokenType,
 		long expiresIn,
 		String correo,
-		String rol
+		String rol,
+		boolean cambioPasswordRequerido
 ) {}

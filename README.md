@@ -171,6 +171,27 @@ necesariamente a la empresa que paga (`PASAJERO` no tiene FK a `EMPRESA`).
 
 Total: 102 SP.
 
+### Avance de implementación: P1 de A
+
+Actualizado el 22-10-2026. Implementación lista en Android sobre la build `demo` y en el backend:
+
+- [x] **HU01:** registro y login del Solicitante.
+- [x] **HU06:** login del Conductor con credenciales del Administrador.
+- [x] **HU02:** nueva solicitud con Google Places y pasajeros.
+- [x] **HU03:** historial y estado de las solicitudes propias.
+- [x] Verificación local: 204 pruebas del backend, 60 pruebas JVM Android y 32 instrumentadas en API 36 aprobadas; lint sin errores y APK demo compilado.
+
+Pendiente para cerrar la entrega según la definición de terminado:
+
+- [ ] Validar Google Places con una clave real configurada.
+- [ ] Ejecutar las pruebas instrumentadas en API 26.
+- [ ] Completar la pasada de accesibilidad con TalkBack.
+- [ ] Confirmar CI en verde, aprobación del otro integrante y fusión en `main`.
+
+Seguimiento en [backlog.md](backlog.md) y detalle de implementación y pruebas en
+[docs/P1_A.md](docs/P1_A.md). HU04 y HU05 del integrante B también figuran listas en el backlog;
+las demás historias de P1 de B siguen pendientes.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

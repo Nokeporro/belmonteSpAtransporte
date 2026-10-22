@@ -27,18 +27,21 @@ public class SecurityConfig {
 	private static final String SOL = "SOLICITANTE";
 
 	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain securityFilterChain(HttpSecurity http, tools.jackson.databind.ObjectMapper json) throws Exception {
 		return http
 				.csrf(csrf -> csrf.disable())
 				.httpBasic(basic -> basic.disable())
 				.formLogin(form -> form.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(rolDelToken())))
+				.addFilterAfter(new PasswordTemporalFilter(json), org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/error").permitAll()
 						.requestMatchers(POST, "/api/v1/auth/login", "/api/v1/auth/recuperar-password").permitAll()
 						// Autorregistro del Solicitante (RF01): aún no tiene JWT.
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
+						.requestMatchers(POST, "/api/v1/auth/logout").authenticated()
+						.requestMatchers(GET, "/api/v1/catalogos").hasAnyRole(ADM, CON, SOL)
 
 						// Sin POST: las cuentas nacen por su rol (RF01, CU-07 y el alta de administradores).
 						.requestMatchers(GET, "/api/v1/usuarios", "/api/v1/usuarios/*").hasAnyRole(ADM, CON, SOL)
@@ -62,7 +65,8 @@ public class SecurityConfig {
 						.requestMatchers(GET, "/api/v1/pagos/**").hasAnyRole(ADM, SOL)
 
 						.requestMatchers(POST, "/api/v1/pasajeros", "/api/v1/pasajeros-viaje").hasRole(SOL)
-						.requestMatchers(GET, "/api/v1/pasajeros/**", "/api/v1/pasajeros-viaje/**").hasRole(ADM)
+						.requestMatchers(GET, "/api/v1/pasajeros/**").hasRole(ADM)
+						.requestMatchers(GET, "/api/v1/pasajeros-viaje/**").hasAnyRole(ADM, SOL)
 
 						.requestMatchers(POST, "/api/v1/viajes/*/asignar").hasRole(ADM)
 						.requestMatchers(POST, "/api/v1/viajes/*/estado").hasRole(CON)

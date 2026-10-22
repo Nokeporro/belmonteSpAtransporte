@@ -60,6 +60,9 @@ class SoporteLocal @Inject constructor(
 }
 
 internal class ReglaLocal(val error: ErrorApp) : RuntimeException()
+internal fun validar(errores: Map<String, String>) {
+    if (errores.isNotEmpty()) falla(ErrorApp.Validacion(errores))
+}
 internal fun falla(error: ErrorApp): Nothing = throw ReglaLocal(error)
 internal fun exigir(condicion: Boolean, mensaje: String) {
     if (!condicion) falla(ErrorApp.Conflicto(mensaje))

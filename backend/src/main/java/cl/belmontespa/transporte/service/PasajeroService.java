@@ -49,8 +49,9 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 	@Override
 	@Transactional
 	public PasajeroDTOResponse crear(PasajeroDTORequest request) {
+		cl.belmontespa.transporte.validation.Documento.normalizar(request.tipoDocumento(), request.dni());
 		return pasajeroRepository.findByDniHash(hashDni(request.dni()))
-				.map(this::aResponse)
+				.map(p -> new PasajeroDTOResponse(p.getDniHash(), null, null))
 				.orElseGet(() -> super.crear(request));
 	}
 
@@ -68,7 +69,7 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 	}
 
 	// HMAC-SHA256 del RUT/pasaporte normalizado, en Base64url sin padding (43 caracteres).
-	private String hashDni(String dni) {
+	public String hashDni(String dni) {
 		String normalizado = dni.replaceAll("[.\\-\\s]", "").toUpperCase(Locale.ROOT);
 		try {
 			Mac mac = Mac.getInstance(HMAC);

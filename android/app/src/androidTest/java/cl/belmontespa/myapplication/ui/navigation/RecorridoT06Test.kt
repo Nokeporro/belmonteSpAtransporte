@@ -116,7 +116,7 @@ class RecorridoT06Test {
         val correo = "nueva@empresa-demo.cl"
         runBlocking {
             val registro = authLocal.registrarSolicitante(RegistroSolicitante("Cuenta nueva", correo, null,
-                "Belmonte2026", "Empresa de demostración", "78123456-7"))
+                "Belmonte2026", "Empresa de demostración", "12345678-5"))
             assertTrue(registro is Resultado.Exito)
             assertEquals(EstadoSolicitante.APROBADO, (registro as Resultado.Exito).valor.estado)
             sesiones.guardar(Sesion("prueba", correo, Rol.SOLICITANTE, System.currentTimeMillis() + 3_600_000))
@@ -125,15 +125,18 @@ class RecorridoT06Test {
         var destino: Pair<PantallaDemo, String>? = null
         compose.activity.runOnUiThread {
             compose.activity.setContent {
+                val vm = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel<cl.belmontespa.myapplication.ui.solicitante.SolicitanteViewModel>(key = PantallaDemo.NUEVA_SOLICITUD.name)
+                androidx.compose.runtime.LaunchedEffect(vm) {
+                    vm.estado.first { !it.cargando && it.catalogos != null }
+                    // Simula el resultado del SDK; la prueba no consulta Google ni necesita una clave.
+                    vm.seleccionarLugar("origen", cl.belmontespa.myapplication.model.Ubicacion("Aeropuerto Arturo Merino Benítez", "Pudahuel", "Metropolitana de Santiago", -33.3928, -70.7858))
+                    vm.seleccionarLugar("destino", cl.belmontespa.myapplication.model.Ubicacion("Av. Apoquindo 5400", "Las Condes", "Metropolitana de Santiago", -33.4086, -70.5718))
+                }
                 BelmonteTheme { PantallaT06(PantallaDemo.NUEVA_SOLICITUD,
                     onNavegar = { p, id -> destino = p to id }, onVolver = {}, onCerrarSesion = {}) }
             }
         }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithText(compose.activity.getString(R.string.campo_origen)).performScrollTo().performClick()
-        compose.onNodeWithText("Aeropuerto Arturo Merino Benítez").performClick()
-        compose.onNodeWithText(compose.activity.getString(R.string.campo_destino)).performScrollTo().performClick()
-        compose.onNodeWithText("Av. Apoquindo 5400").performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.campo_nombre)).performScrollTo().performTextInput("Invitado")
         compose.onNodeWithText(compose.activity.getString(R.string.campo_tipo_documento)).performScrollTo().performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.tipo_documento_pasaporte)).performClick()

@@ -11,7 +11,8 @@ public record SolicitanteDTOResponse(
 		String telefono,
 		LocalDateTime fechaRegistro,
 		String razonSocial,
-		String rutEmpresa
+		String rutEmpresa,
+		String estadoSolicitante
 ) {
 
 	public static SolicitanteDTOResponse from(Solicitante solicitante) {
@@ -23,6 +24,7 @@ public record SolicitanteDTOResponse(
 				usuario.getTelefono(),
 				usuario.getFechaRegistro(),
 				empresa.getRazonSocial(),
-				empresa.getRut());
+				empresa.getRut(),
+				solicitante.getEstadoSolicitante().getEstado());
 	}
 }
