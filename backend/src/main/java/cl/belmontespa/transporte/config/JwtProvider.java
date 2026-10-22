@@ -37,10 +37,15 @@ public class JwtProvider {
 	}
 
 	public String generar(String correo, String rol) {
+		return generar(correo, rol, false);
+	}
+
+	public String generar(String correo, String rol, boolean temporal) {
 		Instant ahora = Instant.now();
 		JwtClaimsSet claims = JwtClaimsSet.builder()
 				.subject(correo)
 				.claim("rol", rol)
+				.claim("temporal", temporal)
 				.issuedAt(ahora)
 				.expiresAt(ahora.plusSeconds(expirationSeconds))
 				.build();

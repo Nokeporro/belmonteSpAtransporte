@@ -88,6 +88,38 @@ class RepositoriosT06Test {
         assertTrue(viajes.cancelar("TR-1051") is Resultado.Exito)
         assertEquals("CANCELADO", local.viaje("TR-1051").estado)
     }
+    @Test fun registroNuevoApruebaYEmpresaExistenteDejaLaCuentaPendiente() = runBlocking {
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        val primera = RegistroSolicitante("Ana Demo", " ANA@nuevo.cl ", "9 5555-0101", "Clave12345", "Empresa Nueva", "12.345.678-5")
+        val aprobada = auth.registrarSolicitante(primera) as Resultado.Exito
+        assertEquals(EstadoSolicitante.APROBADO, aprobada.valor.estado)
+        assertEquals("ana@nuevo.cl", aprobada.valor.correo)
+        assertEquals("+56955550101", aprobada.valor.telefono)
+        assertTrue(auth.registrarSolicitante(primera) is Resultado.Fallo)
+        val segunda = auth.registrarSolicitante(primera.copy(correo = "otra@nuevo.cl", razonSocial = "No reemplaza la empresa")) as Resultado.Exito
+        assertEquals(EstadoSolicitante.PENDIENTE, segunda.valor.estado)
+        assertEquals("Empresa Nueva", segunda.valor.razonSocial)
+        assertEquals(Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE)), auth.iniciarSesion("otra@nuevo.cl", "Clave12345"))
+        assertTrue(auth.iniciarSesion("ana@nuevo.cl", "Clave12345") is Resultado.Exito)
+    }
+    @Test fun elLoginDeUnConductorInactivoEsGenerico() = runBlocking {
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        val conductor = local.usuario("ireyes@belmontespa.cl")
+        db.usuarioDao().guardar(conductor.copy(activo = false))
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(conductor.correo, "Belmonte2026"))
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion("inexistente@demo.cl", "Belmonte2026"))
+    }
+    @Test fun unaSolicitudInvalidaNoPersisteNiElViajeNiSusPasajeros() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        val base = viajes.observarViaje("TR-1042").first()!!
+        val antes = local.viajes().size
+        val s = NuevaSolicitud(local.ahora().plusHours(3), base.origen, base.destino, null,
+            listOf(NuevoPasajero(TipoDocumento.RUT, "12345678-4", "Pasajero")))
+        assertTrue(viajes.crearSolicitud(s) is Resultado.Fallo)
+        assertEquals(antes, local.viajes().size)
+        assertTrue(viajes.crearSolicitud(s.copy(pasajeros = listOf(NuevoPasajero(TipoDocumento.PASAPORTE, "DEMO123", "Pasajero")), destino = base.origen)) is Resultado.Fallo)
+        assertEquals(antes, local.viajes().size)
+    }
     @Test fun repetirElAbordajeConservaLaMarca() = runBlocking {
         val abordaje = AbordajeLocalRepository(local)
         val codigo = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")

@@ -8,9 +8,9 @@ import java.util.Set;
 // Orden de las listas de viajes (README, "Consultas → Orden"): por fhAgenda y, en el empate, por
 // folio numérico en el mismo sentido. Ascendente (lo próximo primero) en la agenda y con estado
 // PENDIENTE, ASIGNADO o EN_CURSO; descendente (lo reciente primero) en los demás casos.
-final class OrdenViajes {
+public final class OrdenViajes {
 
-	static final Comparator<ViajeDTOResponse> PROXIMOS_PRIMERO = Comparator
+	public static final Comparator<ViajeDTOResponse> PROXIMOS_PRIMERO = Comparator
 			.comparing(ViajeDTOResponse::fhAgenda)
 			.thenComparing(ViajeDTOResponse::folio, Reglas.FOLIO_POR_NUMERO);
 
@@ -22,7 +22,7 @@ final class OrdenViajes {
 	}
 
 	// El orden de `GET /viajes?estado=`.
-	static Comparator<ViajeDTOResponse> paraEstado(String estado) {
-		return DE_AGENDA.contains(estado) ? PROXIMOS_PRIMERO : RECIENTES_PRIMERO;
+	public static Comparator<ViajeDTOResponse> paraEstado(String estado) {
+		return estado != null && DE_AGENDA.contains(estado) ? PROXIMOS_PRIMERO : RECIENTES_PRIMERO;
 	}
 }

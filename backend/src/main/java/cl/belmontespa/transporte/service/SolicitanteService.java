@@ -46,15 +46,15 @@ public class SolicitanteService
 		return solicitanteRepository.findByUsuarioCorreoIgnoreCase(correo);
 	}
 
-	// RF01: la razón social y el RUT crean o reutilizan la empresa. Todo registro queda aprobado;
-	// la revisión de las empresas existentes (RF26) se agrega después.
+	// RF01: pertenecer a una empresa existente requiere revisión del Administrador.
 	@Override
 	protected Solicitante nuevaEntidad(SolicitanteDTORequest request) {
 		Solicitante solicitante = new Solicitante();
+		boolean existente = empresaService.existe(request.rutEmpresa());
 		solicitante.setUsuario(usuarioService.nuevo(
 				request.nombre(), request.correo(), request.telefono(), request.password()));
 		solicitante.setEmpresa(empresaService.obtenerOCrear(request.razonSocial(), request.rutEmpresa()));
-		solicitante.setEstadoSolicitante(estado(APROBADO));
+		solicitante.setEstadoSolicitante(estado(existente ? "PENDIENTE" : APROBADO));
 		return solicitante;
 	}
 

@@ -46,6 +46,11 @@ public class DetalleViajePasajeroService extends CrudService<DetalleViajePasajer
 	}
 
 	// Si el pasajero ya está en el viaje no se duplica.
+	@Transactional(readOnly = true)
+	public boolean existe(String folio, String dniHash) {
+		return buscar(new Clave(folio, dniHash)).isPresent();
+	}
+
 	@Override
 	@Transactional
 	public DetalleViajePasajeroDTOResponse crear(DetalleViajePasajeroDTORequest request) {

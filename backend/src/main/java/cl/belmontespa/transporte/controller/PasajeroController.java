@@ -24,6 +24,11 @@ public class PasajeroController extends CrudController<PasajeroDTORequest, Pasaj
 	}
 
 	@Override
+	protected org.springframework.http.HttpStatus estadoCreacion(PasajeroDTOResponse respuesta) {
+		return respuesta.nombre() == null ? org.springframework.http.HttpStatus.OK : org.springframework.http.HttpStatus.CREATED;
+	}
+
+	@Override
 	protected void validarClave(String dniHash) {
 		exigirFormato(Reglas.esDniHash(dniHash));
 	}

@@ -22,9 +22,10 @@ class PasajeroIT extends IntegrationTest {
 	void hashDelDni() {
 		Cuenta solicitante = api.solicitante();
 		String dni = "%d".formatted(20_000_000 + System.nanoTime() % 1_000_000);
-		String conFormato = dni.substring(0, 2) + "." + dni.substring(2, 5) + "." + dni.substring(5) + "-K";
+		char dv = cl.belmontespa.transporte.validation.Reglas.digitoVerificador(dni);
+		String conFormato = dni.substring(0, 2) + "." + dni.substring(2, 5) + "." + dni.substring(5) + "-" + dv;
 		Resp a = Api.exigir(api.pasajero(solicitante.token(), conFormato, "Pasajero"), "crear pasajero", 200, 201);
-		Resp b = Api.exigir(api.pasajero(solicitante.token(), dni + "-k", "Pasajero"), "mismo DNI sin formato", 200,
+		Resp b = Api.exigir(api.pasajero(solicitante.token(), dni + "-" + dv, "Pasajero"), "mismo DNI sin formato", 200,
 				201);
 		assertThat(a.texto("$.dniHash")).hasSize(43).doesNotContain(dni);
 		assertThat(b.texto("$.dniHash")).isEqualTo(a.texto("$.dniHash"));

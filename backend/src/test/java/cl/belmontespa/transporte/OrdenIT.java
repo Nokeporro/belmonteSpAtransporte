@@ -92,7 +92,8 @@ class OrdenIT extends IntegrationTest {
 		void pasajeros() {
 			Cuenta solicitante = api.solicitante();
 			for (String nombre : new String[] {"Zoe Pasajera", "beto Pasajero", "Álvaro Pasajero"}) {
-				String dni = "%d-K".formatted(30_000_000 + CONTADOR.incrementAndGet());
+				String cuerpo = "%d".formatted(30_000_000 + CONTADOR.incrementAndGet());
+				String dni = cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 				Api.exigir(api.pasajero(solicitante.token(), dni, nombre), "crear pasajero " + nombre, 200, 201);
 			}
 			assertEnOrden(campo("/pasajeros", api.admin(), "$[*].nombre"),

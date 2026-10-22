@@ -30,6 +30,12 @@ public class AuthController {
 	}
 
 	// CU-13/RF21: siempre 204, exista o no el correo.
+	@PostMapping("/logout")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void logout(org.springframework.security.core.Authentication auth) {
+		authService.logout(auth.getName());
+	}
+
 	@PostMapping("/recuperar-password")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void recuperarPassword(@Valid @RequestBody RecuperarPasswordDTORequest request) {

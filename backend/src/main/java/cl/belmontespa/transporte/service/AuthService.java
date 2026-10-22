@@ -59,15 +59,36 @@ public class AuthService {
 				.filter(u -> contrasenaValida(request.password(), u))
 				.orElseThrow(AuthService::credencialesInvalidas);
 		String rol = rol(usuario.getIdUsuario());
+		if ("CONDUCTOR".equals(rol) && !conductorRepository.findById(usuario.getIdUsuario()).orElseThrow().isActivo()) {
+			throw credencialesInvalidas();
+		}
+		if ("SOLICITANTE".equals(rol)) {
+			String estado = solicitanteRepository.findById(usuario.getIdUsuario()).orElseThrow().getEstadoSolicitante().getEstado();
+			if (!"APROBADO".equals(estado)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "PENDIENTE".equals(estado)
+						? "Tu cuenta espera la aprobación de un Administrador."
+						: "Tu cuenta no fue aprobada. Contacta a Belmonte SpA.");
+			}
+		}
+		boolean temporal = !passwordEncoder.matches(request.password(), usuario.getPasswordHash());
+		if (!temporal) {
+			usuario.setPasswordTemporalHash(null);
+			usuario.setPasswordTemporalExpira(null);
+		}
 		if (request.tokenFcm() != null && !request.tokenFcm().isBlank()) {
 			usuarioRepository.quitarTokenFcm(request.tokenFcm(), usuario.getIdUsuario());
 			usuario.setTokenFcm(request.tokenFcm());
 		}
-		return new LoginDTOResponse(jwtProvider.generar(usuario.getCorreo(), rol), "Bearer",
-				jwtProvider.getExpirationSeconds(), usuario.getCorreo(), rol);
+		return new LoginDTOResponse(jwtProvider.generar(usuario.getCorreo(), rol, temporal), "Bearer",
+				jwtProvider.getExpirationSeconds(), usuario.getCorreo(), rol, temporal);
 	}
 
 	// CU-13/RF21: solo Solicitante y Administrador; nunca revela si el correo existe.
+	@Transactional
+	public void logout(String correo) {
+		usuarioRepository.findByCorreoIgnoreCase(correo).ifPresent(u -> u.setTokenFcm(null));
+	}
+
 	@Transactional
 	public void recuperarPassword(RecuperarPasswordDTORequest request) {
 		usuarioRepository.findByCorreoIgnoreCase(request.correo())

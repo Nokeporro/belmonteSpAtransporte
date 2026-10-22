@@ -54,14 +54,15 @@ class AuthLocalRepository @Inject constructor(
 
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> =
         local.ejecutar {
-            exigir(registro.nombre.isNotBlank() && registro.correo.contains('@') && registro.password.length in 8..72 && registro.razonSocial.isNotBlank() && registro.rutEmpresa.isNotBlank(), "Revisa los datos ingresados.")
+            validar(cl.belmontespa.myapplication.util.Validaciones.registro(registro))
+            if (usuarioDao.obtener(cl.belmontespa.myapplication.util.Validaciones.correo(registro.correo)) != null) falla(ErrorApp.Conflicto("El correo ya está registrado."))
             val rut = Hashes.normalizarDocumento(registro.rutEmpresa)
             val existentes = usuarioDao.observarPorRol("SOLICITANTE").first()
             val empresa = existentes.firstOrNull { Hashes.normalizarDocumento(it.rutEmpresa.orEmpty()) == rut }
             val u = cl.belmontespa.myapplication.data.local.entity.UsuarioEntity(
-                registro.correo.trim().lowercase(), registro.nombre.trim(), registro.telefono,
+                cl.belmontespa.myapplication.util.Validaciones.correo(registro.correo), registro.nombre.trim(), cl.belmontespa.myapplication.util.Validaciones.telefono(registro.telefono),
                 "SOLICITANTE", true, null, if (empresa == null) "APROBADO" else "PENDIENTE",
-                empresa?.razonSocial ?: registro.razonSocial.trim(), rut,
+                empresa?.razonSocial ?: registro.razonSocial.trim(), cl.belmontespa.myapplication.util.Validaciones.rut(rut),
                 cl.belmontespa.myapplication.util.FechaIso.texto(local.ahora()), Hashes.password(registro.password),
             )
             usuarioDao.insertar(u)

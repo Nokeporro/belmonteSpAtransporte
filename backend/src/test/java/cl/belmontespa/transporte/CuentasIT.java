@@ -122,7 +122,10 @@ class CuentasIT extends IntegrationTest {
 		void empresaReutilizada() {
 			String rut = rutUnico();
 			api.solicitante(correoUnico("e1"), rut, "Razón Original");
-			api.solicitante(correoUnico("e2"), rut, "Nombre Distinto");
+			String segundo = correoUnico("e2");
+			Resp registro = Api.exigir(api.post("/solicitantes", null, api.cuerpoSolicitante(segundo, rut, "Nombre Distinto")), "registrar segunda cuenta", 201);
+			assertThat(registro.texto("$.estadoSolicitante")).isEqualTo("PENDIENTE");
+			assertThat(api.iniciarSesion(segundo, Api.CLAVE).status()).isEqualTo(403);
 			Resp empresas = Api.exigir(api.get("/empresas", api.admin()), "listar empresas", 200);
 			List<?> coincidencias = empresas.json("$[?(@.rut=='" + rut + "')]");
 			assertThat(coincidencias).hasSize(1);
@@ -196,20 +199,20 @@ class CuentasIT extends IntegrationTest {
 		void cambiaClave() {
 			Cuenta cuenta = api.solicitante();
 			String cuerpo = """
-					{"nombre":"Ana","correo":"%s","password":"NuevaClave987"}""".formatted(cuenta.correo());
+					{"nombre":"Ana","correo":"%s","password":"NuevaClave987","passwordActual":"%s"}""".formatted(cuenta.correo(), Api.CLAVE);
 			Api.exigir(api.put("/usuarios/" + cuenta.correo(), cuenta.token(), cuerpo), "cambiar clave", 200);
 			assertThat(api.iniciarSesion(cuenta.correo(), Api.CLAVE).status()).isEqualTo(401);
 			assertThat(api.iniciarSesion(cuenta.correo(), "NuevaClave987").status()).isEqualTo(200);
 		}
 
 		@Test
-		@DisplayName("no se puede tomar el correo de otra cuenta (409) ni enviar datos inválidos (400)")
+		@DisplayName("no se cambia el correo de la ruta ni se envían datos inválidos (400)")
 		void conflictoYValidacion() {
 			Cuenta ana = api.solicitante();
 			Cuenta beto = api.solicitante();
 			String conCorreoAjeno = """
 					{"nombre":"Ana","correo":"%s"}""".formatted(beto.correo());
-			assertThat(api.put("/usuarios/" + ana.correo(), ana.token(), conCorreoAjeno).status()).isEqualTo(409);
+			assertThat(api.put("/usuarios/" + ana.correo(), ana.token(), conCorreoAjeno).status()).isEqualTo(400);
 			assertThat(api.put("/usuarios/" + ana.correo(), ana.token(), "{\"nombre\":\"\",\"correo\":\"x\"}")
 					.status()).isEqualTo(400);
 		}
@@ -267,8 +270,9 @@ class CuentasIT extends IntegrationTest {
 		void sirvenLasDos() {
 			Cuenta ana = api.solicitante();
 			dejarTemporal(ana.correo(), TEMPORAL, LocalDateTime.now().plusMinutes(30));
-			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
 			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(200);
+			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
+			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(401);
 		}
 
 		@Test
@@ -286,7 +290,7 @@ class CuentasIT extends IntegrationTest {
 			Cuenta ana = api.solicitante();
 			dejarTemporal(ana.correo(), TEMPORAL, LocalDateTime.now().plusMinutes(30));
 			String cuerpo = """
-					{"nombre":"Ana","correo":"%s","password":"NuevaClave987"}""".formatted(ana.correo());
+					{"nombre":"Ana","correo":"%s","password":"NuevaClave987","passwordActual":"%s"}""".formatted(ana.correo(), Api.CLAVE);
 			Api.exigir(api.put("/usuarios/" + ana.correo(), ana.token(), cuerpo), "cambiar clave", 200);
 			assertThat(api.iniciarSesion(ana.correo(), TEMPORAL).status()).isEqualTo(401);
 			assertThat(temporalGuardada(ana.correo())).isNull();
