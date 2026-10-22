@@ -33,11 +33,6 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 	}
 
 	@Override
-	protected Usuario nuevaEntidad(UsuarioDTORequest request) {
-		return nuevo(request.nombre(), request.correo(), request.telefono(), request.password());
-	}
-
-	@Override
 	protected void reemplazar(Usuario usuario, UsuarioDTORequest request) {
 		reemplazarDatos(usuario, request.nombre(), request.correo(), request.telefono(), request.password());
 	}
@@ -73,6 +68,7 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 		usuario.setTelefono(telefono);
 		if (password != null && !password.isBlank()) {
 			usuario.setPasswordHash(passwordEncoder.encode(password));
+			usuario.setPasswordTemporalHash(null);
 			usuario.setPasswordTemporalExpira(null);
 		}
 	}

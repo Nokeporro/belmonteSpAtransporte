@@ -45,7 +45,7 @@ class NotificacionesIT extends IntegrationTest {
 	class CorreoDeRecuperacion {
 
 		@Test
-		@DisplayName("el solicitante recibe una clave de 12 caracteres con la que puede iniciar sesión")
+		@DisplayName("el solicitante recibe una clave de 12 caracteres que sirve junto con la actual")
 		void recibeLaClaveYPuedeEntrar() throws Exception {
 			Cuenta ana = api.solicitante();
 
@@ -60,7 +60,7 @@ class NotificacionesIT extends IntegrationTest {
 			Matcher clave = Pattern.compile("(?m)^\\s+([A-Za-z0-9]{12})\\s*$").matcher(cuerpo);
 			assertThat(clave.find()).as("el cuerpo trae la clave temporal").isTrue();
 
-			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(401);
+			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
 			assertThat(api.iniciarSesion(ana.correo(), clave.group(1)).status()).isEqualTo(200);
 		}
 

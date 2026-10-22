@@ -40,9 +40,9 @@ public class SecurityConfig {
 						// Autorregistro del Solicitante (RF01): aún no tiene JWT.
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
 
-						.requestMatchers(POST, "/api/v1/usuarios").hasRole(ADM)
+						// Sin POST: las cuentas nacen por su rol (RF01, CU-07 y el alta de administradores).
 						.requestMatchers(GET, "/api/v1/usuarios", "/api/v1/usuarios/*").hasAnyRole(ADM, CON, SOL)
-						.requestMatchers(PUT, "/api/v1/usuarios/*").hasAnyRole(ADM, CON, SOL)
+						.requestMatchers(PUT, "/api/v1/usuarios/*").hasAnyRole(ADM, SOL)
 
 						.requestMatchers("/api/v1/administradores/**").hasRole(ADM)
 
@@ -53,10 +53,8 @@ public class SecurityConfig {
 
 						.requestMatchers(GET, "/api/v1/solicitantes/*").hasAnyRole(ADM, SOL)
 						.requestMatchers(GET, "/api/v1/solicitantes").hasRole(ADM)
-						.requestMatchers(PUT, "/api/v1/solicitantes/*").hasRole(SOL)
 
 						.requestMatchers(GET, "/api/v1/empresas/**").hasRole(ADM)
-						.requestMatchers(POST, "/api/v1/empresas").hasRole(SOL)
 
 						.requestMatchers("/api/v1/moviles/**", "/api/v1/habilitaciones-movil-conductor/**").hasRole(ADM)
 

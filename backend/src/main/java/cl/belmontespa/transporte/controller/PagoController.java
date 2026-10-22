@@ -5,6 +5,7 @@ import cl.belmontespa.transporte.dto.request.PagoDTORequest;
 import cl.belmontespa.transporte.dto.response.PagoDTOResponse;
 import cl.belmontespa.transporte.service.CrudService;
 import cl.belmontespa.transporte.service.PagoService;
+import cl.belmontespa.transporte.validation.Reglas;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,11 @@ public class PagoController extends CrudController<PagoDTORequest, PagoDTORespon
 	@Override
 	protected CrudService<?, String, PagoDTORequest, PagoDTOResponse> service() {
 		return pagoService;
+	}
+
+	@Override
+	protected void validarClave(String hash) {
+		exigirFormato(Reglas.esHashPago(hash));
 	}
 
 	@Override

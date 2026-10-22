@@ -27,7 +27,7 @@ public class JwtProvider {
 
 	public JwtProvider(
 			@Value("${app.jwt.secret}") String base64Secret,
-			@Value("${app.jwt.expiration-seconds:3600}") long expirationSeconds) {
+			@Value("${app.jwt.expiration-seconds:28800}") long expirationSeconds) {
 		if (expirationSeconds < 1) {
 			throw new IllegalArgumentException("La expiración del JWT debe ser positiva");
 		}

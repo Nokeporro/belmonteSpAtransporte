@@ -2,7 +2,6 @@ package cl.belmontespa.transporte.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,8 +18,9 @@ public class Viaje {
 	@Column(name = "id_viaje", nullable = false)
 	private Long idViaje;
 
-	// Identificador público y clave de ruta en la API. Inmutable.
-	@Column(name = "folio", length = 20, nullable = false, unique = true, updatable = false)
+	// Identificador público y clave de ruta en la API: TR- y un correlativo desde 1001. Lo genera el
+	// trigger bi_viaje y es inmutable; nunca lo escribe la aplicación.
+	@Column(name = "folio", length = 20, nullable = false, unique = true, insertable = false, updatable = false)
 	private String folio;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -77,11 +77,8 @@ public class Viaje {
 	@Column(name = "numero_vuelo", length = 20)
 	private String numeroVuelo;
 
-	@PrePersist
-	private void generarFolio() {
-		if (folio == null || folio.isBlank()) {
-			folio = "VJ" + UUID.randomUUID().toString().replace("-", "").substring(0, 18).toUpperCase();
-		}
-	}
+	// Motivo de la cancelación del Administrador (V7) o del rechazo del Conductor (V8).
+	@Column(name = "motivo", length = 200)
+	private String motivo;
 
 }

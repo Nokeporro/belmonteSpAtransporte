@@ -1,17 +1,16 @@
 package cl.belmontespa.transporte.service;
 
-import cl.belmontespa.transporte.dto.request.EmpresaDTORequest;
 import cl.belmontespa.transporte.dto.response.EmpresaDTOResponse;
 import cl.belmontespa.transporte.model.Empresa;
 import cl.belmontespa.transporte.repository.EmpresaRepository;
 import java.util.Optional;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
+// Solo lectura por la API: las empresas nacen con el registro del Solicitante (RF01).
 @Service
-public class EmpresaService extends CrudService<Empresa, String, EmpresaDTORequest, EmpresaDTOResponse> {
+public class EmpresaService extends CrudService<Empresa, String, Void, EmpresaDTOResponse> {
 
 	private final EmpresaRepository empresaRepository;
 
@@ -25,16 +24,13 @@ public class EmpresaService extends CrudService<Empresa, String, EmpresaDTOReque
 	}
 
 	@Override
-	protected Optional<Empresa> buscar(String rut) {
-		return empresaRepository.findByRut(rut);
+	protected Sort orden() {
+		return Sort.by("razonSocial", "rut");
 	}
 
 	@Override
-	protected Empresa nuevaEntidad(EmpresaDTORequest request) {
-		if (empresaRepository.findByRut(request.rut()).isPresent()) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El RUT ya está registrado");
-		}
-		return nueva(request.razonSocial(), request.rut());
+	protected Optional<Empresa> buscar(String rut) {
+		return empresaRepository.findByRut(rut);
 	}
 
 	@Override

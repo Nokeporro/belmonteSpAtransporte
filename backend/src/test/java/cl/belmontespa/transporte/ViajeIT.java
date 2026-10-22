@@ -31,12 +31,12 @@ class ViajeIT extends IntegrationTest {
 	class Creacion {
 
 		@Test
-		@DisplayName("el viaje nace PENDIENTE, con folio VJ, sin pasajeros, conductor ni móvil")
+		@DisplayName("el viaje nace PENDIENTE, con folio TR-1001 o mayor, sin pasajeros, conductor ni móvil")
 		void nace() {
 			Cuenta solicitante = api.solicitante();
 			String folio = api.viaje(solicitante);
 			Resp viaje = ver(folio);
-			assertThat(folio).startsWith("VJ");
+			assertThat(folio).matches("TR-[1-9][0-9]{3,}");
 			assertThat(viaje.texto("$.estado")).isEqualTo("PENDIENTE");
 			assertThat(viaje.texto("$.correoSolicitante")).isEqualTo(solicitante.correo());
 			assertThat(viaje.entero("$.cantidadPasajeros")).isZero();
@@ -102,7 +102,7 @@ class ViajeIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("el historial registra estado, conductor y móvil de cada cambio (trigger)")
+		@DisplayName("el historial registra estado, conductor y móvil de cada cambio, pero no las fechas (trigger)")
 		void historial() {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);
@@ -113,7 +113,8 @@ class ViajeIT extends IntegrationTest {
 			List<String> campos = jdbc.queryForList("""
 					SELECT DISTINCT h.campo_modificado FROM historial_viaje h
 					JOIN viaje v ON v.id_viaje = h.id_viaje WHERE v.folio = ?""", String.class, folio);
-			assertThat(campos).contains("estado", "conductor", "movil", "fh_asignacion", "fh_inicio", "fh_fin");
+			assertThat(campos).contains("estado", "conductor", "movil")
+					.doesNotContain("fh_asignacion", "fh_inicio", "fh_fin");
 			List<String> estados = jdbc.queryForList("""
 					SELECT h.valor FROM historial_viaje h JOIN viaje v ON v.id_viaje = h.id_viaje
 					WHERE v.folio = ? AND h.campo_modificado = 'estado' ORDER BY h.id_historial""", String.class,

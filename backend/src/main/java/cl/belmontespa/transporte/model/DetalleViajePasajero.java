@@ -1,6 +1,7 @@
 package cl.belmontespa.transporte.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,5 +30,9 @@ public class DetalleViajePasajero {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_pasajero", insertable = false, updatable = false)
 	private Pasajero pasajero;
+
+	// Con fecha, Abordado; NULL, Por abordar.
+	@Column(name = "fh_abordaje")
+	private LocalDateTime fhAbordaje;
 
 }

@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Cada actor ve y edita solo su propia cuenta (RNF08).
+// Cada actor ve y edita solo su propia cuenta (RNF08); las cuentas nacen por su rol, no aquí.
 @RestController
 @RequestMapping("/api/v1/usuarios")
-public class UsuarioController extends CrudController<UsuarioDTORequest, UsuarioDTOResponse> {
+public class UsuarioController extends LecturaController<UsuarioDTOResponse> {
 
 	private final UsuarioService usuarioService;
 
@@ -27,7 +27,7 @@ public class UsuarioController extends CrudController<UsuarioDTORequest, Usuario
 	}
 
 	@Override
-	protected CrudService<?, String, UsuarioDTORequest, UsuarioDTOResponse> service() {
+	protected CrudService<?, String, ?, UsuarioDTOResponse> service() {
 		return usuarioService;
 	}
 

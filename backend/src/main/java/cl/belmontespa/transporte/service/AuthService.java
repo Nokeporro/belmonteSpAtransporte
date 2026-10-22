@@ -11,6 +11,7 @@ import cl.belmontespa.transporte.repository.ConductorRepository;
 import cl.belmontespa.transporte.repository.SolicitanteRepository;
 import cl.belmontespa.transporte.repository.UsuarioRepository;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -32,12 +33,13 @@ public class AuthService {
 	private final PasswordEncoder passwordEncoder;
 	private final JwtProvider jwtProvider;
 	private final EmailClient emailClient;
+	private final Clock clock;
 	private final long minutosPasswordTemporal;
 	private final SecureRandom random = new SecureRandom();
 
 	public AuthService(UsuarioRepository usuarioRepository, AdministradorRepository administradorRepository,
 			ConductorRepository conductorRepository, SolicitanteRepository solicitanteRepository,
-			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, EmailClient emailClient,
+			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, EmailClient emailClient, Clock clock,
 			@Value("${app.password-temporal.minutos:30}") long minutosPasswordTemporal) {
 		this.usuarioRepository = usuarioRepository;
 		this.administradorRepository = administradorRepository;
@@ -46,6 +48,7 @@ public class AuthService {
 		this.passwordEncoder = passwordEncoder;
 		this.jwtProvider = jwtProvider;
 		this.emailClient = emailClient;
+		this.clock = clock;
 		this.minutosPasswordTemporal = minutosPasswordTemporal;
 	}
 
@@ -53,12 +56,11 @@ public class AuthService {
 	@Transactional
 	public LoginDTOResponse login(LoginDTORequest request) {
 		Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(request.correo())
-				.filter(u -> passwordEncoder.matches(request.password(), u.getPasswordHash()))
-				.filter(u -> u.getPasswordTemporalExpira() == null
-						|| u.getPasswordTemporalExpira().isAfter(LocalDateTime.now()))
+				.filter(u -> contrasenaValida(request.password(), u))
 				.orElseThrow(AuthService::credencialesInvalidas);
 		String rol = rol(usuario.getIdUsuario());
 		if (request.tokenFcm() != null && !request.tokenFcm().isBlank()) {
+			usuarioRepository.quitarTokenFcm(request.tokenFcm(), usuario.getIdUsuario());
 			usuario.setTokenFcm(request.tokenFcm());
 		}
 		return new LoginDTOResponse(jwtProvider.generar(usuario.getCorreo(), rol), "Bearer",
@@ -73,10 +75,21 @@ public class AuthService {
 						|| administradorRepository.existsById(u.getIdUsuario()))
 				.ifPresent(usuario -> {
 					String passwordTemporal = passwordTemporal();
-					usuario.setPasswordHash(passwordEncoder.encode(passwordTemporal));
-					usuario.setPasswordTemporalExpira(LocalDateTime.now().plusMinutes(minutosPasswordTemporal));
+					usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
+					usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusMinutes(minutosPasswordTemporal));
 					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal, minutosPasswordTemporal);
 				});
+	}
+
+	// Sirve la contraseña normal o, mientras no venza, la temporal (RF21): ninguna reemplaza a la otra.
+	private boolean contrasenaValida(String password, Usuario usuario) {
+		if (passwordEncoder.matches(password, usuario.getPasswordHash())) {
+			return true;
+		}
+		return usuario.getPasswordTemporalHash() != null
+				&& usuario.getPasswordTemporalExpira() != null
+				&& usuario.getPasswordTemporalExpira().isAfter(LocalDateTime.now(clock))
+				&& passwordEncoder.matches(password, usuario.getPasswordTemporalHash());
 	}
 
 	// Rol único por USUARIO_ROL_ACTIVO.

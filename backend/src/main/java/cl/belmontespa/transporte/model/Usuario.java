@@ -31,7 +31,10 @@ public class Usuario {
 	@Column(name = "password_hash", length = 200, nullable = false)
 	private String passwordHash;
 
-	// NULL: contraseña normal. Con valor: password_hash es temporal hasta ese instante (RF21).
+	// Temporal de RF21 o CU-18; no reemplaza a password_hash: sirve hasta password_temporal_expira.
+	@Column(name = "password_temporal_hash", length = 200)
+	private String passwordTemporalHash;
+
 	@Column(name = "password_temporal_expira")
 	private LocalDateTime passwordTemporalExpira;
 
@@ -39,8 +42,8 @@ public class Usuario {
 	@Column(name = "fecha_registro", nullable = false, insertable = false, updatable = false)
 	private LocalDateTime fechaRegistro;
 
-	// Se reemplaza en cada login (RF13).
-	@Column(name = "token_fcm", length = 255)
+	// Se reemplaza en cada login (RF13) y es único: se le quita a cualquier otro usuario.
+	@Column(name = "token_fcm", length = 255, unique = true)
 	private String tokenFcm;
 
 }
