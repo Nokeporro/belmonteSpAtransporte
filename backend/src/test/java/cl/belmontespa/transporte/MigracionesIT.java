@@ -20,7 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  * Las migraciones sobre una base vacía y sobre una que ya tiene datos. Comparte {@code belmonte_test}
  * con el resto de las IT, así que cada prueba la deja limpia y migrada al terminar.
  */
-@DisplayName("Migraciones: la cadena completa y V4 sobre una base con datos")
+@DisplayName("Migraciones: la cadena completa, V4 y V5 sobre una base con datos")
 class MigracionesIT extends IntegrationTest {
 
 	@Autowired
@@ -75,7 +75,7 @@ class MigracionesIT extends IntegrationTest {
 		flyway.migrate();
 
 		assertThat(flyway.info().pending()).isEmpty();
-		assertThat(flyway.info().applied()).extracting(m -> m.getVersion().getVersion()).contains("1", "2", "3", "4");
+		assertThat(flyway.info().applied()).extracting(m -> m.getVersion().getVersion()).contains("1", "2", "3", "4", "5");
 
 		assertThat(existeColumna("usuario", "password_temporal_hash")).isTrue();
 		assertThat(existeColumna("solicitante", "estado_solicitante_id")).isTrue();
@@ -85,6 +85,12 @@ class MigracionesIT extends IntegrationTest {
 		assertThat(admiteNull("pago", "fecha_pago")).isTrue();
 		assertThat(esUnica("usuario", "token_fcm")).isTrue();
 		assertThat(esUnica("viaje", "pago_id")).isTrue();
+		assertThat(existeColumna("viaje", "motivo")).isTrue();
+		assertThat(existeColumna("detalle_viaje_pasajero", "fh_abordaje")).isTrue();
+		assertThat(admiteNull("detalle_viaje_pasajero", "fh_abordaje")).isTrue();
+		assertThat(existeColumna("movil", "codigo_abordaje")).isTrue();
+		assertThat(admiteNull("movil", "codigo_abordaje")).isFalse();
+		assertThat(esUnica("movil", "codigo_abordaje")).isTrue();
 
 		assertThat(valores("SELECT estado FROM estado_solicitante"))
 				.containsExactlyInAnyOrder("PENDIENTE", "APROBADO", "RECHAZADO");
@@ -124,6 +130,66 @@ class MigracionesIT extends IntegrationTest {
 	}
 
 	@Test
+	@DisplayName("el folio es TR- y un correlativo desde 1001 que asigna la base y no cambia")
+	void folios() {
+		flyway.clean();
+		flyway.migrate();
+		escenarioDeViajes();
+
+		long primero = viaje("elegido");
+		long segundo = viaje("otro");
+
+		assertThat(folio(primero)).isEqualTo("TR-1001");
+		assertThat(folio(segundo)).isEqualTo("TR-1002");
+		assertThatThrownBy(() -> jdbc.update("UPDATE viaje SET folio = 'TR-9999' WHERE id_viaje = ?", primero))
+				.isInstanceOf(DataIntegrityViolationException.class);
+		assertThat(folio(primero)).isEqualTo("TR-1001");
+	}
+
+	@Test
+	@DisplayName("bu_viaje acepta V8 (ASIGNADO → PENDIENTE) y no deja volver a PENDIENTE desde otro estado")
+	void rechazoDelConductor() {
+		flyway.clean();
+		flyway.migrate();
+		escenarioDeViajes();
+		long viaje = viaje("v8");
+
+		cambiarEstadoViaje(viaje, "ASIGNADO");
+		cambiarEstadoViaje(viaje, "PENDIENTE");
+		assertThat(estadoViaje(viaje)).isEqualTo("PENDIENTE");
+
+		cambiarEstadoViaje(viaje, "ASIGNADO");
+		cambiarEstadoViaje(viaje, "EN_CURSO");
+		assertThatThrownBy(() -> cambiarEstadoViaje(viaje, "PENDIENTE"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+		cambiarEstadoViaje(viaje, "FINALIZADO");
+		assertThatThrownBy(() -> cambiarEstadoViaje(viaje, "PENDIENTE"))
+				.isInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	@DisplayName("au_viaje audita estado y motivo, pero no las fechas, el origen ni el número de vuelo")
+	void historialDeViaje() {
+		flyway.clean();
+		flyway.migrate();
+		escenarioDeViajes();
+		long viaje = viaje("historial");
+
+		jdbc.update("""
+				UPDATE viaje SET numero_vuelo = 'LA800', fh_agenda = '2026-11-02 11:00:00',
+				                 fh_asignacion = '2026-10-30 09:00:00',
+				                 id_origen = (SELECT MAX(id_ubicacion) FROM ubicacion)
+				WHERE id_viaje = ?""", viaje);
+		assertThat(camposAuditados(viaje)).isEmpty();
+
+		cambiarEstadoViaje(viaje, "ASIGNADO");
+		jdbc.update("UPDATE viaje SET motivo = 'Cambio de planes' WHERE id_viaje = ?", viaje);
+		assertThat(camposAuditados(viaje)).containsExactlyInAnyOrder("estado", "motivo");
+		assertThat(valores("SELECT valor FROM historial_viaje WHERE id_viaje = ? AND campo_modificado = 'motivo'",
+				viaje)).containsExactly("Cambio de planes");
+	}
+
+	@Test
 	@DisplayName("sobre una base con datos convierte cuentas, flota y pagos sin perderlos")
 	void baseConDatos() {
 		Flyway hastaV3 = hasta("3");
@@ -154,6 +220,11 @@ class MigracionesIT extends IntegrationTest {
 				VALUES ('pago-viejo', 50000, (SELECT id FROM estado_pago WHERE estado = 'PAGADO'),
 				        (SELECT MIN(id) FROM banco), ?, (SELECT MIN(id) FROM medio_pago),
 				        (SELECT MIN(id) FROM tipo_recibo), '2026-10-01 10:00:00')""", empresa);
+
+		// Viajes como los dejó V3: el folio era VJ más un UUID.
+		ubicacion("Av. Vieja 1");
+		viaje("VJAAAAAAAAAAAAAAAAAA");
+		viaje("VJBBBBBBBBBBBBBBBBBB");
 
 		flyway.migrate();
 		assertThat(flyway.info().pending()).isEmpty();
@@ -198,6 +269,64 @@ class MigracionesIT extends IntegrationTest {
 		assertThat(valores("SELECT CAST(fecha_pago AS CHAR) FROM pago WHERE hash = 'pago-viejo'"))
 				.containsExactly("2026-10-01 10:00:00");
 		assertThat(valores("SELECT monto_reembolsado FROM pago WHERE hash = 'pago-viejo'")).containsOnlyNulls();
+
+		// Los folios existentes pasan a TR- en orden de creación y la secuencia sigue desde ahí.
+		assertThat(valores("SELECT folio FROM viaje ORDER BY id_viaje")).containsExactly("TR-1001", "TR-1002");
+		assertThat(folio(viaje("lo-ignora-la-base"))).isEqualTo("TR-1003");
+
+		// Cada vehículo existente recibe su código de abordaje: 16 hexadecimales en mayúsculas, distintos.
+		assertThat(valores("SELECT codigo_abordaje FROM movil")).hasSize(2)
+				.allMatch(codigo -> codigo.matches("[0-9A-F]{16}")).doesNotHaveDuplicates();
+	}
+
+	// Solicitante aprobado y dos ubicaciones, lo mínimo para insertar viajes en el esquema final.
+	private void escenarioDeViajes() {
+		jdbc.update("INSERT INTO empresa (razon_social, rut) VALUES ('Empresa de viajes', '76.333.333-3')");
+		long usuario = usuario("viajes@mig.cl", "hash-viajes", null, false);
+		jdbc.update("""
+				INSERT INTO solicitante (id_usuario, empresa_id_empresa, estado_solicitante_id)
+				VALUES (?, (SELECT MIN(id_empresa) FROM empresa),
+				        (SELECT id FROM estado_solicitante WHERE estado = 'APROBADO'))""", usuario);
+		ubicacion("Av. Origen 100");
+		ubicacion("Av. Destino 200");
+	}
+
+	private void ubicacion(String direccion) {
+		jdbc.update("""
+				INSERT INTO ubicacion (direccion, id_comuna, latitud, longitud)
+				VALUES (?, (SELECT MIN(id_comuna) FROM comuna), -33.426100, -70.611000)""", direccion);
+	}
+
+	// Viaje PENDIENTE del primer solicitante, con origen y destino en la primera ubicación; devuelve su id.
+	// Desde V5 el folio lo asigna la base, así que el que se pasa solo cuenta en una base anterior.
+	private long viaje(String folio) {
+		jdbc.update("""
+				INSERT INTO viaje (folio, id_solicitante, id_origen, id_destino, id_estado, fh_agenda)
+				VALUES (?, (SELECT MIN(id_usuario) FROM solicitante), (SELECT MIN(id_ubicacion) FROM ubicacion),
+				        (SELECT MIN(id_ubicacion) FROM ubicacion),
+				        (SELECT id_estado FROM estado_solicitud WHERE nombre_estado = 'PENDIENTE'),
+				        '2026-11-01 10:00:00')""", folio);
+		return jdbc.queryForObject("SELECT MAX(id_viaje) FROM viaje", Long.class);
+	}
+
+	private String folio(long idViaje) {
+		return jdbc.queryForObject("SELECT folio FROM viaje WHERE id_viaje = ?", String.class, idViaje);
+	}
+
+	private String estadoViaje(long idViaje) {
+		return jdbc.queryForObject("""
+				SELECT e.nombre_estado FROM viaje v JOIN estado_solicitud e ON e.id_estado = v.id_estado
+				WHERE v.id_viaje = ?""", String.class, idViaje);
+	}
+
+	private void cambiarEstadoViaje(long idViaje, String estado) {
+		jdbc.update("""
+				UPDATE viaje SET id_estado = (SELECT id_estado FROM estado_solicitud WHERE nombre_estado = ?)
+				WHERE id_viaje = ?""", estado, idViaje);
+	}
+
+	private List<String> camposAuditados(long idViaje) {
+		return valores("SELECT campo_modificado FROM historial_viaje WHERE id_viaje = ?", idViaje);
 	}
 
 	// Usuario como lo guardaba V3: la temporal vigente estaba en password_hash.

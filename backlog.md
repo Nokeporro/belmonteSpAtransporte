@@ -101,7 +101,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — |
 | 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — |
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Hecha |
-| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta |
+| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Hecha |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar |
 | 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar |
 | 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | 3 ajustar |
@@ -269,6 +269,21 @@ Lo que pedía el ítem:
 
 ### T08 Migración de viajes y abordaje
 
+**Hecha el 21-10** en `V5__viajes_abordaje.sql`. `./gradlew test` en `backend/` contra la MariaDB 11.4
+del compose pasa completo: 137 pruebas, sin fallos. Antes de migrar una base de desarrollo con datos,
+respaldarla (README, "Persistencia y transacciones"). Además de lo que sigue:
+- **Folio:** lo asigna `bi_viaje` con la secuencia `seq_folio_viaje` (`NOCACHE`), y el cliente no lo
+  elige; `Viaje.folio` es de solo lectura y `ViajeService.crear` lo lee con el `refresh` que ya
+  existía. Si una transacción se revierte, queda un hueco en el correlativo.
+- **Datos existentes:** los folios `VJ…` se renumeran `TR-1001`, `TR-1002`, … en orden de creación, y
+  los vehículos reciben un `codigo_abordaje` al azar.
+- **Código que acompaña al esquema:** `MovilService` genera `codigo_abordaje` con `SecureRandom`
+  (era un punto de HU17; con `NOT NULL`, crear un vehículo sin código falla).
+- **Pruebas:** `ViajeIT` ya no espera el folio `VJ` ni las fechas en el historial, y `MigracionesIT`
+  suma el folio, V8, el historial y los viajes de una base con datos.
+
+Lo que pedía el ítem:
+
 - **`viaje.motivo`:** nueva columna `VARCHAR(200)`.
 - **`folio`:** debe ser `TR-` + un correlativo desde 1001, generado por trigger. Hoy es `VJ` + UUID,
   tanto en `bi_viaje` como en `model/Viaje.java` (`@PrePersist`); el `@PrePersist` se quita.
@@ -412,8 +427,7 @@ Lo que pedía el ítem:
 
 ### HU17 y HU18
 
-- **`MovilDTOResponse`:** suma `activo` y `codigoAbordaje`.
-- **`MovilService`:** genera `codigo_abordaje` con `SecureRandom`.
+- **`MovilDTOResponse`:** suma `activo` y `codigoAbordaje`. (`MovilService` ya genera el código: T08.)
 - **Habilitaciones:**
   - filtros `?patente=` y `?correo=`;
   - `DetalleMovilConductorDTOResponse` suma `capacidad`, `estadoMovil`, `activoMovil`,
