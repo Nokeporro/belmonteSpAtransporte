@@ -97,7 +97,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
             try {
                 val actual = mutable.value
                 val fecha = LocalDateTime.now(repos.clock).plusHours(3)
-                if (actual.campos.isEmpty()) mutable.update { it.copy(campos = mapOf("fecha" to fecha.toLocalDate().toString(), "hora" to fecha.toLocalTime().withSecond(0).withNano(0).toString(), "tipoDocumento" to "RUT", "medioPago" to "TRANSFERENCIA", "tipoRecibo" to "BOLETA", "estado" to if (p == PantallaDemo.SOLICITUDES) "PENDIENTE" else "TODOS")) }
+                if (actual.campos.isEmpty()) mutable.update { it.copy(campos = mapOf("fecha" to fecha.toLocalDate().toString(), "hora" to fecha.toLocalTime().withSecond(0).withNano(0).toString(), "tipoDocumento" to "RUT", "medioPago" to "TRANSFERENCIA", "tipoRecibo" to "BOLETA", "estado" to "TODOS")) }
                 if (p == PantallaDemo.CONFIRMAR_ABORDAJE) repos.borrador.codigo?.let { codigo ->
                     mutable.update { it.copy(campos = it.campos + mapOf("patente" to codigo.patente, "codigo" to codigo.codigo)) }
                 }
@@ -113,19 +113,19 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 if (p in listOf(PantallaDemo.REGISTRAR_PAGO, PantallaDemo.NUEVA_SOLICITUD)) {
                     mutable.update { it.copy(catalogos = repos.catalogos.obtenerCatalogos().valor()) }
                 }
-                if (p in listOf(PantallaDemo.CUENTAS_PENDIENTES, PantallaDemo.SOLICITUDES)) mutable.update { it.copy(pendientes = repos.cuentas.listarSolicitantesPendientes().valor()) }
-                if (p in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.ASIGNAR, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(conductores = repos.flota.listarConductores().valor()) }
-                if (p in listOf(PantallaDemo.VEHICULOS, PantallaDemo.ASIGNAR, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(moviles = repos.flota.listarMoviles().valor()) }
-                if (p in listOf(PantallaDemo.HABILITACIONES, PantallaDemo.ASIGNAR)) mutable.update { it.copy(habilitaciones = repos.flota.listarHabilitaciones().valor()) }
+                if (p == PantallaDemo.CUENTAS_PENDIENTES) mutable.update { it.copy(pendientes = repos.cuentas.listarSolicitantesPendientes().valor()) }
+                if (p in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(conductores = repos.flota.listarConductores().valor()) }
+                if (p in listOf(PantallaDemo.VEHICULOS, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(moviles = repos.flota.listarMoviles().valor()) }
+                if (p == PantallaDemo.HABILITACIONES) mutable.update { it.copy(habilitaciones = repos.flota.listarHabilitaciones().valor()) }
                 if (p == PantallaDemo.DETALLE_CONDUCTOR) {
                     val conductor = repos.flota.obtenerConductor(id).valor()
                     mutable.update { it.copy(conductor = conductor, habilitaciones = repos.flota.listarHabilitaciones(correo = id).valor(), campos = it.campos + mapOf("nombre" to conductor.nombre, "telefono" to conductor.telefono.orEmpty())) }
                 }
                 if (p == PantallaDemo.DETALLE_VEHICULO) mutable.update { it.copy(movil = repos.flota.obtenerMovil(id).valor(), habilitaciones = repos.flota.listarHabilitaciones(patente = id).valor()) }
                 if (p == PantallaDemo.DETALLE_PAGO) mutable.update { it.copy(pago = repos.pagos.obtenerPago(id).valor()) }
-                val listado = p in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES, PantallaDemo.MIS_VIAJES, PantallaDemo.NOTIFICACION)
+                val listado = p in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES, PantallaDemo.NOTIFICACION)
                 if (listado) {
-                    val filtro = FiltroViajes(estado = if (p == PantallaDemo.SOLICITUDES && valor("estado").isBlank()) EstadoViaje.PENDIENTE else valor("estado").takeIf { it.isNotBlank() && it != "TODOS" }?.let(EstadoViaje::valueOf),
+                    val filtro = FiltroViajes(estado = valor("estado").takeIf { it.isNotBlank() && it != "TODOS" }?.let(EstadoViaje::valueOf),
                         fecha = if (p == PantallaDemo.MIS_VIAJES && valor("agenda").isNotBlank()) LocalDate.parse(valor("agenda")) else null)
                     mutable.update { it.copy(cargando = false) }
                     repos.viajes.observarViajes(filtro).collect { datos -> mutable.update { it.copy(viajes = datos, cargando = false) } }
@@ -199,7 +199,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                         }
                         PantallaDemo.AGREGAR_PASAJERO -> { repos.viajes.agregarPasajero(referencia, NuevoPasajero(TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento"), valor("nombre"))).valor(); destino = PantallaDemo.DETALLE_SOLICITUD to referencia }
                         PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> { repos.viajes.cancelar(referencia, valor("motivo").ifBlank { null }, valor("reembolso").toIntOrNull()).valor(); destino = (if (p == PantallaDemo.CONFIRMAR_CANCELACION) PantallaDemo.SOLICITUD_CANCELADA else PantallaDemo.DETALLE_ADMIN) to referencia }
-                        PantallaDemo.ASIGNAR -> { repos.viajes.asignar(referencia, valor("conductor"), valor("vehiculo")).valor(); destino = PantallaDemo.DETALLE_ADMIN to referencia }
                         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
                             val c = NuevaCuenta(valor("nombre"), valor("correo"), valor("telefono").ifBlank { null }, valor("password"))
                             if (p == PantallaDemo.REGISTRAR_CONDUCTOR) { val conductor = repos.flota.registrarConductor(c).valor(); destino = PantallaDemo.DETALLE_CONDUCTOR to conductor.correo }
@@ -223,7 +222,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     suspend fun lugares(): List<Ubicacion> = repos.ubicacionesDemo
     fun ahora(): LocalDateTime = LocalDateTime.now(repos.clock)
     private companion object {
-        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
+        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
     }
 }
 private class FalloPantalla(val error: ErrorApp) : RuntimeException()

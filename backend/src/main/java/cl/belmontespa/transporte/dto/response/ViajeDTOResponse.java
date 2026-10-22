@@ -1,9 +1,10 @@
 package cl.belmontespa.transporte.dto.response;
 
 import cl.belmontespa.transporte.model.Conductor;
+import cl.belmontespa.transporte.model.DetalleViajePasajero;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.model.Pago;
-import cl.belmontespa.transporte.model.Pasajero;
+import cl.belmontespa.transporte.model.Solicitante;
 import cl.belmontespa.transporte.model.Viaje;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,6 +15,9 @@ public record ViajeDTOResponse(
 		String folio,
 		String estado,
 		String correoSolicitante,
+		String nombreSolicitante,
+		String telefonoSolicitante,
+		String razonSocial,
 		Ubicacion origen,
 		Ubicacion destino,
 		LocalDateTime fhCreacion,
@@ -28,6 +32,7 @@ public record ViajeDTOResponse(
 		String patenteMovil,
 		String hashPago,
 		String estadoPago,
+		String motivo,
 		List<PasajeroDTOResponse> pasajeros
 ) {
 
@@ -49,14 +54,18 @@ public record ViajeDTOResponse(
 		}
 	}
 
-	public static ViajeDTOResponse from(Viaje viaje, List<Pasajero> pasajeros) {
+	public static ViajeDTOResponse from(Viaje viaje, List<DetalleViajePasajero> pasajeros) {
+		Solicitante solicitante = viaje.getSolicitante();
 		Conductor conductor = viaje.getConductor();
 		Movil movil = viaje.getMovil();
 		Pago pago = viaje.getPago();
 		return new ViajeDTOResponse(
 				viaje.getFolio(),
 				viaje.getEstado().getNombreEstado(),
-				viaje.getSolicitante().getUsuario().getCorreo(),
+				solicitante.getUsuario().getCorreo(),
+				solicitante.getUsuario().getNombre(),
+				solicitante.getUsuario().getTelefono(),
+				solicitante.getEmpresa().getRazonSocial(),
 				Ubicacion.from(viaje.getOrigen()),
 				Ubicacion.from(viaje.getDestino()),
 				viaje.getFhCreacion(),
@@ -71,6 +80,14 @@ public record ViajeDTOResponse(
 				movil == null ? null : movil.getPatente(),
 				pago == null ? null : pago.getHash(),
 				pago == null ? null : pago.getEstadoPago().getEstado(),
+				viaje.getMotivo(),
 				pasajeros.stream().map(PasajeroDTOResponse::from).toList());
+	}
+
+	// Al Conductor no le llega nada del pago (README, "Recursos y roles").
+	public ViajeDTOResponse sinPago() {
+		return new ViajeDTOResponse(folio, estado, correoSolicitante, nombreSolicitante, telefonoSolicitante,
+				razonSocial, origen, destino, fhCreacion, fhAgenda, fhAsignacion, fhInicio, fhFin, numeroVuelo,
+				cantidadPasajeros, correoConductor, nombreConductor, patenteMovil, null, null, motivo, pasajeros);
 	}
 }

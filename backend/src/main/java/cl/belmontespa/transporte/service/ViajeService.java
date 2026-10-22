@@ -7,7 +7,6 @@ import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.model.Conductor;
 import cl.belmontespa.transporte.model.DetalleMovilConductorId;
-import cl.belmontespa.transporte.model.DetalleViajePasajero;
 import cl.belmontespa.transporte.model.EstadoSolicitud;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.model.Viaje;
@@ -24,6 +23,7 @@ import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -40,6 +40,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	static final String EN_CURSO = "EN_CURSO";
 	static final String FINALIZADO = "FINALIZADO";
 	static final String CANCELADO = "CANCELADO";
+
+	// Estados que entran a la agenda del Conductor.
+	private static final Set<String> AGENDA = Set.of(ASIGNADO, EN_CURSO, FINALIZADO);
 
 	private final ViajeRepository viajeRepository;
 	private final EstadoSolicitudRepository estadoSolicitudRepository;
@@ -92,8 +95,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 
 	@Override
 	protected ViajeDTOResponse aResponse(Viaje viaje) {
-		return ViajeDTOResponse.from(viaje, detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
-				.stream().map(DetalleViajePasajero::getPasajero).toList());
+		return ViajeDTOResponse.from(viaje, detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje()));
 	}
 
 	// CU-01/RF02: la solicitud nace Pendiente; el folio lo genera Viaje.@PrePersist.
@@ -124,42 +126,91 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// CU-04/RF05: también reasigna un viaje Asignado (HU05), liberando al conductor y móvil previos.
+	// CU-04/RF05, V2: asigna un viaje Pendiente o reasigna uno Asignado (RF22). Al reasignar solo se
+	// valida lo que cambia. V2 no cambia el estado del conductor ni del móvil: solo lo hace V3.
 	@Transactional
 	public ViajeDTOResponse asignar(String folio, AsignarViajeDTORequest request) {
 		Viaje viaje = buscarOFallar(folio);
-		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
 		Movil movil = movilService.buscarOFallar(request.patente());
-		boolean mismoConductor = viaje.getConductor() != null
-				&& viaje.getConductor().getIdUsuario().equals(conductor.getIdUsuario());
-		boolean mismoMovil = viaje.getMovil() != null && viaje.getMovil().getIdMovil().equals(movil.getIdMovil());
-		if (!mismoConductor && !ConductorService.DISPONIBLE.equals(conductor.getEstadoConductor().getEstado())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El conductor no está disponible");
+		exigirEstado(viaje, PENDIENTE, ASIGNADO);
+		LocalDateTime ahora = LocalDateTime.now(clock);
+		if (ahora.isAfter(viaje.getFhAgenda().plusHours(1))) {
+			throw conflicto("El viaje está vencido");
 		}
-		if (!mismoMovil && !MovilService.DISPONIBLE.equals(movil.getEstadoMovil().getNombre())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El móvil no está disponible");
+		int pasajeros = Objects.requireNonNullElse(viaje.getCantidadPasajeros(), 0);
+		if (pasajeros == 0) {
+			throw conflicto("El viaje no tiene pasajeros");
+		}
+		Conductor anterior = viaje.getConductor();
+		boolean cambiaConductor = anterior == null || !anterior.getIdUsuario().equals(conductor.getIdUsuario());
+		boolean cambiaMovil = viaje.getMovil() == null || !viaje.getMovil().getIdMovil().equals(movil.getIdMovil());
+		if (!cambiaConductor && !cambiaMovil) {
+			return aResponse(viaje);
+		}
+		if (cambiaConductor) {
+			if (!conductor.isActivo()) {
+				throw conflicto("El conductor no está activo");
+			}
+			if (!ConductorService.DISPONIBLE.equals(conductor.getEstadoConductor().getEstado())) {
+				throw conflicto("El conductor no está disponible");
+			}
+		}
+		if (cambiaMovil) {
+			if (!movil.isActivo()) {
+				throw conflicto("El móvil no está activo");
+			}
+			if (!MovilService.DISPONIBLE.equals(movil.getEstadoMovil().getNombre())) {
+				throw conflicto("El móvil no está disponible");
+			}
 		}
 		if (!detalleMovilConductorRepository.existsById(
 				new DetalleMovilConductorId(movil.getIdMovil(), conductor.getIdUsuario()))) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "El conductor no está habilitado para el móvil");
+			throw conflicto("El conductor no está habilitado para el móvil");
 		}
-		if (Objects.requireNonNullElse(viaje.getCantidadPasajeros(), 0) > movil.getCapacidad()) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Los pasajeros superan la capacidad del móvil");
+		if (cambiaMovil && pasajeros > movil.getCapacidad()) {
+			throw conflicto("Los pasajeros superan la capacidad del móvil");
 		}
-		liberar(viaje);
+		if (cambiaConductor && haySolape(viaje, viajeRepository.findByConductorIdUsuario(conductor.getIdUsuario()))) {
+			throw conflicto("El conductor ya tiene un viaje a menos de 2 horas");
+		}
+		if (cambiaMovil && haySolape(viaje, viajeRepository.findByMovilIdMovil(movil.getIdMovil()))) {
+			throw conflicto("El móvil ya tiene un viaje a menos de 2 horas");
+		}
 		viaje.setConductor(conductor);
 		viaje.setMovil(movil);
 		viaje.setEstado(estado(ASIGNADO));
-		viaje.setFhAsignacion(LocalDateTime.now(clock));
-		conductorService.cambiarEstado(conductor, ConductorService.OCUPADO);
-		movilService.cambiarEstado(movil, MovilService.EN_USO);
+		viaje.setFhAsignacion(ahora);
+		if (cambiaMovil) {
+			// Otro vehículo, otro QR: los pasajeros vuelven a Por abordar.
+			detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
+					.forEach(detalle -> detalle.setFhAbordaje(null));
+		}
 		Map<String, String> datos = Map.of("folio", viaje.getFolio());
 		firebaseClient.notificar(conductor.getUsuario().getTokenFcm(),
 				"Nuevo viaje asignado", "Viaje " + viaje.getFolio() + " para " + viaje.getFhAgenda(), datos);
 		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
 				"Viaje asignado", "Tu viaje " + viaje.getFolio() + " ya tiene conductor y vehículo", datos);
+		if (cambiaConductor && anterior != null) {
+			firebaseClient.notificar(anterior.getUsuario().getTokenFcm(),
+					"Viaje reasignado", "El viaje " + viaje.getFolio() + " fue asignado a otro conductor",
+					Map.of("tipo", "AGENDA", "folio", viaje.getFolio()));
+		}
 		return aResponse(viaje);
+	}
+
+	// V2: ninguno de los dos con otro viaje Asignado o En curso a menos de 2 horas (extremos excluidos).
+	private static boolean haySolape(Viaje viaje, List<Viaje> deLaMismaFlota) {
+		LocalDateTime desde = viaje.getFhAgenda().minusHours(2);
+		LocalDateTime hasta = viaje.getFhAgenda().plusHours(2);
+		return deLaMismaFlota.stream()
+				.filter(otro -> !otro.getIdViaje().equals(viaje.getIdViaje()))
+				.filter(otro -> Set.of(ASIGNADO, EN_CURSO).contains(otro.getEstado().getNombreEstado()))
+				.anyMatch(otro -> otro.getFhAgenda().isAfter(desde) && otro.getFhAgenda().isBefore(hasta));
+	}
+
+	private static ResponseStatusException conflicto(String mensaje) {
+		return new ResponseStatusException(HttpStatus.CONFLICT, mensaje);
 	}
 
 	// CU-05/RF09: Asignado → En Curso → Finalizado, solo por el conductor del viaje.
@@ -174,6 +225,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		String nuevo = request.estado().toUpperCase(Locale.ROOT);
 		if (EN_CURSO.equals(nuevo) && ASIGNADO.equals(actual)) {
 			viaje.setFhInicio(LocalDateTime.now(clock));
+			// V3: desde aquí el conductor está Ocupado y el móvil En uso (la ventana de ± 1 h es de HU09).
+			conductorService.cambiarEstado(viaje.getConductor(), ConductorService.OCUPADO);
+			movilService.cambiarEstado(viaje.getMovil(), MovilService.EN_USO);
 		} else if (FINALIZADO.equals(nuevo) && EN_CURSO.equals(actual)) {
 			viaje.setFhFin(LocalDateTime.now(clock));
 			liberar(viaje);
@@ -187,7 +241,8 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// CU-08/RF15: libera conductor y móvil, anula el pago y avisa al conductor.
+	// CU-08/RF15: anula el pago y avisa al conductor. Un viaje Pendiente o Asignado no ocupa a nadie
+	// (solo V3 lo hace), así que no hay nada que liberar.
 	@Transactional
 	public ViajeDTOResponse cancelar(String folio, String correoSolicitante) {
 		Viaje viaje = buscarOFallar(folio);
@@ -197,7 +252,6 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		viaje.setEstado(estado(CANCELADO));
 		viaje.setFhFin(LocalDateTime.now(clock));
-		liberar(viaje);
 		if (viaje.getPago() != null) {
 			pagoService.anular(viaje.getPago());
 		}
@@ -209,50 +263,62 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// Todos los viajes (Administrador, sin filtro): lo reciente primero.
-	@Override
+	// RF04: todos los viajes (con el estado y la fecha del filtro, si vienen).
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listar() {
-		return viajeRepository.findAll().stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.RECIENTES_PRIMERO)
-				.toList();
+	public List<ViajeDTOResponse> listarDelAdministrador(FiltroViajes filtro) {
+		List<Viaje> viajes = filtro.estado() == null
+				? viajeRepository.findAll()
+				: viajeRepository.findByEstadoNombreEstado(filtro.estado());
+		return filtrados(viajes, filtro);
 	}
 
-	// RF03: historial del Solicitante, lo reciente primero.
+	// RF03: historial del Solicitante, con los mismos filtros.
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarDeSolicitante(String correoSolicitante) {
+	public List<ViajeDTOResponse> listarDeSolicitante(String correoSolicitante, FiltroViajes filtro) {
 		Long idUsuario = solicitanteService.buscarOFallar(correoSolicitante).getIdUsuario();
-		return viajeRepository.findBySolicitanteIdUsuario(idUsuario).stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.RECIENTES_PRIMERO)
-				.toList();
+		return filtrados(viajeRepository.findBySolicitanteIdUsuario(idUsuario), filtro);
 	}
 
-	// RF04: p. ej. las solicitudes Pendientes de asignación; el sentido depende del estado.
+	// RF07: sin `estado`, la agenda de `fecha` (hoy por omisión): sus ASIGNADO, EN_CURSO y FINALIZADO
+	// del día, más su EN_CURSO de un día anterior cuando la fecha es hoy, para que pueda finalizarlo.
+	// Con `estado`, sus viajes en ese estado (y en esa fecha, si viene). Un viaje cancelado sale de la
+	// agenda (CU-08).
 	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarPorEstado(String nombreEstado) {
-		String estado = nombreEstado.toUpperCase(Locale.ROOT);
-		return viajeRepository.findByEstadoNombreEstado(estado).stream()
-				.map(this::aResponse)
-				.sorted(OrdenViajes.paraEstado(estado))
-				.toList();
-	}
-
-	// RF07/CU-02: viajes del día del Conductor, lo próximo primero; los cancelados salen (CU-08).
-	@Transactional(readOnly = true)
-	public List<ViajeDTOResponse> listarDelDia(String correoConductor, LocalDate dia) {
+	public List<ViajeDTOResponse> listarDelConductor(String correoConductor, FiltroViajes filtro) {
 		Long idUsuario = conductorService.buscarOFallar(correoConductor).getIdUsuario();
-		return viajeRepository.findByConductorIdUsuarioAndFhAgendaBetween(
-						idUsuario, dia.atStartOfDay(), dia.plusDays(1).atStartOfDay().minusNanos(1))
-				.stream()
-				.filter(viaje -> !CANCELADO.equals(viaje.getEstado().getNombreEstado()))
+		List<Viaje> suyos = viajeRepository.findByConductorIdUsuario(idUsuario);
+		if (filtro.estado() != null) {
+			return filtrados(suyos, filtro);
+		}
+		LocalDate hoy = LocalDate.now(clock);
+		LocalDate dia = filtro.fecha() == null ? hoy : filtro.fecha();
+		return suyos.stream()
+				.filter(viaje -> enLaAgenda(viaje, dia, hoy))
 				.map(this::aResponse)
 				.sorted(OrdenViajes.PROXIMOS_PRIMERO)
 				.toList();
 	}
 
-	// Conductor y móvil vuelven a Disponible; el viaje conserva la referencia para el historial.
+	private static boolean enLaAgenda(Viaje viaje, LocalDate dia, LocalDate hoy) {
+		String estado = viaje.getEstado().getNombreEstado();
+		LocalDate agendado = viaje.getFhAgenda().toLocalDate();
+		boolean delDia = AGENDA.contains(estado) && agendado.equals(dia);
+		boolean enCursoAnterior = EN_CURSO.equals(estado) && dia.equals(hoy) && agendado.isBefore(hoy);
+		return delDia || enCursoAnterior;
+	}
+
+	// El estado y la fecha se aplican aquí; el sentido del orden depende del estado (OrdenViajes).
+	private List<ViajeDTOResponse> filtrados(List<Viaje> viajes, FiltroViajes filtro) {
+		return viajes.stream()
+				.filter(viaje -> filtro.estado() == null
+						|| filtro.estado().equals(viaje.getEstado().getNombreEstado()))
+				.filter(viaje -> filtro.fecha() == null || filtro.fecha().equals(viaje.getFhAgenda().toLocalDate()))
+				.map(this::aResponse)
+				.sorted(filtro.estado() == null ? OrdenViajes.RECIENTES_PRIMERO : OrdenViajes.paraEstado(filtro.estado()))
+				.toList();
+	}
+
+	// V4: conductor y móvil vuelven a Disponible; el viaje conserva la referencia para el historial.
 	private void liberar(Viaje viaje) {
 		if (viaje.getConductor() != null) {
 			conductorService.cambiarEstado(viaje.getConductor(), ConductorService.DISPONIBLE);

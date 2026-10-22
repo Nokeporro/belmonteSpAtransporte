@@ -51,7 +51,7 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 	public PasajeroDTOResponse crear(PasajeroDTORequest request) {
 		cl.belmontespa.transporte.validation.Documento.normalizar(request.tipoDocumento(), request.dni());
 		return pasajeroRepository.findByDniHash(hashDni(request.dni()))
-				.map(p -> new PasajeroDTOResponse(p.getDniHash(), null))
+				.map(p -> new PasajeroDTOResponse(p.getDniHash(), null, null))
 				.orElseGet(() -> super.crear(request));
 	}
 

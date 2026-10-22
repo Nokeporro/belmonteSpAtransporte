@@ -21,33 +21,11 @@ class RetrasoTest {
     private fun relojA(minutos: Long, agenda: LocalDateTime = fhAgenda): Clock =
         Clock.fixed(agenda.plusMinutes(minutos).atZone(zona).toInstant(), zona)
 
-    private fun viaje(estado: EstadoViaje = EstadoViaje.ASIGNADO, agenda: LocalDateTime = fhAgenda): Viaje {
-        val lugar = Ubicacion("Av. Providencia 1234", "Providencia", "Metropolitana de Santiago", -33.4261, -70.611)
-        return Viaje(
-            folio = "TR-1042",
-            estado = estado,
-            correoSolicitante = "solicitante@ejemplo.cl",
-            nombreSolicitante = "Solicitante",
-            telefonoSolicitante = null,
-            razonSocial = "Empresa",
-            origen = lugar,
-            destino = lugar,
-            fhCreacion = agenda.minusDays(1),
-            fhAgenda = agenda,
-            fhAsignacion = null,
-            fhInicio = null,
-            fhFin = null,
-            numeroVuelo = null,
-            cantidadPasajeros = 0,
-            correoConductor = null,
-            nombreConductor = null,
-            patenteMovil = null,
-            hashPago = null,
-            estadoPago = null,
-            motivo = null,
-            pasajeros = emptyList(),
-        )
-    }
+    private fun viaje(
+        estado: EstadoViaje = EstadoViaje.ASIGNADO,
+        agenda: LocalDateTime = fhAgenda,
+        pasajeros: Int = 0,
+    ): Viaje = viajeDePrueba(fhAgenda = agenda, estado = estado, cantidadPasajeros = pasajeros)
 
     @Test
     fun unMinutoAntesDeLaVentanaNoPuedeIniciarse() {
@@ -124,6 +102,28 @@ class RetrasoTest {
     @Test
     fun disponibleDesdeEsUnaHoraAntesDeLaAgenda() {
         assertEquals(LocalDateTime.of(2026, 10, 28, 13, 30), viaje().disponibleDesde())
+    }
+
+    @Test
+    fun seAsignaUnViajePendienteConPasajerosQueNoEstaVencido() {
+        val v = viaje(EstadoViaje.PENDIENTE, pasajeros = 2)
+        assertTrue(v.asignable(relojA(-600)))
+        assertTrue(v.asignable(relojA(1))) // atrasado, pero aún puede iniciarse
+        assertTrue(v.asignable(relojA(60))) // el extremo cuenta como no vencido
+        assertFalse(v.asignable(relojA(61)))
+    }
+
+    @Test
+    fun sinPasajerosNoSeAsigna() {
+        assertFalse(viaje(EstadoViaje.PENDIENTE, pasajeros = 0).asignable(relojA(-600)))
+    }
+
+    @Test
+    fun tambienSePuedeReasignarUnViajeAsignadoPeroNoLosDemasEstados() {
+        assertTrue(viaje(EstadoViaje.ASIGNADO, pasajeros = 2).asignable(relojA(0)))
+        listOf(EstadoViaje.EN_CURSO, EstadoViaje.FINALIZADO, EstadoViaje.CANCELADO).forEach { estado ->
+            assertFalse(estado.name, viaje(estado, pasajeros = 2).asignable(relojA(0)))
+        }
     }
 
     @Test

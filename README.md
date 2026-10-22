@@ -189,7 +189,8 @@ Pendiente para cerrar la entrega según la definición de terminado:
 - [ ] Confirmar CI en verde, aprobación del otro integrante y fusión en `main`.
 
 Seguimiento en [backlog.md](backlog.md) y detalle de implementación y pruebas en
-[docs/P1_A.md](docs/P1_A.md). Las historias de P1 del integrante B siguen pendientes.
+[docs/P1_A.md](docs/P1_A.md). HU04 y HU05 del integrante B también figuran listas en el backlog;
+las demás historias de P1 de B siguen pendientes.
 
 ## Máquinas de estado
 

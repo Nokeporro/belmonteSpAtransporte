@@ -240,6 +240,8 @@ class OrdenIT extends IntegrationTest {
 			// El de la tarde se crea primero (folio menor) y se termina; el de la mañana queda asignado.
 			String tarde = viajeEn(ana, dia.atTime(LocalTime.of(16, 0)));
 			String manana = viajeEn(ana, dia.atTime(LocalTime.of(8, 0)));
+			api.conPasajero(ana, tarde);
+			api.conPasajero(ana, manana);
 			api.asignarOk(tarde, flota.conductor().correo(), flota.patente());
 			api.cambiarEstadoOk(tarde, flota.conductor(), "EN_CURSO");
 			api.cambiarEstadoOk(tarde, flota.conductor(), "FINALIZADO");

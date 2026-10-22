@@ -157,6 +157,19 @@
         <item quantity="one">%d pasajero</item>
         <item quantity="other">%d pasajeros</item>
     </plurals>
+    <!-- «Asignar conductor y vehículo» del Administrador (HU05, HU23). -->
+    <plurals name="asignar_viajes_asignados">
+        <item quantity="one">%d viaje asignado</item>
+        <item quantity="other">%d viajes asignados</item>
+    </plurals>
+    <string name="asignar_sin_viajes">Sin viajes</string>
+    <string name="asignar_en_curso">%1$s en curso</string>
+    <string name="asignar_vehiculo_habilitado_para">Vehículo habilitado para %1$s</string>
+    <string name="asignar_sin_vehiculos">Este conductor no tiene vehículos habilitados, disponibles y con capacidad suficiente.</string>
+    <string name="asignar_resumen">Resumen</string>
+    <string name="asignar_nota">Disponible = sin viaje en curso. Ni conductor ni vehículo pueden tener otro viaje a menos de 2 h. La capacidad debe cubrir a los pasajeros.</string>
+    <string name="accion_confirmar_asignacion">Confirmar asignación</string>
+    <string name="aviso_viaje_no_asignable">El viaje ya no se puede asignar: está vencido o cambió de estado.</string>
     <!-- Pantallas navegables de T06: textos comunes y formularios. -->
     <string name="t06_inicio">Inicio de aplicación</string>
     <string name="t06_login">Login</string>
@@ -297,6 +310,9 @@
     <string name="accion_ver_escenarios">Escenarios de demostración</string>
     <string name="accion_revisar">Revisar</string>
     <string name="filtro_todos">Todos</string>
+    <!-- Filtros de «Solicitudes» del Administrador (HU04); el resto reutiliza las etiquetas de estado. -->
+    <string name="filtro_pendientes">Pendientes</string>
+    <string name="filtro_todas">Todas</string>
     <string name="qr_formato">BELMONTE-ABORDAJE:%1$s:%2$s</string>
     <string name="aviso_notificacion">Hay novedades en este viaje. Revisa su detalle.</string>
     <string name="cuentas_pendientes_cantidad">Cuentas por aprobar: %1$d</string>

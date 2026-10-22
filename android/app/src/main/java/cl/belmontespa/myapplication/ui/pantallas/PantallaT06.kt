@@ -25,6 +25,8 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.abordaje.AbordajeViewModel
 import cl.belmontespa.myapplication.ui.administrador.AdministracionViewModel
+import cl.belmontespa.myapplication.ui.administrador.AsignarScreen
+import cl.belmontespa.myapplication.ui.administrador.SolicitudesScreen
 import cl.belmontespa.myapplication.ui.auth.AccesoViewModel
 import cl.belmontespa.myapplication.ui.auth.mensajeLogin
 import cl.belmontespa.myapplication.ui.components.*
@@ -57,6 +59,16 @@ fun PantallaT06(
                 modoDemoForzado = if (pantalla == PantallaDemo.LOGIN_DEMO) true else null,
             )
         }
+        return
+    }
+    // «Solicitudes» del Administrador tiene su propia pantalla y su ViewModel (HU04).
+    if (pantalla == PantallaDemo.SOLICITUDES) {
+        SolicitudesScreen(onNavegar = onNavegar)
+        return
+    }
+    // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).
+    if (pantalla == PantallaDemo.ASIGNAR) {
+        AsignarScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
         return
     }
     val vm: PantallaBaseViewModel = when {

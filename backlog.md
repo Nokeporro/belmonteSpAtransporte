@@ -121,7 +121,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | Listo |
 | 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | Listo |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | — |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | listo |
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | Listo |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
@@ -130,8 +130,8 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | Listo |
 | 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Implementado | Listo |
 | 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Alcance y filtros propios | Listo |
-| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | — |
-| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | — |
+| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | Listo |
+| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | Listo |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | — |
 | 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | — |
 | 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | — |

@@ -73,11 +73,12 @@ class ViajeIT extends IntegrationTest {
 	class Ciclo {
 
 		@Test
-		@DisplayName("PENDIENTE → ASIGNADO → EN_CURSO → FINALIZADO, con fechas y liberación de recursos")
+		@DisplayName("PENDIENTE → ASIGNADO → EN_CURSO → FINALIZADO: Ocupado y En uso solo de V3 a V4")
 		void cicloCompleto() {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);
 			String folio = api.viaje(solicitante);
+			api.conPasajero(solicitante, folio);
 
 			api.asignarOk(folio, flota.conductor().correo(), flota.patente());
 			Resp asignado = ver(folio);
@@ -85,13 +86,14 @@ class ViajeIT extends IntegrationTest {
 			assertThat(asignado.texto("$.correoConductor")).isEqualTo(flota.conductor().correo());
 			assertThat(asignado.texto("$.patenteMovil")).isEqualTo(flota.patente());
 			assertThat(asignado.texto("$.fhAsignacion")).isNotNull();
-			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("OCUPADO");
-			assertThat(api.estadoMovil(flota.patente())).isEqualTo("EN_USO");
+			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("DISPONIBLE");
+			assertThat(api.estadoMovil(flota.patente())).isEqualTo("DISPONIBLE");
 
 			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
 			assertThat(ver(folio).texto("$.estado")).isEqualTo("EN_CURSO");
 			assertThat(ver(folio).texto("$.fhInicio")).isNotNull();
 			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("OCUPADO");
+			assertThat(api.estadoMovil(flota.patente())).isEqualTo("EN_USO");
 
 			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 			Resp finalizado = ver(folio);
@@ -123,7 +125,7 @@ class ViajeIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("reasignar un viaje ASIGNADO libera al conductor y al móvil anteriores")
+		@DisplayName("reasignar un viaje ASIGNADO cambia conductor y móvil sin tocar su estado")
 		void reasignacion() {
 			Cuenta solicitante = api.solicitante();
 			Flota primera = api.flota(4);
@@ -133,10 +135,11 @@ class ViajeIT extends IntegrationTest {
 			api.asignarOk(folio, segunda.conductor().correo(), segunda.patente());
 
 			assertThat(ver(folio).texto("$.correoConductor")).isEqualTo(segunda.conductor().correo());
+			assertThat(ver(folio).texto("$.patenteMovil")).isEqualTo(segunda.patente());
 			assertThat(api.estadoConductor(primera.conductor().correo())).isEqualTo("DISPONIBLE");
 			assertThat(api.estadoMovil(primera.patente())).isEqualTo("DISPONIBLE");
-			assertThat(api.estadoConductor(segunda.conductor().correo())).isEqualTo("OCUPADO");
-			assertThat(api.estadoMovil(segunda.patente())).isEqualTo("EN_USO");
+			assertThat(api.estadoConductor(segunda.conductor().correo())).isEqualTo("DISPONIBLE");
+			assertThat(api.estadoMovil(segunda.patente())).isEqualTo("DISPONIBLE");
 		}
 	}
 
@@ -151,6 +154,7 @@ class ViajeIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			Cuenta ajeno = api.conductor();
 			String folio = api.viaje(solicitante);
+			api.conPasajero(solicitante, folio);
 
 			assertThat(api.asignar(folio, ajeno.correo(), flota.patente()).status()).isEqualTo(409);
 
@@ -160,7 +164,7 @@ class ViajeIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("un conductor o un móvil ya ocupados responden 409")
+		@DisplayName("un conductor o un móvil ocupados en otro viaje EN_CURSO responden 409")
 		void ocupados() {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);
@@ -168,9 +172,12 @@ class ViajeIT extends IntegrationTest {
 			api.habilitarOk(flota.patente(), otroConductor.correo());
 			String otroMovil = api.movil(4);
 			api.habilitarOk(otroMovil, flota.conductor().correo());
-			api.viajeAsignado(solicitante, flota);
+			String enCurso = api.viajeAsignado(solicitante, flota);
+			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
 
-			String segundo = api.viaje(solicitante);
+			// Diez días después: no hay solape, solo el conductor y el móvil están en uso.
+			String segundo = api.viaje(solicitante, LocalDateTime.now().plusDays(13));
+			api.conPasajero(solicitante, segundo);
 			assertThat(api.asignar(segundo, flota.conductor().correo(), otroMovil).status()).isEqualTo(409);
 			assertThat(api.asignar(segundo, otroConductor.correo(), flota.patente()).status()).isEqualTo(409);
 			assertThat(api.estadoViaje(segundo)).isEqualTo("PENDIENTE");

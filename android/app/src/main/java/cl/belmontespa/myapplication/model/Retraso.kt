@@ -32,3 +32,12 @@ fun Viaje.enVentanaDeInicio(clock: Clock): Boolean {
 
 /** Desde cuándo puede iniciarse: el "Disponible desde las {hora}" del Conductor. */
 fun Viaje.disponibleDesde(): LocalDateTime = fhAgenda.minusHours(1)
+
+/**
+ * "Asignar" (o "Reasignar") solo se ofrece a un viaje `PENDIENTE` o `ASIGNADO`, con al menos un
+ * pasajero y que no esté vencido (README, Navegación y pantallas).
+ */
+fun Viaje.asignable(clock: Clock): Boolean =
+    (estado == EstadoViaje.PENDIENTE || estado == EstadoViaje.ASIGNADO) &&
+        cantidadPasajeros > 0 &&
+        retraso(clock) != Retraso.VENCIDO
