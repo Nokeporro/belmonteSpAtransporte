@@ -94,22 +94,12 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | — |
-| 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | — |
-| 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | — |
-| 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | — |
-| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | — |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
-| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | — |
-| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | — |
-| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | — |
-| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | — |
 | 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | Listo |
 | 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | Listo |
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | Listo |
 | 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | Listo |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | — |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | listo |
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | Listo |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
