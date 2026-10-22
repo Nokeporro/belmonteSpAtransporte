@@ -16,7 +16,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import cl.belmontespa.myapplication.ui.theme.EstilosMono
 
 /**
  * Campo de formulario con etiqueta visible, teclado según su tipo y el error bajo el campo
@@ -32,20 +34,37 @@ fun CampoTexto(
     tipoTeclado: KeyboardType = KeyboardType.Text,
     habilitado: Boolean = true,
 ) {
-    val esPassword = tipoTeclado == KeyboardType.Password
+    // Oculta el contenido tanto para contraseñas de texto como numéricas.
+    val esPassword = tipoTeclado == KeyboardType.Password ||
+        tipoTeclado == KeyboardType.NumberPassword
     OutlinedTextField(
         value = valor,
         onValueChange = onCambio,
-        label = { Text(etiqueta) },
+        // El README establece IBM Plex Mono para las etiquetas de campo.
+        label = {
+            Text(
+                text = etiqueta,
+                style = EstilosMono.etiqueta,
+            )
+        },
         isError = error != null,
-        supportingText = error?.let { { Text(it) } },
+        supportingText = error?.let { mensaje ->
+            { Text(text = mensaje) }
+        },
         singleLine = true,
         enabled = habilitado,
         keyboardOptions = KeyboardOptions(keyboardType = tipoTeclado),
-        visualTransformation = if (esPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (esPassword) {
+            PasswordVisualTransformation()
+        } else {
+            VisualTransformation.None
+        },
         modifier = modifier
             .fillMaxWidth()
-            .semantics { if (error != null) error(error) },
+            // TalkBack puede anunciar el error asociado al campo.
+            .semantics {
+                if (error != null) error(error)
+            },
     )
 }
 
@@ -61,12 +80,27 @@ fun BotonAncho(
     habilitado: Boolean = true,
     alto56: Boolean = false,
 ) {
+    // La altura puede crecer cuando el usuario amplía el tamaño del texto.
     val tamano = modifier
         .fillMaxWidth()
         .heightIn(min = if (alto56) 56.dp else 48.dp)
     when (tipo) {
-        TipoBoton.PRINCIPAL -> Button(onClick = onClick, enabled = habilitado, modifier = tamano) { Text(texto) }
-        TipoBoton.SECUNDARIO -> OutlinedButton(onClick = onClick, enabled = habilitado, modifier = tamano) { Text(texto) }
+        TipoBoton.PRINCIPAL -> Button(
+            onClick = onClick,
+            enabled = habilitado,
+            modifier = tamano,
+        ) {
+            // Centra también los textos que ocupen más de una línea.
+            Text(text = texto, textAlign = TextAlign.Center)
+        }
+        TipoBoton.SECUNDARIO -> OutlinedButton(
+            onClick = onClick,
+            enabled = habilitado,
+            modifier = tamano,
+        ) {
+            // Centra también los textos que ocupen más de una línea.
+            Text(text = texto, textAlign = TextAlign.Center)
+        }
         TipoBoton.PELIGRO -> Button(
             onClick = onClick,
             enabled = habilitado,
@@ -75,6 +109,9 @@ fun BotonAncho(
                 containerColor = MaterialTheme.colorScheme.error,
                 contentColor = MaterialTheme.colorScheme.onError,
             ),
-        ) { Text(texto) }
+        ) {
+            // Centra también los textos que ocupen más de una línea.
+            Text(text = texto, textAlign = TextAlign.Center)
+        }
     }
 }

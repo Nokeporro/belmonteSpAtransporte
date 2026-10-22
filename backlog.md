@@ -94,6 +94,16 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
+| 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | — |
+| 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | — |
+| 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | — |
+| 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | — |
+| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | — |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
+| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | — |
+| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | — |
+| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | — |
+| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | — |
 | 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | Listo |
 | 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | Listo |
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
@@ -132,7 +142,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
 | 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
 | 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — | — |
-| 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — | |
+| 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — | — |
 
 SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
@@ -185,18 +195,18 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
 ## Etapa 2: Unidad 3
 
-| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend |
-|---|---|---|---|---|---|---|---|---|
-| 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — |
-| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 2 faltan |
-| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Ajustar push |
-| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar push |
-| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend |
-| 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes |
-| 46 | T16 | `database/demo.sql` | B | E2 | — | — | T15 | — |
-| 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — |
-| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — |
-| 49 | T19 | APK release `v1.0.0` en GitHub Releases | A | E2 | — | — | T17, T18 | — |
+| # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
+|---|---|---|---|---|---|---|---|---|---|
+| 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | — |
+| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 2 faltan | — |
+| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Ajustar push | — |
+| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar push | — |
+| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | — |
+| 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes | — |
+| 46 | T16 | `database/demo.sql` | B | E2 | — | — | T15 | — | — |
+| 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — | — |
+| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — | — |
+| 49 | T19 | APK release `v1.0.0` en GitHub Releases | A | E2 | — | — | T17, T18 | — | — |
 
 SP de la Etapa 2: A, 8; B, 13.
 

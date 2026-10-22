@@ -18,12 +18,14 @@ import java.time.Duration
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /** Login de la build demo contra las cuentas ficticias de Room; la sesión se guarda igual que con el backend. */
 class AuthLocalRepository @Inject constructor(
     private val usuarioDao: UsuarioDao,
     private val sesionStore: SesionStore,
     private val clock: Clock,
+    private val local: SoporteLocal,
 ) : AuthRepository {
 
     override fun observarSesion(): Flow<EstadoSesion> = sesionStore.estado
@@ -51,7 +53,20 @@ class AuthLocalRepository @Inject constructor(
     }
 
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> =
-        TODO("HU01: autorregistro sobre Room")
+        local.ejecutar {
+            exigir(registro.nombre.isNotBlank() && registro.correo.contains('@') && registro.password.length in 8..72 && registro.razonSocial.isNotBlank() && registro.rutEmpresa.isNotBlank(), "Revisa los datos ingresados.")
+            val rut = Hashes.normalizarDocumento(registro.rutEmpresa)
+            val existentes = usuarioDao.observarPorRol("SOLICITANTE").first()
+            val empresa = existentes.firstOrNull { Hashes.normalizarDocumento(it.rutEmpresa.orEmpty()) == rut }
+            val u = cl.belmontespa.myapplication.data.local.entity.UsuarioEntity(
+                registro.correo.trim().lowercase(), registro.nombre.trim(), registro.telefono,
+                "SOLICITANTE", true, null, if (empresa == null) "APROBADO" else "PENDIENTE",
+                empresa?.razonSocial ?: registro.razonSocial.trim(), rut,
+                cl.belmontespa.myapplication.util.FechaIso.texto(local.ahora()), Hashes.password(registro.password),
+            )
+            usuarioDao.insertar(u)
+            u.solicitante()
+        }
 
     /** La build demo no envía correos: "Recuperar contraseña" solo muestra su confirmación. */
     override suspend fun recuperarPassword(correo: String): Resultado<Unit> = Resultado.Exito(Unit)

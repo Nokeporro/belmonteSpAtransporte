@@ -6,25 +6,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 
-private val LocalColoresExtendidos = staticCompositionLocalOf { ExtendidosClaro }
+private val LocalColoresExtendidos = staticCompositionLocalOf {
+    ExtendidosClaro
+}
 
-/** Material 3 sin color dinámico (la marca no cambia con el fondo de pantalla); claro u oscuro según el sistema. */
 @Composable
 fun BelmonteTheme(
     oscuro: Boolean = isSystemInDarkTheme(),
     contenido: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalColoresExtendidos provides if (oscuro) ExtendidosOscuro else ExtendidosClaro) {
+    val esquema = if (oscuro) EsquemaOscuro else EsquemaClaro
+    val extendidos = if (oscuro) ExtendidosOscuro else ExtendidosClaro
+
+    CompositionLocalProvider(
+        LocalColoresExtendidos provides extendidos,
+    ) {
         MaterialTheme(
-            colorScheme = if (oscuro) EsquemaOscuro else EsquemaClaro,
+            colorScheme = esquema,
             typography = Tipografia,
             content = contenido,
         )
     }
 }
 
-/** Acceso a lo que el tema agrega a Material 3. */
 object BelmonteTema {
     val extendidos: ColoresExtendidos
-        @Composable get() = LocalColoresExtendidos.current
+        @Composable
+        get() = LocalColoresExtendidos.current
 }

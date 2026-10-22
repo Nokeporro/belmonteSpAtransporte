@@ -1,5 +1,9 @@
 package cl.belmontespa.myapplication.ui.navigation
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.material3.Icon
@@ -56,7 +60,7 @@ fun BarraInferiorRol(
     destinoActual: NavDestination?,
     onElegir: (ItemBarra) -> Unit,
 ) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+    NavigationBar(modifier = Modifier.heightIn(min = 80.dp * LocalDensity.current.fontScale.coerceAtLeast(1f)), containerColor = MaterialTheme.colorScheme.surface) {
         items.forEach { item ->
             NavigationBarItem(
                 selected = destinoActual?.esRuta(item.ruta) == true,
