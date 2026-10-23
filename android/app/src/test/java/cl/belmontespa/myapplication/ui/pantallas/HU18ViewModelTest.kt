@@ -17,7 +17,7 @@ class HU18ViewModelTest {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
         repos.moviles.add(Movil("ABCD12", 8, null, true, EstadoMovil.DISPONIBLE, "0123456789ABCDEF"))
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, repos, Clock.systemUTC(), BorradorAbordaje(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     @Test fun abrirDesdeVehiculoPreseleccionaYFiltraSinMarcarCambios() = runTest(dispatcher) {
