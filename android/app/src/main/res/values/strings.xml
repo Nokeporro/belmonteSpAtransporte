@@ -310,7 +310,7 @@
     <string name="aviso_sin_app_camara">No pudimos abrir la cámara. Puedes ingresar el código manualmente.</string>
     <string name="aviso_demo_lugares">En esta demostración puedes elegir entre las ubicaciones ficticias disponibles.</string>
     <string name="aviso_sincronizacion_demo">En modo demostración los cambios se guardan en este dispositivo.</string>
-    <string name="aviso_elegir_aplicacion">Elige la aplicación para abrir la ruta.</string>
+    <string name="navegacion_abrir_con">Abrir con</string>
     <string name="aviso_rechazar_viaje">Ingresa un motivo para rechazar la asignación.</string>
     <string name="accion_ingresar">Ingresar</string>
     <string name="accion_ver_solicitudes">Ver solicitudes</string>

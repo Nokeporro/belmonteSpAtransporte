@@ -1,12 +1,9 @@
 package cl.belmontespa.myapplication.ui.pantallas
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -53,6 +50,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA -> Unit
         // «Confirmar inicio» la dibuja ConfirmarInicioScreen, desde PantallaT06 (HU09).
         PantallaDemo.CONFIRMAR_INICIO -> Unit
+        // «Abrir navegación» es el detalle con la hoja «Abrir con»: lo dibuja DetalleViajeScreen, desde PantallaT06 (HU10).
+        PantallaDemo.NAVEGAR -> Unit
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
         PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> {
@@ -147,7 +146,6 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
             }
         }
-        PantallaDemo.NAVEGAR -> AbrirNavegacion()
         PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> PantallaAbordaje()
         PantallaDemo.NOTIFICACION -> {
             Aviso(stringResource(R.string.aviso_notificacion), TonoAviso.INFORMACION)
@@ -298,19 +296,4 @@ private fun Arqueo(viaje: Viaje) {
         else stringResource(R.string.arqueo_faltan, abordaron, viaje.cantidadPasajeros, viaje.pasajeros.filter { it.fhAbordaje == null }.joinToString { it.nombre })
     // Un solo texto permite que TalkBack anuncie el arqueo completo.
     Aviso(texto, TonoAviso.INFORMACION)
-}
-@Composable
-private fun ContextoPantalla.AbrirNavegacion() {
-    val contexto = LocalContext.current
-    val viaje = estado.viaje ?: return
-    val punto = if (viaje.estado == EstadoViaje.EN_CURSO) viaje.destino else viaje.origen
-    Dato(R.string.campo_destino, punto.direccion)
-    Text(stringResource(R.string.aviso_elegir_aplicacion))
-    listOf("Google Maps" to "com.google.android.apps.maps", "Waze" to "com.waze").forEach { (nombre, paquete) ->
-        BotonAncho(nombre, {
-            val uri = if (paquete == "com.waze") "waze://?ll=${punto.latitud},${punto.longitud}&navigate=yes" else "google.navigation:q=${punto.latitud},${punto.longitud}"
-            try { contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(paquete)) }
-            catch (e: android.content.ActivityNotFoundException) { vm.aviso(R.string.error_sin_app_navegacion) }
-        }, alto56 = true)
-    }
 }

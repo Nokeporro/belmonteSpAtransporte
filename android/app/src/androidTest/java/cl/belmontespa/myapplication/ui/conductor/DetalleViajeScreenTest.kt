@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.AppNavegacion
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Inicio
@@ -64,9 +66,12 @@ class DetalleViajeScreenTest {
         confirmandoFin: Boolean = false,
         rechazando: Boolean = false,
         motivo: String = "",
+        opciones: List<AppNavegacion>? = null,
+        sinAppDeNavegacion: Boolean = false,
     ) = DetalleViajeUiState(
         cargando = false, viaje = viaje, retraso = retraso, arqueo = viaje?.arqueo(), inicio = inicio,
         confirmandoFin = confirmandoFin, rechazando = rechazando, motivo = motivo, error = error,
+        opcionesDeNavegacion = opciones, sinAppDeNavegacion = sinAppDeNavegacion,
     )
 
     private class Avisos {
@@ -90,6 +95,8 @@ class DetalleViajeScreenTest {
                     onMotivo = { avisos.motivo = it },
                     onConfirmarRechazo = { avisos.llamadas += "confirmarRechazo" },
                     onDescartarRechazo = { avisos.llamadas += "descartarRechazo" },
+                    onElegirApp = { avisos.llamadas += "elegir:${it.name}" },
+                    onCerrarOpciones = { avisos.llamadas += "cerrarOpciones" },
                 )
             }
         }
@@ -188,6 +195,51 @@ class DetalleViajeScreenTest {
 
         compose.onNodeWithText("Cancelado por la empresa").assertExists()
         compose.onNodeWithText(texto(R.string.accion_iniciar)).assertDoesNotExist()
+    }
+
+    // Navegar (HU10): la hoja «Abrir con» y el aviso cuando no hay aplicación.
+
+    @Test
+    fun laHojaAbrirConListaSoloLasAplicacionesInstaladas() {
+        mostrar(estado(opciones = listOf(AppNavegacion.GOOGLE_MAPS)))
+
+        compose.onNodeWithText(texto(R.string.navegacion_abrir_con)).assertExists()
+        compose.onNodeWithText("Google Maps").assertExists()
+        compose.onNodeWithText("Waze").assertDoesNotExist()
+    }
+
+    @Test
+    fun tocarUnaAplicacionDeLaHojaAvisaCualEs() {
+        val avisos = Avisos()
+        mostrar(estado(opciones = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)), avisos)
+
+        compose.onNodeWithText("Waze").performClick()
+
+        assertEquals(listOf("elegir:WAZE"), avisos.llamadas)
+    }
+
+    @Test
+    fun sinHojaNoHayOpcionesDeNavegacion() {
+        mostrar(estado())
+
+        compose.onNodeWithText(texto(R.string.navegacion_abrir_con)).assertDoesNotExist()
+        compose.onNodeWithText("Google Maps").assertDoesNotExist()
+    }
+
+    @Test
+    fun sinAplicacionDeNavegacionApareceElAvisoSinSerUnError() {
+        mostrar(estado(sinAppDeNavegacion = true))
+
+        compose.onNodeWithText(texto(R.string.error_sin_app_navegacion)).assertExists()
+        compose.onNodeWithTag("t06_aviso_navegacion").assertExists()
+        compose.onAllNodesWithTag("t06_error").assertCountEquals(0)
+    }
+
+    @Test
+    fun elAvisoDeNavegacionNoApareceSiNoHaceFalta() {
+        mostrar(estado())
+
+        compose.onNodeWithTag("t06_aviso_navegacion").assertDoesNotExist()
     }
 
     @Test

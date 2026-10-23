@@ -2,6 +2,7 @@ package cl.belmontespa.myapplication.ui.conductor
 
 import cl.belmontespa.myapplication.RelojMovil
 import cl.belmontespa.myapplication.data.repository.ViajeRepository
+import cl.belmontespa.myapplication.model.AppNavegacion
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.FiltroViajes
@@ -10,6 +11,7 @@ import cl.belmontespa.myapplication.model.NuevaSolicitud
 import cl.belmontespa.myapplication.model.NuevoPasajero
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Retraso
+import cl.belmontespa.myapplication.model.Ubicacion
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.pasajeroDePrueba
 import cl.belmontespa.myapplication.model.viajeDePrueba
@@ -40,6 +42,7 @@ class DetalleViajeViewModelTest {
     private val zona = ZoneId.of("America/Santiago")
     private val reloj = RelojMovil(LocalDateTime.of(2026, 10, 28, 12, 0), zona)
     private val viajes = DetalleDeViajeFalso()
+    private val navegador = NavegadorFalso()
 
     @Before
     fun prepararHilo() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -47,7 +50,7 @@ class DetalleViajeViewModelTest {
     @After
     fun soltarHilo() = Dispatchers.resetMain()
 
-    private fun crear(folio: String = "TR-1042") = DetalleViajeViewModel(viajes, reloj).also { it.cargar(folio) }
+    private fun crear(folio: String = "TR-1042") = DetalleViajeViewModel(viajes, reloj, navegador).also { it.cargar(folio) }
 
     private fun viaje(
         estado: EstadoViaje = EstadoViaje.ASIGNADO,
@@ -127,7 +130,7 @@ class DetalleViajeViewModelTest {
     fun laVentanaDeInicioAbreUnaHoraAntesYCierraUnaHoraDespuesConAmbosBordesIncluidos() {
         fun inicio(minutos: Long): Inicio {
             viajes.viaje.value = viaje(minutosDesdeAhora = minutos)
-            return DetalleViajeViewModel(viajes, reloj).also { it.cargar("TR-1042") }.estado.value.inicio
+            return DetalleViajeViewModel(viajes, reloj, navegador).also { it.cargar("TR-1042") }.estado.value.inicio
         }
 
         assertEquals(Inicio.ANTES_DE_LA_VENTANA, inicio(61))
@@ -193,7 +196,7 @@ class DetalleViajeViewModelTest {
 
         esperados.forEach { (estadoViaje, esperado) ->
             viajes.viaje.value = viaje(estado = estadoViaje, minutosDesdeAhora = 10)
-            val estado = DetalleViajeViewModel(viajes, reloj).also { it.cargar("TR-1042") }.estado.value
+            val estado = DetalleViajeViewModel(viajes, reloj, navegador).also { it.cargar("TR-1042") }.estado.value
             val real = Esperado(estado.conControles, estado.puedeIniciar, estado.puedeFinalizar, estado.puedeRechazar)
             assertEquals(estadoViaje.name, esperado, real)
         }
@@ -468,6 +471,216 @@ class DetalleViajeViewModelTest {
 
         assertNull(vm.estado.value.error)
         assertEquals("TR-1042", vm.estado.value.viaje?.folio)
+    }
+    // --- Navegar (HU10) ---
+
+    private val origen = Ubicacion("Aeropuerto A. Merino Benítez", "Pudahuel", "Metropolitana de Santiago", -33.393, -70.786)
+    private val destino = Ubicacion("Av. Apoquindo 5400", "Las Condes", "Metropolitana de Santiago", -33.41, -70.57)
+
+    private fun conRuta(estado: EstadoViaje = EstadoViaje.ASIGNADO) = viaje(estado = estado).copy(origen = origen, destino = destino)
+
+    @Test
+    fun sinAplicacionesDeNavegacionAvisaYNoAbreNada() {
+        viajes.viaje.value = conRuta()
+        val vm = crear()
+
+        vm.navegar()
+
+        assertTrue(vm.estado.value.sinAppDeNavegacion)
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertTrue(navegador.abiertas.isEmpty())
+    }
+
+    @Test
+    fun conUnaSolaAplicacionLaAbreDirectoAlOrigenSinPreguntar() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.WAZE)
+        val vm = crear()
+
+        vm.navegar()
+
+        assertEquals(listOf(AppNavegacion.WAZE to origen), navegador.abiertas)
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertFalse(vm.estado.value.sinAppDeNavegacion)
+    }
+
+    @Test
+    fun conElViajeEnCursoNavegaAlDestino() {
+        viajes.viaje.value = conRuta(EstadoViaje.EN_CURSO)
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS)
+        val vm = crear()
+
+        vm.navegar()
+
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS to destino), navegador.abiertas)
+    }
+
+    @Test
+    fun conVariasAplicacionesPreguntaConCualSinAbrirNada() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+
+        vm.navegar()
+
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE), vm.estado.value.opcionesDeNavegacion)
+        assertTrue(navegador.abiertas.isEmpty())
+    }
+
+    @Test
+    fun elegirAbreLaAplicacionConLaRutaYCierraLaHoja() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+        vm.navegar()
+
+        vm.elegir(AppNavegacion.WAZE)
+
+        assertEquals(listOf(AppNavegacion.WAZE to origen), navegador.abiertas)
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertFalse(vm.estado.value.sinAppDeNavegacion)
+    }
+
+    @Test
+    fun elegirUnaAplicacionQueNoEstaEnLaHojaSeIgnora() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS)
+        val vm = crear()
+        vm.mostrarOpciones()
+
+        vm.elegir(AppNavegacion.WAZE)
+
+        assertTrue(navegador.abiertas.isEmpty())
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS), vm.estado.value.opcionesDeNavegacion)
+    }
+
+    @Test
+    fun elegirConLaHojaCerradaNoAbreNada() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+
+        vm.elegir(AppNavegacion.WAZE)
+
+        assertTrue(navegador.abiertas.isEmpty())
+    }
+
+    @Test
+    fun siLaAplicacionNoSePuedeAbrirSeAvisa() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.WAZE)
+        navegador.puedeAbrir = false
+        val vm = crear()
+
+        vm.navegar()
+
+        assertTrue(vm.estado.value.sinAppDeNavegacion)
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+    }
+
+    @Test
+    fun laVarianteAbrirNavegacionMuestraLaHojaAunqueHayaUnaSolaYNoAbreNada() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS)
+        val vm = crear()
+
+        vm.mostrarOpciones()
+
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS), vm.estado.value.opcionesDeNavegacion)
+        assertTrue(navegador.abiertas.isEmpty())
+    }
+
+    @Test
+    fun laVarianteAbrirNavegacionSinAplicacionesAvisa() {
+        viajes.viaje.value = conRuta()
+        val vm = crear()
+
+        vm.mostrarOpciones()
+
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertTrue(vm.estado.value.sinAppDeNavegacion)
+    }
+
+    @Test
+    fun unViajeSinRutaNoNavegaNiMuestraLaHoja() {
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        for (estadoViaje in listOf(EstadoViaje.PENDIENTE, EstadoViaje.FINALIZADO, EstadoViaje.CANCELADO)) {
+            viajes.viaje.value = conRuta(estadoViaje)
+            val vm = DetalleViajeViewModel(viajes, reloj, navegador).also { it.cargar("TR-1042") }
+
+            vm.navegar()
+            vm.mostrarOpciones()
+
+            assertNull(estadoViaje.name, vm.estado.value.opcionesDeNavegacion)
+            assertFalse(estadoViaje.name, vm.estado.value.sinAppDeNavegacion)
+        }
+        assertTrue(navegador.abiertas.isEmpty())
+    }
+
+    @Test
+    fun laHojaYElAvisoSeCierranSiElViajeYaNoTieneRuta() {
+        viajes.viaje.value = conRuta(EstadoViaje.EN_CURSO)
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+        vm.navegar()
+        assertEquals(2, vm.estado.value.opcionesDeNavegacion?.size)
+
+        viajes.viaje.value = conRuta(EstadoViaje.FINALIZADO)
+
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertFalse(vm.estado.value.sinAppDeNavegacion)
+    }
+
+    @Test
+    fun siElViajeDesapareceLaHojaSeCierra() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+        vm.navegar()
+
+        viajes.viaje.value = null
+
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+    }
+
+    @Test
+    fun siElViajeEmpiezaConLaHojaAbiertaSeNavegaAlDestino() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+        vm.navegar()
+
+        viajes.viaje.value = conRuta(EstadoViaje.EN_CURSO)
+        vm.elegir(AppNavegacion.GOOGLE_MAPS)
+
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS to destino), navegador.abiertas)
+    }
+
+    @Test
+    fun unNuevoIntentoReemplazaElAvisoAnterior() {
+        viajes.viaje.value = conRuta()
+        val vm = crear()
+        vm.navegar()
+        assertTrue(vm.estado.value.sinAppDeNavegacion)
+
+        navegador.disponibles = listOf(AppNavegacion.WAZE)
+        vm.navegar()
+
+        assertFalse(vm.estado.value.sinAppDeNavegacion)
+        assertEquals(listOf(AppNavegacion.WAZE to origen), navegador.abiertas)
+    }
+
+    @Test
+    fun cerrarLaHojaLaDejaCerrada() {
+        viajes.viaje.value = conRuta()
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
+        val vm = crear()
+        vm.navegar()
+
+        vm.cerrarOpciones()
+
+        assertNull(vm.estado.value.opcionesDeNavegacion)
+        assertTrue(navegador.abiertas.isEmpty())
     }
 }
 

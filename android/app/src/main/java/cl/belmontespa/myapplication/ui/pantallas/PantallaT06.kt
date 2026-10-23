@@ -74,9 +74,10 @@ fun PantallaT06(
         MisViajesScreen(onNavegar = onNavegar)
         return
     }
-    // El detalle del viaje del Conductor también (HU08); «Antes de la ventana» es la misma pantalla.
-    if (pantalla == PantallaDemo.DETALLE_VIAJE || pantalla == PantallaDemo.ANTES_VENTANA) {
-        DetalleViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
+    // El detalle del viaje del Conductor también (HU08); «Antes de la ventana» es la misma pantalla y
+    // «Abrir navegación» (HU10) es la misma con la hoja «Abrir con» encima.
+    if (pantalla == PantallaDemo.DETALLE_VIAJE || pantalla == PantallaDemo.ANTES_VENTANA || pantalla == PantallaDemo.NAVEGAR) {
+        DetalleViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver, abrirNavegacion = pantalla == PantallaDemo.NAVEGAR)
         return
     }
     // «Confirmar inicio» del Conductor también (HU09): al iniciar vuelve al detalle.

@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +37,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.AppNavegacion
 import cl.belmontespa.myapplication.model.Arqueo
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
@@ -58,17 +63,22 @@ import cl.belmontespa.myapplication.util.Formatos
 
 /**
  * Detalle del viaje del Conductor (HU08). «Antes de la ventana» no es otra pantalla: es este detalle con
- * Iniciar deshabilitado y la hora desde la que se habilita.
+ * Iniciar deshabilitado y la hora desde la que se habilita. «Abrir navegación» (HU10) tampoco: es este detalle con
+ * la hoja «Abrir con» encima; `abrirNavegacion` la muestra de entrada (sin abrir ninguna aplicación por su cuenta).
  */
 @Composable
 fun DetalleViajeScreen(
     folio: String,
     onNavegar: (PantallaDemo, String) -> Unit,
     onVolver: () -> Unit,
+    abrirNavegacion: Boolean = false,
     viewModel: DetalleViajeViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     LaunchedEffect(folio) { viewModel.cargar(folio) }
+    // La hoja necesita el viaje (de él sale el punto de la ruta): se espera a que cargue.
+    val cargado = estado.viaje != null
+    LaunchedEffect(abrirNavegacion, cargado) { if (abrirNavegacion && cargado) viewModel.mostrarOpciones() }
     LaunchedEffect(estado.rechazado) { if (estado.rechazado) onNavegar(PantallaDemo.MIS_VIAJES, "") }
     // README (Retraso): la ventana de inicio y el retraso se recalculan al volver a primer plano.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
@@ -77,7 +87,7 @@ fun DetalleViajeScreen(
         estado = estado,
         onActualizar = viewModel::actualizar,
         onVolver = onVolver,
-        onNavegar = { onNavegar(PantallaDemo.NAVEGAR, folio) },
+        onNavegar = viewModel::navegar,
         onIniciar = { onNavegar(PantallaDemo.CONFIRMAR_INICIO, folio) },
         onFinalizar = viewModel::pedirFinalizar,
         onConfirmarFinalizar = viewModel::confirmarFinalizar,
@@ -86,6 +96,8 @@ fun DetalleViajeScreen(
         onMotivo = viewModel::escribirMotivo,
         onConfirmarRechazo = viewModel::confirmarRechazo,
         onDescartarRechazo = viewModel::descartarRechazo,
+        onElegirApp = viewModel::elegir,
+        onCerrarOpciones = viewModel::cerrarOpciones,
     )
 }
 
@@ -104,6 +116,8 @@ fun DetalleViajeContenido(
     onMotivo: (String) -> Unit,
     onConfirmarRechazo: () -> Unit,
     onDescartarRechazo: () -> Unit,
+    onElegirApp: (AppNavegacion) -> Unit,
+    onCerrarOpciones: () -> Unit,
 ) {
     val viaje = estado.viaje
     val error = estado.error
@@ -149,6 +163,7 @@ fun DetalleViajeContenido(
             dismissButton = { TextButton(onClick = onDescartarFinalizar) { Text(stringResource(R.string.accion_cancelar)) } },
         )
     }
+    estado.opcionesDeNavegacion?.let { HojaAbrirCon(it, onElegirApp, onCerrarOpciones) }
     if (estado.rechazando) {
         AlertDialog(
             onDismissRequest = onDescartarRechazo,
@@ -261,10 +276,41 @@ private fun Controles(
     }
     val navegar = if (viaje.estado == EstadoViaje.EN_CURSO) R.string.accion_navegar_destino else R.string.accion_navegar_origen
     BotonAncho(stringResource(navegar), onNavegar, tipo = TipoBoton.SECUNDARIO, alto56 = true)
+    // Etiqueta propia: no es un fallo de la pantalla, así que no lleva `t06_error`.
+    if (estado.sinAppDeNavegacion) {
+        Aviso(stringResource(R.string.error_sin_app_navegacion), TonoAviso.AVISO, Modifier.testTag("t06_aviso_navegacion"))
+    }
     if (viaje.estado == EstadoViaje.ASIGNADO) {
         BotonAncho(
             stringResource(R.string.accion_rechazar), onRechazar,
             tipo = TipoBoton.PELIGRO, habilitado = estado.puedeRechazar, alto56 = true,
         )
+    }
+}
+
+/** Hoja «Abrir con» (mockup «Abrir navegación»): solo las aplicaciones instaladas, cada una con área táctil de 56 dp. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HojaAbrirCon(apps: List<AppNavegacion>, onElegir: (AppNavegacion) -> Unit, onCerrar: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onCerrar, modifier = Modifier.testTag("t06_hoja_navegacion")) {
+        Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Text(
+                stringResource(R.string.navegacion_abrir_con),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp).semantics { heading() },
+            )
+            apps.forEach { app ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clickable(role = Role.Button) { onElegir(app) }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(app.nombre, style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+        }
     }
 }
