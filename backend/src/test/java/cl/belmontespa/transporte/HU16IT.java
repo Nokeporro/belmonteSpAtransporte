@@ -154,6 +154,7 @@ class HU16IT extends IntegrationTest {
         assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(403);
         assertThat(api.cancelar(folio, null).status()).isEqualTo(401);
         assertThat(api.cancelar("TR-99999999", solicitante.token()).status()).isEqualTo(404);
+        jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", LocalDateTime.now(clock), folio);
         api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
         assertThat(api.cancelar(folio, solicitante.token()).status()).isEqualTo(409);
         api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");

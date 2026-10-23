@@ -43,6 +43,27 @@ class RetrasoTest {
     }
 
     @Test
+    fun laVentanaDeInicioDistingueAntesDentroYVencidoConAmbosBordesDentro() {
+        fun en(minutos: Long) = ventanaDeInicio(fhAgenda, fhAgenda.plusMinutes(minutos))
+
+        assertEquals(Inicio.ANTES_DE_LA_VENTANA, en(-61))
+        assertEquals(Inicio.HABILITADO, en(-60))
+        assertEquals(Inicio.HABILITADO, en(0))
+        assertEquals(Inicio.HABILITADO, en(60))
+        assertEquals(Inicio.VENCIDO, en(61))
+        assertEquals(Inicio.ANTES_DE_LA_VENTANA, ventanaDeInicio(fhAgenda, fhAgenda.minusHours(1).minusSeconds(1)))
+        assertEquals(Inicio.VENCIDO, ventanaDeInicio(fhAgenda, fhAgenda.plusHours(1).plusSeconds(1)))
+    }
+
+    @Test
+    fun soloUnViajeAsignadoTieneVentanaDeInicio() {
+        assertEquals(Inicio.HABILITADO, viaje().ventanaDeInicio(relojA(0)))
+        for (estado in EstadoViaje.entries.filter { it != EstadoViaje.ASIGNADO }) {
+            assertEquals(estado.name, Inicio.NO_APLICA, viaje(estado = estado).ventanaDeInicio(relojA(0)))
+        }
+    }
+
+    @Test
     fun antesDeLaHoraAgendadaYEnPuntoNoHayRetraso() {
         val v = viaje()
         assertNull(v.retraso(relojA(-1)))

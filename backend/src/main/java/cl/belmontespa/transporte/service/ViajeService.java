@@ -213,6 +213,30 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return new ResponseStatusException(HttpStatus.CONFLICT, mensaje);
 	}
 
+	// V3: iniciar solo a ± 1 h de la agenda (extremos incluidos).
+	static boolean dentroDeLaVentanaDeInicio(LocalDateTime fhAgenda, LocalDateTime ahora) {
+		return !ahora.isBefore(fhAgenda.minusHours(1)) && !ahora.isAfter(fhAgenda.plusHours(1));
+	}
+
+	// V3: dentro de la ventana y sin otro viaje En curso para el conductor ni para el móvil.
+	private void exigirPuedeIniciar(Viaje viaje, LocalDateTime ahora) {
+		if (!dentroDeLaVentanaDeInicio(viaje.getFhAgenda(), ahora)) {
+			throw conflicto("El viaje está fuera de la ventana de inicio");
+		}
+		if (hayOtroEnCurso(viaje, viajeRepository.findByConductorIdUsuario(viaje.getConductor().getIdUsuario()))) {
+			throw conflicto("El conductor ya tiene un viaje en curso");
+		}
+		if (hayOtroEnCurso(viaje, viajeRepository.findByMovilIdMovil(viaje.getMovil().getIdMovil()))) {
+			throw conflicto("El móvil ya tiene un viaje en curso");
+		}
+	}
+
+	private static boolean hayOtroEnCurso(Viaje viaje, List<Viaje> deLaMismaFlota) {
+		return deLaMismaFlota.stream()
+				.filter(otro -> !otro.getIdViaje().equals(viaje.getIdViaje()))
+				.anyMatch(otro -> EN_CURSO.equals(otro.getEstado().getNombreEstado()));
+	}
+
 	// CU-05/RF09: Asignado → En Curso → Finalizado, solo por el conductor del viaje.
 	@Transactional
 	public ViajeDTOResponse cambiarEstado(String folio, CambiarEstadoViajeDTORequest request, String correoConductor) {
@@ -224,8 +248,10 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		String actual = viaje.getEstado().getNombreEstado();
 		String nuevo = request.estado().toUpperCase(Locale.ROOT);
 		if (EN_CURSO.equals(nuevo) && ASIGNADO.equals(actual)) {
-			viaje.setFhInicio(LocalDateTime.now(clock));
-			// V3: desde aquí el conductor está Ocupado y el móvil En uso (la ventana de ± 1 h es de HU09).
+			LocalDateTime ahora = LocalDateTime.now(clock);
+			exigirPuedeIniciar(viaje, ahora);
+			viaje.setFhInicio(ahora);
+			// V3: desde aquí el conductor está Ocupado y el móvil En uso.
 			conductorService.cambiarEstado(viaje.getConductor(), ConductorService.OCUPADO);
 			movilService.cambiarEstado(viaje.getMovil(), MovilService.EN_USO);
 		} else if (FINALIZADO.equals(nuevo) && EN_CURSO.equals(actual)) {

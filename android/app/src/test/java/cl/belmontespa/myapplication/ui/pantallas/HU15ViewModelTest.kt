@@ -17,7 +17,7 @@ class HU15ViewModelTest {
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, repos, clock, BorradorAbordaje(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock, emptyList()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun formulario() {

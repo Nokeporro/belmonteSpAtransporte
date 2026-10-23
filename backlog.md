@@ -102,20 +102,10 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 Estas cuatro historias quedan **Listo** respecto de su implementación. Pasaron 204 pruebas del
 backend, 60 pruebas JVM Android y 32 instrumentadas en API 36, además de lint y la compilación demo.
 El cierre de entrega aún requiere Places con clave real, API 26, TalkBack, CI, aprobación y fusión
-en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no cambia.
+en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la tabla.
 
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | — |
-| 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | — |
-| 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | — |
-| 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | — |
-| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | — |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
-| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | — |
-| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | — |
-| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | — |
-| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | — |
 | 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | Listo |
 | 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | Listo |
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
@@ -133,11 +123,11 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | Listo |
 | 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | Listo |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | Listo |
-| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | — |
-| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | — |
-| 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | — |
-| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | — |
-| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | — |
+| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | Listo |
+| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | Listo |
+| 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | Listo |
+| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | Listo |
+| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | Listo |
 | 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |

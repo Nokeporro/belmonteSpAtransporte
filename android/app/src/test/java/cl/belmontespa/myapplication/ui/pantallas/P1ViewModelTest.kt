@@ -21,7 +21,7 @@ class P1ViewModelTest {
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, repos, clock, BorradorAbordaje(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock, emptyList()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private suspend fun TestScope.formulario() {
@@ -79,7 +79,7 @@ class P1ViewModelTest {
 
 /** Fakes manuales: una operación inesperada falla sin acceder a Room, red ni Android. */
 internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepository, PagoRepository,
-    AuthRepository, CatalogoRepository, AbordajeRepository {
+    AuthRepository, CatalogoRepository {
     var espera: CompletableDeferred<Unit>? = null
     var fallo: ErrorApp? = null
     var envios = 0
@@ -173,5 +173,4 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     override suspend fun recuperarPassword(correo: String): Resultado<Unit> = sinUso()
     override suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = sinUso()
     override suspend fun cerrarSesion(): Resultado<Unit> = sinUso()
-    override suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> = sinUso()
 }

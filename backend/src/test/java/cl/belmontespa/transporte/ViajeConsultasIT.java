@@ -153,11 +153,11 @@ class ViajeConsultasIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			String token = flota.conductor().token();
 			String finalizado = api.viajeAsignado(ana, flota);
-			api.cambiarEstadoOk(finalizado, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(finalizado, flota.conductor());
 			api.cambiarEstadoOk(finalizado, flota.conductor(), "FINALIZADO");
 			fijarAgenda(finalizado, HOY.minusDays(1).atTime(8, 0));
 			String enCurso = api.viajeAsignado(ana, flota);
-			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(enCurso, flota.conductor());
 			fijarAgenda(enCurso, HOY.minusDays(1).atTime(22, 0));
 
 			assertThat(folios("/viajes", token)).containsExactly(enCurso);
@@ -173,7 +173,8 @@ class ViajeConsultasIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			String token = flota.conductor().token();
 			String deHoy = api.viajeAsignado(ana, flota);
-			fijarAgenda(deHoy, HOY.atTime(12, 0));
+			// Se mantiene dentro del plazo de cancelación de HU16 a cualquier hora del día.
+			fijarAgenda(deHoy, LocalDateTime.now(ClockConfig.ZONA));
 
 			assertThat(folios("/viajes", token)).containsExactly(deHoy);
 			assertThat(folios("/viajes?fecha=" + HOY, token)).containsExactly(deHoy);
@@ -194,7 +195,7 @@ class ViajeConsultasIT extends IntegrationTest {
 
 			assertThat(folios("/viajes?estado=ASIGNADO", token)).containsExactly(folio);
 			assertThat(folios("/viajes?estado=FINALIZADO", token)).isEmpty();
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 
 			assertThat(folios("/viajes?estado=ASIGNADO", token)).isEmpty();
@@ -293,7 +294,7 @@ class ViajeConsultasIT extends IntegrationTest {
 			assertThat(campo(lista, folio, "hashPago")).containsExactly((Object) null);
 			assertThat(campo(lista, folio, "estadoPago")).containsExactly((Object) null);
 
-			Resp cambio = Api.exigir(api.cambiarEstado(folio, conductor, "EN_CURSO"), "iniciar", 200);
+			Resp cambio = Api.exigir(api.cambiarEstadoEnLaVentana(folio, conductor, "EN_CURSO"), "iniciar", 200);
 			assertThat(cambio.<Object>json("$.hashPago")).isNull();
 			assertThat(cambio.<Object>json("$.estadoPago")).isNull();
 			// Lo que se oculta es la respuesta: el pago sigue ahí para el administrador.

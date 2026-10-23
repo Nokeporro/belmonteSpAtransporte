@@ -11,6 +11,7 @@ internal fun viajeDePrueba(
     nombreSolicitante: String = "Marcela Soto",
     correoConductor: String? = null,
     patenteMovil: String? = null,
+    pasajeros: List<PasajeroViaje> = emptyList(),
 ): Viaje {
     val lugar = Ubicacion("Av. Providencia 1234", "Providencia", "Metropolitana de Santiago", -33.4261, -70.611)
     return Viaje(
@@ -35,6 +36,10 @@ internal fun viajeDePrueba(
         hashPago = null,
         estadoPago = null,
         motivo = null,
-        pasajeros = emptyList(),
+        pasajeros = pasajeros,
     )
 }
+
+/** Pasajero ficticio; sin hora de abordaje está Por abordar. */
+internal fun pasajeroDePrueba(nombre: String, fhAbordaje: LocalDateTime? = null) =
+    PasajeroViaje(dniHash = "hash-$nombre", nombre = nombre, fhAbordaje = fhAbordaje)

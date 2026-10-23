@@ -88,6 +88,8 @@
     <string name="abordaje_camara_negada">Permite el uso de la cámara para escanear el código.</string>
     <string name="abordaje_abrir_ajustes">Abrir ajustes</string>
     <string name="abordaje_confirmar">Confirmar abordaje</string>
+    <string name="abordaje_codigo_invalido">Revisa la patente y el código escritos bajo el QR.</string>
+    <string name="abordaje_documento_invalido">Ingresa un documento válido.</string>
     <string name="abordaje_registrado">Abordaje registrado a las %1$s. ¡Buen viaje!</string>
     <string name="abordaje_volver_inicio">Volver al inicio</string>
     <string name="qr_vehiculo_indicacion">Imprímelo y pégalo en la puerta de entrada.</string>
@@ -157,6 +159,14 @@
         <item quantity="one">%d pasajero</item>
         <item quantity="other">%d pasajeros</item>
     </plurals>
+    <!-- Detalle del viaje del Conductor (HU08). -->
+    <string name="detalle_viaje_titulo">Viaje %1$s</string>
+    <string name="detalle_viaje_horario">Horario</string>
+    <string name="detalle_viaje_vuelo">Vuelo</string>
+    <string name="detalle_viaje_solicitante">Solicitante</string>
+    <string name="detalle_viaje_abordo_a_las">Abordó a las %1$s</string>
+    <string name="accion_navegar_origen">Navegar al origen</string>
+    <string name="accion_navegar_destino">Navegar al destino</string>
     <!-- «Mis viajes» del Conductor (HU07). -->
     <string name="mis_viajes_hoy">Hoy · %1$s</string>
     <string name="mis_viajes_pasajero_y_otros">%1$s +%2$d</string>
@@ -287,7 +297,8 @@
     <string name="aviso_cancelar_solicitud">¿Confirmas que deseas cancelar esta solicitud?</string>
     <string name="aviso_cancelar_viaje">Ingresa el motivo para cancelar el viaje.</string>
     <string name="aviso_finalizar">¿Confirmas que deseas finalizar este viaje?</string>
-    <string name="aviso_iniciar">¿Confirmas que deseas iniciar este viaje?</string>
+    <string name="confirmar_inicio_titulo">¿Iniciar el viaje %1$s?</string>
+    <string name="confirmar_inicio_detalle">Pasará a En curso. Quedarás Ocupado y el vehículo %1$s En uso hasta finalizarlo.</string>
     <string name="aviso_sin_pago">Este viaje todavía no tiene un pago registrado.</string>
     <string name="aviso_sin_resultados">No hay registros para mostrar.</string>
     <string name="aviso_selecciona">Selecciona una opción.</string>
@@ -301,7 +312,7 @@
     <string name="aviso_sin_app_camara">No pudimos abrir la cámara. Puedes ingresar el código manualmente.</string>
     <string name="aviso_demo_lugares">En esta demostración puedes elegir entre las ubicaciones ficticias disponibles.</string>
     <string name="aviso_sincronizacion_demo">En modo demostración los cambios se guardan en este dispositivo.</string>
-    <string name="aviso_elegir_aplicacion">Elige la aplicación para abrir la ruta.</string>
+    <string name="navegacion_abrir_con">Abrir con</string>
     <string name="aviso_rechazar_viaje">Ingresa un motivo para rechazar la asignación.</string>
     <string name="accion_ingresar">Ingresar</string>
     <string name="accion_ver_solicitudes">Ver solicitudes</string>
