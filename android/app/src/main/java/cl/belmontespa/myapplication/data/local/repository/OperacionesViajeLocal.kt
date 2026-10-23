@@ -107,12 +107,12 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
     suspend fun estado(folio: String, estado: EstadoViaje): Resultado<Unit> = local.ejecutar {
         local.sesion(Rol.CONDUCTOR)
         val v = local.alcance(folio)
+        val otrosEnCurso = local.viajes().filter { it.folio != folio && it.estado == "EN_CURSO" }
+        val conflicto = conflictoDeEstado(EstadoViaje.valueOf(v.estado), estado, FechaIso.leer(v.fhAgenda), local.ahora(),
+            conductorConOtroEnCurso = otrosEnCurso.any { it.correoConductor == v.correoConductor },
+            movilConOtroEnCurso = otrosEnCurso.any { it.patenteMovil == v.patenteMovil })
+        exigir(conflicto == null, conflicto.orEmpty())
         val inicio = estado == EstadoViaje.EN_CURSO
-        exigir(inicio && v.estado == "ASIGNADO" || estado == EstadoViaje.FINALIZADO && v.estado == "EN_CURSO", "El viaje cambió de estado. Actualiza el detalle.")
-        if (inicio) {
-            exigir(!local.ahora().isBefore(FechaIso.leer(v.fhAgenda).minusHours(1)) && !v.vencido(local), "El viaje está fuera del horario de inicio.")
-            exigir(local.viajes().none { it.folio != folio && it.estado == "EN_CURSO" && (it.correoConductor == v.correoConductor || it.patenteMovil == v.patenteMovil) }, "El conductor o vehículo ya tiene un viaje en curso.")
-        }
         val u = local.usuario(v.correoConductor!!)
         val m = local.db.movilDao().obtener(v.patenteMovil!!) ?: falla(ErrorApp.NoEncontrado)
         local.db.usuarioDao().guardar(u.copy(estadoConductor = if (inicio) "OCUPADO" else "DISPONIBLE"))

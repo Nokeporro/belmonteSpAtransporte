@@ -3,6 +3,7 @@ package cl.belmontespa.transporte.support;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import cl.belmontespa.transporte.config.ClockConfig;
 import cl.belmontespa.transporte.validation.Reglas;
 import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -30,10 +32,12 @@ public class Api {
 	private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
 	private final MockMvc mvc;
+	private final JdbcTemplate jdbc;
 	private String tokenAdmin;
 
-	public Api(MockMvc mvc) {
+	public Api(MockMvc mvc, JdbcTemplate jdbc) {
 		this.mvc = mvc;
+		this.jdbc = jdbc;
 	}
 
 	/** Respuesta HTTP con acceso por JsonPath al cuerpo. */
@@ -202,6 +206,14 @@ public class Api {
 		return exigir(get("/conductores/" + correo, admin()), "consultar conductor", 200).texto("$.estadoConductor");
 	}
 
+	/**
+	 * Lo que lleva impreso el QR de la puerta. La API todavía no lo entrega (lo suma HU17): se lee de la base, que es
+	 * donde lo imprimiría el Administrador.
+	 */
+	public String codigoAbordaje(String patente) {
+		return jdbc.queryForObject("SELECT codigo_abordaje FROM movil WHERE patente = ?", String.class, patente);
+	}
+
 	public String estadoMovil(String patente) {
 		return exigir(get("/moviles/" + patente, admin()), "consultar móvil", 200).texto("$.estadoMovil");
 	}
@@ -213,11 +225,27 @@ public class Api {
 				{"tipoDocumento":"RUT","dni":"%s","nombre":"%s"}""".formatted(dni, nombre));
 	}
 
+	/** RUT válido y único, con guion: lo que el Pasajero escribe al abordar. */
+	public String rutUnico() {
+		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
+		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
+	}
+
 	/** Crea un pasajero con DNI único y devuelve su dniHash. */
 	public String pasajero(Cuenta solicitante) {
-		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
-		String dni = cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
-		return exigir(pasajero(solicitante.token(), dni, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
+		return pasajeroConRut(solicitante, rutUnico());
+	}
+
+	/** Crea (o reutiliza) el pasajero con ese RUT y devuelve su dniHash. */
+	public String pasajeroConRut(Cuenta solicitante, String rut) {
+		return exigir(pasajero(solicitante.token(), rut, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
+	}
+
+	/** El abordaje es público: no lleva token. */
+	public Resp abordar(String patente, String codigoAbordaje, String tipoDocumento, String dni) {
+		return post("/abordajes", null, """
+				{"patente":"%s","codigoAbordaje":"%s","tipoDocumento":"%s","dni":"%s"}"""
+				.formatted(patente, codigoAbordaje, tipoDocumento, dni));
 	}
 
 	public Resp agregarPasajero(String token, String folio, String dniHash) {
@@ -284,6 +312,31 @@ public class Api {
 
 	public void cambiarEstadoOk(String folio, Cuenta conductor, String estado) {
 		exigir(cambiarEstado(folio, conductor.token(), estado), "pasar " + folio + " a " + estado, 200);
+	}
+
+	/**
+	 * V3 solo deja iniciar a ± 1 h de la agenda y V1 no deja agendar a menos de 2 h, así que la agenda se
+	 * acerca al instante actual solo durante el POST y se devuelve a su valor: los tests que dependen del
+	 * día del viaje no lo notan.
+	 */
+	public Resp cambiarEstadoEnLaVentana(String folio, String token, String estado) {
+		LocalDateTime original = jdbc.queryForObject("SELECT fh_agenda FROM viaje WHERE folio = ?",
+				LocalDateTime.class, folio);
+		fijarAgenda(folio, LocalDateTime.now(ClockConfig.ZONA));
+		try {
+			return cambiarEstado(folio, token, estado);
+		} finally {
+			fijarAgenda(folio, original);
+		}
+	}
+
+	/** Inicia el viaje (V3) en su ventana: {@link #cambiarEstadoEnLaVentana}. */
+	public void iniciarOk(String folio, Cuenta conductor) {
+		exigir(cambiarEstadoEnLaVentana(folio, conductor.token(), "EN_CURSO"), "iniciar " + folio, 200);
+	}
+
+	private void fijarAgenda(String folio, LocalDateTime fhAgenda) {
+		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
 
 	public Resp cancelar(String folio, String token) {

@@ -148,5 +148,5 @@ internal fun permitePantalla(pantalla: PantallaDemo, estado: EstadoSesion?): Boo
     null -> false
 }
 private fun debeNavegar(actual: NavDestination?, destino: Any): Boolean = actual == null || !actual.esRuta(destino)
-private val formulariosConSalida = setOf(PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_VEHICULO, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.CONFIRMAR_ABORDAJE)
+private val formulariosConSalida = setOf(PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_VEHICULO, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_ABORDAJE)
 private val detallesTrasGuardar = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.DETALLE_PAGO, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.ABORDADO)

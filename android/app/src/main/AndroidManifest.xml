@@ -4,7 +4,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- El ingreso manual permite usar la app también sin cámara. -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <!-- «Navegar» (CU-03) pasa la ruta a Google Maps o a Waze: desde Android 11 hay que declararlas para verlas. -->
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+    </queries>
 
     <application
         android:name=".BelmonteApplication"

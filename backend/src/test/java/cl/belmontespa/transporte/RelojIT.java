@@ -53,7 +53,7 @@ class RelojIT extends IntegrationTest {
 		Cuenta solicitante = api.solicitante();
 		Flota flota = api.flota(4);
 		String folio = api.viajeAsignado(solicitante, flota);
-		api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+		api.iniciarOk(folio, flota.conductor());
 		api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 
 		Resp viaje = Api.exigir(api.verViaje(folio), "ver viaje", 200);

@@ -66,9 +66,3 @@ data class NuevaSolicitud(
     val numeroVuelo: String?,
     val pasajeros: List<NuevoPasajero>,
 )
-
-/** Contenido del QR de la puerta, o la patente y el código ingresados a mano. */
-data class CodigoAbordaje(
-    val patente: String,
-    val codigo: String,
-)
