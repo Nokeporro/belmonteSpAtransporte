@@ -6,6 +6,7 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.data.repository.*
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
+import cl.belmontespa.myapplication.util.Validaciones
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -119,7 +120,9 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 if (p == PantallaDemo.HABILITACIONES) mutable.update { it.copy(habilitaciones = repos.flota.listarHabilitaciones().valor()) }
                 if (p == PantallaDemo.DETALLE_CONDUCTOR) {
                     val conductor = repos.flota.obtenerConductor(id).valor()
-                    mutable.update { it.copy(conductor = conductor, habilitaciones = repos.flota.listarHabilitaciones(correo = id).valor(), campos = it.campos + mapOf("nombre" to conductor.nombre, "telefono" to conductor.telefono.orEmpty())) }
+                    val habilitaciones = repos.flota.listarHabilitaciones(correo = id).valor()
+                    mutable.update { it.copy(conductor = conductor, habilitaciones = habilitaciones,
+                        campos = if (it.modificado) it.campos else it.campos + mapOf("nombre" to conductor.nombre, "telefono" to conductor.telefono.orEmpty())) }
                 }
                 if (p == PantallaDemo.DETALLE_VEHICULO) mutable.update { it.copy(movil = repos.flota.obtenerMovil(id).valor(), habilitaciones = repos.flota.listarHabilitaciones(patente = id).valor()) }
                 if (p == PantallaDemo.DETALLE_PAGO) mutable.update { it.copy(pago = repos.pagos.obtenerPago(id).valor()) }
@@ -200,10 +203,21 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                         PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> { repos.viajes.cancelar(referencia, valor("motivo").ifBlank { null }, valor("reembolso").toIntOrNull()).valor(); destino = (if (p == PantallaDemo.CONFIRMAR_CANCELACION) PantallaDemo.SOLICITUD_CANCELADA else PantallaDemo.DETALLE_ADMIN) to referencia }
                         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
                             val c = NuevaCuenta(valor("nombre"), valor("correo"), valor("telefono").ifBlank { null }, valor("password"))
-                            if (p == PantallaDemo.REGISTRAR_CONDUCTOR) { val conductor = repos.flota.registrarConductor(c).valor(); destino = PantallaDemo.DETALLE_CONDUCTOR to conductor.correo }
+                            if (p == PantallaDemo.REGISTRAR_CONDUCTOR) {
+                                validarConductor(c)
+                                val conductor = repos.flota.registrarConductor(c).valor()
+                                mutable.update { it.copy(campos = it.campos - "password") }
+                                destino = PantallaDemo.DETALLE_CONDUCTOR to conductor.correo
+                            }
                             else { repos.cuentas.registrarAdministrador(c).valor(); aviso(R.string.aviso_guardado) }
                         }
-                        PantallaDemo.DETALLE_CONDUCTOR -> { repos.flota.actualizarConductor(referencia, valor("nombre"), valor("telefono").ifBlank { null }, valor("password").ifBlank { null }).valor(); aviso(R.string.aviso_guardado) }
+                        PantallaDemo.DETALLE_CONDUCTOR -> {
+                            val cuenta = NuevaCuenta(valor("nombre"), referencia, valor("telefono").ifBlank { null }, valor("password"))
+                            validarConductor(cuenta, passwordRequerida = false)
+                            val conductor = repos.flota.actualizarConductor(referencia, cuenta.nombre, cuenta.telefono, cuenta.password.ifEmpty { null }).valor()
+                            mutable.update { it.copy(conductor = conductor, campos = (it.campos - "password") +
+                                mapOf("nombre" to conductor.nombre, "telefono" to conductor.telefono.orEmpty()), aviso = R.string.aviso_guardado) }
+                        }
                         PantallaDemo.REGISTRAR_VEHICULO -> { val m = repos.flota.registrarMovil(NuevoMovil(valor("patente"), valor("capacidad").toInt(), valor("gps").toLongOrNull())).valor(); destino = PantallaDemo.DETALLE_VEHICULO to m.patente }
                         PantallaDemo.HABILITACIONES -> { repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor(); actualizar() }
                         PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
@@ -219,6 +233,10 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
         }
     }
     suspend fun lugares(): List<Ubicacion> = repos.ubicacionesDemo
+    private fun validarConductor(cuenta: NuevaCuenta, passwordRequerida: Boolean = true) {
+        val errores = Validaciones.conductor(cuenta, passwordRequerida)
+        if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+    }
     fun ahora(): LocalDateTime = LocalDateTime.now(repos.clock)
     private companion object {
         val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)

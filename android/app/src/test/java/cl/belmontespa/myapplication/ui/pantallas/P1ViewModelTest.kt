@@ -78,12 +78,16 @@ class P1ViewModelTest {
 }
 
 /** Fakes manuales: una operación inesperada falla sin acceder a Room, red ni Android. */
-private class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepository, PagoRepository,
+internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepository, PagoRepository,
     AuthRepository, CatalogoRepository, AbordajeRepository {
     var espera: CompletableDeferred<Unit>? = null
     var fallo: ErrorApp? = null
     var envios = 0
     var solicitud: NuevaSolicitud? = null
+    var conductor = Conductor("Conductor", "conductor@test.cl", null, LocalDateTime.of(2026, 10, 22, 12, 0), true, EstadoConductor.DISPONIBLE, 0, null)
+    var cuentaConductor: NuevaCuenta? = null
+    var passwordConductor: String? = null
+    var enviosConductor = 0
     private fun sinUso(): Nothing = error("Operación no prevista en esta prueba")
     override suspend fun crearSolicitud(solicitud: NuevaSolicitud): Resultado<String> {
         envios++; this.solicitud = solicitud; espera?.await()
@@ -109,16 +113,24 @@ private class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepository
     override suspend fun aprobarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
     override suspend fun rechazarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
     override suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = sinUso()
-    override suspend fun listarConductores(): Resultado<List<Conductor>> = sinUso()
-    override suspend fun obtenerConductor(correo: String): Resultado<Conductor> = sinUso()
-    override suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> = sinUso()
-    override suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> = sinUso()
+    override suspend fun listarConductores() = Resultado.Exito(listOf(conductor))
+    override suspend fun obtenerConductor(correo: String) = Resultado.Exito(conductor)
+    override suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> {
+        enviosConductor++; cuentaConductor = cuenta; espera?.await()
+        return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(conductor)
+    }
+    override suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> {
+        enviosConductor++; passwordConductor = password; espera?.await()
+        if (fallo != null) return Resultado.Fallo(fallo!!)
+        conductor = conductor.copy(nombre = nombre.trim(), telefono = telefono)
+        return Resultado.Exito(conductor)
+    }
     override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = sinUso()
     override suspend fun listarMoviles(): Resultado<List<Movil>> = sinUso()
     override suspend fun obtenerMovil(patente: String): Resultado<Movil> = sinUso()
     override suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> = sinUso()
     override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = sinUso()
-    override suspend fun listarHabilitaciones(patente: String?, correo: String?): Resultado<List<Habilitacion>> = sinUso()
+    override suspend fun listarHabilitaciones(patente: String?, correo: String?) = Resultado.Exito(emptyList<Habilitacion>())
     override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = sinUso()
     override suspend fun obtenerPago(hash: String): Resultado<Pago> = sinUso()
     override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = sinUso()

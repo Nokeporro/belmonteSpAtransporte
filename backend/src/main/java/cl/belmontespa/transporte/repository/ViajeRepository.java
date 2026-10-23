@@ -5,11 +5,31 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 // Los finders cargan de una vez lo que lee ViajeDTOResponse.from() (open-in-view=false). No
 // ordenan ni filtran por fecha: el orden de las listas (fhAgenda y folio numérico) lo aplica
 // OrdenViajes y los filtros de GET /viajes, ViajeService.
 public interface ViajeRepository extends JpaRepository<Viaje, Long> {
+
+	// HU15: una consulta para el resumen de toda la lista, sin cargar viajes ni pasajeros.
+	interface ResumenConductor {
+		Long getIdConductor();
+		Long getViajesAsignados();
+		String getFolioEnCurso();
+	}
+
+	@Query("""
+			select v.conductor.idUsuario as idConductor,
+			       sum(case when v.estado.nombreEstado = 'ASIGNADO' then 1 else 0 end) as viajesAsignados,
+			       min(case when v.estado.nombreEstado = 'EN_CURSO' then v.folio else null end) as folioEnCurso
+			from Viaje v
+			where v.conductor.idUsuario in :conductores
+			  and v.estado.nombreEstado in ('ASIGNADO', 'EN_CURSO')
+			group by v.conductor.idUsuario
+			""")
+	List<ResumenConductor> resumirConductores(@Param("conductores") List<Long> conductores);
 
 	@EntityGraph(attributePaths = {"estado", "solicitante.usuario", "solicitante.empresa",
 			"origen.comuna.region", "destino.comuna.region", "conductor.usuario", "movil", "pago.estadoPago"})

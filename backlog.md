@@ -138,7 +138,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | — |
 | 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | — |
 | 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | — |
-| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | 4 ajustar | — |
+| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | 1 ajustar | — |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | 3 ajustar | — |
@@ -392,9 +392,15 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 
 ### HU15
 
-- **`ConductorDTOResponse`:** suma `activo`, `viajesAsignados` y `folioEnCurso`.
-- **`PUT /conductores/{correo}`:** el `correo` del cuerpo debe coincidir con el de la ruta (400). Hoy
-  `UsuarioService.reemplazarDatos` permite cambiarlo.
+- [x] **`ConductorDTOResponse`:** incluye `activo`, `viajesAsignados` y `folioEnCurso`.
+- [x] **`PUT /conductores/{correo}`:** el `correo` del cuerpo debe coincidir con el de la ruta (400).
+- [x] Android: alta y edición validadas, normalización, correo único entre roles, recarga de la lista
+  y limpieza de contraseña tras guardar. El nuevo conductor puede iniciar sesión y asignarse con
+  un vehículo habilitado.
+- [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
+
+Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
+Resultados en [HU15 de A](docs/HU15_A.md). El siguiente ítem de A es HU16.
 
 ### HU16 y HU24
 

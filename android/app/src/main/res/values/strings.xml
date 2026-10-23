@@ -323,4 +323,9 @@
     <string name="aviso_escenario_conflicto">Vista previa de un conflicto de sincronización. Puedes descartarla y volver al viaje.</string>
     <string name="accion_descartar_cambio">Descartar cambio</string>
     <string name="notificacion_nuevo_viaje">Nuevo viaje asignado</string>
+    <!-- Alta y edición de conductores (HU15). -->
+    <string name="conductor_alta_ayuda">La cuenta queda activa y disponible. Define una contraseña de 8 a 72 caracteres, con una letra y un dígito (máximo 72 bytes).</string>
+    <string name="conductor_password_opcional">Deja la contraseña vacía para conservar la actual. Una nueva debe tener entre 8 y 72 caracteres, una letra y un dígito (máximo 72 bytes).</string>
+    <string name="conductor_sin_habilitaciones">Este conductor aún no tiene vehículos habilitados. Habilita uno para poder asignarle viajes.</string>
+    <string name="campo_fecha_registro">Fecha de registro</string>
 </resources>

@@ -80,23 +80,30 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         }
         PantallaDemo.CONDUCTORES -> {
             Enlace(R.string.t06_registrar_conductor, PantallaDemo.REGISTRAR_CONDUCTOR, "")
-            if (estado.conductores.isEmpty()) Text(stringResource(R.string.aviso_sin_resultados))
+            if (estado.conductores.isEmpty()) Text(stringResource(R.string.vacio_conductores_disponibles))
             estado.conductores.forEach { conductor -> Bloque(conductor.nombre) {
                 Dato(R.string.campo_correo, conductor.correo)
                 EstadoChip(stringResource(conductor.estado.etiqueta(conductor.activo)), conductor.estado.estiloChip(conductor.activo))
+                ResumenAgendaConductor(conductor)
                 Enlace(R.string.accion_ver_detalle, PantallaDemo.DETALLE_CONDUCTOR, conductor.correo)
             } }
         }
         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
             Campo("nombre", R.string.campo_nombre); Campo("correo", R.string.campo_correo, KeyboardType.Email)
             Campo("telefono", R.string.campo_telefono, KeyboardType.Phone); Campo("password", R.string.campo_password, KeyboardType.Password)
+            if (pantalla == PantallaDemo.REGISTRAR_CONDUCTOR) Text(stringResource(R.string.conductor_alta_ayuda))
             Accion(R.string.accion_guardar)
         }
         PantallaDemo.DETALLE_CONDUCTOR -> estado.conductor?.let { conductor ->
             Dato(R.string.campo_correo, conductor.correo)
             EstadoChip(stringResource(conductor.estado.etiqueta(conductor.activo)), conductor.estado.estiloChip(conductor.activo))
+            ResumenAgendaConductor(conductor)
+            Dato(R.string.campo_fecha_registro, Formatos.fechaHoraDetalle(conductor.fechaRegistro))
             Campo("nombre", R.string.campo_nombre); Campo("telefono", R.string.campo_telefono, KeyboardType.Phone)
-            Campo("password", R.string.campo_password_nueva, KeyboardType.Password); Accion(R.string.accion_guardar)
+            Campo("password", R.string.campo_password_nueva, KeyboardType.Password)
+            Text(stringResource(R.string.conductor_password_opcional))
+            Accion(R.string.accion_guardar)
+            if (estado.habilitaciones.isEmpty()) Text(stringResource(R.string.conductor_sin_habilitaciones))
             HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
             Accion(if (conductor.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoConductor") }, TipoBoton.SECUNDARIO)
         }
@@ -291,6 +298,11 @@ private fun ContextoPantalla.Perfil() {
         if (BuildConfig.MODO_LOCAL) Enlace(R.string.accion_ver_escenarios, PantallaDemo.NOTIFICACION, "")
     }
     Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
+}
+@Composable
+private fun ResumenAgendaConductor(conductor: Conductor) {
+    Text(pluralStringResource(R.plurals.asignar_viajes_asignados, conductor.viajesAsignados, conductor.viajesAsignados))
+    conductor.folioEnCurso?.let { Text(stringResource(R.string.asignar_en_curso, it), style = EstilosMono.dato) }
 }
 @Composable
 private fun ContextoPantalla.HabilitacionesResumen() {

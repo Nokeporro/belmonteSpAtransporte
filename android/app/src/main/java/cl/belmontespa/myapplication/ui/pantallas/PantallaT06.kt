@@ -88,7 +88,10 @@ fun PantallaT06(
     var confirmarSalida by remember { mutableStateOf(false) }
     val volver: () -> Unit = { if (estado.modificado) confirmarSalida = true else onVolver() }
     BackHandler(enabled = estado.modificado) { confirmarSalida = true }
-    LaunchedEffect(pantalla, referencia) { vm.cargar(pantalla, referencia) }
+    LaunchedEffect(pantalla, referencia) {
+        // Al volver del alta o de editar, la lista y el detalle deben leer los datos guardados.
+        vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR))
+    }
     LaunchedEffect(estado.destino) {
         estado.destino?.let { (destino, id) -> vm.consumirDestino(); onNavegar(destino, id) }
     }

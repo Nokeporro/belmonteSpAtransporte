@@ -35,6 +35,12 @@ object Validaciones {
         if (p.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
         if (!documentoValido(p.tipoDocumento, p.dni)) put("dni", "Ingresa un documento válido.")
     }
+    fun conductor(c: NuevaCuenta, passwordRequerida: Boolean = true): Map<String, String> = buildMap {
+        if (c.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
+        if (!correo(c.correo).matches(Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) || correo(c.correo).length > 150) put("correo", "Ingresa un correo válido.")
+        if (telefono(c.telefono)?.matches(Regex("\\+56[0-9]{9}")) == false) put("telefono", "Ingresa un teléfono chileno válido.")
+        if ((passwordRequerida || c.password.isNotEmpty()) && !passwordValida(c.password)) put("password", "Usa entre 8 y 72 caracteres, con una letra y un dígito (máximo 72 bytes).")
+    }
     fun registro(r: RegistroSolicitante): Map<String, String> = buildMap {
         if (r.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
         if (!correo(r.correo).matches(Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) || correo(r.correo).length > 150) put("correo", "Ingresa un correo válido.")

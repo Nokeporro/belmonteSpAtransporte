@@ -192,6 +192,16 @@ Seguimiento en [backlog.md](backlog.md) y detalle de implementación y pruebas e
 [docs/P1_A.md](docs/P1_A.md). HU04 y HU05 del integrante B también figuran listas en el backlog;
 las demás historias de P1 de B siguen pendientes.
 
+### Avance de implementación: HU15 de A
+
+- [x] Alta de conductores con correo único, datos normalizados y contraseña definitiva.
+- [x] Lista y detalle con estado, viajes asignados y folio en curso; edición sin cambiar el correo.
+- [x] Conservación o reemplazo de contraseña por el Administrador y asignación con vehículo habilitado.
+- [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y compilación demo.
+- [ ] Instrumentadas en API 26, pasada manual de TalkBack, CI y revisión para integrar en `main`.
+
+Detalle y resultados en [docs/HU15_A.md](docs/HU15_A.md). HU16 sigue pendiente.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

@@ -5,6 +5,7 @@ import cl.belmontespa.myapplication.data.local.entity.*
 import cl.belmontespa.myapplication.data.repository.FlotaRepository
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
+import cl.belmontespa.myapplication.util.Validaciones
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -20,20 +21,23 @@ class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) 
     }
     override suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        exigir(cuenta.nombre.isNotBlank() && cuenta.correo.contains('@') && cuenta.password.length in 8..72, "Revisa los datos ingresados.")
-        val u = UsuarioEntity(cuenta.correo.trim().lowercase(), cuenta.nombre.trim(), cuenta.telefono,
+        validar(Validaciones.conductor(cuenta))
+        val correo = Validaciones.correo(cuenta.correo)
+        if (local.db.usuarioDao().obtener(correo) != null) falla(ErrorApp.Conflicto("El correo ya está registrado."))
+        val u = UsuarioEntity(correo, cuenta.nombre.trim(), Validaciones.telefono(cuenta.telefono),
             "CONDUCTOR", true, "DISPONIBLE", null, null, null, FechaIso.texto(local.ahora()), Hashes.password(cuenta.password))
         local.db.usuarioDao().insertar(u)
         local.conductor(u.correo)
     }
     override suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        exigir(nombre.isNotBlank() && (password == null || password.length in 8..72), "Revisa los datos ingresados.")
-        val u = local.usuario(correo)
+        val correoNormalizado = Validaciones.correo(correo)
+        validar(Validaciones.conductor(NuevaCuenta(nombre, correoNormalizado, telefono, password.orEmpty()), passwordRequerida = false))
+        val u = local.usuario(correoNormalizado)
         exigir(u.rol == "CONDUCTOR", "La cuenta no es de un conductor.")
-        local.db.usuarioDao().guardar(u.copy(nombre = nombre.trim(), telefono = telefono,
-            passwordSha256 = password?.let(Hashes::password) ?: u.passwordSha256))
-        local.conductor(correo)
+        local.db.usuarioDao().guardar(u.copy(nombre = nombre.trim(), telefono = Validaciones.telefono(telefono),
+            passwordSha256 = password?.takeIf { it.isNotEmpty() }?.let(Hashes::password) ?: u.passwordSha256))
+        local.conductor(correoNormalizado)
     }
     override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)

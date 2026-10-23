@@ -45,6 +45,68 @@ class RepositoriosT06Test {
         assertTrue(viajes.observarViajes(FiltroViajes()).first().isEmpty())
         assertNull(viajes.observarViaje("TR-1042").first())
     }
+    @Test fun altaDeConductorNormalizaPersisteYPermiteLoginInmediato() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val cuenta = NuevaCuenta("  Ana Conductora  ", "  ANA@demo.cl  ", "9 5555-0101", "Definitiva123")
+        val alta = (flota.registrarConductor(cuenta) as Resultado.Exito).valor
+        assertEquals("ana@demo.cl", alta.correo); assertEquals("Ana Conductora", alta.nombre)
+        assertEquals("+56955550101", alta.telefono); assertTrue(alta.activo)
+        assertEquals(EstadoConductor.DISPONIBLE, alta.estado)
+        assertEquals(0, alta.viajesAsignados); assertNull(alta.folioEnCurso)
+        assertEquals(alta, (FlotaLocalRepository(local).obtenerConductor(alta.correo) as Resultado.Exito).valor)
+        assertNotEquals(cuenta.password, db.usuarioDao().obtener(alta.correo)!!.passwordSha256)
+        assertTrue(AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local).iniciarSesion(alta.correo, cuenta.password) is Resultado.Exito)
+    }
+    @Test fun unCorreoOcupadoPorOtroRolNoSeReemplazaAlRegistrarConductor() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val antes = local.usuario("crios@andesconsult.cl")
+        val resultado = FlotaLocalRepository(local).registrarConductor(NuevaCuenta("Conductor", " CRIOS@ANDESCONSULT.CL ", null, "Clave12345"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El correo ya está registrado.")), resultado)
+        assertEquals(antes, local.usuario(antes.correo))
+    }
+    @Test fun datosInvalidosNoCreanLaCuentaDelConductor() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val cuenta = NuevaCuenta("A", "alta@demo.cl", "123", "abcdefgh")
+        val resultado = flota.registrarConductor(cuenta) as Resultado.Fallo
+        assertEquals(setOf("nombre", "telefono", "password"), (resultado.error as ErrorApp.Validacion).errores.keys)
+        assertNull(db.usuarioDao().obtener(cuenta.correo))
+    }
+    @Test fun editarConductorConservaOCambiaLaClaveSinAlterarElCorreo() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val correo = "ireyes@belmontespa.cl"
+        val hash = local.usuario(correo).passwordSha256
+        assertTrue(flota.actualizarConductor(correo, "  Nombre Editado  ", "9 5555-0101", null) is Resultado.Exito)
+        assertEquals(hash, local.usuario(correo).passwordSha256)
+        assertEquals("+56955550101", local.usuario(correo).telefono)
+        assertTrue(flota.actualizarConductor(correo, "Nombre Editado", null, "12345678") is Resultado.Fallo)
+        assertEquals(hash, local.usuario(correo).passwordSha256)
+        assertTrue(flota.actualizarConductor(correo, "Nombre Editado", null, "NuevaClave123") is Resultado.Exito)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertTrue(auth.iniciarSesion(correo, "Belmonte2026") is Resultado.Fallo)
+        assertTrue(auth.iniciarSesion(correo, "NuevaClave123") is Resultado.Exito)
+    }
+    @Test fun unConductorRecienCreadoSeAsignaConVehiculoHabilitado() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val nuevo = (flota.registrarConductor(NuevaCuenta("Nuevo Conductor", "nuevo@demo.cl", null, "Clave12345")) as Resultado.Exito).valor
+        assertTrue(viajes.asignar("TR-1051", nuevo.correo, "KXJR42") is Resultado.Fallo)
+        assertTrue(flota.habilitar("KXJR42", nuevo.correo) is Resultado.Exito)
+        assertTrue(viajes.asignar("TR-1051", nuevo.correo, "KXJR42") is Resultado.Exito)
+        val asignado = (flota.obtenerConductor(nuevo.correo) as Resultado.Exito).valor
+        assertEquals(1, asignado.viajesAsignados); assertEquals(EstadoConductor.DISPONIBLE, asignado.estado)
+    }
+    @Test fun soloElAdministradorRegistraYEditaConductoresLocales() = runBlocking {
+        val flota = FlotaLocalRepository(local)
+        for (rol in listOf(Rol.CONDUCTOR, Rol.SOLICITANTE)) {
+            entrar(rol)
+            assertEquals(Resultado.Fallo(ErrorApp.SinPermiso()), flota.registrarConductor(NuevaCuenta("Sin permiso", "rechazado@demo.cl", null, "Clave12345")))
+            assertEquals(Resultado.Fallo(ErrorApp.SinPermiso()), flota.actualizarConductor("ireyes@belmontespa.cl", "Sin permiso", null, "Clave12345"))
+        }
+        assertNull(db.usuarioDao().obtener("rechazado@demo.cl"))
+    }
     @Test fun unaTemporalNoEntregaViajes() = runBlocking {
         sesiones.guardarTemporal(Sesion("temporal", "recepcion@belmontespa.cl", Rol.ADMINISTRADOR, reloj.millis() + 3_600_000))
         assertTrue(viajes.observarViajes(FiltroViajes()).first().isEmpty())

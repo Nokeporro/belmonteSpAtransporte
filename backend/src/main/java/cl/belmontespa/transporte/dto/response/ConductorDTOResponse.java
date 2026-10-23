@@ -9,16 +9,22 @@ public record ConductorDTOResponse(
 		String correo,
 		String telefono,
 		LocalDateTime fechaRegistro,
-		String estadoConductor
+		boolean activo,
+		String estadoConductor,
+		long viajesAsignados,
+		String folioEnCurso
 ) {
 
-	public static ConductorDTOResponse from(Conductor conductor) {
+	public static ConductorDTOResponse from(Conductor conductor, long viajesAsignados, String folioEnCurso) {
 		Usuario usuario = conductor.getUsuario();
 		return new ConductorDTOResponse(
 				usuario.getNombre(),
 				usuario.getCorreo(),
 				usuario.getTelefono(),
 				usuario.getFechaRegistro(),
-				conductor.getEstadoConductor().getEstado());
+				conductor.isActivo(),
+				conductor.getEstadoConductor().getEstado(),
+				viajesAsignados,
+				folioEnCurso);
 	}
 }
