@@ -126,8 +126,9 @@ class DetalleViajeScreenTest {
 
         compose.onNodeWithText("Abordaron 1 de 2. Faltan: Tomás Vidal.").assertExists()
         compose.onNodeWithText(textos.getString(R.string.detalle_viaje_abordo_a_las, "14:05")).assertExists()
-        compose.onNodeWithText(texto(R.string.etiqueta_abordado)).assertExists()
-        compose.onNodeWithText(texto(R.string.etiqueta_por_abordar)).assertExists()
+        // El chip se expone por su descripción («Estado: Abordado»), no por el texto que dibuja.
+        compose.onAllNodesWithContentDescription(textos.getString(R.string.chip_descripcion, texto(R.string.etiqueta_abordado))).assertCountEquals(1)
+        compose.onAllNodesWithContentDescription(textos.getString(R.string.chip_descripcion, texto(R.string.etiqueta_por_abordar))).assertCountEquals(1)
     }
 
     @Test
@@ -186,15 +187,24 @@ class DetalleViajeScreenTest {
         compose.onNodeWithText(texto(R.string.accion_finalizar)).assertDoesNotExist()
         compose.onNodeWithText(texto(R.string.accion_navegar_origen)).assertDoesNotExist()
         compose.onNodeWithText(texto(R.string.accion_rechazar)).assertDoesNotExist()
-        compose.onNodeWithText(texto(R.string.arqueo_todos)).assertDoesNotExist()
     }
 
     @Test
-    fun unViajeCanceladoMuestraSuMotivo() {
+    fun unViajeFinalizadoConservaSuArqueo() {
+        mostrar(estado(viaje(EstadoViaje.FINALIZADO), inicio = Inicio.NO_APLICA))
+
+        compose.onNodeWithText("Abordaron 1 de 2. Faltan: Tomás Vidal.").assertExists()
+        compose.onAllNodesWithContentDescription(textos.getString(R.string.chip_descripcion, texto(R.string.etiqueta_por_abordar))).assertCountEquals(1)
+    }
+
+    @Test
+    fun unViajeCanceladoMuestraSuMotivoYNoTieneArqueo() {
         mostrar(estado(viaje(EstadoViaje.CANCELADO, motivo = "Cancelado por la empresa"), inicio = Inicio.NO_APLICA))
 
         compose.onNodeWithText("Cancelado por la empresa").assertExists()
         compose.onNodeWithText(texto(R.string.accion_iniciar)).assertDoesNotExist()
+        compose.onNodeWithText("Abordaron 1 de 2. Faltan: Tomás Vidal.").assertDoesNotExist()
+        compose.onNodeWithText(texto(R.string.campo_abordaje)).assertDoesNotExist()
     }
 
     // Navegar (HU10): la hoja «Abrir con» y el aviso cuando no hay aplicación.

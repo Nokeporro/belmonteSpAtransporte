@@ -115,7 +115,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | Listo |
 | 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | Listo |
 | 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | Listo |
-| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | — |
+| 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | Listo |
 | 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | 4 ajustar | — |
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | 1 ajustar | — |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |

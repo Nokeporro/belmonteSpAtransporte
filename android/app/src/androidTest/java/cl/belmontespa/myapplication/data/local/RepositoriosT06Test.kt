@@ -173,6 +173,29 @@ class RepositoriosT06Test {
         val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.RUT, "15.234.567-0")
         assertTrue(resultado is Resultado.Fallo && resultado.error is ErrorApp.Validacion)
     }
+    // Arqueo (HU30): el viaje que observa el Conductor refleja el abordaje apenas se registra.
+    @Test fun alAbordarUnPasajeroElArqueoDelViajeSeActualiza() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        val antes = viajes.observarViaje("TR-1042").first()!!.arqueo()!!
+        assertEquals(1, antes.abordaron)
+        assertEquals(3, antes.total)
+        assertEquals(setOf("Marcela Soto", "Tomás Vidal"), antes.faltan.toSet())
+        AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val despues = viajes.observarViaje("TR-1042").first()!!.arqueo()!!
+        assertEquals(2, despues.abordaron)
+        assertEquals(3, despues.total)
+        assertEquals(setOf("Marcela Soto"), despues.faltan.toSet())
+    }
+    @Test fun repetirElAbordajeNoCambiaElArqueo() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        val abordaje = AbordajeLocalRepository(local)
+        abordaje.registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val unaVez = viajes.observarViaje("TR-1042").first()!!
+        abordaje.registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val dosVeces = viajes.observarViaje("TR-1042").first()!!
+        assertEquals(unaVez.pasajeros.toSet(), dosVeces.pasajeros.toSet())
+        assertEquals(unaVez.arqueo(), dosVeces.arqueo())
+    }
     // V2 no cambia el estado de nadie: Ocupado y En uso los marca V3, al iniciar el viaje.
     @Test fun asignarNoCambiaElEstadoDelConductorNiDelVehiculo() = runBlocking {
         entrar(Rol.ADMINISTRADOR)

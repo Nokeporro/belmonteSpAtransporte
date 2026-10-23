@@ -13,8 +13,8 @@ class ArqueoTest {
     private val agenda = LocalDateTime.of(2026, 10, 28, 14, 30)
     private val abordo = agenda.minusMinutes(5)
 
-    private fun viaje(cantidad: Int, vararg pasajeros: PasajeroViaje) =
-        viajeDePrueba(agenda, cantidadPasajeros = cantidad, pasajeros = pasajeros.toList())
+    private fun viaje(cantidad: Int, vararg pasajeros: PasajeroViaje, estado: EstadoViaje = EstadoViaje.ASIGNADO) =
+        viajeDePrueba(agenda, estado = estado, cantidadPasajeros = cantidad, pasajeros = pasajeros.toList())
 
     @Test
     fun sinPasajerosNoHayArqueo() {
@@ -57,6 +57,23 @@ class ArqueoTest {
         ).arqueo()!!
 
         assertEquals(listOf("Ana", "Carla"), arqueo.faltan)
+    }
+
+    @Test
+    fun hayArqueoCuandoElViajeEstaAsignadoEnCursoOFinalizado() {
+        for (estado in listOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO, EstadoViaje.FINALIZADO)) {
+            val arqueo = viaje(2, pasajeroDePrueba("Ana", abordo), pasajeroDePrueba("Beto"), estado = estado).arqueo()
+
+            assertEquals(estado.name, 1, arqueo?.abordaron)
+            assertEquals(estado.name, listOf("Beto"), arqueo?.faltan)
+        }
+    }
+
+    @Test
+    fun enCualquierOtroEstadoNoHayArqueoAunqueAlguienHayaAbordado() {
+        for (estado in EstadoViaje.entries.filter { it !in listOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO, EstadoViaje.FINALIZADO) }) {
+            assertNull(estado.name, viaje(2, pasajeroDePrueba("Ana", abordo), pasajeroDePrueba("Beto"), estado = estado).arqueo())
+        }
     }
 
     @Test

@@ -12,9 +12,12 @@ data class Arqueo(
     val completo: Boolean get() = abordaron == total
 }
 
-/** Sin pasajeros no hay nada que contar. Los que faltan van en el orden de `pasajeros` (por nombre). */
+/** El arqueo solo existe con un conductor asignado o después (README, RF29): ni `PENDIENTE` ni `CANCELADO` lo tienen. */
+private val ESTADOS_CON_ARQUEO = setOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO, EstadoViaje.FINALIZADO)
+
+/** Sin pasajeros o fuera de esos estados no hay nada que contar. Los que faltan van en el orden de `pasajeros` (por nombre). */
 fun Viaje.arqueo(): Arqueo? {
-    if (cantidadPasajeros == 0) return null
+    if (estado !in ESTADOS_CON_ARQUEO || cantidadPasajeros == 0) return null
     return Arqueo(
         abordaron = pasajeros.count { it.fhAbordaje != null },
         total = cantidadPasajeros,

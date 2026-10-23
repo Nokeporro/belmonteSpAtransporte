@@ -18,7 +18,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,17 +37,15 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.AppNavegacion
-import cl.belmontespa.myapplication.model.Arqueo
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Inicio
-import cl.belmontespa.myapplication.model.PasajeroViaje
+import cl.belmontespa.myapplication.ui.components.ArqueoDeAbordaje
 import cl.belmontespa.myapplication.ui.components.Aviso
 import cl.belmontespa.myapplication.ui.components.BarraSuperior
 import cl.belmontespa.myapplication.ui.components.BotonAncho
 import cl.belmontespa.myapplication.ui.components.CampoTexto
 import cl.belmontespa.myapplication.ui.components.EstadoChip
-import cl.belmontespa.myapplication.ui.components.EstiloChip
 import cl.belmontespa.myapplication.ui.components.PantallaCargando
 import cl.belmontespa.myapplication.ui.components.PantallaError
 import cl.belmontespa.myapplication.ui.components.TipoBoton
@@ -147,7 +144,7 @@ fun DetalleViajeContenido(
                     }
                 }
                 Datos(estado)
-                Abordaje(estado.arqueo, viaje.pasajeros)
+                estado.arqueo?.let { ArqueoDeAbordaje(it, viaje.pasajeros) }
                 if (estado.conControles) {
                     Controles(estado, onNavegar, onIniciar, onFinalizar, onRechazar)
                 }
@@ -202,50 +199,6 @@ private fun Dato(etiqueta: String, valor: String, mono: Boolean = false) {
     Column {
         Text(etiqueta, style = EstilosMono.etiqueta)
         Text(valor, style = if (mono) EstilosMono.dato else MaterialTheme.typography.bodyLarge)
-    }
-}
-
-@Composable
-private fun Abordaje(arqueo: Arqueo?, pasajeros: List<PasajeroViaje>) {
-    if (arqueo == null) return
-    Text(
-        stringResource(R.string.campo_abordaje),
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.semantics { heading() },
-    )
-    // Un solo elemento permite que TalkBack anuncie el arqueo completo (README, Accesibilidad).
-    val texto = if (arqueo.completo) {
-        stringResource(R.string.arqueo_todos)
-    } else {
-        stringResource(R.string.arqueo_faltan, arqueo.abordaron, arqueo.total, arqueo.faltan.joinToString())
-    }
-    Aviso(texto, if (arqueo.completo) TonoAviso.INFORMACION else TonoAviso.AVISO)
-    pasajeros.forEach { FilaPasajero(it) }
-}
-
-@Composable
-private fun FilaPasajero(pasajero: PasajeroViaje) {
-    OutlinedCard(Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(pasajero.nombre, style = MaterialTheme.typography.titleMedium)
-                pasajero.fhAbordaje?.let {
-                    Text(
-                        stringResource(R.string.detalle_viaje_abordo_a_las, Formatos.hora(it)),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            if (pasajero.fhAbordaje != null) {
-                EstadoChip(stringResource(R.string.etiqueta_abordado), EstiloChip.CORRECTO)
-            } else {
-                EstadoChip(stringResource(R.string.etiqueta_por_abordar), EstiloChip.NEUTRO)
-            }
-        }
     }
 }
 

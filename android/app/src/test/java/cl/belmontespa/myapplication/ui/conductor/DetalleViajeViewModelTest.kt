@@ -234,6 +234,17 @@ class DetalleViajeViewModelTest {
     }
 
     @Test
+    fun unViajeFinalizadoConservaSuArqueoYUnoCanceladoNoLoTiene() {
+        viajes.viaje.value = viaje(estado = EstadoViaje.FINALIZADO, pasajeros = arrayOf("Constanza Ríos", "Tomás Vidal"))
+        val vm = crear()
+        assertEquals(listOf("Constanza Ríos", "Tomás Vidal"), vm.estado.value.arqueo?.faltan)
+
+        viajes.viaje.value = viaje(estado = EstadoViaje.CANCELADO, pasajeros = arrayOf("Constanza Ríos", "Tomás Vidal"))
+
+        assertNull(vm.estado.value.arqueo)
+    }
+
+    @Test
     fun alVolverAPrimerPlanoSeRecalculaLaVentana() {
         viajes.viaje.value = viaje(minutosDesdeAhora = 90)
         val vm = crear()

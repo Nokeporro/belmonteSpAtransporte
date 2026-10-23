@@ -212,10 +212,14 @@ private fun ContextoPantalla.DetalleViaje() {
     Dato(R.string.campo_nombre, viaje.nombreSolicitante); Dato(R.string.campo_empresa, viaje.razonSocial)
     Dato(R.string.campo_telefono, viaje.telefonoSolicitante?.let(Formatos::telefono))
     Dato(R.string.campo_vuelo, viaje.numeroVuelo); Dato(R.string.campo_conductor, viaje.nombreConductor); Dato(R.string.campo_patente, viaje.patenteMovil)
+    // El Administrador y el Conductor ven a los pasajeros como arqueo (README, RF29), solo en los estados que lo tienen.
+    val veArqueo = estado.cuenta?.rol == Rol.ADMINISTRADOR || estado.cuenta?.rol == Rol.CONDUCTOR
+    val arqueo = viaje.arqueo().takeIf { veArqueo }
     if (viaje.pasajeros.isEmpty()) Aviso(stringResource(R.string.aviso_faltan_pasajeros), TonoAviso.AVISO)
+    else if (arqueo != null) ArqueoDeAbordaje(arqueo, viaje.pasajeros)
     else Bloque(stringResource(R.string.campo_pasajeros)) { viaje.pasajeros.forEach { pasajero ->
         Text(pasajero.nombre)
-        EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
+        if (!veArqueo) EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
     } }
     when (estado.cuenta?.rol) {
         Rol.SOLICITANTE -> {
@@ -228,10 +232,8 @@ private fun ContextoPantalla.DetalleViaje() {
             if (editable) Enlace(R.string.t06_cancelar_viaje, PantallaDemo.CANCELAR_VIAJE)
             if (viaje.hashPago == null && viaje.estado != EstadoViaje.CANCELADO) Enlace(R.string.accion_registrar_pago, PantallaDemo.REGISTRAR_PAGO)
             viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
-            Arqueo(viaje)
         }
         Rol.CONDUCTOR -> {
-            Arqueo(viaje)
             if (viaje.estado in listOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO)) {
                 Enlace(R.string.accion_navegar, PantallaDemo.NAVEGAR)
                 if (ahora.isBefore(viaje.fhAgenda.minusHours(1))) Aviso(stringResource(R.string.iniciar_disponible_desde, Formatos.hora(viaje.fhAgenda.minusHours(1))), TonoAviso.INFORMACION)
@@ -288,13 +290,4 @@ private fun ContextoPantalla.Perfil() {
 @Composable
 private fun ContextoPantalla.HabilitacionesResumen() {
     estado.habilitaciones.forEach { h -> Bloque(h.patente) { Text(h.nombreConductor); EstadoChip(stringResource(h.estadoMovil.etiqueta(h.activoMovil)), h.estadoMovil.estiloChip(h.activoMovil)) } }
-}
-@Composable
-private fun Arqueo(viaje: Viaje) {
-    if (viaje.cantidadPasajeros == 0) return
-    val abordaron = viaje.pasajeros.count { it.fhAbordaje != null }
-    val texto = if (abordaron == viaje.cantidadPasajeros) stringResource(R.string.arqueo_todos)
-        else stringResource(R.string.arqueo_faltan, abordaron, viaje.cantidadPasajeros, viaje.pasajeros.filter { it.fhAbordaje == null }.joinToString { it.nombre })
-    // Un solo texto permite que TalkBack anuncie el arqueo completo.
-    Aviso(texto, TonoAviso.INFORMACION)
 }
