@@ -165,6 +165,46 @@ class RepositoriosT06Test {
         assertEquals("LPHT17", local.viaje("TR-1042").patenteMovil)
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
     }
+    // V3 y V4 (HU09): los mismos mensajes que el backend.
+    @Test fun iniciarYFinalizarMarcanYLiberanAlConductorYAlVehiculo() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        assertTrue(viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO) is Resultado.Exito)
+        assertEquals("EN_CURSO", local.viaje("TR-1042").estado)
+        assertNotNull(local.viaje("TR-1042").fhInicio)
+        assertEquals("OCUPADO", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("EN_USO", db.movilDao().obtener("KXJR42")?.estadoMovil)
+        assertTrue(viajes.cambiarEstado("TR-1042", EstadoViaje.FINALIZADO) is Resultado.Exito)
+        assertEquals("FINALIZADO", local.viaje("TR-1042").estado)
+        assertNotNull(local.viaje("TR-1042").fhFin)
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
+    }
+    @Test fun iniciarAntesDeLaVentanaEsConflictoYNoCambiaNada() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        // TR-1049 es cuatro horas y cuarto después: la ventana abre una hora antes.
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje está fuera de la ventana de inicio")),
+            viajes.cambiarEstado("TR-1049", EstadoViaje.EN_CURSO))
+        assertEquals("ASIGNADO", local.viaje("TR-1049").estado)
+        assertNull(local.viaje("TR-1049").fhInicio)
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+    }
+    @Test fun otroViajeEnCursoDelConductorOdelVehiculoImpideIniciar() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        // TR-1045 está En curso con Jorge Lara en GZRW90: se lo presta a Iván, y luego solo el vehículo.
+        val enCurso = local.viaje("TR-1045")
+        db.viajeDao().guardar(enCurso.copy(correoConductor = "ireyes@belmontespa.cl"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje en curso")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO))
+        db.viajeDao().guardar(enCurso.copy(patenteMovil = "KXJR42"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El móvil ya tiene un viaje en curso")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO))
+        assertEquals("ASIGNADO", local.viaje("TR-1042").estado)
+    }
+    @Test fun unaTransicionInvalidaDiceDeQueEstadoANingunLado() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("No se puede pasar de ASIGNADO a FINALIZADO")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.FINALIZADO))
+    }
     @Test fun repetirLaAsignacionNoCambiaNada() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val viajeAntes = local.viaje("TR-1042")

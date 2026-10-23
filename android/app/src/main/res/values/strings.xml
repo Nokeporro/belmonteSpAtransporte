@@ -295,7 +295,8 @@
     <string name="aviso_cancelar_solicitud">¿Confirmas que deseas cancelar esta solicitud?</string>
     <string name="aviso_cancelar_viaje">Ingresa el motivo para cancelar el viaje.</string>
     <string name="aviso_finalizar">¿Confirmas que deseas finalizar este viaje?</string>
-    <string name="aviso_iniciar">¿Confirmas que deseas iniciar este viaje?</string>
+    <string name="confirmar_inicio_titulo">¿Iniciar el viaje %1$s?</string>
+    <string name="confirmar_inicio_detalle">Pasará a En curso. Quedarás Ocupado y el vehículo %1$s En uso hasta finalizarlo.</string>
     <string name="aviso_sin_pago">Este viaje todavía no tiene un pago registrado.</string>
     <string name="aviso_sin_resultados">No hay registros para mostrar.</string>
     <string name="aviso_selecciona">Selecciona una opción.</string>

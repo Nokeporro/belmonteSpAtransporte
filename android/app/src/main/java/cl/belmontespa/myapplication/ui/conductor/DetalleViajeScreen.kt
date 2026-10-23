@@ -36,6 +36,7 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.Arqueo
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
+import cl.belmontespa.myapplication.model.Inicio
 import cl.belmontespa.myapplication.model.PasajeroViaje
 import cl.belmontespa.myapplication.ui.components.Aviso
 import cl.belmontespa.myapplication.ui.components.BarraSuperior

@@ -107,7 +107,7 @@ class PasajeroIT extends IntegrationTest {
 		Cuenta solicitante = api.solicitante();
 		Flota flota = api.flota(4);
 		String finalizado = api.viajeAsignado(solicitante, flota);
-		api.cambiarEstadoOk(finalizado, flota.conductor(), "EN_CURSO");
+		api.iniciarOk(finalizado, flota.conductor());
 		api.cambiarEstadoOk(finalizado, flota.conductor(), "FINALIZADO");
 		String cancelado = api.viaje(solicitante);
 		api.cancelarOk(cancelado, solicitante);

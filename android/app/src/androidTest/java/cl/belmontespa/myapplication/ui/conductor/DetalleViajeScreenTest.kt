@@ -14,6 +14,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
+import cl.belmontespa.myapplication.model.Inicio
 import cl.belmontespa.myapplication.model.PasajeroViaje
 import cl.belmontespa.myapplication.model.Retraso
 import cl.belmontespa.myapplication.model.Ubicacion

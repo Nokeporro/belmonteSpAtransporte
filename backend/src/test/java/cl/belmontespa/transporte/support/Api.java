@@ -3,6 +3,7 @@ package cl.belmontespa.transporte.support;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
+import cl.belmontespa.transporte.config.ClockConfig;
 import cl.belmontespa.transporte.validation.Reglas;
 import com.jayway.jsonpath.JsonPath;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +13,7 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -30,10 +32,12 @@ public class Api {
 	private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
 	private final MockMvc mvc;
+	private final JdbcTemplate jdbc;
 	private String tokenAdmin;
 
-	public Api(MockMvc mvc) {
+	public Api(MockMvc mvc, JdbcTemplate jdbc) {
 		this.mvc = mvc;
+		this.jdbc = jdbc;
 	}
 
 	/** Respuesta HTTP con acceso por JsonPath al cuerpo. */
@@ -284,6 +288,31 @@ public class Api {
 
 	public void cambiarEstadoOk(String folio, Cuenta conductor, String estado) {
 		exigir(cambiarEstado(folio, conductor.token(), estado), "pasar " + folio + " a " + estado, 200);
+	}
+
+	/**
+	 * V3 solo deja iniciar a ± 1 h de la agenda y V1 no deja agendar a menos de 2 h, así que la agenda se
+	 * acerca al instante actual solo durante el POST y se devuelve a su valor: los tests que dependen del
+	 * día del viaje no lo notan.
+	 */
+	public Resp cambiarEstadoEnLaVentana(String folio, String token, String estado) {
+		LocalDateTime original = jdbc.queryForObject("SELECT fh_agenda FROM viaje WHERE folio = ?",
+				LocalDateTime.class, folio);
+		fijarAgenda(folio, LocalDateTime.now(ClockConfig.ZONA));
+		try {
+			return cambiarEstado(folio, token, estado);
+		} finally {
+			fijarAgenda(folio, original);
+		}
+	}
+
+	/** Inicia el viaje (V3) en su ventana: {@link #cambiarEstadoEnLaVentana}. */
+	public void iniciarOk(String folio, Cuenta conductor) {
+		exigir(cambiarEstadoEnLaVentana(folio, conductor.token(), "EN_CURSO"), "iniciar " + folio, 200);
+	}
+
+	private void fijarAgenda(String folio, LocalDateTime fhAgenda) {
+		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
 
 	public Resp cancelar(String folio, String token) {

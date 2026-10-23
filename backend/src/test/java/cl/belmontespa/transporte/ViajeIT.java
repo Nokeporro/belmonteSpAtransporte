@@ -89,7 +89,7 @@ class ViajeIT extends IntegrationTest {
 			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("DISPONIBLE");
 			assertThat(api.estadoMovil(flota.patente())).isEqualTo("DISPONIBLE");
 
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 			assertThat(ver(folio).texto("$.estado")).isEqualTo("EN_CURSO");
 			assertThat(ver(folio).texto("$.fhInicio")).isNotNull();
 			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("OCUPADO");
@@ -109,7 +109,7 @@ class ViajeIT extends IntegrationTest {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);
 			String folio = api.viajeAsignado(solicitante, flota);
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 
 			List<String> campos = jdbc.queryForList("""
@@ -173,7 +173,7 @@ class ViajeIT extends IntegrationTest {
 			String otroMovil = api.movil(4);
 			api.habilitarOk(otroMovil, flota.conductor().correo());
 			String enCurso = api.viajeAsignado(solicitante, flota);
-			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(enCurso, flota.conductor());
 
 			// Diez días después: no hay solape, solo el conductor y el móvil están en uso.
 			String segundo = api.viaje(solicitante, LocalDateTime.now().plusDays(13));
@@ -239,7 +239,7 @@ class ViajeIT extends IntegrationTest {
 			assertThat(api.asignar(cancelado, flota.conductor().correo(), flota.patente()).status()).isEqualTo(409);
 
 			String finalizado = api.viajeAsignado(solicitante, flota);
-			api.cambiarEstadoOk(finalizado, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(finalizado, flota.conductor());
 			api.cambiarEstadoOk(finalizado, flota.conductor(), "FINALIZADO");
 			assertThat(api.asignar(finalizado, flota.conductor().correo(), flota.patente()).status()).isEqualTo(409);
 		}
@@ -278,7 +278,7 @@ class ViajeIT extends IntegrationTest {
 			String folio = api.viajeAsignado(solicitante, flota);
 
 			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "FINALIZADO").status()).isEqualTo(409);
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "EN_CURSO").status()).isEqualTo(409);
 			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "EN_CURSO").status()).isEqualTo(409);
@@ -294,7 +294,7 @@ class ViajeIT extends IntegrationTest {
 
 			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "CANCELADO").status()).isEqualTo(400);
 			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "PENDIENTE").status()).isEqualTo(400);
-			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "en_curso").status()).isEqualTo(200);
+			assertThat(api.cambiarEstadoEnLaVentana(folio, flota.conductor().token(), "en_curso").status()).isEqualTo(200);
 		}
 	}
 
@@ -333,7 +333,7 @@ class ViajeIT extends IntegrationTest {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);
 			String enCurso = api.viajeAsignado(solicitante, flota);
-			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(enCurso, flota.conductor());
 			assertThat(api.cancelar(enCurso, solicitante.token()).status()).isEqualTo(409);
 
 			api.cambiarEstadoOk(enCurso, flota.conductor(), "FINALIZADO");

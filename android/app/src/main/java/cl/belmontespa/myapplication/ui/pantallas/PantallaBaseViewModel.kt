@@ -207,7 +207,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                         PantallaDemo.REGISTRAR_VEHICULO -> { val m = repos.flota.registrarMovil(NuevoMovil(valor("patente"), valor("capacidad").toInt(), valor("gps").toLongOrNull())).valor(); destino = PantallaDemo.DETALLE_VEHICULO to m.patente }
                         PantallaDemo.HABILITACIONES -> { repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor(); actualizar() }
                         PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
-                        PantallaDemo.CONFIRMAR_INICIO -> { repos.viajes.cambiarEstado(referencia, EstadoViaje.EN_CURSO).valor(); destino = PantallaDemo.DETALLE_VIAJE to referencia }
                         PantallaDemo.CONFIRMAR_ABORDAJE -> { val hora = repos.abordaje.registrarAbordaje(CodigoAbordaje(valor("patente"), valor("codigo")), TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento")).valor(); repos.borrador.hora = hora; mutable.update { it.copy(horaAbordaje = hora) }; destino = PantallaDemo.ABORDADO to "" }
                         else -> Unit
                     }
@@ -221,7 +220,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     suspend fun lugares(): List<Ubicacion> = repos.ubicacionesDemo
     fun ahora(): LocalDateTime = LocalDateTime.now(repos.clock)
     private companion object {
-        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
+        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
     }
 }
 private class FalloPantalla(val error: ErrorApp) : RuntimeException()

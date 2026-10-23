@@ -6,13 +6,14 @@ import cl.belmontespa.myapplication.data.repository.ViajeRepository
 import cl.belmontespa.myapplication.model.Arqueo
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
+import cl.belmontespa.myapplication.model.Inicio
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Retraso
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.arqueo
 import cl.belmontespa.myapplication.model.disponibleDesde
-import cl.belmontespa.myapplication.model.enVentanaDeInicio
 import cl.belmontespa.myapplication.model.retraso
+import cl.belmontespa.myapplication.model.ventanaDeInicio
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDateTime
@@ -24,9 +25,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-/** Dónde está «Iniciar viaje» respecto de la ventana de V3 (`fhAgenda` ± 1 h). */
-enum class Inicio { HABILITADO, ANTES_DE_LA_VENTANA, VENCIDO, NO_APLICA }
 
 data class DetalleViajeUiState(
     val cargando: Boolean = true,
@@ -177,18 +175,11 @@ class DetalleViajeViewModel @Inject constructor(
     }
 
     private fun DetalleViajeUiState.derivado(viaje: Viaje): DetalleViajeUiState {
-        val ahora = LocalDateTime.now(clock)
-        val inicio = when {
-            viaje.estado != EstadoViaje.ASIGNADO -> Inicio.NO_APLICA
-            viaje.enVentanaDeInicio(clock) -> Inicio.HABILITADO
-            ahora < viaje.disponibleDesde() -> Inicio.ANTES_DE_LA_VENTANA
-            else -> Inicio.VENCIDO
-        }
         return copy(
             viaje = viaje,
             retraso = viaje.retraso(clock),
             arqueo = viaje.arqueo(),
-            inicio = inicio,
+            inicio = viaje.ventanaDeInicio(clock),
             // Si el viaje volvió a aparecer, el «no encontrado» anterior ya no vale.
             error = error.takeUnless { it == ErrorApp.NoEncontrado },
         )

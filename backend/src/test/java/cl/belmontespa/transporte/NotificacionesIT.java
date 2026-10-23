@@ -188,7 +188,7 @@ class NotificacionesIT extends IntegrationTest {
 			esperarEnvios(2);
 			fcm.limpiar();
 
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 			Envio enCurso = esperarEnvios(1).getFirst();
 			assertThat(enCurso.token()).isEqualTo(tokenSolicitante);
 			assertThat(enCurso.mensaje()).contains("EN_CURSO");

@@ -31,6 +31,7 @@ import cl.belmontespa.myapplication.ui.auth.AccesoViewModel
 import cl.belmontespa.myapplication.ui.auth.mensajeLogin
 import cl.belmontespa.myapplication.ui.components.*
 import cl.belmontespa.myapplication.ui.conductor.ConductorViewModel
+import cl.belmontespa.myapplication.ui.conductor.ConfirmarInicioScreen
 import cl.belmontespa.myapplication.ui.conductor.DetalleViajeScreen
 import cl.belmontespa.myapplication.ui.conductor.MisViajesScreen
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
@@ -76,6 +77,11 @@ fun PantallaT06(
     // El detalle del viaje del Conductor también (HU08); «Antes de la ventana» es la misma pantalla.
     if (pantalla == PantallaDemo.DETALLE_VIAJE || pantalla == PantallaDemo.ANTES_VENTANA) {
         DetalleViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
+        return
+    }
+    // «Confirmar inicio» del Conductor también (HU09): al iniciar vuelve al detalle.
+    if (pantalla == PantallaDemo.CONFIRMAR_INICIO) {
+        ConfirmarInicioScreen(folio = referencia, onVolver = onVolver)
         return
     }
     // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).

@@ -51,6 +51,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
         // El detalle del Conductor y «Antes de la ventana» los dibuja DetalleViajeScreen, desde PantallaT06 (HU08).
         PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA -> Unit
+        // «Confirmar inicio» la dibuja ConfirmarInicioScreen, desde PantallaT06 (HU09).
+        PantallaDemo.CONFIRMAR_INICIO -> Unit
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
         PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> {
@@ -143,15 +145,6 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                     Accion(R.string.accion_rechazar, { vm.ejecutar("pago", "RECHAZADO") }, TipoBoton.SECUNDARIO)
                 }
                 if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
-            }
-        }
-        PantallaDemo.CONFIRMAR_INICIO -> {
-            estado.viaje?.let { viaje ->
-                Dato(R.string.campo_folio, viaje.folio)
-                val faltan = viaje.pasajeros.count { it.fhAbordaje == null }
-                if (faltan > 0) Aviso(pluralStringResource(R.plurals.faltan_por_abordar, faltan, faltan), TonoAviso.AVISO)
-                Text(stringResource(R.string.aviso_iniciar)); Accion(R.string.accion_confirmar, alto56 = true)
-                Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
             }
         }
         PantallaDemo.NAVEGAR -> AbrirNavegacion()

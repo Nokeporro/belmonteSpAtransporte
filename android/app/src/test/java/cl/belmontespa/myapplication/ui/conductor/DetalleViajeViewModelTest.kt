@@ -5,6 +5,7 @@ import cl.belmontespa.myapplication.data.repository.ViajeRepository
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.FiltroViajes
+import cl.belmontespa.myapplication.model.Inicio
 import cl.belmontespa.myapplication.model.NuevaSolicitud
 import cl.belmontespa.myapplication.model.NuevoPasajero
 import cl.belmontespa.myapplication.model.Resultado
