@@ -19,7 +19,7 @@ class HU16ViewModelTest {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
         repos.viajeActual.value = viajeDePrueba(ahora.plusHours(3)).copy(correoSolicitante = "cuenta@test.cl")
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, repos, clock, BorradorAbordaje(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock, emptyList()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun cargar() { vm.cargar(PantallaDemo.CONFIRMAR_CANCELACION, "TR-1051") }

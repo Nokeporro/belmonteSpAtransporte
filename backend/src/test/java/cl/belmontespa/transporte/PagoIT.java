@@ -42,7 +42,7 @@ class PagoIT extends IntegrationTest {
 			String pendiente = api.viaje(solicitante);
 			String asignado = api.viajeAsignado(solicitante, api.flota(4));
 			String finalizado = api.viajeAsignado(solicitante, flotaFinalizada);
-			api.cambiarEstadoOk(finalizado, flotaFinalizada.conductor(), "EN_CURSO");
+			api.iniciarOk(finalizado, flotaFinalizada.conductor());
 			api.cambiarEstadoOk(finalizado, flotaFinalizada.conductor(), "FINALIZADO");
 			assertThat(api.estadoViaje(finalizado)).isEqualTo("FINALIZADO");
 			for (String folio : List.of(pendiente, asignado, finalizado)) {

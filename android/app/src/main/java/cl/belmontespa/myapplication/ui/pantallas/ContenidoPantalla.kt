@@ -1,12 +1,9 @@
 package cl.belmontespa.myapplication.ui.pantallas
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -50,8 +47,13 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         // «Asignar conductor y vehículo» la dibuja AsignarScreen, desde PantallaT06 (HU05).
         PantallaDemo.ASIGNAR -> Unit
         PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN,
-        PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA,
-        PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
+        PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
+        // El detalle del Conductor y «Antes de la ventana» los dibuja DetalleViajeScreen, desde PantallaT06 (HU08).
+        PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA -> Unit
+        // «Confirmar inicio» la dibuja ConfirmarInicioScreen, desde PantallaT06 (HU09).
+        PantallaDemo.CONFIRMAR_INICIO -> Unit
+        // «Abrir navegación» es el detalle con la hoja «Abrir con»: lo dibuja DetalleViajeScreen, desde PantallaT06 (HU10).
+        PantallaDemo.NAVEGAR -> Unit
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
         PantallaDemo.CONFIRMAR_CANCELACION -> ConfirmarCancelacionSolicitud()
@@ -162,17 +164,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
             }
         }
-        PantallaDemo.CONFIRMAR_INICIO -> {
-            estado.viaje?.let { viaje ->
-                Dato(R.string.campo_folio, viaje.folio)
-                val faltan = viaje.pasajeros.count { it.fhAbordaje == null }
-                if (faltan > 0) Aviso(pluralStringResource(R.plurals.faltan_por_abordar, faltan, faltan), TonoAviso.AVISO)
-                Text(stringResource(R.string.aviso_iniciar)); Accion(R.string.accion_confirmar, alto56 = true)
-                Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
-            }
-        }
-        PantallaDemo.NAVEGAR -> AbrirNavegacion()
-        PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> PantallaAbordaje()
+        // El abordaje del Pasajero lo dibujan AbordarScreen, ConfirmarAbordajeScreen y AbordadoScreen, desde PantallaT06 (HU29).
+        PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> Unit
         PantallaDemo.NOTIFICACION -> {
             Aviso(stringResource(R.string.aviso_notificacion), TonoAviso.INFORMACION)
             estado.viajes.forEach { viaje -> Bloque(stringResource(R.string.notificacion_nuevo_viaje)) { Dato(R.string.campo_folio, viaje.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(viaje.fhAgenda)); Enlace(R.string.accion_ver_viaje, detallePara(estado.cuenta?.rol), viaje.folio) } }
@@ -237,10 +230,14 @@ private fun ContextoPantalla.DetalleViaje() {
     Dato(R.string.campo_nombre, viaje.nombreSolicitante); Dato(R.string.campo_empresa, viaje.razonSocial)
     Dato(R.string.campo_telefono, viaje.telefonoSolicitante?.let(Formatos::telefono))
     Dato(R.string.campo_vuelo, viaje.numeroVuelo); Dato(R.string.campo_conductor, viaje.nombreConductor); Dato(R.string.campo_patente, viaje.patenteMovil)
+    // El Administrador y el Conductor ven a los pasajeros como arqueo (README, RF29), solo en los estados que lo tienen.
+    val veArqueo = estado.cuenta?.rol == Rol.ADMINISTRADOR || estado.cuenta?.rol == Rol.CONDUCTOR
+    val arqueo = viaje.arqueo().takeIf { veArqueo }
     if (viaje.pasajeros.isEmpty()) Aviso(stringResource(R.string.aviso_faltan_pasajeros), TonoAviso.AVISO)
+    else if (arqueo != null) ArqueoDeAbordaje(arqueo, viaje.pasajeros)
     else Bloque(stringResource(R.string.campo_pasajeros)) { viaje.pasajeros.forEach { pasajero ->
         Text(pasajero.nombre)
-        EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
+        if (!veArqueo) EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
     } }
     when (estado.cuenta?.rol) {
         Rol.SOLICITANTE -> {
@@ -253,10 +250,8 @@ private fun ContextoPantalla.DetalleViaje() {
             if (editable) Enlace(R.string.t06_cancelar_viaje, PantallaDemo.CANCELAR_VIAJE)
             if (viaje.hashPago == null && viaje.estado != EstadoViaje.CANCELADO) Enlace(R.string.accion_registrar_pago, PantallaDemo.REGISTRAR_PAGO)
             viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
-            Arqueo(viaje)
         }
         Rol.CONDUCTOR -> {
-            Arqueo(viaje)
             if (viaje.estado in listOf(EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO)) {
                 Enlace(R.string.accion_navegar, PantallaDemo.NAVEGAR)
                 if (ahora.isBefore(viaje.fhAgenda.minusHours(1))) Aviso(stringResource(R.string.iniciar_disponible_desde, Formatos.hora(viaje.fhAgenda.minusHours(1))), TonoAviso.INFORMACION)
@@ -360,28 +355,4 @@ private fun ResumenAgendaConductor(conductor: Conductor) {
 @Composable
 private fun ContextoPantalla.HabilitacionesResumen() {
     estado.habilitaciones.forEach { h -> Bloque(h.patente) { Text(h.nombreConductor); EstadoChip(stringResource(h.estadoMovil.etiqueta(h.activoMovil)), h.estadoMovil.estiloChip(h.activoMovil)) } }
-}
-@Composable
-private fun Arqueo(viaje: Viaje) {
-    if (viaje.cantidadPasajeros == 0) return
-    val abordaron = viaje.pasajeros.count { it.fhAbordaje != null }
-    val texto = if (abordaron == viaje.cantidadPasajeros) stringResource(R.string.arqueo_todos)
-        else stringResource(R.string.arqueo_faltan, abordaron, viaje.cantidadPasajeros, viaje.pasajeros.filter { it.fhAbordaje == null }.joinToString { it.nombre })
-    // Un solo texto permite que TalkBack anuncie el arqueo completo.
-    Aviso(texto, TonoAviso.INFORMACION)
-}
-@Composable
-private fun ContextoPantalla.AbrirNavegacion() {
-    val contexto = LocalContext.current
-    val viaje = estado.viaje ?: return
-    val punto = if (viaje.estado == EstadoViaje.EN_CURSO) viaje.destino else viaje.origen
-    Dato(R.string.campo_destino, punto.direccion)
-    Text(stringResource(R.string.aviso_elegir_aplicacion))
-    listOf("Google Maps" to "com.google.android.apps.maps", "Waze" to "com.waze").forEach { (nombre, paquete) ->
-        BotonAncho(nombre, {
-            val uri = if (paquete == "com.waze") "waze://?ll=${punto.latitud},${punto.longitud}&navigate=yes" else "google.navigation:q=${punto.latitud},${punto.longitud}"
-            try { contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(uri)).setPackage(paquete)) }
-            catch (e: android.content.ActivityNotFoundException) { vm.aviso(R.string.error_sin_app_navegacion) }
-        }, alto56 = true)
-    }
 }

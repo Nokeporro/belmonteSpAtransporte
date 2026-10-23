@@ -10,6 +10,7 @@ public final class Reglas {
 	public static final String CORREO = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
 	public static final String TELEFONO = "^\\+56[0-9]{9}$";
 	public static final String PATENTE = "^([A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2})$";
+	public static final String CODIGO_ABORDAJE = "^[0-9A-F]{16}$";
 	public static final String NUMERO_VUELO = "^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$";
 	public static final String FOLIO = "^TR-[1-9][0-9]{3,16}$";
 	public static final String HASH_PAGO = "^[0-9a-f]{32}$";

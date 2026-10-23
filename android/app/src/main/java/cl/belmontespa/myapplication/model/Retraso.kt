@@ -24,11 +24,25 @@ fun Viaje.retraso(clock: Clock): Retraso? {
     }
 }
 
-/** Ventana de inicio (V3): `fhAgenda − 1 h ≤ ahora ≤ fhAgenda + 1 h`, con ambos extremos incluidos. */
-fun Viaje.enVentanaDeInicio(clock: Clock): Boolean {
-    val ahora = LocalDateTime.now(clock)
-    return ahora >= disponibleDesde() && ahora <= fhAgenda.plusHours(1)
+/** Dónde está «Iniciar viaje» respecto de la ventana de V3 (`fhAgenda` ± 1 h). */
+enum class Inicio { HABILITADO, ANTES_DE_LA_VENTANA, VENCIDO, NO_APLICA }
+
+/**
+ * Ventana de inicio (V3): `fhAgenda − 1 h ≤ ahora ≤ fhAgenda + 1 h`, con ambos extremos incluidos.
+ * Devuelve `HABILITADO` dentro de la ventana y `ANTES_DE_LA_VENTANA` o `VENCIDO` fuera de ella.
+ */
+fun ventanaDeInicio(fhAgenda: LocalDateTime, ahora: LocalDateTime): Inicio = when {
+    ahora < fhAgenda.minusHours(1) -> Inicio.ANTES_DE_LA_VENTANA
+    ahora > fhAgenda.plusHours(1) -> Inicio.VENCIDO
+    else -> Inicio.HABILITADO
 }
+
+/** Solo un viaje `ASIGNADO` puede iniciarse: en cualquier otro estado la ventana no aplica. */
+fun Viaje.ventanaDeInicio(clock: Clock): Inicio =
+    if (estado == EstadoViaje.ASIGNADO) ventanaDeInicio(fhAgenda, LocalDateTime.now(clock)) else Inicio.NO_APLICA
+
+fun Viaje.enVentanaDeInicio(clock: Clock): Boolean =
+    ventanaDeInicio(fhAgenda, LocalDateTime.now(clock)) == Inicio.HABILITADO
 
 /** Desde cuándo puede iniciarse: el "Disponible desde las {hora}" del Conductor. */
 fun Viaje.disponibleDesde(): LocalDateTime = fhAgenda.minusHours(1)

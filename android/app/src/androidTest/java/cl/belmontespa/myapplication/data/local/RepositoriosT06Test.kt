@@ -14,6 +14,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
@@ -315,6 +316,66 @@ class RepositoriosT06Test {
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), resultado)
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
     }
+    // Abordaje (HU29): las mismas reglas que `AbordajeService` del backend, con la semilla demo y el reloj fijo (12:00 en Chile).
+    private val kxjr42 = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
+    @Test fun unPasajeroYaAbordadoRecibeSuMarcaOriginal() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.RUT, "15.234.567-4")
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 55)), resultado)
+    }
+    @Test fun unRutSinPuntosYUnCodigoConEspaciosCalzanIgual() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "7f3a 9c21 b04e 58d6"), TipoDocumento.RUT, "16789012-1")
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 12, 0)), resultado)
+    }
+    @Test fun unDocumentoQueNoViajaEnElVehiculoEsNoEncontradoYNoCambiaNada() = runBlocking {
+        val antes = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
+        // Felipe Mora viaja en LPHT17 (TR-1049), no en KXJR42.
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "X9087654"))
+        assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
+    }
+    @Test fun unViajeAsignadoSoloSeAbordaDentroDeLaVentanaDeUnaHora() = runBlocking {
+        val abordaje = AbordajeLocalRepository(local)
+        val lphT17 = CodigoAbordaje("LPHT17", "2B8E41D07C95A316")
+        // TR-1049 parte en 4 h 15 min: aún no es candidato.
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+        val ahora = local.ahora()
+        db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1).plusSeconds(1))))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+        db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1))))
+        assertEquals(Resultado.Exito(ahora), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+    }
+    @Test fun unViajeEnCursoSeAbordaAunqueSuAgendaEsteLejos() = runBlocking {
+        val gzrw90 = CodigoAbordaje("GZRW90", "9D04C6E2A1F7B853")
+        db.viajeDao().guardar(local.viaje("TR-1045").copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(6))))
+        // Javiera Núñez ya estaba abordada en TR-1045: recibe la misma marca.
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 30)), AbordajeLocalRepository(local).registrarAbordaje(gzrw90, TipoDocumento.RUT, "18.364.925-6"))
+    }
+    @Test fun unDocumentoInvalidoEsValidacionAunqueElCodigoSeaAjeno() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.RUT, "15.234.567-0")
+        assertTrue(resultado is Resultado.Fallo && resultado.error is ErrorApp.Validacion)
+    }
+    // Arqueo (HU30): el viaje que observa el Conductor refleja el abordaje apenas se registra.
+    @Test fun alAbordarUnPasajeroElArqueoDelViajeSeActualiza() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        val antes = viajes.observarViaje("TR-1042").first()!!.arqueo()!!
+        assertEquals(1, antes.abordaron)
+        assertEquals(3, antes.total)
+        assertEquals(setOf("Marcela Soto", "Tomás Vidal"), antes.faltan.toSet())
+        AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val despues = viajes.observarViaje("TR-1042").first()!!.arqueo()!!
+        assertEquals(2, despues.abordaron)
+        assertEquals(3, despues.total)
+        assertEquals(setOf("Marcela Soto"), despues.faltan.toSet())
+    }
+    @Test fun repetirElAbordajeNoCambiaElArqueo() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        val abordaje = AbordajeLocalRepository(local)
+        abordaje.registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val unaVez = viajes.observarViaje("TR-1042").first()!!
+        abordaje.registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "P4471023")
+        val dosVeces = viajes.observarViaje("TR-1042").first()!!
+        assertEquals(unaVez.pasajeros.toSet(), dosVeces.pasajeros.toSet())
+        assertEquals(unaVez.arqueo(), dosVeces.arqueo())
+    }
     // V2 no cambia el estado de nadie: Ocupado y En uso los marca V3, al iniciar el viaje.
     @Test fun asignarNoCambiaElEstadoDelConductorNiDelVehiculo() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
@@ -345,6 +406,46 @@ class RepositoriosT06Test {
         assertTrue(viajes.asignar("TR-1042", "ireyes@belmontespa.cl", "LPHT17") is Resultado.Exito)
         assertEquals("LPHT17", local.viaje("TR-1042").patenteMovil)
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
+    }
+    // V3 y V4 (HU09): los mismos mensajes que el backend.
+    @Test fun iniciarYFinalizarMarcanYLiberanAlConductorYAlVehiculo() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        assertTrue(viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO) is Resultado.Exito)
+        assertEquals("EN_CURSO", local.viaje("TR-1042").estado)
+        assertNotNull(local.viaje("TR-1042").fhInicio)
+        assertEquals("OCUPADO", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("EN_USO", db.movilDao().obtener("KXJR42")?.estadoMovil)
+        assertTrue(viajes.cambiarEstado("TR-1042", EstadoViaje.FINALIZADO) is Resultado.Exito)
+        assertEquals("FINALIZADO", local.viaje("TR-1042").estado)
+        assertNotNull(local.viaje("TR-1042").fhFin)
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
+    }
+    @Test fun iniciarAntesDeLaVentanaEsConflictoYNoCambiaNada() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        // TR-1049 es cuatro horas y cuarto después: la ventana abre una hora antes.
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje está fuera de la ventana de inicio")),
+            viajes.cambiarEstado("TR-1049", EstadoViaje.EN_CURSO))
+        assertEquals("ASIGNADO", local.viaje("TR-1049").estado)
+        assertNull(local.viaje("TR-1049").fhInicio)
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+    }
+    @Test fun otroViajeEnCursoDelConductorOdelVehiculoImpideIniciar() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        // TR-1045 está En curso con Jorge Lara en GZRW90: se lo presta a Iván, y luego solo el vehículo.
+        val enCurso = local.viaje("TR-1045")
+        db.viajeDao().guardar(enCurso.copy(correoConductor = "ireyes@belmontespa.cl"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje en curso")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO))
+        db.viajeDao().guardar(enCurso.copy(patenteMovil = "KXJR42"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El móvil ya tiene un viaje en curso")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO))
+        assertEquals("ASIGNADO", local.viaje("TR-1042").estado)
+    }
+    @Test fun unaTransicionInvalidaDiceDeQueEstadoANingunLado() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("No se puede pasar de ASIGNADO a FINALIZADO")),
+            viajes.cambiarEstado("TR-1042", EstadoViaje.FINALIZADO))
     }
     @Test fun repetirLaAsignacionNoCambiaNada() = runBlocking {
         entrar(Rol.ADMINISTRADOR)

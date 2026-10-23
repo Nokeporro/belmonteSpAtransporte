@@ -18,7 +18,6 @@ import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.auth.LoginContenido
 import cl.belmontespa.myapplication.ui.auth.LoginUiState
 import cl.belmontespa.myapplication.ui.components.PantallaCargando
-import cl.belmontespa.myapplication.ui.pantallas.BorradorAbordaje
 import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
@@ -42,7 +41,6 @@ class RecorridoT06Test {
     @Inject lateinit var operaciones: OperacionesViajeLocal
     @Inject lateinit var authLocal: cl.belmontespa.myapplication.data.local.repository.AuthLocalRepository
     @Inject lateinit var viajes: cl.belmontespa.myapplication.data.repository.ViajeRepository
-    @Inject lateinit var borrador: BorradorAbordaje
     @Before fun preparar() { hilt.inject() }
 
     @Test fun las46VariantesCarganConDatosDemoSinErrores() {
@@ -53,8 +51,8 @@ class RecorridoT06Test {
             sesiones.guardar(sesion(Rol.SOLICITANTE))
             assertTrue(operaciones.cancelar("TR-1051", null, null) is Resultado.Exito)
         }
-        borrador.codigo = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
-        borrador.hora = runBlocking { local.db.viajePasajeroDao().obtenerDelViaje("TR-1042").first { it.fhAbordaje != null }.fhAbordaje?.let(java.time.LocalDateTime::parse) }
+        // El código y la hora del abordaje viajan en el id de la ruta (HU29): no hay estado compartido entre las pantallas.
+        val horaAbordaje = runBlocking { local.db.viajePasajeroDao().obtenerDelViaje("TR-1042").first { it.fhAbordaje != null }.fhAbordaje!! }
         compose.activity.runOnUiThread {
             compose.activity.setContent {
                 BelmonteTheme {
@@ -81,6 +79,8 @@ class RecorridoT06Test {
                 PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.SIN_PASAJEROS_ADMIN -> "TR-1055"
                 PantallaDemo.SOLICITUD_CANCELADA -> "TR-1051"
                 PantallaDemo.ANTES_VENTANA -> "TR-1049"
+                PantallaDemo.CONFIRMAR_ABORDAJE -> CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6").paraRuta()
+                PantallaDemo.ABORDADO -> horaAbordaje
                 else -> "TR-1042"
             }
             compose.runOnIdle { seleccion = pantalla to id }

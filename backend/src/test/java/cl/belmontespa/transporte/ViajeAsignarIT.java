@@ -106,7 +106,7 @@ class ViajeAsignarIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			Flota otra = api.flota(4);
 			String folio = api.viajeAsignado(ana, flota, base);
-			api.cambiarEstadoOk(folio, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(folio, flota.conductor());
 
 			assertConflicto(api.asignar(folio, otra.conductor().correo(), otra.patente()), "EN_CURSO");
 		}
@@ -139,6 +139,28 @@ class ViajeAsignarIT extends IntegrationTest {
 
 			assertThat(Api.exigir(api.get(agenda, conductor), "agenda", 200).<List<String>>json("$[*].folio"))
 					.containsExactly(folio);
+		}
+
+		// README, Consultas: un viaje fuera del alcance, incluido uno que se reasignó, responde 403.
+		@Test
+		@DisplayName("el Conductor reemplazado pierde el detalle (403) y el viaje sale de su agenda")
+		void elReemplazadoPierdeElAcceso() {
+			Cuenta ana = api.solicitante();
+			Flota primera = api.flota(4);
+			Flota segunda = api.flota(4);
+			String folio = viajeConPasajero(ana, base);
+			api.asignarOk(folio, primera.conductor().correo(), primera.patente());
+			String agenda = "/viajes?fecha=" + base.toLocalDate();
+			assertThat(api.get("/viajes/" + folio, primera.conductor().token()).status()).isEqualTo(200);
+
+			api.asignarOk(folio, segunda.conductor().correo(), segunda.patente());
+
+			assertThat(api.get("/viajes/" + folio, primera.conductor().token()).status()).isEqualTo(403);
+			assertThat(Api.exigir(api.get(agenda, primera.conductor().token()), "agenda", 200)
+					.<List<String>>json("$[*].folio")).doesNotContain(folio);
+			assertThat(api.get("/viajes/" + folio, segunda.conductor().token()).status()).isEqualTo(200);
+			assertThat(Api.exigir(api.get(agenda, segunda.conductor().token()), "agenda", 200)
+					.<List<String>>json("$[*].folio")).containsExactly(folio);
 		}
 	}
 
@@ -240,7 +262,7 @@ class ViajeAsignarIT extends IntegrationTest {
 			String cancelado = api.viajeAsignado(ana, flota, base);
 			api.cancelarOk(cancelado, ana);
 			String finalizado = api.viajeAsignado(ana, flota, base.plusMinutes(10));
-			api.cambiarEstadoOk(finalizado, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(finalizado, flota.conductor());
 			api.cambiarEstadoOk(finalizado, flota.conductor(), "FINALIZADO");
 
 			String cercano = viajeConPasajero(ana, base.plusMinutes(30));
@@ -275,7 +297,7 @@ class ViajeAsignarIT extends IntegrationTest {
 			String otroMovil = movilHabilitadoPara(flota.conductor());
 			String folio = api.viajeAsignado(ana, flota, base);
 			String enCurso = api.viajeAsignado(ana, flota, base.plusDays(3));
-			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(enCurso, flota.conductor());
 			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("OCUPADO");
 
 			api.asignarOk(folio, flota.conductor().correo(), otroMovil);
@@ -293,11 +315,11 @@ class ViajeAsignarIT extends IntegrationTest {
 			Cuenta ocupado = conductorHabilitadoEn(flota.patente());
 			String folio = api.viajeAsignado(ana, flota, base);
 			String enCurso = api.viajeAsignado(ana, flota, base.plusDays(3));
-			api.cambiarEstadoOk(enCurso, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(enCurso, flota.conductor());
 			Flota deOcupado = new Flota(ocupado, api.movil(4));
 			api.habilitarOk(deOcupado.patente(), ocupado.correo());
 			String otro = api.viajeAsignado(ana, deOcupado, base.plusDays(4));
-			api.cambiarEstadoOk(otro, ocupado, "EN_CURSO");
+			api.iniciarOk(otro, ocupado);
 
 			assertConflicto(api.asignar(folio, ocupado.correo(), flota.patente()), "conductor no está disponible");
 			api.asignarOk(folio, nuevo.correo(), flota.patente());

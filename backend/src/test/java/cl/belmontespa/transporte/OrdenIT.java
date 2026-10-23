@@ -243,7 +243,7 @@ class OrdenIT extends IntegrationTest {
 			api.conPasajero(ana, tarde);
 			api.conPasajero(ana, manana);
 			api.asignarOk(tarde, flota.conductor().correo(), flota.patente());
-			api.cambiarEstadoOk(tarde, flota.conductor(), "EN_CURSO");
+			api.iniciarOk(tarde, flota.conductor());
 			api.cambiarEstadoOk(tarde, flota.conductor(), "FINALIZADO");
 			api.asignarOk(manana, flota.conductor().correo(), flota.patente());
 
