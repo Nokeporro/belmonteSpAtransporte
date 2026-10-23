@@ -88,6 +88,8 @@
     <string name="abordaje_camara_negada">Permite el uso de la cámara para escanear el código.</string>
     <string name="abordaje_abrir_ajustes">Abrir ajustes</string>
     <string name="abordaje_confirmar">Confirmar abordaje</string>
+    <string name="abordaje_codigo_invalido">Revisa la patente y el código escritos bajo el QR.</string>
+    <string name="abordaje_documento_invalido">Ingresa un documento válido.</string>
     <string name="abordaje_registrado">Abordaje registrado a las %1$s. ¡Buen viaje!</string>
     <string name="abordaje_volver_inicio">Volver al inicio</string>
     <string name="qr_vehiculo_indicacion">Imprímelo y pégalo en la puerta de entrada.</string>

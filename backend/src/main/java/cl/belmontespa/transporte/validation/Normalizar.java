@@ -42,6 +42,11 @@ public final class Normalizar {
 		return valor == null ? null : ESPACIOS_Y_GUIONES.matcher(valor).replaceAll("").toUpperCase(Locale.ROOT);
 	}
 
+	// Código del QR de abordaje: en mayúsculas y sin espacios ("7f3a 9c21 …" → "7F3A9C21…").
+	public static String codigoAbordaje(String valor) {
+		return valor == null ? null : ESPACIOS.matcher(valor).replaceAll("").toUpperCase(Locale.ROOT);
+	}
+
 	// Sin puntos, con guion antes del dígito verificador y K mayúscula: 76.543.210-3 → 76543210-3.
 	public static String rut(String valor) {
 		if (valor == null) {

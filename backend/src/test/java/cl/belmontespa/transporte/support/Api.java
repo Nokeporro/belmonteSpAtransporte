@@ -206,6 +206,14 @@ public class Api {
 		return exigir(get("/conductores/" + correo, admin()), "consultar conductor", 200).texto("$.estadoConductor");
 	}
 
+	/**
+	 * Lo que lleva impreso el QR de la puerta. La API todavía no lo entrega (lo suma HU17): se lee de la base, que es
+	 * donde lo imprimiría el Administrador.
+	 */
+	public String codigoAbordaje(String patente) {
+		return jdbc.queryForObject("SELECT codigo_abordaje FROM movil WHERE patente = ?", String.class, patente);
+	}
+
 	public String estadoMovil(String patente) {
 		return exigir(get("/moviles/" + patente, admin()), "consultar móvil", 200).texto("$.estadoMovil");
 	}
@@ -217,11 +225,27 @@ public class Api {
 				{"tipoDocumento":"RUT","dni":"%s","nombre":"%s"}""".formatted(dni, nombre));
 	}
 
+	/** RUT válido y único, con guion: lo que el Pasajero escribe al abordar. */
+	public String rutUnico() {
+		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
+		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
+	}
+
 	/** Crea un pasajero con DNI único y devuelve su dniHash. */
 	public String pasajero(Cuenta solicitante) {
-		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
-		String dni = cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
-		return exigir(pasajero(solicitante.token(), dni, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
+		return pasajeroConRut(solicitante, rutUnico());
+	}
+
+	/** Crea (o reutiliza) el pasajero con ese RUT y devuelve su dniHash. */
+	public String pasajeroConRut(Cuenta solicitante, String rut) {
+		return exigir(pasajero(solicitante.token(), rut, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
+	}
+
+	/** El abordaje es público: no lleva token. */
+	public Resp abordar(String patente, String codigoAbordaje, String tipoDocumento, String dni) {
+		return post("/abordajes", null, """
+				{"patente":"%s","codigoAbordaje":"%s","tipoDocumento":"%s","dni":"%s"}"""
+				.formatted(patente, codigoAbordaje, tipoDocumento, dni));
 	}
 
 	public Resp agregarPasajero(String token, String folio, String dniHash) {

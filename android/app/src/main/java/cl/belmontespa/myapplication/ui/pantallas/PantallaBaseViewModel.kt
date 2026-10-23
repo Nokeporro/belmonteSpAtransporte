@@ -37,7 +37,6 @@ data class EstadoPantallaDemo(
     val catalogos: Catalogos? = null,
     val pasajeros: List<NuevoPasajero> = emptyList(),
     val destino: Pair<PantallaDemo, String>? = null,
-    val horaAbordaje: LocalDateTime? = null,
     val ubicaciones: Map<String, Ubicacion> = emptyMap(),
 )
 
@@ -49,9 +48,7 @@ class DependenciasPantallas @Inject constructor(
     val pagos: PagoRepository,
     val auth: AuthRepository,
     val catalogos: CatalogoRepository,
-    val abordaje: AbordajeRepository,
     val clock: Clock,
-    val borrador: BorradorAbordaje,
     @param:javax.inject.Named("ubicaciones_demo") val ubicacionesDemo: List<Ubicacion>,
 )
 
@@ -98,10 +95,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 val actual = mutable.value
                 val fecha = LocalDateTime.now(repos.clock).plusHours(3)
                 if (actual.campos.isEmpty()) mutable.update { it.copy(campos = mapOf("fecha" to fecha.toLocalDate().toString(), "hora" to fecha.toLocalTime().withSecond(0).withNano(0).toString(), "tipoDocumento" to "RUT", "medioPago" to "TRANSFERENCIA", "tipoRecibo" to "BOLETA", "estado" to "TODOS")) }
-                if (p == PantallaDemo.CONFIRMAR_ABORDAJE) repos.borrador.codigo?.let { codigo ->
-                    mutable.update { it.copy(campos = it.campos + mapOf("patente" to codigo.patente, "codigo" to codigo.codigo)) }
-                }
-                if (p == PantallaDemo.ABORDADO) mutable.update { it.copy(horaAbordaje = repos.borrador.hora) }
                 val publico = p.publica || p == PantallaDemo.CAMBIO_OBLIGATORIO
                 if (!publico || p == PantallaDemo.CAMBIO_OBLIGATORIO) {
                     val cuenta = repos.cuentas.obtenerPerfil().valor()
@@ -159,13 +152,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
         mutable.update { it.copy(campos = it.campos + mapOf("pasajeroNombre" to p.nombre, "documento" to p.dni, "tipoDocumento" to p.tipoDocumento.name)) }
         quitarPasajero(indice)
     }
-    fun seleccionarQr(texto: String): Boolean {
-        val partes = texto.split(':')
-        if (partes.size != 3 || partes[0] != "BELMONTE-ABORDAJE" || !partes[2].matches(Regex("[A-Fa-f0-9]{16}"))) { aviso(R.string.abordaje_qr_ajeno); return false }
-        campo("patente", partes[1].uppercase()); campo("codigo", partes[2].uppercase())
-        repos.borrador.codigo = CodigoAbordaje(partes[1].uppercase(), partes[2].uppercase())
-        return true
-    }
     fun ejecutar(accion: String, dato: String = "") {
         if (mutable.value.enviando) return
         mutable.update { it.copy(enviando = true, error = null, aviso = null) }
@@ -207,7 +193,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                         PantallaDemo.REGISTRAR_VEHICULO -> { val m = repos.flota.registrarMovil(NuevoMovil(valor("patente"), valor("capacidad").toInt(), valor("gps").toLongOrNull())).valor(); destino = PantallaDemo.DETALLE_VEHICULO to m.patente }
                         PantallaDemo.HABILITACIONES -> { repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor(); actualizar() }
                         PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
-                        PantallaDemo.CONFIRMAR_ABORDAJE -> { val hora = repos.abordaje.registrarAbordaje(CodigoAbordaje(valor("patente"), valor("codigo")), TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento")).valor(); repos.borrador.hora = hora; mutable.update { it.copy(horaAbordaje = hora) }; destino = PantallaDemo.ABORDADO to "" }
                         else -> Unit
                     }
                 }
@@ -228,11 +213,4 @@ private fun <T> Resultado<T>.valor(): T = when(this) {
     is Resultado.Exito -> valor
     is Resultado.Fallo -> throw FalloPantalla(error)
     Resultado.Encolado -> throw FalloPantalla(ErrorApp.Conflicto("El cambio está pendiente de sincronizar."))
-}
-
-// Intercambio efímero entre escaneo, confirmación y resultado; nunca almacena el documento.
-@javax.inject.Singleton
-class BorradorAbordaje @Inject constructor() {
-    var codigo: CodigoAbordaje? = null
-    var hora: LocalDateTime? = null
 }

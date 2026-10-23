@@ -146,7 +146,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
             }
         }
-        PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> PantallaAbordaje()
+        // El abordaje del Pasajero lo dibujan AbordarScreen, ConfirmarAbordajeScreen y AbordadoScreen, desde PantallaT06 (HU29).
+        PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR, PantallaDemo.CONFIRMAR_ABORDAJE, PantallaDemo.ABORDADO -> Unit
         PantallaDemo.NOTIFICACION -> {
             Aviso(stringResource(R.string.aviso_notificacion), TonoAviso.INFORMACION)
             estado.viajes.forEach { viaje -> Bloque(stringResource(R.string.notificacion_nuevo_viaje)) { Dato(R.string.campo_folio, viaje.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(viaje.fhAgenda)); Enlace(R.string.accion_ver_viaje, detallePara(estado.cuenta?.rol), viaje.folio) } }

@@ -40,6 +40,8 @@ public class SecurityConfig {
 						.requestMatchers(POST, "/api/v1/auth/login", "/api/v1/auth/recuperar-password").permitAll()
 						// Autorregistro del Solicitante (RF01): aún no tiene JWT.
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
+						// Abordaje del Pasajero (RF28): no tiene cuenta, se identifica con el QR del vehículo y su documento.
+						.requestMatchers(POST, "/api/v1/abordajes").permitAll()
 						.requestMatchers(POST, "/api/v1/auth/logout").authenticated()
 						.requestMatchers(GET, "/api/v1/catalogos").hasAnyRole(ADM, CON, SOL)
 

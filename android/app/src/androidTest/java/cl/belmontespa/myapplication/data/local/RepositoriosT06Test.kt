@@ -10,8 +10,10 @@ import cl.belmontespa.myapplication.data.local.database.*
 import cl.belmontespa.myapplication.data.local.repository.*
 import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
+import cl.belmontespa.myapplication.util.FechaIso
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
@@ -133,6 +135,43 @@ class RepositoriosT06Test {
         val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.PASAPORTE, "P4471023")
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), resultado)
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
+    }
+    // Abordaje (HU29): las mismas reglas que `AbordajeService` del backend, con la semilla demo y el reloj fijo (12:00 en Chile).
+    private val kxjr42 = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
+    @Test fun unPasajeroYaAbordadoRecibeSuMarcaOriginal() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.RUT, "15.234.567-4")
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 55)), resultado)
+    }
+    @Test fun unRutSinPuntosYUnCodigoConEspaciosCalzanIgual() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "7f3a 9c21 b04e 58d6"), TipoDocumento.RUT, "16789012-1")
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 12, 0)), resultado)
+    }
+    @Test fun unDocumentoQueNoViajaEnElVehiculoEsNoEncontradoYNoCambiaNada() = runBlocking {
+        val antes = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
+        // Felipe Mora viaja en LPHT17 (TR-1049), no en KXJR42.
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), AbordajeLocalRepository(local).registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "X9087654"))
+        assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
+    }
+    @Test fun unViajeAsignadoSoloSeAbordaDentroDeLaVentanaDeUnaHora() = runBlocking {
+        val abordaje = AbordajeLocalRepository(local)
+        val lphT17 = CodigoAbordaje("LPHT17", "2B8E41D07C95A316")
+        // TR-1049 parte en 4 h 15 min: aún no es candidato.
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+        val ahora = local.ahora()
+        db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1).plusSeconds(1))))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+        db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1))))
+        assertEquals(Resultado.Exito(ahora), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
+    }
+    @Test fun unViajeEnCursoSeAbordaAunqueSuAgendaEsteLejos() = runBlocking {
+        val gzrw90 = CodigoAbordaje("GZRW90", "9D04C6E2A1F7B853")
+        db.viajeDao().guardar(local.viaje("TR-1045").copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(6))))
+        // Javiera Núñez ya estaba abordada en TR-1045: recibe la misma marca.
+        assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 30)), AbordajeLocalRepository(local).registrarAbordaje(gzrw90, TipoDocumento.RUT, "18.364.925-6"))
+    }
+    @Test fun unDocumentoInvalidoEsValidacionAunqueElCodigoSeaAjeno() = runBlocking {
+        val resultado = AbordajeLocalRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.RUT, "15.234.567-0")
+        assertTrue(resultado is Resultado.Fallo && resultado.error is ErrorApp.Validacion)
     }
     // V2 no cambia el estado de nadie: Ocupado y En uso los marca V3, al iniciar el viaje.
     @Test fun asignarNoCambiaElEstadoDelConductorNiDelVehiculo() = runBlocking {

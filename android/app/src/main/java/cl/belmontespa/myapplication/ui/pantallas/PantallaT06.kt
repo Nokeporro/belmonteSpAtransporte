@@ -23,7 +23,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.*
-import cl.belmontespa.myapplication.ui.abordaje.AbordajeViewModel
+import cl.belmontespa.myapplication.ui.abordaje.AbordadoScreen
+import cl.belmontespa.myapplication.ui.abordaje.AbordarScreen
+import cl.belmontespa.myapplication.ui.abordaje.ConfirmarAbordajeScreen
 import cl.belmontespa.myapplication.ui.administrador.AdministracionViewModel
 import cl.belmontespa.myapplication.ui.administrador.AsignarScreen
 import cl.belmontespa.myapplication.ui.administrador.SolicitudesScreen
@@ -85,13 +87,26 @@ fun PantallaT06(
         ConfirmarInicioScreen(folio = referencia, onVolver = onVolver)
         return
     }
+    // El abordaje del Pasajero (HU29): sin sesión y con una pantalla y un ViewModel por paso. «Escanear código QR» es el
+    // lector de ZXing: la variante del catálogo es la misma pantalla de «Abordar viaje».
+    if (pantalla == PantallaDemo.ABORDAR || pantalla == PantallaDemo.ESCANEAR) {
+        AbordarScreen(pantalla = pantalla, onNavegar = onNavegar, onVolver = onVolver)
+        return
+    }
+    if (pantalla == PantallaDemo.CONFIRMAR_ABORDAJE) {
+        ConfirmarAbordajeScreen(argumento = referencia, onNavegar = onNavegar, onVolver = onVolver)
+        return
+    }
+    if (pantalla == PantallaDemo.ABORDADO) {
+        AbordadoScreen(hora = referencia, onNavegar = onNavegar, onVolver = onVolver)
+        return
+    }
     // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).
     if (pantalla == PantallaDemo.ASIGNAR) {
         AsignarScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
         return
     }
     val vm: PantallaBaseViewModel = when {
-        pantalla.ordinal in 7..10 -> hiltViewModel<AbordajeViewModel>(key = pantalla.name + referencia)
         pantalla.rol == Rol.SOLICITANTE -> hiltViewModel<SolicitanteViewModel>(key = pantalla.name + referencia)
         pantalla.rol == Rol.ADMINISTRADOR -> hiltViewModel<AdministracionViewModel>(key = pantalla.name + referencia)
         pantalla.rol == Rol.CONDUCTOR -> hiltViewModel<ConductorViewModel>(key = pantalla.name + referencia)
