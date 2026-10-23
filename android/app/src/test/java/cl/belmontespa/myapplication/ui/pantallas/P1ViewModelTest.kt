@@ -91,6 +91,9 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var nuevoMovil: NuevoMovil? = null
     var enviosMovil = 0
     val moviles = mutableListOf<Movil>()
+    val habilitaciones = mutableListOf<Habilitacion>()
+    var filtroHabilitacion: Pair<String?, String?>? = null
+    var enviosHabilitacion = 0
     val viajeActual = MutableStateFlow<Viaje?>(null)
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
@@ -149,8 +152,19 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         return Resultado.Exito(registrado)
     }
     override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = sinUso()
-    override suspend fun listarHabilitaciones(patente: String?, correo: String?) = Resultado.Exito(emptyList<Habilitacion>())
-    override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = sinUso()
+    override suspend fun listarHabilitaciones(patente: String?, correo: String?): Resultado<List<Habilitacion>> {
+        filtroHabilitacion = patente to correo
+        return Resultado.Exito(habilitaciones.filter { (patente == null || it.patente == patente) && (correo == null || it.correoConductor == correo) })
+    }
+    override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> {
+        enviosHabilitacion++; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val movil = moviles.first { it.patente == patente }
+        val habilitacion = habilitaciones.find { it.patente == patente && it.correoConductor == correoConductor }
+            ?: Habilitacion(patente, movil.capacidad, movil.estado, movil.activo, correoConductor, conductor.nombre, conductor.estado, conductor.activo)
+                .also(habilitaciones::add)
+        return Resultado.Exito(habilitacion)
+    }
     override suspend fun obtenerPago(hash: String): Resultado<Pago> = errorPago?.let { Resultado.Fallo(it) }
         ?: pago?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
     override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = sinUso()

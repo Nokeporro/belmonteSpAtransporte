@@ -62,7 +62,9 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     private var pantalla: PantallaDemo? = null
     private var referencia = ""
     private var consulta: Job? = null
-    fun campo(clave: String, valor: String) { mutable.update { it.copy(campos = it.campos + (clave to valor), modificado = pantalla !in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES), error = null, aviso = null) } }
+    fun campo(clave: String, valor: String) { mutable.update { it.copy(campos = it.campos + (clave to valor), modificado =
+        if (pantalla == PantallaDemo.HABILITACIONES && clave.startsWith("filtro")) it.modificado
+        else pantalla !in listOf(PantallaDemo.MIS_SOLICITUDES, PantallaDemo.SOLICITUDES), error = null, aviso = null) } }
     fun seleccionarLugar(campo: String, lugar: Ubicacion) {
         val catalogos = mutable.value.catalogos
         val region = catalogos?.regiones?.firstOrNull { r -> r.comunas.any {
@@ -117,7 +119,16 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 if (p == PantallaDemo.CUENTAS_PENDIENTES) mutable.update { it.copy(pendientes = repos.cuentas.listarSolicitantesPendientes().valor()) }
                 if (p in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(conductores = repos.flota.listarConductores().valor()) }
                 if (p in listOf(PantallaDemo.VEHICULOS, PantallaDemo.HABILITACIONES)) mutable.update { it.copy(moviles = repos.flota.listarMoviles().valor()) }
-                if (p == PantallaDemo.HABILITACIONES) mutable.update { it.copy(habilitaciones = repos.flota.listarHabilitaciones().valor()) }
+                if (p == PantallaDemo.HABILITACIONES) {
+                    if ("filtroVehiculo" !in mutable.value.campos) {
+                        val vehiculo = id.removePrefix("vehiculo:").takeIf { id.startsWith("vehiculo:") }.orEmpty()
+                        val conductor = id.removePrefix("conductor:").takeIf { id.startsWith("conductor:") }.orEmpty()
+                        mutable.update { it.copy(campos = it.campos + mapOf("filtroVehiculo" to vehiculo, "filtroConductor" to conductor,
+                            "vehiculo" to vehiculo, "conductor" to conductor)) }
+                    }
+                    mutable.update { it.copy(habilitaciones = repos.flota.listarHabilitaciones(
+                        patente = valor("filtroVehiculo").ifBlank { null }, correo = valor("filtroConductor").ifBlank { null }).valor()) }
+                }
                 if (p == PantallaDemo.DETALLE_CONDUCTOR) {
                     val conductor = repos.flota.obtenerConductor(id).valor()
                     val habilitaciones = repos.flota.listarHabilitaciones(correo = id).valor()
@@ -235,7 +246,15 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             val movil = repos.flota.registrarMovil(nuevo).valor()
                             destino = PantallaDemo.DETALLE_VEHICULO to movil.patente
                         }
-                        PantallaDemo.HABILITACIONES -> { repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor(); actualizar() }
+                        PantallaDemo.HABILITACIONES -> {
+                            val errores = buildMap {
+                                if (mutable.value.moviles.none { it.patente == valor("vehiculo") && it.activo }) put("vehiculo", "Selecciona un vehículo activo.")
+                                if (mutable.value.conductores.none { it.correo == valor("conductor") && it.activo }) put("conductor", "Selecciona un conductor activo.")
+                            }
+                            if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                            repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor()
+                            actualizar(); aviso(R.string.habilitacion_guardada)
+                        }
                         PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
                         PantallaDemo.CONFIRMAR_INICIO -> { repos.viajes.cambiarEstado(referencia, EstadoViaje.EN_CURSO).valor(); destino = PantallaDemo.DETALLE_VIAJE to referencia }
                         PantallaDemo.CONFIRMAR_ABORDAJE -> { val hora = repos.abordaje.registrarAbordaje(CodigoAbordaje(valor("patente"), valor("codigo")), TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento")).valor(); repos.borrador.hora = hora; mutable.update { it.copy(horaAbordaje = hora) }; destino = PantallaDemo.ABORDADO to "" }

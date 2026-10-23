@@ -334,4 +334,11 @@
     <string name="cancelacion_pago_anulado">El pago pendiente fue anulado.</string>
     <string name="vehiculo_registro_indicacion">Ingresa una patente AA1234 o BBBB12 y una capacidad de 1 a 20 pasajeros. El serial GPS es opcional. El vehículo quedará activo y disponible.</string>
     <string name="vehiculo_sin_gps">Sin GPS registrado</string>
+    <string name="habilitaciones_ayuda">Agrega conductores activos a vehículos activos. Una habilitación existente se conserva sin duplicarse. Los filtros solo cambian la lista.</string>
+    <string name="habilitaciones_filtro_vehiculo">Filtrar por vehículo</string>
+    <string name="habilitaciones_filtro_conductor">Filtrar por conductor</string>
+    <string name="habilitaciones_estado_vehiculo">Estado del vehículo</string>
+    <string name="habilitaciones_estado_conductor">Estado del conductor</string>
+    <string name="habilitaciones_sin_resultados">No hay habilitaciones para estos filtros.</string>
+    <string name="habilitacion_guardada">Habilitación guardada.</string>
 </resources>

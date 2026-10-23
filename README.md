@@ -222,6 +222,16 @@ HU16 se detalla a continuación.
 - [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
 - [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
 
+### Avance de implementación: HU18 de A
+
+- [x] Habilitaciones M:N entre conductores y vehículos, con filtros por patente y correo combinables y normalizados.
+- [x] Alta entre activos con `201`; repetir devuelve `200` sin duplicar, incluso ante peticiones simultáneas. Las relaciones existentes se conservan al desactivar.
+- [x] Respuestas con capacidad, estado y activo de ambos; acceso reservado al Administrador, sin eliminación de relaciones.
+- [x] Android: acceso desde conductor o vehículo, selección inicial, filtros independientes del alta y detalle actualizado al volver.
+- [x] Backend: 21 pruebas de HU18 y regresión de flota aprobadas.
+- [x] Android: 159 pruebas JVM y 39 instrumentadas en API 36 (Room e interfaz, con texto al 200 %); lint sin errores y APK demo compilado.
+- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en
@@ -843,7 +853,7 @@ Conductor, "Mis viajes · Perfil".
 | Administrador | Asignar conductor y vehículo | Conductores activos con `viajesAsignados` (los `OCUPADO`, deshabilitados con su `folioEnCurso`); del elegido, sus vehículos activos, `DISPONIBLE` y con capacidad suficiente; resumen y confirmación. | `GET /conductores`, `GET /habilitaciones-movil-conductor?correo=`, `POST /viajes/{folio}/asignar` |
 | Administrador | Conductores, Registrar conductor, Detalle de conductor | Lista; alta (nombre, correo, teléfono, contraseña inicial); detalle con estado, vehículos habilitados, edición, reemplazo de contraseña y desactivar o reactivar. | `GET /conductores`, `POST /conductores`, `PUT /conductores/{correo}`, `POST /conductores/{correo}/activo` |
 | Administrador | Vehículos, Registrar vehículo, Detalle de vehículo | Lista; alta (patente, capacidad, serial GPS); detalle con conductores habilitados, desactivar o reactivar y el QR de abordaje para imprimir. | `GET /moviles`, `POST /moviles`, `POST /moviles/{patente}/activo` |
-| Administrador | Gestionar habilitaciones | Desde el conductor o el vehículo; solo agrega. | `POST /habilitaciones-movil-conductor` |
+| Administrador | Gestionar habilitaciones | Desde el conductor o el vehículo; filtros combinables por ambos, capacidad y estados visibles; solo agrega entre activos, sin duplicar. | `GET /habilitaciones-movil-conductor?patente=&correo=`, `POST /habilitaciones-movil-conductor` |
 | Administrador | Registrar pago, Detalle de pago | Monto, banco, medio de pago y tipo de recibo; el detalle tiene P2 y P3. Pagos solo desde el viaje. | `POST /pagos`, `GET /pagos/{hash}`, `POST /pagos/{hash}/estado` |
 | Administrador | Perfil, Registrar administrador | Datos, cambiar contraseña, alta de Administrador y cerrar sesión. | `GET /administradores/{correo}`, `POST /administradores` |
 | Conductor | Mis viajes | Agenda por hora, con selector de fecha. | `GET /viajes`, `GET /viajes?fecha=` |

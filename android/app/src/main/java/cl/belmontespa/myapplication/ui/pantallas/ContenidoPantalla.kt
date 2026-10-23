@@ -108,7 +108,7 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Text(stringResource(R.string.conductor_password_opcional))
             Accion(R.string.accion_guardar)
             if (estado.habilitaciones.isEmpty()) Text(stringResource(R.string.conductor_sin_habilitaciones))
-            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
+            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "conductor:${conductor.correo}")
             Accion(if (conductor.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoConductor") }, TipoBoton.SECUNDARIO)
         }
         PantallaDemo.VEHICULOS -> {
@@ -131,14 +131,20 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Dato(R.string.campo_patente, movil.patente); Dato(R.string.campo_capacidad, movil.capacidad.toString())
             Dato(R.string.campo_gps, movil.gpsSerial?.toString() ?: stringResource(R.string.vehiculo_sin_gps))
             EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
-            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
+            HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "vehiculo:${movil.patente}")
             QrVehiculo(movil)
             Accion(if (movil.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoMovil") }, TipoBoton.SECUNDARIO)
         }
         PantallaDemo.HABILITACIONES -> {
-            Selector("conductor", R.string.campo_conductor, estado.conductores.filter { it.activo }.map { Opcion(it.correo, it.nombre) })
+            Text(stringResource(R.string.habilitaciones_ayuda))
+            Selector("conductor", R.string.campo_conductor, estado.conductores.filter { it.activo }.map { Opcion(it.correo, "${it.nombre} (${it.correo})") })
             Selector("vehiculo", R.string.campo_vehiculo, estado.moviles.filter { it.activo }.map { Opcion(it.patente, it.patente) })
             Accion(R.string.accion_habilitar, habilitada = vm.valor("conductor").isNotBlank() && vm.valor("vehiculo").isNotBlank())
+            Selector("filtroVehiculo", R.string.habilitaciones_filtro_vehiculo,
+                listOf(Opcion("", stringResource(R.string.filtro_todos))) + estado.moviles.map { Opcion(it.patente, it.patente) }, vm::actualizar)
+            Selector("filtroConductor", R.string.habilitaciones_filtro_conductor,
+                listOf(Opcion("", stringResource(R.string.filtro_todos))) + estado.conductores.map { Opcion(it.correo, "${it.nombre} (${it.correo})") }, vm::actualizar)
+            if (estado.habilitaciones.isEmpty()) Text(stringResource(R.string.habilitaciones_sin_resultados))
             HabilitacionesResumen()
         }
         PantallaDemo.REGISTRAR_PAGO -> {
@@ -359,7 +365,15 @@ private fun ResumenAgendaConductor(conductor: Conductor) {
 }
 @Composable
 private fun ContextoPantalla.HabilitacionesResumen() {
-    estado.habilitaciones.forEach { h -> Bloque(h.patente) { Text(h.nombreConductor); EstadoChip(stringResource(h.estadoMovil.etiqueta(h.activoMovil)), h.estadoMovil.estiloChip(h.activoMovil)) } }
+    estado.habilitaciones.forEach { h -> Bloque(h.patente) {
+        Dato(R.string.campo_conductor, h.nombreConductor)
+        Dato(R.string.campo_correo, h.correoConductor)
+        Dato(R.string.campo_capacidad, h.capacidad.toString())
+        Text(stringResource(R.string.habilitaciones_estado_vehiculo))
+        EstadoChip(stringResource(h.estadoMovil.etiqueta(h.activoMovil)), h.estadoMovil.estiloChip(h.activoMovil))
+        Text(stringResource(R.string.habilitaciones_estado_conductor))
+        EstadoChip(stringResource(h.estadoConductor.etiqueta(h.activoConductor)), h.estadoConductor.estiloChip(h.activoConductor))
+    } }
 }
 @Composable
 private fun Arqueo(viaje: Viaje) {

@@ -78,21 +78,33 @@ class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) 
     }
     override suspend fun listarHabilitaciones(patente: String?, correo: String?): Resultado<List<Habilitacion>> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val moviles = local.db.movilDao().observarTodos().first().filter { patente == null || it.patente == patente }
+        val p = patente?.takeIf { it.isNotBlank() }?.let(Validaciones::patente)
+        val c = correo?.takeIf { it.isNotBlank() }?.let(Validaciones::correo)
+        validar(buildMap {
+            if (p != null && !p.matches(Regex("[A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2}"))) put("patente", "Ingresa una patente válida.")
+            if (c != null && (c.length > 150 || !c.matches(Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")))) put("correo", "Ingresa un correo válido.")
+        })
+        val moviles = local.db.movilDao().observarTodos().first().filter { p == null || it.patente == p }
         moviles.flatMap { m -> local.db.habilitacionDao().observarDelMovil(m.patente).first()
-            .filter { correo == null || it.correoConductor == correo }.map { h ->
+            .filter { c == null || it.correoConductor == c }.map { h ->
                 val u = local.usuario(h.correoConductor)
                 Habilitacion(m.patente, m.capacidad, EstadoMovil.valueOf(m.estadoMovil), m.activo,
                     u.correo, u.nombre, EstadoConductor.valueOf(u.estadoConductor!!), u.activo)
             }
-        }.sortedWith(compareBy<Habilitacion> { it.patente }.thenBy { it.nombreConductor })
+        }.sortedWith(compareBy<Habilitacion> { it.patente }.thenBy { it.nombreConductor }.thenBy { it.correoConductor })
     }
     override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val m = local.db.movilDao().obtener(patente) ?: falla(ErrorApp.NoEncontrado)
-        val u = local.usuario(correoConductor)
-        exigir(m.activo && u.activo && u.rol == "CONDUCTOR", "El vehículo y el conductor deben estar activos.")
-        local.db.habilitacionDao().insertar(HabilitacionEntity(patente, correoConductor))
+        val p = Validaciones.patente(patente)
+        val c = Validaciones.correo(correoConductor)
+        val m = local.db.movilDao().obtener(p) ?: falla(ErrorApp.NoEncontrado)
+        val u = local.usuario(c)
+        if (u.rol != "CONDUCTOR") falla(ErrorApp.NoEncontrado)
+        val existente = local.db.habilitacionDao().observarDelMovil(p).first().any { it.correoConductor == c }
+        if (!existente) {
+            exigir(m.activo && u.activo, "El vehículo y el conductor deben estar activos.")
+            local.db.habilitacionDao().insertar(HabilitacionEntity(p, c))
+        }
         Habilitacion(m.patente, m.capacidad, EstadoMovil.valueOf(m.estadoMovil), m.activo,
             u.correo, u.nombre, EstadoConductor.valueOf(u.estadoConductor!!), u.activo)
     }

@@ -17,6 +17,8 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -43,6 +45,65 @@ class RepositoriosT06Test {
         Rol.SOLICITANTE -> "crios@andesconsult.cl"
         Rol.CONDUCTOR -> "ireyes@belmontespa.cl"
     }) { sesiones.guardar(Sesion("prueba", correo, rol, reloj.millis() + 3_600_000)) }
+    @Test fun habilitacionesMuchosAMuchosConFiltrosNormalizadosYCombinados() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val a = (flota.registrarConductor(NuevaCuenta("Ana HU18", "ana18@demo.cl", null, "Clave12345")) as Resultado.Exito).valor
+        val b = (flota.registrarConductor(NuevaCuenta("Beto HU18", "beto18@demo.cl", null, "Clave12345")) as Resultado.Exito).valor
+        flota.registrarMovil(NuevoMovil("ABCD18", 8, null)); flota.registrarMovil(NuevoMovil("WXYZ18", 2, null))
+        assertTrue(flota.habilitar("ab-cd18", " ANA18@DEMO.CL ") is Resultado.Exito)
+        flota.habilitar("ABCD18", b.correo); flota.habilitar("WXYZ18", a.correo)
+        val porVehiculo = (flota.listarHabilitaciones(patente = "ab-cd18") as Resultado.Exito).valor
+        assertEquals(listOf("Ana HU18", "Beto HU18"), porVehiculo.map { it.nombreConductor })
+        assertTrue(porVehiculo.all { it.capacidad == 8 && it.activoMovil && it.activoConductor })
+        assertEquals(2, (flota.listarHabilitaciones(correo = " ANA18@DEMO.CL ") as Resultado.Exito).valor.size)
+        assertEquals(listOf(b.correo), (flota.listarHabilitaciones("ABCD18", b.correo) as Resultado.Exito).valor.map { it.correoConductor })
+        assertTrue((flota.listarHabilitaciones("WXYZ18", b.correo) as Resultado.Exito).valor.isEmpty())
+    }
+    @Test fun habilitacionesRepetidasYSimultaneasConservanUnaSolaRelacion() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        flota.registrarMovil(NuevoMovil("ABCD18", 3, null))
+        coroutineScope {
+            val uno = async { flota.habilitar("ABCD18", "ireyes@belmontespa.cl") }
+            val dos = async { flota.habilitar("ab-cd18", "IREYES@BELMONTESPA.CL") }
+            assertTrue(uno.await() is Resultado.Exito); assertTrue(dos.await() is Resultado.Exito)
+        }
+        assertTrue(flota.habilitar("ABCD18", "ireyes@belmontespa.cl") is Resultado.Exito)
+        assertEquals(1, db.habilitacionDao().observarDelMovil("ABCD18").first().size)
+    }
+    @Test fun habilitacionConservaEstadosEInactivosSinPermitirNuevasRelaciones() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        flota.registrarMovil(NuevoMovil("ABCD18", 3, null)); flota.habilitar("ABCD18", "ireyes@belmontespa.cl")
+        val m = db.movilDao().obtener("ABCD18")!!
+        db.movilDao().guardar(m.copy(activo = false, estadoMovil = "EN_USO"))
+        val u = local.usuario("ireyes@belmontespa.cl")
+        db.usuarioDao().guardar(u.copy(activo = false, estadoConductor = "OCUPADO"))
+        val h = (flota.listarHabilitaciones(patente = "ABCD18") as Resultado.Exito).valor.single()
+        assertFalse(h.activoMovil); assertFalse(h.activoConductor)
+        assertEquals(EstadoMovil.EN_USO, h.estadoMovil); assertEquals(EstadoConductor.OCUPADO, h.estadoConductor)
+        assertEquals(Resultado.Exito(h), flota.habilitar("ABCD18", u.correo))
+        assertTrue((flota.habilitar("ABCD18", "pmunoz@belmontespa.cl") as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertTrue((flota.habilitar("KXJR42", u.correo)) is Resultado.Exito)
+    }
+    @Test fun soloAdministradorConsultaYAgregaHabilitaciones() = runBlocking {
+        val flota = FlotaLocalRepository(local)
+        for (rol in listOf(Rol.SOLICITANTE, Rol.CONDUCTOR)) {
+            entrar(rol)
+            assertTrue((flota.listarHabilitaciones() as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertTrue((flota.habilitar("KXJR42", "ireyes@belmontespa.cl") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+    }
+    @Test fun filtrosInvalidosYCuentasDeOtroRolNoGeneranHabilitaciones() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        assertTrue((flota.listarHabilitaciones(patente = "ABC123") as Resultado.Fallo).error is ErrorApp.Validacion)
+        assertTrue((flota.listarHabilitaciones(correo = "invalido") as Resultado.Fallo).error is ErrorApp.Validacion)
+        assertTrue((flota.listarHabilitaciones(patente = "ZZ0000") as Resultado.Exito).valor.isEmpty())
+        assertTrue((flota.habilitar("KXJR42", "crios@andesconsult.cl") as Resultado.Fallo).error is ErrorApp.NoEncontrado)
+        assertTrue((flota.habilitar("ZZ0000", "ireyes@belmontespa.cl") as Resultado.Fallo).error is ErrorApp.NoEncontrado)
+    }
     @Test fun altaVehiculoNormalizaPersisteYGeneraCodigosUnicos() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val flota = FlotaLocalRepository(local)

@@ -6,7 +6,12 @@ import cl.belmontespa.transporte.model.Usuario;
 public record DetalleMovilConductorDTOResponse(
 		String patente,
 		String correoConductor,
-		String nombreConductor
+		String nombreConductor,
+		Integer capacidad,
+		String estadoMovil,
+		boolean activoMovil,
+		String estadoConductor,
+		boolean activoConductor
 ) {
 
 	public static DetalleMovilConductorDTOResponse from(DetalleMovilConductor detalle) {
@@ -14,6 +19,11 @@ public record DetalleMovilConductorDTOResponse(
 		return new DetalleMovilConductorDTOResponse(
 				detalle.getMovil().getPatente(),
 				usuario.getCorreo(),
-				usuario.getNombre());
+				usuario.getNombre(),
+				detalle.getMovil().getCapacidad(),
+				detalle.getMovil().getEstadoMovil().getNombre(),
+				detalle.getMovil().isActivo(),
+				detalle.getConductor().getEstadoConductor().getEstado(),
+				detalle.getConductor().isActivo());
 	}
 }

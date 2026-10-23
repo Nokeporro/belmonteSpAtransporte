@@ -142,7 +142,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
-| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | 3 ajustar | — |
+| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar | — |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar | — |
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
@@ -400,7 +400,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16 y HU17 también están implementadas; el siguiente ítem de A es HU18.
+HU16, HU17 y HU18 también están implementadas; el siguiente ítem de A es HU19.
 
 ### HU16 y HU24
 
@@ -434,11 +434,15 @@ API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entreg
 
 ### HU18
 
-- **Habilitaciones:**
-  - filtros `?patente=` y `?correo=`;
-  - `DetalleMovilConductorDTOResponse` suma `capacidad`, `estadoMovil`, `activoMovil`,
-    `estadoConductor` y `activoConductor`;
-  - un par existente responde `200`; hoy `201`.
+- [x] Filtros `?patente=` y `?correo=` combinables, normalizados y validados.
+- [x] `DetalleMovilConductorDTOResponse` incluye `capacidad`, `estadoMovil`, `activoMovil`, `estadoConductor` y `activoConductor`.
+- [x] Un par nuevo responde `201`; uno existente, `200`, también con altas simultáneas, sin duplicar.
+- [x] Las nuevas relaciones exigen ambos activos; las existentes se conservan y muestran sus estados actuales.
+- [x] Android: acceso contextual desde conductor o vehículo, filtros independientes y recarga del detalle al volver.
+- [x] 21 pruebas backend de HU18 y regresión de flota aprobadas.
+- [x] Android: 159 pruebas JVM y 39 instrumentadas en API 36 (Room e interfaz, con texto al 200 %); lint sin errores y APK demo compilado.
+
+API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
 
 ### HU19, HU20 y HU21
 
@@ -517,9 +521,9 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /moviles/{patente}` | Implementado | HU17 |
 | `POST /moviles` | Implementado | HU17 |
 | `POST /moviles/{patente}/activo` | Falta | HU26 |
-| `GET /habilitaciones-movil-conductor` | Ajustar | HU18 |
-| `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Ajustar | HU18 |
-| `POST /habilitaciones-movil-conductor` | Ajustar | HU18 |
+| `GET /habilitaciones-movil-conductor` | Implementado | HU18 |
+| `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Implementado | HU18 |
+| `POST /habilitaciones-movil-conductor` | Implementado | HU18 |
 | `GET /pagos` | Ajustar | HU19 |
 | `GET /pagos/{hash}` | Ajustar | HU19 |
 | `POST /pagos` | Ajustar | HU19 |

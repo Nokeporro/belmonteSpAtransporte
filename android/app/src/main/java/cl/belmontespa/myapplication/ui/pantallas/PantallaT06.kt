@@ -90,7 +90,7 @@ fun PantallaT06(
     BackHandler(enabled = estado.modificado) { confirmarSalida = true }
     LaunchedEffect(pantalla, referencia) {
         // Al volver del alta o de editar, la lista y el detalle deben leer los datos guardados.
-        vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.VEHICULOS, PantallaDemo.DETALLE_VEHICULO))
+        vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.VEHICULOS, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.HABILITACIONES))
     }
     LaunchedEffect(estado.destino) {
         estado.destino?.let { (destino, id) -> vm.consumirDestino(); onNavegar(destino, id) }
@@ -158,6 +158,7 @@ internal fun ContextoPantalla.Selector(clave: String, @StringRes etiqueta: Int, 
     OutlinedButton(onClick = { abierto = true }, enabled = !estado.enviando, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Column { Text(stringResource(etiqueta), style = EstilosMono.etiqueta); Text(seleccionado) }
     }
+    (estado.error as? ErrorApp.Validacion)?.errores?.get(clave)?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     if (abierto) AlertDialog(onDismissRequest = { abierto = false }, title = { Text(stringResource(etiqueta)) },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) {
             opciones.forEach { opcion -> TextButton(onClick = { vm.campo(clave, opcion.id); abierto = false; alElegir?.invoke() }, enabled = opcion.habilitada, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(opcion.texto) } }

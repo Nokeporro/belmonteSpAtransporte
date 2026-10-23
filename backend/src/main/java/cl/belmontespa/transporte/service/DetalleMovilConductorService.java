@@ -7,27 +7,40 @@ import cl.belmontespa.transporte.model.DetalleMovilConductor;
 import cl.belmontespa.transporte.model.DetalleMovilConductorId;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.repository.DetalleMovilConductorRepository;
+import cl.belmontespa.transporte.repository.MovilRepository;
+import cl.belmontespa.transporte.validation.Normalizar;
+import cl.belmontespa.transporte.validation.Reglas;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 // Habilitación vehículo↔conductor (CU-10). Ruta: /habilitaciones-movil-conductor/{patente}/{correo}.
 @Service
 public class DetalleMovilConductorService extends CrudService<DetalleMovilConductor,
 		DetalleMovilConductorService.Clave, DetalleMovilConductorDTORequest, DetalleMovilConductorDTOResponse> {
 
-	public record Clave(String patente, String correoConductor) {}
+	public record Clave(String patente, String correoConductor) {
+		public Clave {
+			patente = Normalizar.patente(patente);
+			correoConductor = Normalizar.correo(correoConductor);
+		}
+	}
+
+	public record Alta(DetalleMovilConductorDTOResponse habilitacion, boolean creada) {}
 
 	private final DetalleMovilConductorRepository detalleRepository;
-	private final MovilService movilService;
+	private final MovilRepository movilRepository;
 	private final ConductorService conductorService;
 
 	public DetalleMovilConductorService(DetalleMovilConductorRepository detalleRepository,
-			MovilService movilService, ConductorService conductorService) {
+			MovilRepository movilRepository, ConductorService conductorService) {
 		this.detalleRepository = detalleRepository;
-		this.movilService = movilService;
+		this.movilRepository = movilRepository;
 		this.conductorService = conductorService;
 	}
 
@@ -47,25 +60,48 @@ public class DetalleMovilConductorService extends CrudService<DetalleMovilConduc
 				clave.patente(), clave.correoConductor());
 	}
 
-	// CU-10: si la relación ya existe se ignora sin duplicar.
 	@Override
-	@Transactional
-	public DetalleMovilConductorDTOResponse crear(DetalleMovilConductorDTORequest request) {
-		return buscar(new Clave(request.patente(), request.correoConductor()))
-				.map(this::aResponse)
-				.orElseGet(() -> super.crear(request));
+	@Transactional(readOnly = true)
+	public List<DetalleMovilConductorDTOResponse> listar() {
+		return listar(null, null);
+	}
+
+	@Transactional(readOnly = true)
+	public List<DetalleMovilConductorDTOResponse> listar(String patente, String correo) {
+		String p = patente == null || patente.isBlank() ? null : Normalizar.patente(patente);
+		String c = correo == null || correo.isBlank() ? null : Normalizar.correo(correo);
+		if (p != null && !p.matches(Reglas.PATENTE)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "patente: Formato inválido.");
+		}
+		if (c != null && (c.length() > 150 || !c.matches(Reglas.CORREO))) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "correo: Formato inválido.");
+		}
+		return detalleRepository.filtrar(p, c).stream().map(this::aResponse).toList();
 	}
 
 	@Override
-	protected DetalleMovilConductor nuevaEntidad(DetalleMovilConductorDTORequest request) {
-		Movil movil = movilService.buscarOFallar(request.patente());
+	@Transactional
+	public DetalleMovilConductorDTOResponse crear(DetalleMovilConductorDTORequest request) {
+		return habilitar(request).habilitacion();
+	}
+
+	// El bloqueo del vehículo serializa altas del mismo par, incluso en peticiones simultáneas.
+	@Transactional
+	public Alta habilitar(DetalleMovilConductorDTORequest request) {
+		Movil movil = movilRepository.bloquearPorPatente(request.patente())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		var existente = buscar(new Clave(request.patente(), request.correoConductor()));
+		if (existente.isPresent()) return new Alta(aResponse(existente.get()), false);
 		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
+		if (!movil.isActivo() || !conductor.isActivo()) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "El vehículo y el conductor deben estar activos.");
+		}
 		DetalleMovilConductor detalle = new DetalleMovilConductor();
 		detalle.setIdMovil(movil.getIdMovil());
 		detalle.setIdUsuario(conductor.getIdUsuario());
 		detalle.setMovil(movil);
 		detalle.setConductor(conductor);
-		return detalle;
+		return new Alta(aResponse(detalleRepository.save(detalle)), true);
 	}
 
 	@Override
