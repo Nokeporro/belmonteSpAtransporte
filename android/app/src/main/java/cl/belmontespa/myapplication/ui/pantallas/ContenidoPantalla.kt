@@ -48,8 +48,9 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         // «Asignar conductor y vehículo» la dibuja AsignarScreen, desde PantallaT06 (HU05).
         PantallaDemo.ASIGNAR -> Unit
         PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN,
-        PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA,
-        PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
+        PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
+        // El detalle del Conductor y «Antes de la ventana» los dibuja DetalleViajeScreen, desde PantallaT06 (HU08).
+        PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA -> Unit
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
         PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> {

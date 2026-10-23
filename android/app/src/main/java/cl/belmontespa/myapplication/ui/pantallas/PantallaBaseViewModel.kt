@@ -221,7 +221,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     suspend fun lugares(): List<Ubicacion> = repos.ubicacionesDemo
     fun ahora(): LocalDateTime = LocalDateTime.now(repos.clock)
     private companion object {
-        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
+        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_INICIO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO, PantallaDemo.NAVEGAR)
     }
 }
 private class FalloPantalla(val error: ErrorApp) : RuntimeException()

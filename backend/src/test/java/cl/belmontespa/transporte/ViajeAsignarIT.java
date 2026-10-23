@@ -140,6 +140,28 @@ class ViajeAsignarIT extends IntegrationTest {
 			assertThat(Api.exigir(api.get(agenda, conductor), "agenda", 200).<List<String>>json("$[*].folio"))
 					.containsExactly(folio);
 		}
+
+		// README, Consultas: un viaje fuera del alcance, incluido uno que se reasignó, responde 403.
+		@Test
+		@DisplayName("el Conductor reemplazado pierde el detalle (403) y el viaje sale de su agenda")
+		void elReemplazadoPierdeElAcceso() {
+			Cuenta ana = api.solicitante();
+			Flota primera = api.flota(4);
+			Flota segunda = api.flota(4);
+			String folio = viajeConPasajero(ana, base);
+			api.asignarOk(folio, primera.conductor().correo(), primera.patente());
+			String agenda = "/viajes?fecha=" + base.toLocalDate();
+			assertThat(api.get("/viajes/" + folio, primera.conductor().token()).status()).isEqualTo(200);
+
+			api.asignarOk(folio, segunda.conductor().correo(), segunda.patente());
+
+			assertThat(api.get("/viajes/" + folio, primera.conductor().token()).status()).isEqualTo(403);
+			assertThat(Api.exigir(api.get(agenda, primera.conductor().token()), "agenda", 200)
+					.<List<String>>json("$[*].folio")).doesNotContain(folio);
+			assertThat(api.get("/viajes/" + folio, segunda.conductor().token()).status()).isEqualTo(200);
+			assertThat(Api.exigir(api.get(agenda, segunda.conductor().token()), "agenda", 200)
+					.<List<String>>json("$[*].folio")).containsExactly(folio);
+		}
 	}
 
 	@Nested
