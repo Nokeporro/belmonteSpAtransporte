@@ -35,6 +35,11 @@ object Validaciones {
         if (p.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
         if (!documentoValido(p.tipoDocumento, p.dni)) put("dni", "Ingresa un documento válido.")
     }
+    fun movil(m: NuevoMovil): Map<String, String> = buildMap {
+        if (!patente(m.patente).matches(Regex("[A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2}"))) put("patente", "Ingresa una patente válida: AA1234 o BBBB12.")
+        if (m.capacidad !in 1..20) put("capacidad", "La capacidad debe estar entre 1 y 20 pasajeros.")
+        if (m.gpsSerial != null && m.gpsSerial !in 1L..Int.MAX_VALUE.toLong()) put("gps", "Ingresa un serial GPS entre 1 y 2147483647, o déjalo vacío.")
+    }
     fun conductor(c: NuevaCuenta, passwordRequerida: Boolean = true): Map<String, String> = buildMap {
         if (c.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
         if (!correo(c.correo).matches(Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")) || correo(c.correo).length > 150) put("correo", "Ingresa un correo válido.")

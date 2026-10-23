@@ -43,6 +43,50 @@ class RepositoriosT06Test {
         Rol.SOLICITANTE -> "crios@andesconsult.cl"
         Rol.CONDUCTOR -> "ireyes@belmontespa.cl"
     }) { sesiones.guardar(Sesion("prueba", correo, rol, reloj.millis() + 3_600_000)) }
+    @Test fun altaVehiculoNormalizaPersisteYGeneraCodigosUnicos() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val uno = (flota.registrarMovil(NuevoMovil(" ab-cd 12 ", 20, Int.MAX_VALUE.toLong())) as Resultado.Exito).valor
+        val dos = (flota.registrarMovil(NuevoMovil("zz 1234", 1, null)) as Resultado.Exito).valor
+        assertEquals("ABCD12", uno.patente); assertTrue(uno.activo)
+        assertEquals(EstadoMovil.DISPONIBLE, uno.estado); assertEquals(20, uno.capacidad)
+        assertEquals(Int.MAX_VALUE.toLong(), uno.gpsSerial)
+        assertTrue(uno.codigoAbordaje.matches(Regex("[0-9A-F]{16}")))
+        assertTrue(dos.codigoAbordaje.matches(Regex("[0-9A-F]{16}")))
+        assertNotEquals(uno.codigoAbordaje, dos.codigoAbordaje); assertNull(dos.gpsSerial)
+        assertEquals(uno, (FlotaLocalRepository(local).obtenerMovil("ABCD12") as Resultado.Exito).valor)
+        assertTrue((flota.listarMoviles() as Resultado.Exito).valor.containsAll(listOf(uno, dos)))
+    }
+    @Test fun patenteDuplicadaNormalizadaNoReemplazaElVehiculo() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val antes = (flota.registrarMovil(NuevoMovil("ABCD12", 20, 123L)) as Resultado.Exito).valor
+        val duplicado = flota.registrarMovil(NuevoMovil(" ab-cd 12 ", 1, null))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("La patente ya está registrada.")), duplicado)
+        assertEquals(antes, (flota.obtenerMovil("ABCD12") as Resultado.Exito).valor)
+    }
+    @Test fun vehiculoInvalidoNoSePersiste() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val flota = FlotaLocalRepository(local)
+        val antes = db.movilDao().observarTodos().first()
+        for (nuevo in listOf(NuevoMovil("ABC123", 20, null), NuevoMovil("ABCD12", 0, null),
+            NuevoMovil("ABCD12", 21, null), NuevoMovil("ABCD12", 1, 0), NuevoMovil("ABCD12", 1, -1),
+            NuevoMovil("ABCD12", 1, Int.MAX_VALUE.toLong() + 1))) {
+            val resultado = flota.registrarMovil(nuevo) as Resultado.Fallo
+            assertTrue(resultado.error is ErrorApp.Validacion)
+        }
+        assertEquals(antes, db.movilDao().observarTodos().first())
+    }
+    @Test fun soloAdministradorPuedeRegistrarYLeerElCodigoDelVehiculo() = runBlocking {
+        val flota = FlotaLocalRepository(local)
+        for (rol in listOf(Rol.SOLICITANTE, Rol.CONDUCTOR)) {
+            entrar(rol)
+            assertTrue((flota.registrarMovil(NuevoMovil("ABCD12", 2, null)) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertTrue((flota.listarMoviles() as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertTrue((flota.obtenerMovil("KXJR42") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+        assertNull(db.movilDao().obtener("ABCD12"))
+    }
     @Test fun noEntregaViajesSinSesion() = runBlocking {
         assertTrue(viajes.observarViajes(FiltroViajes()).first().isEmpty())
         assertNull(viajes.observarViaje("TR-1042").first())

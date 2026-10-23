@@ -120,9 +120,16 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 Enlace(R.string.accion_ver_detalle, PantallaDemo.DETALLE_VEHICULO, movil.patente)
             } }
         }
-        PantallaDemo.REGISTRAR_VEHICULO -> { Campo("patente", R.string.campo_patente); Campo("capacidad", R.string.campo_capacidad, KeyboardType.Number); Campo("gps", R.string.campo_gps, KeyboardType.Number); Accion(R.string.accion_guardar) }
+        PantallaDemo.REGISTRAR_VEHICULO -> {
+            Text(stringResource(R.string.vehiculo_registro_indicacion))
+            Campo("patente", R.string.campo_patente)
+            Campo("capacidad", R.string.campo_capacidad, KeyboardType.Number)
+            Campo("gps", R.string.campo_gps, KeyboardType.Number)
+            Accion(R.string.accion_guardar)
+        }
         PantallaDemo.DETALLE_VEHICULO -> estado.movil?.let { movil ->
             Dato(R.string.campo_patente, movil.patente); Dato(R.string.campo_capacidad, movil.capacidad.toString())
+            Dato(R.string.campo_gps, movil.gpsSerial?.toString() ?: stringResource(R.string.vehiculo_sin_gps))
             EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
             HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "")
             QrVehiculo(movil)

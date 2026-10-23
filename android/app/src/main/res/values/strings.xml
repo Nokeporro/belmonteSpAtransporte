@@ -332,4 +332,6 @@
     <string name="cancelacion_reembolso_previsto">Se registrará un reembolso del 50 %% del pago: %1$s.</string>
     <string name="cancelacion_anula_pago">El pago pendiente se anulará al cancelar la solicitud.</string>
     <string name="cancelacion_pago_anulado">El pago pendiente fue anulado.</string>
+    <string name="vehiculo_registro_indicacion">Ingresa una patente AA1234 o BBBB12 y una capacidad de 1 a 20 pasajeros. El serial GPS es opcional. El vehículo quedará activo y disponible.</string>
+    <string name="vehiculo_sin_gps">Sin GPS registrado</string>
 </resources>

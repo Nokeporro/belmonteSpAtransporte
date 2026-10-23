@@ -88,6 +88,9 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var cuentaConductor: NuevaCuenta? = null
     var passwordConductor: String? = null
     var enviosConductor = 0
+    var nuevoMovil: NuevoMovil? = null
+    var enviosMovil = 0
+    val moviles = mutableListOf<Movil>()
     val viajeActual = MutableStateFlow<Viaje?>(null)
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
@@ -135,9 +138,16 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         return Resultado.Exito(conductor)
     }
     override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = sinUso()
-    override suspend fun listarMoviles(): Resultado<List<Movil>> = sinUso()
-    override suspend fun obtenerMovil(patente: String): Resultado<Movil> = sinUso()
-    override suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> = sinUso()
+    override suspend fun listarMoviles() = Resultado.Exito(moviles.toList())
+    override suspend fun obtenerMovil(patente: String): Resultado<Movil> = moviles.find { it.patente == patente }
+        ?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
+    override suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> {
+        enviosMovil++; nuevoMovil = movil; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val registrado = Movil(movil.patente, movil.capacidad, movil.gpsSerial, true, EstadoMovil.DISPONIBLE, "0123456789ABCDEF")
+        moviles.add(registrado)
+        return Resultado.Exito(registrado)
+    }
     override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = sinUso()
     override suspend fun listarHabilitaciones(patente: String?, correo: String?) = Resultado.Exito(emptyList<Habilitacion>())
     override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = sinUso()

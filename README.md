@@ -212,6 +212,16 @@ HU16 se detalla a continuación.
 - [x] API 36: 34 pruebas aprobadas de Room, interfaz y recorrido de las 46 pantallas, con formularios al 200 % de texto.
 - [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
 
+### Avance de implementación: HU17 de A
+
+- [x] Registro con patente normalizada y única, capacidad de 1 a 20 y serial GPS positivo opcional.
+- [x] Vehículo nuevo activo y disponible; detalle y lista conservan los datos guardados.
+- [x] Código de abordaje aleatorio de 16 hexadecimales, persistido y consultable solo por el Administrador; QR disponible para imprimir en la demo.
+- [x] Formulario con errores por campo, conservación de datos ante conflictos y bloqueo del doble envío.
+- [x] Verificación local: 14 pruebas backend de HU17 y flota, y 153 pruebas JVM Android aprobadas.
+- [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
+- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

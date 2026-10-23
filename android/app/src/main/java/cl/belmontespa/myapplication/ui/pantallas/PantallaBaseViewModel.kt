@@ -226,7 +226,15 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             mutable.update { it.copy(conductor = conductor, campos = (it.campos - "password") +
                                 mapOf("nombre" to conductor.nombre, "telefono" to conductor.telefono.orEmpty()), aviso = R.string.aviso_guardado) }
                         }
-                        PantallaDemo.REGISTRAR_VEHICULO -> { val m = repos.flota.registrarMovil(NuevoMovil(valor("patente"), valor("capacidad").toInt(), valor("gps").toLongOrNull())).valor(); destino = PantallaDemo.DETALLE_VEHICULO to m.patente }
+                        PantallaDemo.REGISTRAR_VEHICULO -> {
+                            val gps = valor("gps").trim()
+                            val nuevo = NuevoMovil(Validaciones.patente(valor("patente")), valor("capacidad").trim().toIntOrNull() ?: 0,
+                                if (gps.isEmpty()) null else gps.toLongOrNull() ?: 0L)
+                            val errores = Validaciones.movil(nuevo)
+                            if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                            val movil = repos.flota.registrarMovil(nuevo).valor()
+                            destino = PantallaDemo.DETALLE_VEHICULO to movil.patente
+                        }
                         PantallaDemo.HABILITACIONES -> { repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor(); actualizar() }
                         PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
                         PantallaDemo.CONFIRMAR_INICIO -> { repos.viajes.cambiarEstado(referencia, EstadoViaje.EN_CURSO).valor(); destino = PantallaDemo.DETALLE_VIAJE to referencia }

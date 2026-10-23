@@ -141,7 +141,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
-| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | 3 ajustar | — |
+| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | 3 ajustar | — |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar | — |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar | — |
@@ -400,7 +400,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16 también está implementada; el siguiente ítem de A es HU17.
+HU16 y HU17 también están implementadas; el siguiente ítem de A es HU18.
 
 ### HU16 y HU24
 
@@ -421,10 +421,19 @@ HU16 también está implementada; el siguiente ítem de A es HU17.
   - reembolso del 100 %, o del monto fijado si el viaje está vencido;
   - `SecurityConfig` debe permitir al Administrador; hoy solo al Solicitante.
 
-### HU17 y HU18
+### HU17
 
-- **`MovilDTOResponse`:** suma `activo` y `codigoAbordaje`.
-- **`MovilService`:** genera `codigo_abordaje` con `SecureRandom`.
+- [x] `MovilDTOResponse` incluye `activo` y `codigoAbordaje` en alta, detalle y lista, solo para el Administrador.
+- [x] `MovilService` genera `codigo_abordaje` con `SecureRandom`; cada vehículo nace activo y disponible.
+- [x] Android: patente normalizada y única, capacidad 1..20, GPS opcional positivo, errores por campo y control del doble envío.
+- [x] Detalle con GPS y QR de abordaje imprimible; recarga de lista al volver del alta.
+- [x] 14 pruebas backend de HU17 y flota y 153 pruebas JVM Android aprobadas.
+- [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
+
+API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
+
+### HU18
+
 - **Habilitaciones:**
   - filtros `?patente=` y `?correo=`;
   - `DetalleMovilConductorDTOResponse` suma `capacidad`, `estadoMovil`, `activoMovil`,
@@ -504,9 +513,9 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `POST /solicitantes/{correo}/rechazar` | Falta | HU27 |
 | `GET /empresas` | Ajustar (orden) | HU27 |
 | `GET /empresas/{rut}` | Hecha | HU27 |
-| `GET /moviles` | Ajustar | HU17 |
-| `GET /moviles/{patente}` | Ajustar | HU17 |
-| `POST /moviles` | Ajustar | HU17 |
+| `GET /moviles` | Implementado | HU17 |
+| `GET /moviles/{patente}` | Implementado | HU17 |
+| `POST /moviles` | Implementado | HU17 |
 | `POST /moviles/{patente}/activo` | Falta | HU26 |
 | `GET /habilitaciones-movil-conductor` | Ajustar | HU18 |
 | `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Ajustar | HU18 |

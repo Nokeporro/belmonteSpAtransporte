@@ -6,7 +6,9 @@ public record MovilDTOResponse(
 		String patente,
 		Integer capacidad,
 		Integer gpsSerial,
-		String estadoMovil
+		boolean activo,
+		String estadoMovil,
+		String codigoAbordaje
 ) {
 
 	public static MovilDTOResponse from(Movil movil) {
@@ -14,6 +16,8 @@ public record MovilDTOResponse(
 				movil.getPatente(),
 				movil.getCapacidad(),
 				movil.getGpsSerial(),
-				movil.getEstadoMovil().getNombre());
+				movil.isActivo(),
+				movil.getEstadoMovil().getNombre(),
+				movil.getCodigoAbordaje());
 	}
 }

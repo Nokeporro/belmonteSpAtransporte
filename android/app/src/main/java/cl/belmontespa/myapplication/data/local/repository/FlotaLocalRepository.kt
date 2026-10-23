@@ -6,11 +6,12 @@ import cl.belmontespa.myapplication.data.repository.FlotaRepository
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Validaciones
-import java.util.UUID
+import java.security.SecureRandom
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
 class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) : FlotaRepository {
+    private val random = SecureRandom()
     override suspend fun listarConductores(): Resultado<List<Conductor>> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
         local.db.usuarioDao().observarPorRol("CONDUCTOR").first().map { local.conductor(it.correo) }
@@ -57,10 +58,13 @@ class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) 
     }
     override suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val patente = movil.patente.uppercase().replace("-", "").replace(" ", "")
-        exigir(patente.matches(Regex("[A-Z]{4}[0-9]{2}|[A-Z]{2}[0-9]{4}")) && movil.capacidad in 1..99, "Revisa la patente y la capacidad.")
+        validar(Validaciones.movil(movil))
+        val patente = Validaciones.patente(movil.patente)
+        if (local.db.movilDao().obtener(patente) != null) falla(ErrorApp.Conflicto("La patente ya está registrada."))
+        val bytes = ByteArray(8).also(random::nextBytes)
+        val codigo = bytes.joinToString("") { "%02X".format(it.toInt() and 0xff) }
         val nuevo = MovilEntity(patente, movil.capacidad, movil.gpsSerial, true, "DISPONIBLE",
-            UUID.randomUUID().toString().replace("-", "").take(16).uppercase())
+            codigo)
         local.db.movilDao().insertar(nuevo)
         nuevo.modelo()
     }
