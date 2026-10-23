@@ -241,24 +241,34 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		return aResponse(viaje);
 	}
 
-	// CU-08/RF15: anula el pago y avisa al conductor. Un viaje Pendiente o Asignado no ocupa a nadie
-	// (solo V3 lo hace), así que no hay nada que liberar.
+	// HU16/RF15, V5: cancelar no finaliza un viaje ni cambia el estado de la flota.
 	@Transactional
 	public ViajeDTOResponse cancelar(String folio, String correoSolicitante) {
-		Viaje viaje = buscarOFallar(folio);
+		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		if (!viaje.getSolicitante().getUsuario().getCorreo().equalsIgnoreCase(correoSolicitante)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 		}
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
+		if (LocalDateTime.now(clock).isAfter(viaje.getFhAgenda().plusHours(1))) {
+			throw conflicto("El viaje está vencido. Contacta al Administrador.");
+		}
 		viaje.setEstado(estado(CANCELADO));
-		viaje.setFhFin(LocalDateTime.now(clock));
 		if (viaje.getPago() != null) {
-			pagoService.anular(viaje.getPago());
+			String estadoAnterior = viaje.getPago().getEstadoPago().getEstado();
+			pagoService.cancelarPorSolicitante(viaje.getPago());
+			String estadoPago = viaje.getPago().getEstadoPago().getEstado();
+			if (!estadoAnterior.equals(estadoPago)) {
+				firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
+						"Pago del viaje " + folio,
+						"Estado: " + ("REEMBOLSADO".equals(estadoPago) ? "Reembolsado" : "Anulado"),
+						Map.of("tipo", "VIAJE", "folio", folio));
+			}
 		}
 		if (viaje.getConductor() != null) {
 			firebaseClient.notificar(viaje.getConductor().getUsuario().getTokenFcm(),
 					"Viaje cancelado", "El viaje " + viaje.getFolio() + " fue cancelado",
-					Map.of("folio", viaje.getFolio()));
+					Map.of("tipo", "VIAJE", "folio", viaje.getFolio()));
 		}
 		return aResponse(viaje);
 	}

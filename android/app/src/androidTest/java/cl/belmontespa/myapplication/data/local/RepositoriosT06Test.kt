@@ -8,6 +8,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import cl.belmontespa.myapplication.data.local.database.*
 import cl.belmontespa.myapplication.data.local.repository.*
+import cl.belmontespa.myapplication.data.local.entity.*
+import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import java.time.Clock
@@ -149,6 +151,79 @@ class RepositoriosT06Test {
         entrar(Rol.SOLICITANTE)
         assertTrue(viajes.cancelar("TR-1051") is Resultado.Exito)
         assertEquals("CANCELADO", local.viaje("TR-1051").estado)
+    }
+    private suspend fun solicitudConPago(monto: Int, estado: String = "PAGADO"): Pair<ViajeEntity, PagoEntity> {
+        val numero = local.viajes().maxOf { it.folioCorrelativo } + 1
+        val folio = "TR-$numero"
+        val v = local.viaje("TR-1051").copy(folio = folio, folioCorrelativo = numero, estado = "PENDIENTE",
+            fhAgenda = FechaIso.texto(local.ahora().plusHours(3)), fhFin = null, hashPago = "pago-$numero", estadoPago = estado)
+        val pago = PagoEntity("pago-$numero", folio, monto, estado, "Banco de prueba", 12,
+            "12345678-5", "TRANSFERENCIA", "BOLETA", FechaIso.texto(local.ahora().minusDays(1)), null)
+        db.viajeDao().guardar(v); db.pagoDao().insertar(pago)
+        return v to pago
+    }
+    @Test fun cancelarReembolsaLaMitadRedondeadaYNoLaAplicaDosVeces() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        for (monto in listOf(50_001, 1)) {
+            val (v, p) = solicitudConPago(monto)
+            assertTrue(viajes.cancelar(v.folio) is Resultado.Exito)
+            val pago = db.pagoDao().obtener(p.hash)!!
+            assertEquals("REEMBOLSADO", pago.estadoPago); assertEquals(monto / 2, pago.montoReembolsado)
+            assertEquals(p.fechaPago, pago.fechaPago); assertEquals(monto, pago.monto)
+            assertEquals("REEMBOLSADO", local.viaje(v.folio).estadoPago)
+            assertEquals(v.copy(estado = "CANCELADO", estadoPago = "REEMBOLSADO"), local.viaje(v.folio))
+            assertTrue(viajes.cancelar(v.folio) is Resultado.Fallo)
+            assertEquals(pago, db.pagoDao().obtener(p.hash))
+        }
+    }
+    @Test fun cancelarAnulaUnPagoPendienteYRespetaLosTerminales() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        for (estado in listOf("PENDIENTE", "ANULADO", "RECHAZADO", "REEMBOLSADO")) {
+            val (v, p) = solicitudConPago(25_000, estado)
+            val original = if (estado == "REEMBOLSADO") p.copy(montoReembolsado = 7_000) else p
+            db.pagoDao().guardar(original)
+            assertTrue(viajes.cancelar(v.folio) is Resultado.Exito)
+            assertEquals(if (estado == "PENDIENTE") original.copy(estadoPago = "ANULADO") else original,
+                db.pagoDao().obtener(p.hash))
+        }
+    }
+    @Test fun cancelarIncluyeElLimiteYDespuesNoTocaViajeNiPago() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        val (limite, _) = solicitudConPago(25_000)
+        db.viajeDao().guardar(limite.copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(1))))
+        assertTrue(viajes.cancelar(limite.folio) is Resultado.Exito)
+        val (v, pago) = solicitudConPago(50_001)
+        val vencido = v.copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(1).minusSeconds(1)))
+        db.viajeDao().guardar(vencido)
+        assertTrue(viajes.cancelar(v.folio) is Resultado.Fallo)
+        assertEquals(vencido, local.viaje(v.folio)); assertEquals(pago, db.pagoDao().obtener(pago.hash))
+    }
+    @Test fun cancelarNoModificaUnaFlotaOcupadaPorOtroViaje() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        val (v, _) = solicitudConPago(25_000)
+        val conductor = local.usuario("ireyes@belmontespa.cl").copy(estadoConductor = "OCUPADO")
+        val movil = db.movilDao().obtener("KXJR42")!!.copy(estadoMovil = "EN_USO")
+        db.usuarioDao().guardar(conductor); db.movilDao().guardar(movil)
+        val asignado = v.copy(estado = "ASIGNADO", correoConductor = conductor.correo, patenteMovil = movil.patente)
+        db.viajeDao().guardar(asignado)
+        assertTrue(viajes.cancelar(v.folio) is Resultado.Exito)
+        assertEquals(conductor, local.usuario(conductor.correo)); assertEquals(movil, db.movilDao().obtener(movil.patente))
+        assertEquals(asignado.copy(estado = "CANCELADO", estadoPago = "REEMBOLSADO"), local.viaje(v.folio))
+    }
+    @Test fun cancelarNoAdmiteOtroDuenoConductorNiEstadosCerrados() = runBlocking {
+        entrar(Rol.SOLICITANTE)
+        val (v, p) = solicitudConPago(25_000)
+        entrar(Rol.SOLICITANTE, "otra@andesconsult.cl")
+        assertTrue(viajes.cancelar(v.folio) is Resultado.Fallo)
+        entrar(Rol.CONDUCTOR)
+        assertEquals(Resultado.Fallo(ErrorApp.SinPermiso()), viajes.cancelar(v.folio))
+        entrar(Rol.SOLICITANTE)
+        for (estado in listOf("EN_CURSO", "FINALIZADO", "CANCELADO")) {
+            val cerrado = v.copy(estado = estado)
+            db.viajeDao().guardar(cerrado)
+            assertTrue(viajes.cancelar(v.folio) is Resultado.Fallo)
+            assertEquals(cerrado, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
+        }
     }
     @Test fun registroNuevoApruebaYEmpresaExistenteDejaLaCuentaPendiente() = runBlocking {
         val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)

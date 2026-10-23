@@ -160,7 +160,8 @@ class PagoIT extends IntegrationTest {
 			api.cancelarOk(conRechazado, solicitante);
 
 			assertThat(api.estadoPago(pendiente)).isEqualTo("ANULADO");
-			assertThat(api.estadoPago(pagado)).isEqualTo("ANULADO");
+			assertThat(api.estadoPago(pagado)).isEqualTo("REEMBOLSADO");
+			assertThat(api.get("/pagos/" + pagado, solicitante.token()).entero("$.montoReembolsado")).isEqualTo(25_000);
 			assertThat(api.estadoPago(rechazado)).isEqualTo("RECHAZADO");
 		}
 

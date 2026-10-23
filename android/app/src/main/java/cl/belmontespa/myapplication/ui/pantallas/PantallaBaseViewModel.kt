@@ -134,8 +134,10 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 } else if (p in pantallasDeViaje && id.isNotBlank()) {
                     mutable.update { it.copy(cargando = false) }
                     repos.viajes.observarViaje(id).collect { viaje ->
+                        val pagoCancelacion = if (p in listOf(PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA))
+                            viaje?.hashPago?.let { repos.pagos.obtenerPago(it).valor() } else null
                         val reembolso = if (p == PantallaDemo.CANCELAR_VIAJE && viaje?.hashPago != null && "reembolso" !in mutable.value.campos) repos.pagos.obtenerPago(viaje.hashPago).valor().monto.toString() else null
-                        mutable.update { it.copy(viaje = viaje, cargando = false,
+                        mutable.update { it.copy(viaje = viaje, cargando = false, pago = pagoCancelacion,
                             error = if (viaje == null) ErrorApp.NoEncontrado else null,
                             campos = if ("reembolso" in it.campos || viaje == null) it.campos else if (reembolso != null) it.campos + ("reembolso" to reembolso) else it.campos) }
                     }
@@ -200,7 +202,13 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             destino = PantallaDemo.DETALLE_SOLICITUD to folio
                         }
                         PantallaDemo.AGREGAR_PASAJERO -> { repos.viajes.agregarPasajero(referencia, NuevoPasajero(TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento"), valor("nombre"))).valor(); destino = PantallaDemo.DETALLE_SOLICITUD to referencia }
-                        PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> { repos.viajes.cancelar(referencia, valor("motivo").ifBlank { null }, valor("reembolso").toIntOrNull()).valor(); destino = (if (p == PantallaDemo.CONFIRMAR_CANCELACION) PantallaDemo.SOLICITUD_CANCELADA else PantallaDemo.DETALLE_ADMIN) to referencia }
+                        PantallaDemo.CONFIRMAR_CANCELACION -> {
+                            val viaje = mutable.value.viaje ?: throw FalloPantalla(ErrorApp.NoEncontrado)
+                            if (!viaje.cancelablePorSolicitante(ahora())) throw FalloPantalla(ErrorApp.Conflicto("La solicitud ya no se puede cancelar. Actualiza su información."))
+                            repos.viajes.cancelar(referencia).valor()
+                            destino = PantallaDemo.SOLICITUD_CANCELADA to referencia
+                        }
+                        PantallaDemo.CANCELAR_VIAJE -> { repos.viajes.cancelar(referencia, valor("motivo").ifBlank { null }, valor("reembolso").toIntOrNull()).valor(); destino = PantallaDemo.DETALLE_ADMIN to referencia }
                         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
                             val c = NuevaCuenta(valor("nombre"), valor("correo"), valor("telefono").ifBlank { null }, valor("password"))
                             if (p == PantallaDemo.REGISTRAR_CONDUCTOR) {

@@ -12,7 +12,8 @@ public record PagoDTOResponse(
 		String rutEmpresa,
 		String medioPago,
 		String tipoRecibo,
-		LocalDateTime fechaPago
+		LocalDateTime fechaPago,
+		Integer montoReembolsado
 ) {
 
 	public static PagoDTOResponse from(Pago pago) {
@@ -25,6 +26,7 @@ public record PagoDTOResponse(
 				pago.getEmpresa().getRut(),
 				pago.getMedioPago().getNombre(),
 				pago.getTipoRecibo().getNombre(),
-				pago.getFechaPago());
+				pago.getFechaPago(),
+				pago.getMontoReembolsado());
 	}
 }

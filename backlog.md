@@ -139,7 +139,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). El estado de las historias de B no ca
 | 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | — |
 | 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | — |
 | 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
-| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | 1 ajustar | — |
+| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | 3 ajustar | — |
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | 3 ajustar | — |
@@ -400,18 +400,23 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-Resultados en [HU15 de A](docs/HU15_A.md). El siguiente ítem de A es HU16.
+HU16 también está implementada; el siguiente ítem de A es HU17.
 
 ### HU16 y HU24
 
-- **V5 (Solicitante):**
-  - solo sin vencer;
-  - un pago `PAGADO` pasa a `REEMBOLSADO` por el 50 %, redondeado hacia abajo;
-  - un pago `PENDIENTE` pasa a `ANULADO`;
-  - no toca `fh_fin` ni el estado del conductor o del vehículo.
+- **V5 (Solicitante), implementado en HU16:**
+  - [x] Solo la solicitud propia `PENDIENTE` o `ASIGNADO`, hasta agenda + 1 hora inclusive.
+  - [x] Un pago `PAGADO` pasa a `REEMBOLSADO` por el 50 %, redondeado hacia abajo, incluso si resulta cero.
+  - [x] Un pago `PENDIENTE` pasa a `ANULADO`; los pagos terminales conservan su estado y monto.
+  - [x] Conserva `fh_fin`, los estados de conductor y vehículo y los datos del historial.
+  - [x] Serializa cancelaciones del mismo viaje y avisa después de confirmar la transacción.
+  - [x] Android muestra el efecto sobre el pago antes de confirmar y el resultado persistido.
+  - [x] Backend: 256 pruebas aprobadas. Android: 148 JVM, lint y compilación demo correctos.
+  - [x] API 36: 34 pruebas aprobadas de Room, interfaz y recorrido de las 46 pantallas, con formularios al 200 % de texto.
 
-  Hoy `ViajeService.cancelar` anula cualquier pago, llama a `liberar` y fija `fh_fin`.
-- **V7 (Administrador) en la misma ruta:**
+  API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
+
+- **V7 (Administrador), pendiente en HU24, en la misma ruta:**
   - nuevo `CancelarViajeDTORequest`, con `motivo` y `montoReembolso`;
   - reembolso del 100 %, o del monto fijado si el viaje está vencido;
   - `SecurityConfig` debe permitir al Administrador; hoy solo al Solicitante.

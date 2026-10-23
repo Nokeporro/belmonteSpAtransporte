@@ -88,6 +88,12 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var cuentaConductor: NuevaCuenta? = null
     var passwordConductor: String? = null
     var enviosConductor = 0
+    val viajeActual = MutableStateFlow<Viaje?>(null)
+    var pago: Pago? = null
+    var errorPago: ErrorApp? = null
+    var cancelaciones = 0
+    var motivoCancelacion: String? = null
+    var montoCancelacion: Int? = null
     private fun sinUso(): Nothing = error("Operación no prevista en esta prueba")
     override suspend fun crearSolicitud(solicitud: NuevaSolicitud): Resultado<String> {
         envios++; this.solicitud = solicitud; espera?.await()
@@ -99,12 +105,15 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         ?: Resultado.Exito(EstadoSesion.Autenticada(Sesion("demo", correo, Rol.SOLICITANTE, Long.MAX_VALUE)))
     override fun observarSesion(): Flow<EstadoSesion> = flowOf(EstadoSesion.SinSesion)
     override fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> = flowOf(emptyList())
-    override fun observarViaje(folio: String): Flow<Viaje?> = flowOf(null)
+    override fun observarViaje(folio: String): Flow<Viaje?> = viajeActual
     override suspend fun refrescarViajes(filtro: FiltroViajes): Resultado<Unit> = sinUso()
     override suspend fun refrescarViaje(folio: String): Resultado<Unit> = sinUso()
     override suspend fun agregarPasajero(folio: String, pasajero: NuevoPasajero): Resultado<Unit> = sinUso()
     override suspend fun asignar(folio: String, correoConductor: String, patente: String): Resultado<Unit> = sinUso()
-    override suspend fun cancelar(folio: String, motivo: String?, montoReembolso: Int?): Resultado<Unit> = sinUso()
+    override suspend fun cancelar(folio: String, motivo: String?, montoReembolso: Int?): Resultado<Unit> {
+        cancelaciones++; motivoCancelacion = motivo; montoCancelacion = montoReembolso; espera?.await()
+        return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
+    }
     override suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = sinUso()
     override suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> = sinUso()
     override suspend fun actualizarCuentaPropia(nombre: String, telefono: String?): Resultado<Cuenta> = sinUso()
@@ -132,7 +141,8 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = sinUso()
     override suspend fun listarHabilitaciones(patente: String?, correo: String?) = Resultado.Exito(emptyList<Habilitacion>())
     override suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = sinUso()
-    override suspend fun obtenerPago(hash: String): Resultado<Pago> = sinUso()
+    override suspend fun obtenerPago(hash: String): Resultado<Pago> = errorPago?.let { Resultado.Fallo(it) }
+        ?: pago?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
     override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = sinUso()
     override suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = sinUso()
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> = sinUso()

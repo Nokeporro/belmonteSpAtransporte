@@ -328,4 +328,8 @@
     <string name="conductor_password_opcional">Deja la contraseña vacía para conservar la actual. Una nueva debe tener entre 8 y 72 caracteres, una letra y un dígito (máximo 72 bytes).</string>
     <string name="conductor_sin_habilitaciones">Este conductor aún no tiene vehículos habilitados. Habilita uno para poder asignarle viajes.</string>
     <string name="campo_fecha_registro">Fecha de registro</string>
+    <string name="cancelacion_no_disponible">La solicitud ya no se puede cancelar desde aquí. Actualiza su información o contacta al Administrador.</string>
+    <string name="cancelacion_reembolso_previsto">Se registrará un reembolso del 50 %% del pago: %1$s.</string>
+    <string name="cancelacion_anula_pago">El pago pendiente se anulará al cancelar la solicitud.</string>
+    <string name="cancelacion_pago_anulado">El pago pendiente fue anulado.</string>
 </resources>

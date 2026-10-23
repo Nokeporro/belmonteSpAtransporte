@@ -133,11 +133,14 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 				.toList();
 	}
 
-	// CU-08: al cancelar el viaje el pago pasa a Anulado, salvo que ya sea terminal.
-	void anular(Pago pago) {
+	// V5/P4/P5: el reembolso del 50 % usa pesos enteros y se redondea hacia abajo.
+	void cancelarPorSolicitante(Pago pago) {
 		String actual = pago.getEstadoPago().getEstado();
-		if (!RECHAZADO.equals(actual) && !ANULADO.equals(actual)) {
+		if (PENDIENTE.equals(actual)) {
 			pago.setEstadoPago(estado(ANULADO));
+		} else if ("PAGADO".equals(actual)) {
+			pago.setMontoReembolsado(pago.getMonto() / 2);
+			pago.setEstadoPago(estado("REEMBOLSADO"));
 		}
 	}
 

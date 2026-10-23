@@ -200,7 +200,17 @@ las demás historias de P1 de B siguen pendientes.
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y compilación demo.
 - [ ] Instrumentadas en API 26, pasada manual de TalkBack, CI y revisión para integrar en `main`.
 
-Detalle y resultados en [docs/HU15_A.md](docs/HU15_A.md). HU16 sigue pendiente.
+HU16 se detalla a continuación.
+
+### Avance de implementación: HU16 de A
+
+- [x] Cancelación de solicitudes propias `PENDIENTE` o `ASIGNADO`, hasta agenda + 1 hora inclusive.
+- [x] Pago pendiente anulado; pago realizado reembolsado al 50 %, redondeado hacia abajo; pagos terminales conservados.
+- [x] Historial, asignación y fechas conservados; conductor y vehículo mantienen su estado.
+- [x] Confirmación con el efecto sobre el pago, resultado persistido, control de doble envío y avisos posteriores al commit.
+- [x] Verificación local: 256 pruebas backend y 148 JVM Android aprobadas; lint y compilación demo correctos.
+- [x] API 36: 34 pruebas aprobadas de Room, interfaz y recorrido de las 46 pantallas, con formularios al 200 % de texto.
+- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
 
 ## Máquinas de estado
 

@@ -41,3 +41,7 @@ fun Viaje.asignable(clock: Clock): Boolean =
     (estado == EstadoViaje.PENDIENTE || estado == EstadoViaje.ASIGNADO) &&
         cantidadPasajeros > 0 &&
         retraso(clock) != Retraso.VENCIDO
+
+/** V5 incluye el instante exacto de agenda + 1 h; después requiere al Administrador. */
+fun Viaje.cancelablePorSolicitante(ahora: LocalDateTime): Boolean =
+    estado in listOf(EstadoViaje.PENDIENTE, EstadoViaje.ASIGNADO) && ahora <= fhAgenda.plusHours(1)

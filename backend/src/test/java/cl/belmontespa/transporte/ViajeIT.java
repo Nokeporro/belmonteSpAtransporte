@@ -303,18 +303,18 @@ class ViajeIT extends IntegrationTest {
 	class Cancelacion {
 
 		@Test
-		@DisplayName("cancelar un viaje PENDIENTE lo deja CANCELADO con fecha de fin")
+		@DisplayName("cancelar un viaje PENDIENTE lo deja CANCELADO sin fecha de fin")
 		void pendiente() {
 			Cuenta solicitante = api.solicitante();
 			String folio = api.viaje(solicitante);
 			api.cancelarOk(folio, solicitante);
 			Resp viaje = ver(folio);
 			assertThat(viaje.texto("$.estado")).isEqualTo("CANCELADO");
-			assertThat(viaje.texto("$.fhFin")).isNotNull();
+			assertThat(viaje.texto("$.fhFin")).isNull();
 		}
 
 		@Test
-		@DisplayName("cancelar un viaje ASIGNADO libera al conductor y al móvil")
+		@DisplayName("cancelar un viaje ASIGNADO conserva el estado del conductor y del móvil")
 		void asignado() {
 			Cuenta solicitante = api.solicitante();
 			Flota flota = api.flota(4);

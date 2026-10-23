@@ -18,6 +18,8 @@ import cl.belmontespa.myapplication.ui.components.*
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 import cl.belmontespa.myapplication.util.Formatos
+import java.time.LocalDateTime
+import kotlinx.coroutines.delay
 
 // Las variantes comparten datos y controles, pero conservan sus rutas y títulos de los mockups.
 @Composable
@@ -52,18 +54,20 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViaje()
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
-        PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE -> {
+        PantallaDemo.CONFIRMAR_CANCELACION -> ConfirmarCancelacionSolicitud()
+        PantallaDemo.CANCELAR_VIAJE -> {
             estado.viaje?.let { Dato(R.string.campo_folio, it.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(it.fhAgenda)) }
-            Aviso(stringResource(if (pantalla == PantallaDemo.CANCELAR_VIAJE) R.string.aviso_cancelar_viaje else R.string.aviso_cancelar_solicitud), TonoAviso.AVISO)
-            if (pantalla == PantallaDemo.CANCELAR_VIAJE) {
-                Campo("motivo", R.string.campo_motivo)
-                if (estado.viaje?.estadoPago == EstadoPago.PAGADO && estado.viaje.fhAgenda.plusHours(1).isBefore(vm.ahora())) Campo("reembolso", R.string.campo_reembolso, KeyboardType.Number)
-            }
+            Aviso(stringResource(R.string.aviso_cancelar_viaje), TonoAviso.AVISO)
+            Campo("motivo", R.string.campo_motivo)
+            if (estado.viaje?.estadoPago == EstadoPago.PAGADO && estado.viaje.fhAgenda.plusHours(1).isBefore(vm.ahora())) Campo("reembolso", R.string.campo_reembolso, KeyboardType.Number)
             Accion(R.string.accion_confirmar, tipo = TipoBoton.PELIGRO)
             Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
         }
         PantallaDemo.SOLICITUD_CANCELADA -> {
-            if (estado.viaje?.estado == EstadoViaje.CANCELADO) Aviso(stringResource(R.string.aviso_solicitud_cancelada), TonoAviso.INFORMACION)
+            if (estado.viaje?.estado == EstadoViaje.CANCELADO) {
+                Aviso(stringResource(R.string.aviso_solicitud_cancelada), TonoAviso.INFORMACION)
+                PagoDeCancelacion(confirmando = false)
+            }
             else Aviso(stringResource(R.string.error_no_encontrado), TonoAviso.AVISO)
             Dato(R.string.campo_folio, estado.viaje?.folio)
             Enlace(R.string.accion_volver_solicitudes, PantallaDemo.MIS_SOLICITUDES, "")
@@ -210,7 +214,7 @@ private fun ContextoPantalla.ListaViajes() {
 @Composable
 private fun ContextoPantalla.DetalleViaje() {
     val viaje = estado.viaje ?: return
-    val ahora = vm.ahora()
+    val ahora = HoraActual()
     val editable = viaje.estado in listOf(EstadoViaje.PENDIENTE, EstadoViaje.ASIGNADO)
     val vencido = editable && ahora.isAfter(viaje.fhAgenda.plusHours(1))
     if (pantalla == PantallaDemo.SIN_CONEXION) { BannerSinConexion(); EstadoChip(stringResource(R.string.etiqueta_pendiente_sincronizar), EstiloChip.AVISO); Aviso(stringResource(R.string.aviso_sincronizacion_demo), TonoAviso.INFORMACION) }
@@ -234,7 +238,7 @@ private fun ContextoPantalla.DetalleViaje() {
     when (estado.cuenta?.rol) {
         Rol.SOLICITANTE -> {
             if (editable) Enlace(R.string.accion_agregar_pasajero, PantallaDemo.AGREGAR_PASAJERO)
-            if (editable && !vencido) Enlace(R.string.accion_cancelar_solicitud, PantallaDemo.CONFIRMAR_CANCELACION)
+            if (viaje.cancelablePorSolicitante(ahora)) Enlace(R.string.accion_cancelar_solicitud, PantallaDemo.CONFIRMAR_CANCELACION)
             viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
         }
         Rol.ADMINISTRADOR -> {
@@ -298,6 +302,48 @@ private fun ContextoPantalla.Perfil() {
         if (BuildConfig.MODO_LOCAL) Enlace(R.string.accion_ver_escenarios, PantallaDemo.NOTIFICACION, "")
     }
     Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
+}
+@Composable
+private fun ContextoPantalla.HoraActual(): LocalDateTime {
+    var ahora by remember(vm) { mutableStateOf(vm.ahora()) }
+    LaunchedEffect(vm) {
+        while (true) { delay(1_000); ahora = vm.ahora() }
+    }
+    return ahora
+}
+@Composable
+private fun ContextoPantalla.ConfirmarCancelacionSolicitud() {
+    val ahora = HoraActual()
+    val viaje = estado.viaje
+    viaje?.let {
+        Dato(R.string.campo_folio, it.folio)
+        Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(it.fhAgenda))
+    }
+    val cancelable = viaje?.cancelablePorSolicitante(ahora) == true
+    if (viaje != null && !cancelable) Aviso(stringResource(R.string.cancelacion_no_disponible), TonoAviso.AVISO)
+    else Aviso(stringResource(R.string.aviso_cancelar_solicitud), TonoAviso.AVISO)
+    PagoDeCancelacion(confirmando = true)
+    Accion(R.string.accion_confirmar, tipo = TipoBoton.PELIGRO,
+        habilitada = cancelable && estado.error == null && (viaje.hashPago == null || estado.pago != null))
+    Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
+}
+@Composable
+private fun ContextoPantalla.PagoDeCancelacion(confirmando: Boolean) {
+    val viaje = estado.viaje ?: return
+    val pago = estado.pago
+    if (pago == null) {
+        if (viaje.hashPago == null) Text(stringResource(R.string.aviso_sin_pago))
+        return
+    }
+    EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
+    when {
+        confirmando && pago.estado == EstadoPago.PAGADO -> Aviso(stringResource(
+            R.string.cancelacion_reembolso_previsto, Formatos.monto(pago.monto / 2)), TonoAviso.INFORMACION)
+        confirmando && pago.estado == EstadoPago.PENDIENTE -> Text(stringResource(R.string.cancelacion_anula_pago))
+        !confirmando && pago.estado == EstadoPago.REEMBOLSADO ->
+            pago.montoReembolsado?.let { Dato(R.string.campo_reembolso, Formatos.monto(it)) }
+        !confirmando && pago.estado == EstadoPago.ANULADO -> Text(stringResource(R.string.cancelacion_pago_anulado))
+    }
 }
 @Composable
 private fun ResumenAgendaConductor(conductor: Conductor) {

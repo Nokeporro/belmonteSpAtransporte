@@ -89,12 +89,12 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
     }
     suspend fun cancelar(folio: String, motivo: String?, monto: Int?): Resultado<Unit> = local.ejecutar {
         val s = local.sesion()
-        exigir(s.rol != Rol.CONDUCTOR, "No tienes permiso para cancelar este viaje.")
+        if (s.rol == Rol.CONDUCTOR) falla(ErrorApp.SinPermiso())
         val v = local.alcance(folio)
         exigir(v.estado in listOf("PENDIENTE", "ASIGNADO"), "El viaje ya no se puede cancelar.")
         if (s.rol == Rol.SOLICITANTE) exigir(!v.vencido(local), "El viaje está vencido. Contacta al Administrador.")
         else exigir(!motivo.isNullOrBlank(), "Ingresa el motivo de cancelación.")
-        local.cancelarConPago(v, motivo, s.rol == Rol.ADMINISTRADOR, monto)
+        local.cancelarConPago(v, if (s.rol == Rol.ADMINISTRADOR) motivo else v.motivo, s.rol == Rol.ADMINISTRADOR, monto)
     }
     suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = local.ejecutar {
         local.sesion(Rol.CONDUCTOR)
@@ -132,7 +132,7 @@ internal suspend fun SoporteLocal.cancelarConPago(v: ViajeEntity, motivo: String
             "PAGADO" -> {
                 val reembolso = if (!admin) p.monto / 2 else if (v.vencido(this)) monto ?: p.monto else p.monto
                 exigir(reembolso in 0..p.monto, "El reembolso debe estar entre cero y el total pagado.")
-                if (reembolso == 0) p else p.copy(estadoPago = "REEMBOLSADO", montoReembolsado = reembolso)
+                if (admin && reembolso == 0) p else p.copy(estadoPago = "REEMBOLSADO", montoReembolsado = reembolso)
             }
             else -> p
         }

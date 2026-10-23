@@ -6,12 +6,19 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 // Los finders cargan de una vez lo que lee ViajeDTOResponse.from() (open-in-view=false). No
 // ordenan ni filtran por fecha: el orden de las listas (fhAgenda y folio numérico) lo aplica
 // OrdenViajes y los filtros de GET /viajes, ViajeService.
 public interface ViajeRepository extends JpaRepository<Viaje, Long> {
+
+	// V5: serializa dos cancelaciones del mismo viaje dentro de su transacción.
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select v from Viaje v where v.folio = :folio")
+	Optional<Viaje> bloquearPorFolio(@Param("folio") String folio);
 
 	// HU15: una consulta para el resumen de toda la lista, sin cargar viajes ni pasajeros.
 	interface ResumenConductor {
