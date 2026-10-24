@@ -232,6 +232,16 @@ HU16 se detalla a continuación.
 - [x] Android: 159 pruebas JVM y 39 instrumentadas en API 36 (Room e interfaz, con texto al 200 %); lint sin errores y APK demo compilado.
 - [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
 
+### Avance de implementación: HU19 de A
+
+- [x] Alta de un único pago pendiente por viaje no cancelado, con empresa derivada del Solicitante y datos de los catálogos.
+- [x] Hash de 32 hexadecimales y folio en alta, detalle y lista; fecha nula hasta confirmar el pago.
+- [x] Altas simultáneas y cancelaciones serializadas por viaje, sin pagos duplicados ni huérfanos.
+- [x] Android: validación por campo, catálogos, doble envío y conservación del formulario ante errores.
+- [x] Verificación local: 48 pruebas backend y 340 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 70 pruebas de Room e interfaz aprobadas, con formulario al 200 % de texto.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

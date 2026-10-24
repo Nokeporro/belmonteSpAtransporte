@@ -70,4 +70,7 @@ public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 	// Los pagos cuelgan del viaje (viaje.pago_id): de aquí sale la lista de pagos con su folio.
 	@EntityGraph(attributePaths = {"pago.estadoPago"})
 	List<Viaje> findByPagoIsNotNull();
+
+	@Query("select v.folio from Viaje v where v.pago.id = :idPago")
+	Optional<String> folioDePago(@Param("idPago") Long idPago);
 }

@@ -147,14 +147,17 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Dato(R.string.campo_folio, estado.viaje?.folio)
             Campo("monto", R.string.campo_monto, KeyboardType.Number)
             Selector("banco", R.string.campo_banco, estado.catalogos?.bancos.orEmpty().map { Opcion(it.codSbif.toString(), it.nombre) })
-            Selector("medioPago", R.string.campo_medio_pago, MedioPago.entries.map { Opcion(it.name, stringResource(it.etiqueta)) })
-            Selector("tipoRecibo", R.string.campo_tipo_recibo, TipoRecibo.entries.map { Opcion(it.name, stringResource(it.etiqueta)) })
-            Accion(R.string.accion_registrar_pago)
+            Selector("medioPago", R.string.campo_medio_pago, estado.catalogos?.mediosPago.orEmpty().map { Opcion(it.name, stringResource(it.etiqueta)) })
+            Selector("tipoRecibo", R.string.campo_tipo_recibo, estado.catalogos?.tiposRecibo.orEmpty().map { Opcion(it.name, stringResource(it.etiqueta)) })
+            if (estado.viaje?.let { it.estado == EstadoViaje.CANCELADO || it.hashPago != null } == true) Text(stringResource(R.string.pago_registro_no_disponible))
+            Accion(R.string.accion_registrar_pago, habilitada = estado.error == null && estado.catalogos != null &&
+                estado.viaje?.let { it.estado != EstadoViaje.CANCELADO && it.hashPago == null } == true)
         }
         PantallaDemo.DETALLE_PAGO -> estado.pago?.let { pago ->
             Dato(R.string.campo_folio, pago.folio); Dato(R.string.campo_monto, Formatos.monto(pago.monto))
             EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
             Dato(R.string.campo_banco, pago.banco); Dato(R.string.campo_medio_pago, stringResource(pago.medioPago.etiqueta)); Dato(R.string.campo_tipo_recibo, stringResource(pago.tipoRecibo.etiqueta))
+            Dato(R.string.pago_fecha_label, pago.fechaPago?.let(Formatos::fechaHoraDetalle) ?: stringResource(R.string.pago_fecha_pendiente))
             pago.montoReembolsado?.let { Dato(R.string.campo_reembolso, Formatos.monto(it)) }
             if (estado.cuenta?.rol == Rol.ADMINISTRADOR) {
                 if (pago.estado == EstadoPago.PENDIENTE) {

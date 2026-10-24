@@ -243,7 +243,24 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             repos.flota.habilitar(valor("vehiculo"), valor("conductor")).valor()
                             actualizar(); aviso(R.string.habilitacion_guardada)
                         }
-                        PantallaDemo.REGISTRAR_PAGO -> { val pago = repos.pagos.registrarPago(NuevoPago(referencia, valor("monto").toInt(), valor("banco").toInt(), MedioPago.valueOf(valor("medioPago")), TipoRecibo.valueOf(valor("tipoRecibo")))).valor(); destino = PantallaDemo.DETALLE_PAGO to pago.hash }
+                        PantallaDemo.REGISTRAR_PAGO -> {
+                            val viaje = mutable.value.viaje ?: throw FalloPantalla(ErrorApp.NoEncontrado)
+                            if (viaje.estado == EstadoViaje.CANCELADO || viaje.hashPago != null) throw FalloPantalla(ErrorApp.Conflicto("El viaje ya tiene un pago o está cancelado."))
+                            val catalogos = mutable.value.catalogos ?: throw FalloPantalla(ErrorApp.Conflicto("Carga los catálogos antes de registrar el pago."))
+                            val monto = valor("monto").trim().toIntOrNull()
+                            val banco = valor("banco").toIntOrNull()
+                            val medio = catalogos.mediosPago.find { it.name == valor("medioPago") }
+                            val recibo = catalogos.tiposRecibo.find { it.name == valor("tipoRecibo") }
+                            val errores = buildMap {
+                                if (monto == null || monto <= 0) put("monto", "Ingresa un monto entero entre 1 y 2147483647.")
+                                if (banco == null || catalogos.bancos.none { it.codSbif == banco }) put("banco", "Selecciona un banco del catálogo.")
+                                if (medio == null) put("medioPago", "Selecciona un medio de pago del catálogo.")
+                                if (recibo == null) put("tipoRecibo", "Selecciona un tipo de recibo del catálogo.")
+                            }
+                            if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                            val pago = repos.pagos.registrarPago(NuevoPago(referencia, monto!!, banco!!, medio!!, recibo!!)).valor()
+                            destino = PantallaDemo.DETALLE_PAGO to pago.hash
+                        }
                         else -> Unit
                     }
                 }

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
-// hash, estado (Pendiente), empresa y fecha_pago los fija PagoService (CU-11).
+// hash, estado (Pendiente) y empresa los fija PagoService; fecha_pago es NULL hasta PAGADO.
 public record PagoDTORequest(
 		@NotBlank @Pattern(regexp = Reglas.FOLIO) String folio,
 		@NotNull @Positive Integer monto,

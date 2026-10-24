@@ -72,7 +72,7 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 	// CU-11/RF18: nace Pendiente, lo paga la empresa del Solicitante y queda asociado al viaje.
 	@Override
 	protected Pago nuevaEntidad(PagoDTORequest request) {
-		Viaje viaje = viajeRepository.findByFolio(request.folio())
+		Viaje viaje = viajeRepository.bloquearPorFolio(request.folio())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El viaje no existe"));
 		if (ViajeService.CANCELADO.equals(viaje.getEstado().getNombreEstado())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "El viaje está cancelado");
@@ -91,14 +91,22 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		pago.setTipoRecibo(tipoReciboRepository.findByNombre(request.tipoRecibo())
 				.orElseThrow(() -> catalogoInvalido("tipo de recibo", request.tipoRecibo())));
 		pago.setEmpresa(viaje.getSolicitante().getEmpresa());
-		pago.setFechaPago(LocalDateTime.now(clock));
 		viaje.setPago(pago);
 		return pago;
 	}
 
 	@Override
 	protected PagoDTOResponse aResponse(Pago pago) {
-		return PagoDTOResponse.from(pago);
+		String folio = viajeRepository.folioDePago(pago.getId())
+				.orElseThrow(() -> new IllegalStateException("El pago no está asociado a un viaje"));
+		return PagoDTOResponse.from(pago, folio);
+	}
+
+	@Override
+	@Transactional
+	public PagoDTOResponse crear(PagoDTORequest request) {
+		Pago pago = pagoRepository.save(nuevaEntidad(request));
+		return PagoDTOResponse.from(pago, request.folio());
 	}
 
 	// CU-12/RF19: solo un pago Pendiente pasa a Pagado o Rechazado.
@@ -109,6 +117,9 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "Solo se puede cambiar un pago Pendiente");
 		}
 		pago.setEstadoPago(estado(request.estado().toUpperCase(Locale.ROOT)));
+		if (PAGADO.equals(pago.getEstadoPago().getEstado())) {
+			pago.setFechaPago(LocalDateTime.now(clock));
+		}
 		return aResponse(pago);
 	}
 
@@ -131,7 +142,7 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return viajes.stream()
 				.filter(viaje -> viaje.getPago() != null)
 				.sorted(Comparator.comparing(Viaje::getFolio, Reglas.FOLIO_POR_NUMERO).reversed())
-				.map(viaje -> aResponse(viaje.getPago()))
+				.map(viaje -> PagoDTOResponse.from(viaje.getPago(), viaje.getFolio()))
 				.toList();
 	}
 

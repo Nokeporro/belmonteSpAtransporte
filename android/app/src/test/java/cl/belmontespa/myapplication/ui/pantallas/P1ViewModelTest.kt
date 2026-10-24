@@ -97,6 +97,10 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     val viajeActual = MutableStateFlow<Viaje?>(null)
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
+    var enviosPago = 0
+    var nuevoPago: NuevoPago? = null
+    var catalogosPago: Catalogos? = null
+    var errorCatalogos: ErrorApp? = null
     var cancelaciones = 0
     var motivoCancelacion: String? = null
     var montoCancelacion: Int? = null
@@ -106,7 +110,8 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito("TR-2000")
     }
     override suspend fun obtenerPerfil() = Resultado.Exito(Cuenta("Cuenta", "cuenta@test.cl", null, Rol.SOLICITANTE, LocalDateTime.of(2026, 10, 22, 12, 0)))
-    override suspend fun obtenerCatalogos() = Resultado.Exito(Catalogos(emptyList(), emptyList(), emptyList(), listOf(Region("Metropolitana", listOf("Providencia", "Las Condes")))))
+    override suspend fun obtenerCatalogos(): Resultado<Catalogos> = errorCatalogos?.let { Resultado.Fallo(it) }
+        ?: Resultado.Exito(catalogosPago ?: Catalogos(emptyList(), emptyList(), emptyList(), listOf(Region("Metropolitana", listOf("Providencia", "Las Condes")))))
     override suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> = fallo?.let { Resultado.Fallo(it) }
         ?: Resultado.Exito(EstadoSesion.Autenticada(Sesion("demo", correo, Rol.SOLICITANTE, Long.MAX_VALUE)))
     override fun observarSesion(): Flow<EstadoSesion> = flowOf(EstadoSesion.SinSesion)
@@ -167,7 +172,14 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     }
     override suspend fun obtenerPago(hash: String): Resultado<Pago> = errorPago?.let { Resultado.Fallo(it) }
         ?: pago?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
-    override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = sinUso()
+    override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> {
+        enviosPago++; nuevoPago = pago; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val guardado = Pago("0123456789abcdef0123456789abcdef", pago.folio, pago.monto, EstadoPago.PENDIENTE,
+            "Banco", pago.codSbif, "12345678-5", pago.medioPago, pago.tipoRecibo, null, null)
+        this.pago = guardado
+        return Resultado.Exito(guardado)
+    }
     override suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = sinUso()
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> = sinUso()
     override suspend fun recuperarPassword(correo: String): Resultado<Unit> = sinUso()

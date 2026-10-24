@@ -20,10 +20,11 @@ class PagoLocalRepository @Inject constructor(private val local: SoporteLocal) :
         local.sesion(Rol.ADMINISTRADOR)
         val v = local.viaje(pago.folio)
         exigir(v.estado != "CANCELADO" && v.hashPago == null, "El viaje ya tiene un pago o está cancelado.")
-        exigir(pago.monto > 0, "Ingresa un monto mayor que cero.")
-        val banco = DatosDemo.bancos.find { it.codSbif == pago.codSbif } ?: falla(ErrorApp.NoEncontrado)
+        validar(if (pago.monto > 0) emptyMap() else mapOf("monto" to "Ingresa un monto entero mayor que cero."))
+        val banco = DatosDemo.bancos.find { it.codSbif == pago.codSbif }
+            ?: falla(ErrorApp.Validacion(mapOf("banco" to "Selecciona un banco del catálogo.")))
         val u = local.usuario(v.correoSolicitante)
-        val p = PagoEntity(UUID.randomUUID().toString(), v.folio, pago.monto, "PENDIENTE", banco.nombre,
+        val p = PagoEntity(UUID.randomUUID().toString().replace("-", ""), v.folio, pago.monto, "PENDIENTE", banco.nombre,
             banco.codSbif, u.rutEmpresa!!, pago.medioPago.name, pago.tipoRecibo.name, null, null)
         local.db.pagoDao().insertar(p)
         local.db.viajeDao().guardar(v.copy(hashPago = p.hash, estadoPago = p.estadoPago))

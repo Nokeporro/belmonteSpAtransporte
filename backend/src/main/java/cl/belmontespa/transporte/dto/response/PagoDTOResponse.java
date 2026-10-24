@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 
 public record PagoDTOResponse(
 		String hash,
+		String folio,
 		Integer monto,
 		String estadoPago,
 		String banco,
@@ -16,9 +17,10 @@ public record PagoDTOResponse(
 		Integer montoReembolsado
 ) {
 
-	public static PagoDTOResponse from(Pago pago) {
+	public static PagoDTOResponse from(Pago pago, String folio) {
 		return new PagoDTOResponse(
 				pago.getHash(),
+				folio,
 				pago.getMonto(),
 				pago.getEstadoPago().getEstado(),
 				pago.getBanco().getNombre(),

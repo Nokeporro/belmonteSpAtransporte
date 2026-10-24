@@ -133,7 +133,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | Listo |
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
-| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar | — |
+| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Implementado | Listo |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar | — |
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
@@ -395,7 +395,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17 y HU18 también están implementadas; el siguiente ítem de A es HU19.
+HU16, HU17, HU18 y HU19 también están implementadas; el siguiente ítem de A es HU20.
 
 ### HU16 y HU24
 
@@ -442,10 +442,22 @@ API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entreg
 
 API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
 
-### HU19, HU20 y HU21
+### HU19
 
-- **`fecha_pago`:** se fija al pasar a `PAGADO`; hoy se fija al crear.
-- **`PagoDTOResponse`:** suma `folio` y `montoReembolsado`.
+- [x] Alta de pago solo por el Administrador, en un viaje no cancelado y sin otro pago; queda `PENDIENTE`.
+- [x] Banco, medio y recibo desde catálogos; monto entero positivo y empresa tomada del Solicitante del viaje.
+- [x] Hash de 32 hexadecimales en minúsculas; `folio` y `montoReembolsado` presentes en las respuestas.
+- [x] `fechaPago` nula al registrar y al rechazar; se fija al confirmar `PAGADO` con el Clock de Chile.
+- [x] Bloqueo del viaje durante el alta para evitar duplicados, pagos huérfanos y carreras con la cancelación.
+- [x] Android: errores por campo, datos conservados, doble envío bloqueado y detalle del pago persistido.
+- [x] 48 pruebas backend de pagos, fechas, orden y reembolsos; 340 JVM Android; lint sin errores y APK demo compilado.
+- [x] API 36: 70 pruebas de Room e interfaz aprobadas, con formulario al 200 % de texto.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
+
+### HU20 y HU21
+
+- `folio` y `montoReembolsado` ya están disponibles; la fecha de pago se corrigió en HU19.
 - **`CambiarEstadoPagoDTORequest`:** acepta `ANULADO`; hoy solo `PAGADO` o `RECHAZADO`.
 - **`PagoService.cambiarEstado`:**
   - admite P3 (`PAGADO → ANULADO`);
@@ -522,9 +534,9 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /habilitaciones-movil-conductor` | Implementado | HU18 |
 | `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Implementado | HU18 |
 | `POST /habilitaciones-movil-conductor` | Implementado | HU18 |
-| `GET /pagos` | Ajustar | HU19 |
-| `GET /pagos/{hash}` | Ajustar | HU19 |
-| `POST /pagos` | Ajustar | HU19 |
+| `GET /pagos` | Implementado | HU19 |
+| `GET /pagos/{hash}` | Implementado | HU19 |
+| `POST /pagos` | Implementado | HU19 |
 | `POST /pagos/{hash}/estado` | Ajustar | HU20 |
 | `GET /pasajeros` | Ajustar (orden) | HU02 |
 | `GET /pasajeros/{dni_hash}` | Hecha | HU02 |

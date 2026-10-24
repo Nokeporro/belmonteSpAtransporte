@@ -46,6 +46,55 @@ class RepositoriosT06Test {
         Rol.SOLICITANTE -> "crios@andesconsult.cl"
         Rol.CONDUCTOR -> "ireyes@belmontespa.cl"
     }) { sesiones.guardar(Sesion("prueba", correo, rol, reloj.millis() + 3_600_000)) }
+    private suspend fun viajeSinPagoHU19() {
+        val base = local.viaje("TR-1051")
+        db.viajeDao().guardar(base.copy(folio = "TR-1919", estado = "PENDIENTE", hashPago = null, estadoPago = null))
+    }
+    @Test fun registroDePagoPersisteFolioEmpresaHashYFechaNula() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); viajeSinPagoHU19()
+        val repos = PagoLocalRepository(local)
+        val nuevo = NuevoPago("TR-1919", Int.MAX_VALUE, 12, MedioPago.EFECTIVO, TipoRecibo.FACTURA)
+        val pago = (repos.registrarPago(nuevo) as Resultado.Exito).valor
+        assertEquals("TR-1919", pago.folio); assertEquals(Int.MAX_VALUE, pago.monto)
+        assertEquals(EstadoPago.PENDIENTE, pago.estado); assertNull(pago.fechaPago); assertNull(pago.montoReembolsado)
+        assertTrue(pago.hash.matches(Regex("[0-9a-f]{32}")))
+        assertEquals(local.usuario(local.viaje("TR-1919").correoSolicitante).rutEmpresa, pago.rutEmpresa)
+        assertEquals(pago.hash, local.viaje("TR-1919").hashPago)
+        assertEquals(pago, (PagoLocalRepository(local).obtenerPago(pago.hash) as Resultado.Exito).valor)
+    }
+    @Test fun registroDePagoInvalidoNoDejaFilasNiVinculos() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); viajeSinPagoHU19()
+        val repos = PagoLocalRepository(local); val antes = db.pagoDao().observarTodos().first()
+        for (nuevo in listOf(NuevoPago("TR-1919", 0, 12, MedioPago.EFECTIVO, TipoRecibo.BOLETA),
+            NuevoPago("TR-1919", 1, 999999, MedioPago.EFECTIVO, TipoRecibo.BOLETA))) {
+            assertTrue((repos.registrarPago(nuevo) as Resultado.Fallo).error is ErrorApp.Validacion)
+        }
+        assertEquals(antes, db.pagoDao().observarTodos().first()); assertNull(local.viaje("TR-1919").hashPago)
+    }
+    @Test fun dosRegistrosDePagoSimultaneosConservanSoloUnPago() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); viajeSinPagoHU19()
+        val repos = PagoLocalRepository(local); val antes = db.pagoDao().observarTodos().first().size
+        val nuevo = NuevoPago("TR-1919", 1, 12, MedioPago.EFECTIVO, TipoRecibo.BOLETA)
+        val resultados = coroutineScope {
+            val uno = async { repos.registrarPago(nuevo) }; val dos = async { repos.registrarPago(nuevo) }
+            listOf(uno.await(), dos.await())
+        }
+        assertEquals(1, resultados.count { it is Resultado.Exito })
+        assertEquals(1, resultados.count { it is Resultado.Fallo && it.error is ErrorApp.Conflicto })
+        assertEquals(antes + 1, db.pagoDao().observarTodos().first().size)
+    }
+    @Test fun viajeCanceladoNoAdmitePagoYNingunOtroRolLoRegistra() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); viajeSinPagoHU19()
+        val nuevo = NuevoPago("TR-1919", 1, 12, MedioPago.EFECTIVO, TipoRecibo.BOLETA)
+        val repos = PagoLocalRepository(local)
+        for (rol in listOf(Rol.CONDUCTOR, Rol.SOLICITANTE)) {
+            entrar(rol); assertTrue((repos.registrarPago(nuevo) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+        entrar(Rol.ADMINISTRADOR)
+        db.viajeDao().guardar(local.viaje("TR-1919").copy(estado = "CANCELADO"))
+        assertTrue((repos.registrarPago(nuevo) as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertNull(db.pagoDao().obtenerDelViaje("TR-1919"))
+    }
     @Test fun habilitacionesMuchosAMuchosConFiltrosNormalizadosYCombinados() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val flota = FlotaLocalRepository(local)

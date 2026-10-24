@@ -66,6 +66,8 @@ class RelojIT extends IntegrationTest {
 	void fechaDePago() {
 		Cuenta solicitante = api.solicitante();
 		String hash = api.pagarOk(api.viaje(solicitante));
+		assertThat(api.get("/pagos/" + hash, api.admin()).texto("$.fechaPago")).isNull();
+		Api.exigir(api.cambiarEstadoPago(hash, api.admin(), "PAGADO"), "confirmar pago", 200);
 
 		Resp pago = Api.exigir(api.get("/pagos/" + hash, api.admin()), "ver pago", 200);
 		assertCerca(LocalDateTime.parse(pago.texto("$.fechaPago")), ahoraEnChile(), "fecha_pago");
