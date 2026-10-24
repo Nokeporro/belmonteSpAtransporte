@@ -12,6 +12,8 @@ import cl.belmontespa.transporte.support.FcmGrabador.Envio;
 import cl.belmontespa.transporte.support.IntegrationTest;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +23,12 @@ import org.junit.jupiter.api.Test;
 
 @DisplayName("Avisos externos: correo de recuperación (RF21) y push (RF12)")
 class NotificacionesIT extends IntegrationTest {
+
+	// `{fecha}` del README: 24-09-2026 · 14:30, escrita aquí a mano para no repetir el código que se prueba.
+	private String fechaDelViaje(String folio) {
+		LocalDateTime agenda = LocalDateTime.parse(Api.exigir(api.verViaje(folio), "consultar viaje", 200).texto("$.fhAgenda"));
+		return DateTimeFormatter.ofPattern("dd-MM-yyyy · HH:mm").format(agenda);
+	}
 
 	private int recuperar(String correo) {
 		return api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(correo)).status();
@@ -110,11 +118,14 @@ class NotificacionesIT extends IntegrationTest {
 			assertThat(envios).hasSize(2);
 			Envio alConductor = fcm.para(tokenConductor).getFirst();
 			assertThat(alConductor.titulo()).isEqualTo("Nuevo viaje asignado");
-			assertThat(alConductor.mensaje()).contains(folio);
-			assertThat(alConductor.datos()).containsEntry("folio", folio);
+			assertThat(alConductor.mensaje()).isEqualTo("Viaje " + folio + " para " + fechaDelViaje(folio));
+			assertThat(alConductor.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
 			Envio alSolicitante = fcm.para(tokenSolicitante).getFirst();
 			assertThat(alSolicitante.titulo()).isEqualTo("Viaje asignado");
-			assertThat(alSolicitante.datos()).containsEntry("folio", folio);
+			assertThat(alSolicitante.mensaje()).isEqualTo("Tu viaje " + folio + " ya tiene conductor y vehículo");
+			assertThat(alSolicitante.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
 		}
 
 		@Test
@@ -123,21 +134,33 @@ class NotificacionesIT extends IntegrationTest {
 			Cuenta solicitante = api.solicitante();
 			Flota primera = api.flota(4);
 			Flota segunda = api.flota(4);
-			api.dispositivo(solicitante);
+			String tokenSolicitante = api.dispositivo(solicitante);
 			String tokenReemplazado = api.dispositivo(primera.conductor());
 			String tokenNuevo = api.dispositivo(segunda.conductor());
 			String folio = api.viajeAsignado(solicitante, primera);
 			esperarEnvios(2);
+			dejarPasarEnvios();
 			fcm.limpiar();
 
 			api.asignarOk(folio, segunda.conductor().correo(), segunda.patente());
 
 			esperarEnvios(3);
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).hasSize(3);
 			Envio alReemplazado = fcm.para(tokenReemplazado).getFirst();
 			assertThat(alReemplazado.titulo()).isEqualTo("Viaje reasignado");
 			assertThat(alReemplazado.mensaje()).isEqualTo("El viaje " + folio + " fue asignado a otro conductor");
-			assertThat(alReemplazado.datos()).containsEntry("tipo", "AGENDA").containsEntry("folio", folio);
-			assertThat(fcm.para(tokenNuevo).getFirst().titulo()).isEqualTo("Nuevo viaje asignado");
+			assertThat(alReemplazado.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "AGENDA").containsEntry("folio", folio);
+			Envio alNuevo = fcm.para(tokenNuevo).getFirst();
+			assertThat(alNuevo.titulo()).isEqualTo("Nuevo viaje asignado");
+			assertThat(alNuevo.mensaje()).isEqualTo("Viaje " + folio + " para " + fechaDelViaje(folio));
+			assertThat(alNuevo.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
+			Envio alSolicitante = fcm.para(tokenSolicitante).getFirst();
+			assertThat(alSolicitante.titulo()).isEqualTo("Viaje asignado");
+			assertThat(alSolicitante.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
 		}
 
 		@Test
@@ -151,6 +174,7 @@ class NotificacionesIT extends IntegrationTest {
 			api.dispositivo(flota.conductor());
 			String folio = api.viajeAsignado(solicitante, flota);
 			esperarEnvios(2);
+			dejarPasarEnvios();
 			fcm.limpiar();
 
 			api.asignarOk(folio, flota.conductor().correo(), otroMovil);
@@ -159,6 +183,8 @@ class NotificacionesIT extends IntegrationTest {
 			dejarPasarEnvios();
 			assertThat(fcm.envios()).extracting(Envio::titulo)
 					.containsExactlyInAnyOrder("Nuevo viaje asignado", "Viaje asignado");
+			assertThat(fcm.envios()).allSatisfy(envio -> assertThat(envio.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio));
 		}
 
 		@Test

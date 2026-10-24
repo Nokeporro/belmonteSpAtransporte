@@ -194,6 +194,70 @@ class AsignarViewModelTest {
         assertEquals(listOf("ENUSO1"), vm.estado.value.vehiculos.map { it.patente })
     }
 
+    /** `TR-1051` ya asignado a Iván en `KXJR42`: el punto de partida de «Reasignar» (HU23). */
+    private fun reasignando(): AsignarViewModel {
+        escenarioBase()
+        viajes.viaje.value = viaje(estado = EstadoViaje.ASIGNADO, correoConductor = "ivan@ejemplo.cl", patente = "KXJR42")
+        return crear().also { it.cargar("TR-1051") }
+    }
+
+    @Test
+    fun reasignarUnViajeAsignadoAOtroConductorYVehiculoLoEnviaYAvisaQueTermino() {
+        val vm = reasignando()
+        assertNull(vm.estado.value.noAsignable)
+
+        vm.elegirConductor("paula@ejemplo.cl")
+        vm.elegirVehiculo("PAUL01")
+        vm.confirmar()
+
+        assertEquals(listOf(Triple("TR-1051", "paula@ejemplo.cl", "PAUL01")), viajes.asignaciones)
+        assertTrue(vm.estado.value.asignado)
+        assertFalse(vm.estado.value.enviando)
+        assertNull(vm.estado.value.error)
+    }
+
+    @Test
+    fun reasignarSoloElVehiculoConservaAlConductorActual() {
+        val vm = reasignando()
+
+        vm.elegirConductor("ivan@ejemplo.cl")
+        vm.elegirVehiculo("LPHT17")
+        vm.confirmar()
+
+        assertEquals(listOf(Triple("TR-1051", "ivan@ejemplo.cl", "LPHT17")), viajes.asignaciones)
+        assertTrue(vm.estado.value.asignado)
+    }
+
+    @Test
+    fun alReasignarUnConductorOcupadoQueNoEsElActualSigueDeshabilitado() {
+        val vm = reasignando()
+
+        val opciones = vm.estado.value.conductores.associate { it.correo to it.habilitado }
+
+        assertEquals(true, opciones["ivan@ejemplo.cl"])
+        assertEquals(true, opciones["paula@ejemplo.cl"])
+        assertEquals(false, opciones["jorge@ejemplo.cl"])
+        vm.elegirConductor("jorge@ejemplo.cl")
+        assertNull(vm.estado.value.conductorElegido)
+    }
+
+    @Test
+    fun unConflictoAlReasignarConservaLaEleccionYElViajeSigueAsignado() {
+        val vm = reasignando()
+        vm.elegirConductor("paula@ejemplo.cl")
+        vm.elegirVehiculo("PAUL01")
+        viajes.respuestaAsignar = { Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje a menos de 2 horas")) }
+
+        vm.confirmar()
+
+        assertEquals(ErrorApp.Conflicto("El conductor ya tiene un viaje a menos de 2 horas"), vm.estado.value.error)
+        assertFalse(vm.estado.value.asignado)
+        assertEquals("paula@ejemplo.cl", vm.estado.value.conductorElegido)
+        assertEquals("PAUL01", vm.estado.value.vehiculoElegido)
+        assertEquals(EstadoViaje.ASIGNADO, vm.estado.value.viaje?.estado)
+        assertEquals("ivan@ejemplo.cl", vm.estado.value.viaje?.correoConductor)
+    }
+
     @Test
     fun unViajeVencidoNoSeAsigna() {
         viajes.viaje.value = viaje(minutosDesdeAhora = -61)

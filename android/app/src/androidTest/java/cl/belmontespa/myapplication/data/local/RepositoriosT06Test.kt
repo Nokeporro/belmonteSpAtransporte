@@ -562,6 +562,94 @@ class RepositoriosT06Test {
         assertEquals("LPHT17", local.viaje("TR-1042").patenteMovil)
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
     }
+    // HU23: reasignar es la misma V2 que asignar; solo cambia lo que se pide y el reemplazado pierde el viaje.
+    @Test fun reasignarSoloElConductorConservaElAbordajeYLaFlota() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val antes = local.viaje("TR-1042")
+        val marcasAntes = db.viajePasajeroDao().obtenerDelViaje("TR-1042").toSet()
+        assertEquals(1, marcasAntes.count { it.fhAbordaje != null })
+        assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
+        val despues = local.viaje("TR-1042")
+        assertEquals("ASIGNADO", despues.estado)
+        assertEquals("pmunoz@belmontespa.cl", despues.correoConductor)
+        assertEquals("Paula Muñoz", despues.nombreConductor)
+        assertEquals("KXJR42", despues.patenteMovil)
+        assertEquals(antes.fhAgenda, despues.fhAgenda)
+        assertNotEquals(antes.fhAsignacion, despues.fhAsignacion)
+        // El mismo vehículo es el mismo QR: nadie vuelve a Por abordar.
+        assertEquals(marcasAntes, db.viajePasajeroDao().obtenerDelViaje("TR-1042").toSet())
+        // V2 no cambia el estado de nadie.
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", local.usuario("pmunoz@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
+    }
+    @Test fun elViajeReasignadoSaleDeLaAgendaDelReemplazadoYEntraALaDelNuevoConductor() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
+        entrar(Rol.CONDUCTOR)
+        assertNull(viajes.observarViaje("TR-1042").first())
+        assertFalse(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
+        entrar(Rol.CONDUCTOR, "pmunoz@belmontespa.cl")
+        assertEquals("Paula Muñoz", viajes.observarViaje("TR-1042").first()?.nombreConductor)
+        assertTrue(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
+    }
+    @Test fun reasignarConductorYVehiculoVuelveAPorAbordarYCambiaLaAgenda() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // Paula solo está habilitada en KXJR42: se la habilita también en LPHT17, que no choca con TR-1049.
+        assertTrue(FlotaLocalRepository(local).habilitar("LPHT17", "pmunoz@belmontespa.cl") is Resultado.Exito)
+        assertEquals(1, db.viajePasajeroDao().obtenerDelViaje("TR-1042").count { it.fhAbordaje != null })
+        assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "LPHT17") is Resultado.Exito)
+        val guardado = local.viaje("TR-1042")
+        assertEquals("ASIGNADO", guardado.estado)
+        assertEquals("pmunoz@belmontespa.cl", guardado.correoConductor)
+        assertEquals("LPHT17", guardado.patenteMovil)
+        assertEquals(3, db.viajePasajeroDao().obtenerDelViaje("TR-1042").size)
+        assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
+        // El otro viaje de Iván no se toca.
+        assertEquals("ireyes@belmontespa.cl", local.viaje("TR-1049").correoConductor)
+        entrar(Rol.CONDUCTOR, "pmunoz@belmontespa.cl")
+        assertTrue(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
+    }
+    private suspend fun rechazaLaReasignacion(folio: String, correo: String, patente: String, mensaje: String) {
+        val viajeAntes = local.viaje(folio)
+        val marcasAntes = db.viajePasajeroDao().obtenerDelViaje(folio).toSet()
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto(mensaje)), viajes.asignar(folio, correo, patente))
+        assertEquals(viajeAntes, local.viaje(folio))
+        assertEquals(marcasAntes, db.viajePasajeroDao().obtenerDelViaje(folio).toSet())
+    }
+    @Test fun reasignarAUnConductorOcupadoSeRechazaSinCambiarNada() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // Jorge Lara está Ocupado con TR-1045: el conductor nuevo debe estar Disponible.
+        rechazaLaReasignacion("TR-1042", "jlara@belmontespa.cl", "KXJR42", "El conductor no está disponible")
+    }
+    @Test fun reasignarAUnConductorConOtroViajeCercanoSeRechazaSinCambiarNada() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // Paula tiene otro viaje una hora después de TR-1042, que sale en media hora.
+        db.viajeDao().guardar(local.viaje("TR-1051").copy(estado = "ASIGNADO", correoConductor = "pmunoz@belmontespa.cl",
+            nombreConductor = "Paula Muñoz", patenteMovil = "GZRW90", fhAgenda = FechaIso.texto(local.ahora().plusMinutes(90))))
+        rechazaLaReasignacion("TR-1042", "pmunoz@belmontespa.cl", "KXJR42", "El conductor ya tiene un viaje a menos de 2 horas")
+    }
+    @Test fun reasignarAUnVehiculoConOtroViajeCercanoSeRechazaSinCambiarNada() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        // LPHT17 tiene otro viaje una hora después de TR-1042; Iván sigue siendo el conductor.
+        db.viajeDao().guardar(local.viaje("TR-1051").copy(estado = "ASIGNADO", correoConductor = "pmunoz@belmontespa.cl",
+            nombreConductor = "Paula Muñoz", patenteMovil = "LPHT17", fhAgenda = FechaIso.texto(local.ahora().plusMinutes(90))))
+        rechazaLaReasignacion("TR-1042", "ireyes@belmontespa.cl", "LPHT17", "El móvil ya tiene un viaje a menos de 2 horas")
+    }
+    @Test fun unViajeEnCursoOVencidoNoSeReasigna() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        rechazaLaReasignacion("TR-1045", "pmunoz@belmontespa.cl", "KXJR42", "El viaje ya no se puede asignar")
+        vencer(local.viaje("TR-1042"))
+        rechazaLaReasignacion("TR-1042", "pmunoz@belmontespa.cl", "KXJR42", "El viaje está vencido")
+    }
+    @Test fun soloElAdministradorReasigna() = runBlocking {
+        for (rol in listOf(Rol.SOLICITANTE, Rol.CONDUCTOR)) {
+            entrar(rol)
+            val antes = local.viaje("TR-1042")
+            assertTrue((viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertEquals(antes, local.viaje("TR-1042"))
+        }
+    }
     // V3 y V4 (HU09): los mismos mensajes que el backend.
     @Test fun iniciarYFinalizarMarcanYLiberanAlConductorYAlVehiculo() = runBlocking {
         entrar(Rol.CONDUCTOR)

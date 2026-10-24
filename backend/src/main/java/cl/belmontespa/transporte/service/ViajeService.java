@@ -188,17 +188,16 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 			detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
 					.forEach(detalle -> detalle.setFhAbordaje(null));
 		}
-		Map<String, String> datos = Map.of("folio", viaje.getFolio());
-		firebaseClient.notificar(conductor.getUsuario().getTokenFcm(),
-				"Nuevo viaje asignado", "Viaje " + viaje.getFolio() + " para " + viaje.getFhAgenda(), datos);
-		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
-				"Viaje asignado", "Tu viaje " + viaje.getFolio() + " ya tiene conductor y vehículo", datos);
+		avisar(conductor.getUsuario().getTokenFcm(), AvisosDeViaje.nuevoViaje(viaje.getFolio(), viaje.getFhAgenda()));
+		avisar(viaje.getSolicitante().getUsuario().getTokenFcm(), AvisosDeViaje.viajeAsignado(viaje.getFolio()));
 		if (cambiaConductor && anterior != null) {
-			firebaseClient.notificar(anterior.getUsuario().getTokenFcm(),
-					"Viaje reasignado", "El viaje " + viaje.getFolio() + " fue asignado a otro conductor",
-					Map.of("tipo", "AGENDA", "folio", viaje.getFolio()));
+			avisar(anterior.getUsuario().getTokenFcm(), AvisosDeViaje.viajeReasignado(viaje.getFolio()));
 		}
 		return aResponse(viaje);
+	}
+
+	private void avisar(String tokenFcm, AvisosDeViaje.Aviso aviso) {
+		firebaseClient.notificar(tokenFcm, aviso.titulo(), aviso.mensaje(), aviso.datos());
 	}
 
 	// V2: ninguno de los dos con otro viaje Asignado o En curso a menos de 2 horas (extremos excluidos).

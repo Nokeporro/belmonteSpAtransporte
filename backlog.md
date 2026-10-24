@@ -138,7 +138,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
-| 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | — |
+| 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
 | 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | — |
 | 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | — |
 | 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
@@ -364,6 +364,11 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
   Al reasignar se valida solo lo que cambia.
 - **Cambio de vehículo:** vuelve `fh_abordaje` a NULL.
 - **Push:** al conductor reemplazado, con `data.tipo` `AGENDA`.
+
+- **Reasignar (HU23) es la misma V2, hecha en HU05.** Lo que cerró HU23:
+  - [x] Los avisos de V2 salen de `AvisosDeViaje` según el README: «Viaje {folio} para {fecha}» con la fecha como `24-09-2026 · 14:30`, y `data.tipo` `VIAJE` al nuevo conductor y al Solicitante (el del reemplazado sigue en `AGENDA`).
+  - [x] Pruebas: 5 unitarias nuevas del backend (84) y 4 de `AsignarViewModelTest` (333 JVM Android); lint y APK debug y demo correctos.
+  - [x] Escritas y compiladas, sin ejecutar (sin MariaDB ni AVD): `NotificacionesIT` con los tres avisos exactos, ocho pruebas de Room de reasignar (conductor, vehículo, ambos, agenda de cada conductor y los rechazos sin cambios) y `HU23ScreenTest`.
 
 ### HU09
 
