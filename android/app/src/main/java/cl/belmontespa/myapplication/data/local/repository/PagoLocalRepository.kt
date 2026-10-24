@@ -10,9 +10,9 @@ import javax.inject.Inject
 
 class PagoLocalRepository @Inject constructor(private val local: SoporteLocal) : PagoRepository {
     override suspend fun obtenerPago(hash: String): Resultado<Pago> = local.ejecutar {
-        val p = local.db.pagoDao().obtener(hash) ?: falla(ErrorApp.NoEncontrado)
         val s = local.sesion()
-        exigir(s.rol != Rol.CONDUCTOR, "No tienes permiso para consultar pagos.")
+        if (s.rol == Rol.CONDUCTOR) falla(ErrorApp.SinPermiso())
+        val p = local.db.pagoDao().obtener(hash) ?: falla(ErrorApp.NoEncontrado)
         local.alcance(p.folio)
         p.modelo()
     }

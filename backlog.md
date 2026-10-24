@@ -140,7 +140,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Implementado | Listo |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
 | 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
-| 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | — |
+| 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | Listo |
 | 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
 | 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
 | 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — | — |
@@ -396,6 +396,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
 HU16, HU17, HU18, HU19, HU20, HU22, HU27 y HU26 también están implementadas; todas las tareas P3 de A están listas.
+HU21 de P4 también está implementada; el siguiente ítem de A es HU28.
 
 ### HU16 y HU24
 
@@ -471,7 +472,16 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU21 (P4)
 
-- `folio` y `montoReembolsado` ya están disponibles; sigue pendiente cerrar la consulta del estado de pago desde el detalle del Solicitante.
+- [x] Resumen del pago en el detalle de la solicitud propia: los cinco estados, monto y reembolso cuando corresponde.
+- [x] Enlace al detalle solo si hay pago; folio, banco, medio, recibo y fecha en una vista de solo lectura para el Solicitante.
+- [x] Sin pago se indica explícitamente; una consulta fallida muestra reintento sin ocultar el viaje ni afirmar que no tiene pago.
+- [x] Recarga al volver a primer plano o desde el detalle del pago; una respuesta atrasada no reemplaza datos de una emisión más reciente del viaje.
+- [x] Solo pagos de los viajes propios, también entre Solicitantes de la misma empresa; Conductor sin acceso y cambios reservados al Administrador.
+- [x] Demo sobre Room; la conexión remota corresponde a T14.
+- [x] 52 pruebas backend de pagos y permisos y 374 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 100 pruebas de Room, HU21 y regresión de HU16 aprobadas, incluida consulta con texto al 200 %, reintento y recarga al volver.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU22
 

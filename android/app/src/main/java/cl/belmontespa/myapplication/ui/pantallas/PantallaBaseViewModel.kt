@@ -35,6 +35,8 @@ data class EstadoPantallaDemo(
     val habilitaciones: List<Habilitacion> = emptyList(),
     val pendientes: List<Solicitante> = emptyList(),
     val pago: Pago? = null,
+    val cargandoPago: Boolean = false,
+    val errorPago: ErrorApp? = null,
     val catalogos: Catalogos? = null,
     val pasajeros: List<NuevoPasajero> = emptyList(),
     val destino: Pair<PantallaDemo, String>? = null,
@@ -93,7 +95,8 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
         pantalla = p; referencia = id
         consulta?.cancel()
         consulta = viewModelScope.launch {
-            mutable.update { it.copy(cargando = true, error = null) }
+            mutable.update { it.copy(cargando = true, error = null,
+                pago = if (p == PantallaDemo.DETALLE_PAGO) null else it.pago) }
             try {
                 val actual = mutable.value
                 val fecha = LocalDateTime.now(repos.clock).plusHours(3)
@@ -137,7 +140,26 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                     repos.viajes.observarViajes(filtro).collect { datos -> mutable.update { it.copy(viajes = datos, cargando = false) } }
                 } else if (p in pantallasDeViaje && id.isNotBlank()) {
                     mutable.update { it.copy(cargando = false) }
-                    repos.viajes.observarViaje(id).collect { viaje ->
+                    repos.viajes.observarViaje(id).collectLatest { viaje ->
+                        val consultaSolicitante = p in listOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS)
+                        // El viaje permanece visible mientras se consulta el pago, incluso si este falla.
+                        mutable.update { it.copy(viaje = viaje, cargando = false, pago = null, errorPago = null,
+                            cargandoPago = consultaSolicitante && viaje?.hashPago != null,
+                            error = if (viaje == null) ErrorApp.NoEncontrado else null) }
+                        if (consultaSolicitante) {
+                            val resultado = viaje?.hashPago?.let { hash ->
+                                try { repos.pagos.obtenerPago(hash) }
+                                catch (e: CancellationException) { throw e }
+                                catch (_: Exception) { Resultado.Fallo(ErrorApp.Inesperado) }
+                            }
+                            mutable.update { it.copy(pago = (resultado as? Resultado.Exito)?.valor, cargandoPago = false,
+                                errorPago = when (resultado) {
+                                    is Resultado.Fallo -> resultado.error
+                                    Resultado.Encolado -> ErrorApp.Inesperado
+                                    else -> null
+                                }) }
+                            return@collectLatest
+                        }
                         // La cancelación del Solicitante necesita el pago (HU16); el detalle del Administrador lo muestra,
                         // sin que un pago ilegible le oculte el viaje (HU24).
                         val pagoDelViaje = viaje?.hashPago?.let { hash -> when (p) {
@@ -155,6 +177,10 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
         }
     }
     fun actualizar() { pantalla?.let { cargar(it, referencia, true) } }
+    fun alVolverAPrimerPlano() {
+        if (!mutable.value.cargando && pantalla in listOf(PantallaDemo.DETALLE_SOLICITUD,
+                PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_PAGO)) actualizar()
+    }
     fun agregarPasajero() {
         if (valor("pasajeroNombre").isBlank() || valor("documento").isBlank()) { aviso(R.string.aviso_campos_obligatorios); return }
         val nuevo = NuevoPasajero(TipoDocumento.valueOf(valor("tipoDocumento")), valor("documento"), valor("pasajeroNombre"))

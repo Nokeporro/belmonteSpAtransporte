@@ -378,4 +378,8 @@
     <string name="flota_activo_ayuda">Solo puedes desactivar si no hay viajes asignados o en curso. Las habilitaciones y el QR se conservan.</string>
     <string name="flota_confirmar_desactivar">¿Desactivar %1$s? Dejará de estar disponible para nuevas asignaciones. Un conductor inactivo no podrá iniciar sesión.</string>
     <string name="flota_confirmar_reactivar">¿Reactivar %1$s? Volverá a estar disponible para nuevas asignaciones.</string>
+    <string name="pago_consulta_cargando">Consultando el pago…</string>
+    <string name="pago_consulta_error">No se pudo consultar el pago. Puedes volver a intentarlo.</string>
+    <string name="pago_consulta_reintentar">Reintentar consulta del pago</string>
+    <string name="pago_consulta_ver_detalle">Ver detalle del pago</string>
 </resources>

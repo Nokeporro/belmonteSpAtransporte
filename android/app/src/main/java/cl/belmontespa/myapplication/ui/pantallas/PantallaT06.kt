@@ -20,6 +20,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.Lifecycle
 import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.*
@@ -126,6 +128,7 @@ fun PantallaT06(
         // Al volver del alta o de editar, la lista y el detalle deben leer los datos guardados.
         vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.VEHICULOS, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.HABILITACIONES, PantallaDemo.DETALLE_PAGO, PantallaDemo.CUENTAS_PENDIENTES))
     }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.alVolverAPrimerPlano() }
     LaunchedEffect(estado.destino) {
         estado.destino?.let { (destino, id) -> vm.consumirDestino(); onNavegar(destino, id) }
     }

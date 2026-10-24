@@ -98,6 +98,8 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     val viajeActual = MutableStateFlow<Viaje?>(null)
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
+    var consultasPago = 0
+    var esperaPago: CompletableDeferred<Unit>? = null
     var enviosPago = 0
     var cambiosPago = 0
     var recuperaciones = 0
@@ -204,8 +206,11 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
                 .also(habilitaciones::add)
         return Resultado.Exito(habilitacion)
     }
-    override suspend fun obtenerPago(hash: String): Resultado<Pago> = errorPago?.let { Resultado.Fallo(it) }
-        ?: pago?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
+    override suspend fun obtenerPago(hash: String): Resultado<Pago> {
+        consultasPago++; esperaPago?.await()
+        return errorPago?.let { Resultado.Fallo(it) }
+            ?: pago?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
+    }
     override suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> {
         enviosPago++; nuevoPago = pago; espera?.await()
         fallo?.let { return Resultado.Fallo(it) }

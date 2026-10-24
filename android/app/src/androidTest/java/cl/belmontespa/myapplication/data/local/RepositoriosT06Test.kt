@@ -41,6 +41,34 @@ class RepositoriosT06Test {
         viajes = ViajeLocalRepository(db.viajeDao(), sesiones, reloj, operaciones)
     }
     @After fun cerrar() { db.close() }
+    @Test fun hu21ConsultaPropiaEnLosCincoEstadosConDatosYReembolsoSinPermitirCambios() = runBlocking {
+        entrar(Rol.SOLICITANTE); val repos = PagoLocalRepository(local)
+        for (estado in EstadoPago.entries) {
+            val (v, p) = solicitudConPago(50001, estado.name)
+            val guardado = p.copy(fechaPago = if (estado in listOf(EstadoPago.PAGADO, EstadoPago.REEMBOLSADO)) p.fechaPago else null,
+                montoReembolsado = if (estado == EstadoPago.REEMBOLSADO) 25000 else null)
+            db.pagoDao().guardar(guardado)
+            val pago = (repos.obtenerPago(p.hash) as Resultado.Exito).valor
+            assertEquals(v.folio, pago.folio); assertEquals(estado, pago.estado); assertEquals(50001, pago.monto)
+            assertEquals(guardado.montoReembolsado, pago.montoReembolsado)
+            assertTrue((repos.cambiarEstadoPago(p.hash, EstadoPago.ANULADO) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertEquals(guardado, db.pagoDao().obtener(p.hash))
+        }
+    }
+    @Test fun hu21MismaEmpresaNoPermiteLeerElPagoAjenoYConductorNoPuedeConsultar() = runBlocking {
+        entrar(Rol.SOLICITANTE); val (_, pago) = solicitudConPago(50001)
+        val propia = local.usuario("crios@andesconsult.cl")
+        db.usuarioDao().insertar(propia.copy(correo = "colega@test.cl", nombre = "Colega"))
+        val repos = PagoLocalRepository(local)
+        entrar(Rol.SOLICITANTE, "colega@test.cl")
+        assertTrue((repos.obtenerPago(pago.hash) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        entrar(Rol.CONDUCTOR)
+        assertTrue((repos.obtenerPago(pago.hash) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        assertTrue((repos.obtenerPago("ausente") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        entrar(Rol.SOLICITANTE)
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), repos.obtenerPago("ausente"))
+        entrar(Rol.ADMINISTRADOR); assertTrue(repos.obtenerPago(pago.hash) is Resultado.Exito)
+    }
     @Test fun hu26BajaYReactivacionConservanDatosQrYHabilitacionesYBloqueanLogin() = runBlocking {
         entrar(Rol.ADMINISTRADOR); val flota = FlotaLocalRepository(local)
         val correo = "pmunoz@belmontespa.cl"; val original = local.usuario(correo)

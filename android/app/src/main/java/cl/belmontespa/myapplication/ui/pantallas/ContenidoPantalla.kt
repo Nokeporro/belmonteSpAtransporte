@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -278,9 +279,18 @@ private fun ContextoPantalla.DetalleViaje() {
     if (estado.cuenta?.rol == Rol.ADMINISTRADOR) estado.pago?.let { PagoDelViaje(it) }
     when (estado.cuenta?.rol) {
         Rol.SOLICITANTE -> {
+            when {
+                viaje.hashPago == null -> Text(stringResource(R.string.aviso_sin_pago))
+                estado.cargandoPago -> Text(stringResource(R.string.pago_consulta_cargando))
+                estado.errorPago != null -> {
+                    Aviso(stringResource(R.string.pago_consulta_error), TonoAviso.AVISO)
+                    Accion(R.string.pago_consulta_reintentar, vm::actualizar, TipoBoton.SECUNDARIO)
+                }
+                else -> estado.pago?.let { Column(Modifier.testTag("pago_resumen")) { PagoDelViaje(it) } }
+            }
             if (editable) Enlace(R.string.accion_agregar_pasajero, PantallaDemo.AGREGAR_PASAJERO)
             if (viaje.cancelablePorSolicitante(ahora)) Enlace(R.string.accion_cancelar_solicitud, PantallaDemo.CONFIRMAR_CANCELACION)
-            viaje.hashPago?.let { Enlace(R.string.campo_pago, PantallaDemo.DETALLE_PAGO, it) }
+            viaje.hashPago?.let { Enlace(R.string.pago_consulta_ver_detalle, PantallaDemo.DETALLE_PAGO, it) }
         }
         Rol.ADMINISTRADOR -> {
             if (editable && !vencido && viaje.cantidadPasajeros > 0) Enlace(if (viaje.estado == EstadoViaje.ASIGNADO) R.string.accion_reasignar else R.string.accion_asignar, PantallaDemo.ASIGNAR)

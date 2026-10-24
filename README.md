@@ -253,6 +253,18 @@ HU16 se detalla a continuación.
 - [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
 - [ ] Instrumentadas en API 26, TalkBack y CI.
 
+### Avance de implementación: HU21 de A
+
+- [x] Estado, monto y reembolso del pago visibles en el detalle de la solicitud propia, con los cinco estados del contrato.
+- [x] Acceso al detalle del pago con folio, banco, medio, recibo y fecha; consulta de solo lectura para el Solicitante.
+- [x] Sin pago se indica explícitamente; los errores de consulta conservan el viaje y permiten reintentar.
+- [x] Recarga al volver al detalle o a primer plano; consultas anteriores canceladas al cambiar el viaje observado.
+- [x] Acceso limitado al dueño del viaje, incluso entre cuentas de la misma empresa; Conductor sin acceso a pagos.
+- [x] Demo persistida en Room. La conexión remota sigue en T14.
+- [x] Verificación local: 52 pruebas backend de pagos y permisos y 374 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 100 pruebas de Room, HU21 y regresión de HU16 aprobadas, incluida consulta con texto al 200 %, reintento y recarga al volver.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
 ### Avance de implementación: HU22 de A
 
 - [x] Recuperación solo para Solicitante y Administrador, con respuesta genérica y temporal BCrypt de 12 caracteres que conserva la contraseña actual.
