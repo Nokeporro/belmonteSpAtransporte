@@ -77,6 +77,34 @@ class EmailClientTest {
 	}
 
 	@Test
+	@DisplayName("envía la aprobación de cuenta con el texto del contrato")
+	void enviaAprobacionConTextoDelContrato() throws Exception {
+		cliente(servidor(greenMail.getSmtp().getPort())).enviarCuentaRevisada("ana@test.cl", "Ana", "Álamo SpA", true);
+		var mensaje = greenMail.getReceivedMessages()[0];
+		assertThat(mensaje.getAllRecipients()[0].toString()).isEqualTo("ana@test.cl");
+		assertThat(mensaje.getFrom()[0].toString()).isEqualTo("no-reply@belmontespa.cl");
+		assertThat(mensaje.getSubject()).isEqualTo("Belmonte SpA: tu cuenta fue aprobada");
+		assertThat(((String) mensaje.getContent()).replace("\r\n", "\n").stripTrailing()).isEqualTo(
+				"Hola Ana: tu cuenta para Álamo SpA fue aprobada. Ya puedes iniciar sesión con tu correo y contraseña.\n\nBelmonte SpA");
+	}
+
+	@Test
+	void enviaRechazoConTextoDelContrato() throws Exception {
+		cliente(servidor(greenMail.getSmtp().getPort())).enviarCuentaRevisada("ana@test.cl", "Ana", "Álamo SpA", false);
+		var mensaje = greenMail.getReceivedMessages()[0];
+		assertThat(mensaje.getSubject()).isEqualTo("Belmonte SpA: tu cuenta fue rechazada");
+		assertThat(((String) mensaje.getContent()).replace("\r\n", "\n").stripTrailing()).isEqualTo(
+				"Hola Ana: tu cuenta para Álamo SpA no fue aprobada. Si crees que es un error, contacta a Belmonte SpA.\n\nBelmonte SpA");
+	}
+
+	@Test
+	void revisionSinSmtpNoFalla() {
+		assertThatCode(() -> new EmailClient(null, "no-reply@belmontespa.cl", Runnable::run)
+				.enviarCuentaRevisada("ana@test.cl", "Ana", "Álamo SpA", true)).doesNotThrowAnyException();
+		assertThat(greenMail.getReceivedMessages()).isEmpty();
+	}
+
+	@Test
 	@DisplayName("sin servidor SMTP configurado no falla ni envía")
 	void sinServidor() {
 		assertThatCode(() -> new EmailClient(null, "no-reply@belmontespa.cl", Runnable::run)

@@ -179,7 +179,17 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 val p = pantalla ?: return@launch
                 var destino: Pair<PantallaDemo, String>? = null
                 when (accion) {
-                    "aprobar", "rechazarCuenta" -> { if (accion == "aprobar") repos.cuentas.aprobarSolicitante(dato).valor() else repos.cuentas.rechazarSolicitante(dato).valor(); actualizar() }
+                    "aprobar", "rechazarCuenta" -> {
+                        if (p != PantallaDemo.CUENTAS_PENDIENTES || mutable.value.cuenta?.rol != Rol.ADMINISTRADOR) {
+                            throw FalloPantalla(ErrorApp.SinPermiso())
+                        }
+                        val cuenta = mutable.value.pendientes.find { it.correo == dato && it.estado == EstadoSolicitante.PENDIENTE }
+                            ?: throw FalloPantalla(ErrorApp.Conflicto("La cuenta ya no está pendiente. Actualiza la lista."))
+                        if (accion == "aprobar") repos.cuentas.aprobarSolicitante(cuenta.correo).valor()
+                        else repos.cuentas.rechazarSolicitante(cuenta.correo).valor()
+                        mutable.update { it.copy(pendientes = it.pendientes.filterNot { c -> c.correo == cuenta.correo },
+                            aviso = if (accion == "aprobar") R.string.cuenta_revision_aprobada else R.string.cuenta_revision_rechazada) }
+                    }
                     "activoConductor" -> { repos.flota.cambiarActivoConductor(referencia, mutable.value.conductor?.activo != true).valor(); actualizar() }
                     "activoMovil" -> { repos.flota.cambiarActivoMovil(referencia, mutable.value.movil?.activo != true).valor(); actualizar() }
                     "pago" -> {
@@ -287,7 +297,10 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 }
                 mutable.update { it.copy(enviando = false, modificado = false, destino = destino) }
             } catch (e: CancellationException) { throw e
-            } catch (e: FalloPantalla) { mutable.update { it.copy(enviando = false, error = e.error) }
+            } catch (e: FalloPantalla) {
+                val pendientes = if (accion in listOf("aprobar", "rechazarCuenta") && e.error is ErrorApp.Conflicto)
+                    (repos.cuentas.listarSolicitantesPendientes() as? Resultado.Exito)?.valor else null
+                mutable.update { it.copy(enviando = false, error = e.error, pendientes = pendientes ?: it.pendientes) }
             } catch (e: Exception) { mutable.update { it.copy(enviando = false, error = ErrorApp.Validacion(mapOf("datos" to "Revisa los datos ingresados."))) } }
         }
     }

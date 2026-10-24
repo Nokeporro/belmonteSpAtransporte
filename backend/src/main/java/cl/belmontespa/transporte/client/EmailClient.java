@@ -15,7 +15,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
 /**
- * Envío de la contraseña temporal (CU-13/RF21) por SMTP. El servidor se configura con
+ * Contraseña temporal (CU-13/RF21) y revisión de cuentas (CU-17/RF26) por SMTP. El servidor se configura con
  * SPRING_MAIL_HOST, SPRING_MAIL_PORT, SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD; sin
  * SPRING_MAIL_HOST solo se registra que no se envió. La contraseña nunca va a los logs.
  */
@@ -56,6 +56,22 @@ public class EmailClient {
 			mailSender.send(mensaje);
 			log.info("Contraseña temporal enviada a {}", correo);
 		});
+	}
+
+	public void enviarCuentaRevisada(String correo, String nombre, String razonSocial, boolean aprobado) {
+		if (mailSender == null) {
+			log.info("Correo no configurado (define SPRING_MAIL_HOST): no se envió el resultado de revisión a {}", correo);
+			return;
+		}
+		SimpleMailMessage mensaje = new SimpleMailMessage();
+		mensaje.setFrom(remitente);
+		mensaje.setTo(correo);
+		mensaje.setSubject("Belmonte SpA: tu cuenta fue " + (aprobado ? "aprobada" : "rechazada"));
+		mensaje.setText((aprobado
+				? "Hola %s: tu cuenta para %s fue aprobada. Ya puedes iniciar sesión con tu correo y contraseña."
+				: "Hola %s: tu cuenta para %s no fue aprobada. Si crees que es un error, contacta a Belmonte SpA.")
+				.formatted(nombre, razonSocial) + "\n\nBelmonte SpA\n");
+		EnvioDiferido.ejecutar(executor, "enviar el resultado de revisión por correo", () -> mailSender.send(mensaje));
 	}
 
 	@PreDestroy

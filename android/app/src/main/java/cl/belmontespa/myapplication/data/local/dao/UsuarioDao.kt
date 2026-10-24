@@ -25,4 +25,7 @@ interface UsuarioDao {
     /** Cuentas de un rol (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`), por nombre. */
     @Query("SELECT * FROM usuarios WHERE rol = :rol ORDER BY nombre")
     fun observarPorRol(rol: String): Flow<List<UsuarioEntity>>
+
+    @Query("SELECT * FROM usuarios WHERE rol = 'SOLICITANTE' AND estado_solicitante = 'PENDIENTE'")
+    suspend fun listarSolicitantesPendientes(): List<UsuarioEntity>
 }

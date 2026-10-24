@@ -6,7 +6,6 @@ import cl.belmontespa.myapplication.data.repository.CuentaRepository
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 
 // Los perfiles y formularios de T06 leen la cuenta real de la sesión demo.
 class CuentaLocalRepository @Inject constructor(private val local: SoporteLocal) : CuentaRepository {
@@ -38,13 +37,17 @@ class CuentaLocalRepository @Inject constructor(private val local: SoporteLocal)
     }
     override suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        local.db.usuarioDao().observarPorRol("SOLICITANTE").first()
-            .filter { it.estadoSolicitante == "PENDIENTE" }.map { it.solicitante() }
+        val orden = java.text.Collator.getInstance(java.util.Locale.forLanguageTag("es-CL"))
+            .apply { strength = java.text.Collator.PRIMARY }
+        local.db.usuarioDao().listarSolicitantesPendientes().sortedWith { a, b ->
+            orden.compare(a.nombre, b.nombre).takeIf { it != 0 } ?: a.correo.compareTo(b.correo)
+        }.map { it.solicitante() }
     }
     private suspend fun aprobar(correo: String, estado: EstadoSolicitante): Resultado<Solicitante> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val u = local.usuario(correo)
-        exigir(u.rol == "SOLICITANTE" && u.estadoSolicitante == "PENDIENTE", "La cuenta ya fue revisada.")
+        val u = local.usuario(cl.belmontespa.myapplication.util.Validaciones.correo(correo))
+        if (u.rol != "SOLICITANTE") falla(ErrorApp.NoEncontrado)
+        exigir(u.estadoSolicitante == "PENDIENTE", "La cuenta ya fue revisada.")
         val nueva = u.copy(estadoSolicitante = estado.name)
         local.db.usuarioDao().guardar(nueva)
         nueva.solicitante()

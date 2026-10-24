@@ -4,11 +4,15 @@ import cl.belmontespa.transporte.dto.request.SolicitanteDTORequest;
 import cl.belmontespa.transporte.dto.response.SolicitanteDTOResponse;
 import cl.belmontespa.transporte.service.CrudService;
 import cl.belmontespa.transporte.service.SolicitanteService;
+import java.util.List;
+import java.util.Map;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
-// POST es el autorregistro público (RF01); el Administrador solo lee.
+// Autorregistro público (RF01); solo el Administrador lista y revisa cuentas pendientes (CU-17).
 @RestController
 @RequestMapping("/api/v1/solicitantes")
 public class SolicitanteController extends CrudController<SolicitanteDTORequest, SolicitanteDTOResponse> {
@@ -22,6 +26,21 @@ public class SolicitanteController extends CrudController<SolicitanteDTORequest,
 	@Override
 	protected CrudService<?, String, SolicitanteDTORequest, SolicitanteDTOResponse> service() {
 		return solicitanteService;
+	}
+
+	@Override
+	protected List<SolicitanteDTOResponse> listarPara(Authentication auth, Map<String, String> filtros) {
+		return solicitanteService.listarConEstado(filtros.get("estado"));
+	}
+
+	@PostMapping("/{correo}/aprobar")
+	public SolicitanteDTOResponse aprobar(@PathVariable String correo) {
+		return solicitanteService.revisar(correo, true);
+	}
+
+	@PostMapping("/{correo}/rechazar")
+	public SolicitanteDTOResponse rechazar(@PathVariable String correo) {
+		return solicitanteService.revisar(correo, false);
 	}
 
 	@Override

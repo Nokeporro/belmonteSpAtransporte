@@ -150,6 +150,17 @@ class SolicitudesViewModelTest {
     }
 
     @Test
+    fun alVolverDeRevisarCuentasActualizaCantidadSinCambiarElFiltro() {
+        cuentas.pendientes = listOf(solicitante("a@ejemplo.cl"), solicitante("b@ejemplo.cl"))
+        val vm = crear()
+        vm.elegirFiltro(FiltroSolicitudes.ASIGNADO)
+        cuentas.pendientes = emptyList()
+        vm.alVolverAPrimerPlano()
+        assertEquals(0, vm.estado.value.cuentasPorAprobar)
+        assertEquals(FiltroSolicitudes.ASIGNADO, vm.estado.value.filtro)
+    }
+
+    @Test
     fun alVolverAPrimerPlanoSeRecalculaElRetraso() {
         viajes.todos.value = listOf(viaje("TR-1047", EstadoViaje.PENDIENTE, -30))
         val vm = crear()

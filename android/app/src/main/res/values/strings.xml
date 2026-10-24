@@ -293,6 +293,13 @@
     <string name="aviso_descartar">Tienes cambios sin guardar. ¿Quieres descartarlos?</string>
     <string name="aviso_recuperacion_enviada">Si el correo corresponde a una cuenta habilitada, recibirás instrucciones para recuperar tu contraseña.</string>
     <string name="recuperacion_demo">Modo demo: esta pantalla simula la solicitud; no envía correos ni cambia tu contraseña.</string>
+    <string name="cuenta_aprobar_titulo">Aprobar cuenta</string>
+    <string name="cuenta_rechazar_titulo">Rechazar cuenta</string>
+    <string name="cuenta_aprobar_confirmacion">%1$s (%2$s) pertenece a %3$s. Al aprobar, podrá iniciar sesión.</string>
+    <string name="cuenta_rechazar_confirmacion">Se rechazará a %1$s (%2$s) de %3$s. No podrá iniciar sesión. La decisión no se puede cambiar desde esta pantalla.</string>
+    <string name="cuenta_revision_aprobada">Cuenta aprobada.</string>
+    <string name="cuenta_revision_rechazada">Cuenta rechazada.</string>
+    <string name="cuenta_revision_demo">Modo demo: la decisión se guarda en este dispositivo; no se envían correos.</string>
     <string name="aviso_registro_aprobado">Cuenta creada. Ya puedes iniciar sesión.</string>
     <string name="aviso_registro_pendiente">Cuenta creada. Espera la aprobación de un Administrador para iniciar sesión.</string>
     <string name="aviso_guardado">Los cambios se guardaron correctamente.</string>

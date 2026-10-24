@@ -124,7 +124,7 @@ fun PantallaT06(
     BackHandler(enabled = estado.modificado) { confirmarSalida = true }
     LaunchedEffect(pantalla, referencia) {
         // Al volver del alta o de editar, la lista y el detalle deben leer los datos guardados.
-        vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.VEHICULOS, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.HABILITACIONES, PantallaDemo.DETALLE_PAGO))
+        vm.cargar(pantalla, referencia, forzar = pantalla in listOf(PantallaDemo.CONDUCTORES, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.VEHICULOS, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.HABILITACIONES, PantallaDemo.DETALLE_PAGO, PantallaDemo.CUENTAS_PENDIENTES))
     }
     LaunchedEffect(estado.destino) {
         estado.destino?.let { (destino, id) -> vm.consumirDestino(); onNavegar(destino, id) }

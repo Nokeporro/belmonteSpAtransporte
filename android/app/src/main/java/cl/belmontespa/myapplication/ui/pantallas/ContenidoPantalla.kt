@@ -1,6 +1,8 @@
 package cl.belmontespa.myapplication.ui.pantallas
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -75,13 +77,24 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         }
         PantallaDemo.PERFIL_SOLICITANTE, PantallaDemo.PERFIL_ADMIN, PantallaDemo.PERFIL_CONDUCTOR -> Perfil()
         PantallaDemo.CUENTAS_PENDIENTES -> {
+            var revision by remember { mutableStateOf<Pair<Solicitante, Boolean>?>(null) }
+            if (BuildConfig.MODO_LOCAL) Aviso(stringResource(R.string.cuenta_revision_demo), TonoAviso.INFORMACION)
             if (estado.pendientes.isEmpty()) Text(stringResource(R.string.vacio_cuentas_por_aprobar))
             estado.pendientes.forEach { cuenta -> Bloque(cuenta.nombre) {
                 Dato(R.string.campo_correo, cuenta.correo); Dato(R.string.campo_empresa, cuenta.razonSocial)
                 Dato(R.string.campo_rut_empresa, Formatos.rut(cuenta.rutEmpresa))
-                Accion(R.string.accion_aprobar, { vm.ejecutar("aprobar", cuenta.correo) })
-                Accion(R.string.accion_rechazar, { vm.ejecutar("rechazarCuenta", cuenta.correo) }, TipoBoton.PELIGRO)
+                Accion(R.string.accion_aprobar, { revision = cuenta to true }, habilitada = estado.error == null)
+                Accion(R.string.accion_rechazar, { revision = cuenta to false }, TipoBoton.PELIGRO, habilitada = estado.error == null)
             } }
+            revision?.let { (cuenta, aprobar) -> AlertDialog(
+                onDismissRequest = { revision = null },
+                title = { Text(stringResource(if (aprobar) R.string.cuenta_aprobar_titulo else R.string.cuenta_rechazar_titulo)) },
+                text = { Text(stringResource(if (aprobar) R.string.cuenta_aprobar_confirmacion else R.string.cuenta_rechazar_confirmacion,
+                    cuenta.nombre, cuenta.correo, cuenta.razonSocial), Modifier.verticalScroll(rememberScrollState())) },
+                confirmButton = { TextButton(onClick = { revision = null; vm.ejecutar(if (aprobar) "aprobar" else "rechazarCuenta", cuenta.correo) },
+                    enabled = !estado.enviando && estado.error == null) { Text(stringResource(R.string.accion_confirmar)) } },
+                dismissButton = { TextButton(onClick = { revision = null }) { Text(stringResource(R.string.accion_cancelar)) } },
+            ) }
         }
         PantallaDemo.CONDUCTORES -> {
             Enlace(R.string.t06_registrar_conductor, PantallaDemo.REGISTRAR_CONDUCTOR, "")

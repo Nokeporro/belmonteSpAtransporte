@@ -103,6 +103,10 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var correoRecuperacion: String? = null
     var cambiosPassword = 0
     var clavesCambiadas: Pair<String, String>? = null
+    var pendientesRevision = emptyList<Solicitante>()
+    var errorPendientes: ErrorApp? = null
+    var revisionesCuenta = 0
+    var revisionCuenta: Pair<String, Boolean>? = null
     var nuevoPago: NuevoPago? = null
     var catalogosPago: Catalogos? = null
     var errorCatalogos: ErrorApp? = null
@@ -138,9 +142,18 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         cambiosPassword++; clavesCambiadas = passwordActual to passwordNueva; espera?.await()
         return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
     }
-    override suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> = sinUso()
-    override suspend fun aprobarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
-    override suspend fun rechazarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
+    override suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> =
+        errorPendientes?.let { Resultado.Fallo(it) } ?: Resultado.Exito(pendientesRevision)
+    private suspend fun revisarCuenta(correo: String, aprobar: Boolean): Resultado<Solicitante> {
+        revisionesCuenta++; revisionCuenta = correo to aprobar; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val revisada = pendientesRevision.single { it.correo == correo }.copy(
+            estado = if (aprobar) EstadoSolicitante.APROBADO else EstadoSolicitante.RECHAZADO)
+        pendientesRevision = pendientesRevision.filterNot { it.correo == correo }
+        return Resultado.Exito(revisada)
+    }
+    override suspend fun aprobarSolicitante(correo: String) = revisarCuenta(correo, true)
+    override suspend fun rechazarSolicitante(correo: String) = revisarCuenta(correo, false)
     override suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = sinUso()
     override suspend fun listarConductores() = Resultado.Exito(listOf(conductor))
     override suspend fun obtenerConductor(correo: String) = Resultado.Exito(conductor)

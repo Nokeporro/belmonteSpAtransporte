@@ -50,6 +50,60 @@ class RepositoriosT06Test {
         val base = local.viaje("TR-1051")
         db.viajeDao().guardar(base.copy(folio = "TR-1919", estado = "PENDIENTE", hashPago = null, estadoPago = null))
     }
+    @Test fun listaDeCuentasSoloIncluyePendientesOrdenadasPorNombreYCorreo() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val base = local.usuario("rperez@andesconsult.cl")
+        for ((correo, nombre) in listOf("hu27-d@test.cl" to "Zoé", "hu27-b@test.cl" to "Álvaro", "hu27-c@test.cl" to "beta", "hu27-a@test.cl" to "Álvaro")) {
+            db.usuarioDao().insertar(base.copy(correo = correo, nombre = nombre))
+        }
+        db.usuarioDao().insertar(base.copy(correo = "hu27-aprobada@test.cl", estadoSolicitante = "APROBADO"))
+        val lista = (CuentaLocalRepository(local).listarSolicitantesPendientes() as Resultado.Exito).valor
+        assertTrue(lista.all { it.estado == EstadoSolicitante.PENDIENTE })
+        assertEquals(listOf("hu27-a@test.cl", "hu27-b@test.cl", "hu27-c@test.cl", "hu27-d@test.cl"), lista.filter { it.correo.startsWith("hu27-") }.map { it.correo })
+        assertTrue(lista.filter { it.correo.startsWith("hu27-") }.all { it.razonSocial == base.razonSocial && it.rutEmpresa == base.rutEmpresa })
+    }
+    @Test fun aprobarConservaLosDatosDeCuentaYPermiteIniciarSesion() = runBlocking {
+        val correo = "rperez@andesconsult.cl"; val original = local.usuario(correo)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertEquals(Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE)), auth.iniciarSesion(correo, DatosDemo.PASSWORD))
+        entrar(Rol.ADMINISTRADOR)
+        val repos = CuentaLocalRepository(local)
+        assertEquals(EstadoSolicitante.APROBADO, (repos.aprobarSolicitante(correo.uppercase()) as Resultado.Exito).valor.estado)
+        assertEquals(original.copy(estadoSolicitante = "APROBADO"), local.usuario(correo))
+        assertFalse((repos.listarSolicitantesPendientes() as Resultado.Exito).valor.any { it.correo == correo })
+        assertTrue((repos.rechazarSolicitante(correo) as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertTrue(auth.iniciarSesion(correo, DatosDemo.PASSWORD) is Resultado.Exito)
+    }
+    @Test fun rechazarEsDefinitivoYBloqueaElLoginSinCambiarEmpresaNiClave() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val correo = "rperez@andesconsult.cl"; val original = local.usuario(correo)
+        val repos = CuentaLocalRepository(local)
+        assertEquals(EstadoSolicitante.RECHAZADO, (repos.rechazarSolicitante(correo) as Resultado.Exito).valor.estado)
+        assertEquals(original.copy(estadoSolicitante = "RECHAZADO"), local.usuario(correo))
+        assertTrue((repos.aprobarSolicitante(correo) as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertTrue((repos.rechazarSolicitante(correo) as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertEquals(Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_RECHAZADA)),
+            AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local).iniciarSesion(correo, DatosDemo.PASSWORD))
+    }
+    @Test fun revisionesSimultaneasSoloGuardanUnaDecision() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val repos = CuentaLocalRepository(local); val correo = "rperez@andesconsult.cl"
+        val respuestas = coroutineScope {
+            val a = async { repos.aprobarSolicitante(correo) }; val b = async { repos.rechazarSolicitante(correo) }
+            listOf(a.await(), b.await())
+        }
+        assertEquals(1, respuestas.count { it is Resultado.Exito }); assertEquals(1, respuestas.count { it is Resultado.Fallo })
+        assertTrue(local.usuario(correo).estadoSolicitante in listOf("APROBADO", "RECHAZADO"))
+    }
+    @Test fun soloAdministradorRevisaCuentasYUnaCuentaDeOtroRolNoEsSolicitante() = runBlocking {
+        val correo = "rperez@andesconsult.cl"; val original = local.usuario(correo); val repos = CuentaLocalRepository(local)
+        for (rol in listOf(Rol.SOLICITANTE, Rol.CONDUCTOR)) {
+            entrar(rol)
+            assertTrue((repos.listarSolicitantesPendientes() as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertTrue((repos.aprobarSolicitante(correo) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertEquals(original, local.usuario(correo))
+        }
+        entrar(Rol.ADMINISTRADOR)
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), repos.aprobarSolicitante("ireyes@belmontespa.cl"))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), repos.rechazarSolicitante("ausente@test.cl"))
+    }
     @Test fun temporalAbreSoloCambioObligatorioYLoginNormalLaInvalida() = runBlocking {
         val correo = "recepcion@belmontespa.cl"
         val original = local.usuario(correo).copy(passwordSha256 = Hashes.password("Normal1234"),

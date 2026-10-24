@@ -58,6 +58,7 @@ public class SecurityConfig {
 
 						.requestMatchers(GET, "/api/v1/solicitantes/*").hasAnyRole(ADM, SOL)
 						.requestMatchers(GET, "/api/v1/solicitantes").hasRole(ADM)
+						.requestMatchers(POST, "/api/v1/solicitantes/*/aprobar", "/api/v1/solicitantes/*/rechazar").hasRole(ADM)
 
 						.requestMatchers(GET, "/api/v1/empresas/**").hasRole(ADM)
 

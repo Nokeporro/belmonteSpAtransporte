@@ -265,6 +265,18 @@ HU16 se detalla a continuación.
 - [x] API 36: 88 pruebas de Room, migración e interfaz aprobadas, incluido cambio obligatorio con texto al 200 %.
 - [ ] Instrumentadas en API 26, TalkBack y CI.
 
+### Avance de implementación: HU27 de A
+
+- [x] Lista de solicitantes filtrable por estado, ordenada por nombre y correo; revisión exclusiva del Administrador.
+- [x] Aprobar o rechazar solo desde `PENDIENTE`; una cuenta revisada responde 409 y dos revisiones simultáneas no duplican la decisión ni el correo.
+- [x] Correos de aprobación y rechazo con el texto del contrato, enviados después del commit; un rollback conserva la cuenta pendiente y no envía correo.
+- [x] Aprobación habilita el login; rechazo mantiene el acceso bloqueado. Empresa, contraseña y datos del perfil conservados.
+- [x] Android: confirmación con identidad y empresa, doble envío bloqueado, resultado visible y recarga tras conflictos.
+- [x] Contador actualizado al volver a Solicitudes, conservando el filtro de viajes; la demo guarda la decisión localmente y avisa que no envía correo. Conexión remota en T14.
+- [x] Verificación local: 374 pruebas backend y 364 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 92 pruebas de Room e interfaz aprobadas, incluida aprobación con texto al 200 % y recarga del contador al volver.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

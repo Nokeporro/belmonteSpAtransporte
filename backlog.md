@@ -136,7 +136,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Implementado | Listo |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Implementado | Listo |
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Implementado | Listo |
-| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
+| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Implementado | Listo |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
 | 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
@@ -395,7 +395,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17, HU18, HU19, HU20 y HU22 también están implementadas; el siguiente ítem de A es HU27.
+HU16, HU17, HU18, HU19, HU20, HU22 y HU27 también están implementadas; el siguiente ítem de A es HU26.
 
 ### HU16 y HU24
 
@@ -510,10 +510,17 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU27
 
-- **Rutas nuevas:** `POST /solicitantes/{correo}/aprobar` y `.../rechazar`, con 409 si la cuenta ya
-  se revisó.
-- **`GET /solicitantes`:** filtro `?estado=PENDIENTE`.
-- **Correos:** los de cuenta aprobada y rechazada, que no existen en `EmailClient`.
+- [x] `POST /solicitantes/{correo}/aprobar` y `.../rechazar`, solo Administrador; 409 si ya fue revisada y 404 si no existe un Solicitante con ese correo.
+- [x] `GET /solicitantes?estado=PENDIENTE`, `APROBADO` o `RECHAZADO`, orden por nombre y correo; filtro mal formado en 400 y parámetros desconocidos ignorados.
+- [x] Una sola decisión por cuenta, serializada con otras revisiones y el login; sin correos duplicados ante envíos simultáneos.
+- [x] Correos de aprobación y rechazo según README, después del commit; rollback sin cambio de estado ni correo.
+- [x] Aprobación habilita el acceso; rechazo impide entrar; empresa original, contraseña y perfil conservados.
+- [x] Android: confirmación, doble envío bloqueado, fila retirada solo al confirmar, errores conservando la lista y recarga tras conflictos.
+- [x] Contador de cuentas actualizado al volver a Solicitudes sin cambiar su filtro; demo local sin correo, con aviso explícito. Conexión remota en T14.
+- [x] 374 pruebas backend y 364 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 92 pruebas de Room e interfaz aprobadas, incluida aprobación con texto al 200 % y recarga del contador al volver.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU28
 
@@ -550,12 +557,12 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `POST /conductores` | Ajustar | HU15 |
 | `PUT /conductores/{correo}` | Ajustar | HU15 |
 | `POST /conductores/{correo}/activo` | Falta | HU26 |
-| `GET /solicitantes` | Ajustar | HU27 |
+| `GET /solicitantes` | Implementado | HU27 |
 | `GET /solicitantes/{correo}` | Ajustar | HU01 |
 | `POST /solicitantes` | Ajustar | HU01 |
-| `POST /solicitantes/{correo}/aprobar` | Falta | HU27 |
-| `POST /solicitantes/{correo}/rechazar` | Falta | HU27 |
-| `GET /empresas` | Ajustar (orden) | HU27 |
+| `POST /solicitantes/{correo}/aprobar` | Implementado | HU27 |
+| `POST /solicitantes/{correo}/rechazar` | Implementado | HU27 |
+| `GET /empresas` | Implementado | HU27 |
 | `GET /empresas/{rut}` | Hecha | HU27 |
 | `GET /moviles` | Implementado | HU17 |
 | `GET /moviles/{patente}` | Implementado | HU17 |

@@ -88,16 +88,22 @@ class SolicitudesViewModel @Inject constructor(
         observar(_estado.value.filtro)
         viewModelScope.launch {
             avisarSiFalla(viajes.refrescarViajes(FiltroViajes(estado = _estado.value.filtro.estado)))
-            when (val resultado = cuentas.listarSolicitantesPendientes()) {
-                is Resultado.Exito -> _estado.update { it.copy(cuentasPorAprobar = resultado.valor.size) }
-                else -> avisarSiFalla(resultado)
-            }
+            actualizarCuentasPendientes()
         }
     }
 
     /** El retraso se calcula con el reloj: al volver a primer plano puede haber cambiado. */
     fun alVolverAPrimerPlano() {
         _estado.update { it.copy(filas = filas(ultimos)) }
+        // HU27: al volver de revisar cuentas, conserva el filtro y actualiza su cantidad.
+        viewModelScope.launch { actualizarCuentasPendientes() }
+    }
+
+    private suspend fun actualizarCuentasPendientes() {
+        when (val resultado = cuentas.listarSolicitantesPendientes()) {
+            is Resultado.Exito -> _estado.update { it.copy(cuentasPorAprobar = resultado.valor.size) }
+            else -> avisarSiFalla(resultado)
+        }
     }
 
     private fun observar(filtro: FiltroSolicitudes) {
