@@ -72,6 +72,7 @@ public class SecurityConfig {
 
 						.requestMatchers(POST, "/api/v1/viajes/*/asignar").hasRole(ADM)
 						.requestMatchers(POST, "/api/v1/viajes/*/estado").hasRole(CON)
+						.requestMatchers(POST, "/api/v1/viajes/*/rechazar").hasRole(CON)
 						.requestMatchers(POST, "/api/v1/viajes").hasRole(SOL)
 						.requestMatchers(POST, "/api/v1/viajes/*/cancelar").hasAnyRole(ADM, SOL)
 						.requestMatchers(GET, "/api/v1/viajes/**").hasAnyRole(ADM, CON, SOL)

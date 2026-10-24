@@ -40,6 +40,7 @@ import cl.belmontespa.myapplication.model.AppNavegacion
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Inicio
+import cl.belmontespa.myapplication.ui.administrador.CAMPO_MOTIVO
 import cl.belmontespa.myapplication.ui.components.ArqueoDeAbordaje
 import cl.belmontespa.myapplication.ui.components.Aviso
 import cl.belmontespa.myapplication.ui.components.BarraSuperior
@@ -165,7 +166,15 @@ fun DetalleViajeContenido(
         AlertDialog(
             onDismissRequest = onDescartarRechazo,
             title = { Text(stringResource(R.string.accion_rechazar)) },
-            text = { CampoTexto(valor = estado.motivo, onCambio = onMotivo, etiqueta = stringResource(R.string.campo_motivo)) },
+            text = {
+                CampoTexto(
+                    valor = estado.motivo,
+                    onCambio = onMotivo,
+                    etiqueta = stringResource(R.string.campo_motivo),
+                    error = estado.errores[CAMPO_MOTIVO],
+                    habilitado = !estado.enviando,
+                )
+            },
             confirmButton = {
                 TextButton(onClick = onConfirmarRechazo, enabled = estado.puedeConfirmarRechazo) {
                     Text(stringResource(R.string.accion_rechazar))

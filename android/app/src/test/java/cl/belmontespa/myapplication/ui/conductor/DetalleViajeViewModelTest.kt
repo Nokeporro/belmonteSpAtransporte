@@ -363,19 +363,99 @@ class DetalleViajeViewModelTest {
     }
 
     @Test
-    fun rechazarExigeUnMotivo() {
+    fun rechazarExigeUnMotivoYMuestraSuErrorBajoElCampo() {
         viajes.viaje.value = viaje()
         val vm = crear()
         vm.pedirRechazo()
         assertTrue(vm.estado.value.rechazando)
-        assertFalse(vm.estado.value.puedeConfirmarRechazo)
+        assertTrue(vm.estado.value.puedeConfirmarRechazo)
+
+        vm.confirmarRechazo()
+        assertEquals(mapOf("motivo" to "Es obligatorio."), vm.estado.value.errores)
 
         vm.escribirMotivo("   ")
-        assertFalse(vm.estado.value.puedeConfirmarRechazo)
+        assertTrue(vm.estado.value.errores.isEmpty())
         vm.confirmarRechazo()
 
+        assertEquals(mapOf("motivo" to "Es obligatorio."), vm.estado.value.errores)
         assertTrue(viajes.rechazos.isEmpty())
         assertTrue(vm.estado.value.rechazando)
+        assertFalse(vm.estado.value.enviando)
+    }
+
+    @Test
+    fun unMotivoDeMenosDeCincoOMasDeDoscientosCaracteresNoSeEnvia() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+        vm.pedirRechazo()
+
+        for (motivo in listOf("abcd", "  abcd  ", "x".repeat(201))) {
+            vm.escribirMotivo(motivo)
+            vm.confirmarRechazo()
+            assertEquals(mapOf("motivo" to "Debe tener entre 5 y 200 caracteres."), vm.estado.value.errores)
+            assertTrue(vm.estado.value.rechazando)
+        }
+        assertTrue(viajes.rechazos.isEmpty())
+
+        vm.escribirMotivo("x".repeat(200))
+        vm.confirmarRechazo()
+
+        assertEquals(listOf("TR-1042" to "x".repeat(200)), viajes.rechazos)
+        assertTrue(vm.estado.value.rechazado)
+    }
+
+    @Test
+    fun descartarElDialogoQuitaElErrorYConservaLoEscrito() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+        vm.pedirRechazo()
+        vm.escribirMotivo("abc")
+        vm.confirmarRechazo()
+        assertTrue(vm.estado.value.errores.isNotEmpty())
+
+        vm.descartarRechazo()
+        vm.pedirRechazo()
+
+        assertTrue(vm.estado.value.errores.isEmpty())
+        assertEquals("abc", vm.estado.value.motivo)
+    }
+
+    @Test
+    fun unaValidacionDelServidorVuelveAlDialogoConElErrorDelCampo() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+        viajes.respuestaRechazo = {
+            Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Debe tener entre 5 y 200 caracteres.", "otro" to "No vale.")))
+        }
+
+        vm.pedirRechazo()
+        vm.escribirMotivo("Vehículo con falla")
+        vm.confirmarRechazo()
+
+        assertTrue(vm.estado.value.rechazando)
+        assertFalse(vm.estado.value.rechazado)
+        assertFalse(vm.estado.value.enviando)
+        assertEquals(mapOf("motivo" to "Debe tener entre 5 y 200 caracteres."), vm.estado.value.errores)
+        assertEquals(ErrorApp.Validacion(mapOf("otro" to "No vale.")), vm.estado.value.error)
+        assertEquals("Vehículo con falla", vm.estado.value.motivo)
+    }
+
+    @Test
+    fun unConflictoAlRechazarCierraElDialogoMuestraElErrorYVuelveAPedirElViaje() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+        val pedidos = viajes.refrescados.size
+        viajes.respuestaRechazo = { Resultado.Fallo(ErrorApp.Conflicto("El viaje ya no se puede rechazar.")) }
+
+        vm.pedirRechazo()
+        vm.escribirMotivo("Vehículo con falla")
+        vm.confirmarRechazo()
+
+        assertEquals(ErrorApp.Conflicto("El viaje ya no se puede rechazar."), vm.estado.value.error)
+        assertFalse(vm.estado.value.rechazando)
+        assertFalse(vm.estado.value.rechazado)
+        assertTrue(vm.estado.value.errores.isEmpty())
+        assertEquals(pedidos + 1, viajes.refrescados.size)
     }
 
     @Test

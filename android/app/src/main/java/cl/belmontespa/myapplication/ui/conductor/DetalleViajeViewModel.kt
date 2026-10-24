@@ -18,6 +18,8 @@ import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.puntoDeNavegacion
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.model.ventanaDeInicio
+import cl.belmontespa.myapplication.ui.administrador.CAMPO_MOTIVO
+import cl.belmontespa.myapplication.util.Validaciones
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDateTime
@@ -39,6 +41,8 @@ data class DetalleViajeUiState(
     val confirmandoFin: Boolean = false,
     val rechazando: Boolean = false,
     val motivo: String = "",
+    /** Motivo del error de validación bajo el campo del diálogo (`motivo`). */
+    val errores: Map<String, String> = emptyMap(),
     val enviando: Boolean = false,
     val error: ErrorApp? = null,
     /** Verdadero cuando el rechazo quedó confirmado: el viaje ya no es suyo y la pantalla vuelve a «Mis viajes». */
@@ -55,7 +59,8 @@ data class DetalleViajeUiState(
     val puedeIniciar: Boolean get() = inicio == Inicio.HABILITADO && !enviando
     val puedeFinalizar: Boolean get() = estado == EstadoViaje.EN_CURSO && !enviando
     val puedeRechazar: Boolean get() = estado == EstadoViaje.ASIGNADO && !enviando
-    val puedeConfirmarRechazo: Boolean get() = puedeRechazar && motivo.isNotBlank()
+    /** Siempre que se pueda rechazar: el motivo se valida al confirmar y su error sale bajo el campo. */
+    val puedeConfirmarRechazo: Boolean get() = puedeRechazar
 
     /** «Disponible desde las {hora}»: solo antes de la ventana. */
     val disponibleDesde: LocalDateTime? get() = viaje?.takeIf { inicio == Inicio.ANTES_DE_LA_VENTANA }?.disponibleDesde()
@@ -162,22 +167,45 @@ class DetalleViajeViewModel @Inject constructor(
     }
 
     fun escribirMotivo(texto: String) {
-        _estado.update { it.copy(motivo = texto) }
+        _estado.update { it.copy(motivo = texto, errores = it.errores - CAMPO_MOTIVO) }
     }
 
     /** Cierra el diálogo y conserva lo escrito: al reabrirlo, el motivo sigue ahí. */
     fun descartarRechazo() {
-        _estado.update { it.copy(rechazando = false) }
+        _estado.update { it.copy(rechazando = false, errores = emptyMap()) }
     }
 
     fun confirmarRechazo() {
         val folio = folio ?: return
         val actual = _estado.value
         if (!actual.puedeConfirmarRechazo) return
-        _estado.update { it.copy(enviando = true, rechazando = false, error = null) }
+        // El mismo motivo de 5 a 200 caracteres que valida el backend (400): el error queda bajo el campo, sin enviar.
+        Validaciones.motivo(actual.motivo)?.let { error ->
+            _estado.update { it.copy(errores = mapOf(CAMPO_MOTIVO to error)) }
+            return
+        }
+        // `enviando` se marca antes de lanzar nada: un segundo toque no encuentra el botón libre.
+        _estado.update { it.copy(enviando = true, rechazando = false, errores = emptyMap(), error = null) }
         viewModelScope.launch {
             val resultado = viajes.rechazar(folio, actual.motivo.trim())
             if (resultado is Resultado.Exito) _estado.update { it.copy(motivo = "", rechazado = true) }
+            terminarRechazo(resultado)
+        }
+    }
+
+    // Un 400 con `motivo` vuelve al diálogo con ese error; lo demás se muestra como cualquier otro envío.
+    private fun terminarRechazo(resultado: Resultado<Unit>) {
+        val error = (resultado as? Resultado.Fallo)?.error
+        val deMotivo = (error as? ErrorApp.Validacion)?.errores?.get(CAMPO_MOTIVO)
+        if (error is ErrorApp.Validacion && deMotivo != null) {
+            val resto = error.errores - CAMPO_MOTIVO
+            _estado.update {
+                it.copy(
+                    enviando = false, rechazando = true, errores = mapOf(CAMPO_MOTIVO to deMotivo),
+                    error = ErrorApp.Validacion(resto).takeIf { resto.isNotEmpty() },
+                )
+            }
+        } else {
             terminarEnvio(resultado)
         }
     }

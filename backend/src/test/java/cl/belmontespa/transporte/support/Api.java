@@ -119,6 +119,14 @@ public class Api {
 		return tokenFcm;
 	}
 
+	/** Lo mismo para el Administrador inicial: V8 avisa a todos los Administradores con un token. */
+	public String dispositivoDelAdministrador() {
+		admin();
+		String tokenFcm = "fcm-" + ADMIN_CORREO;
+		exigir(iniciarSesion(ADMIN_CORREO, ADMIN_CLAVE, tokenFcm), "registrar dispositivo del administrador", 200);
+		return tokenFcm;
+	}
+
 	public String login(String correo, String clave) {
 		return exigir(iniciarSesion(correo, clave), "login " + correo, 200).texto("$.accessToken");
 	}
@@ -356,6 +364,15 @@ public class Api {
 
 	public void cancelarComoAdminOk(String folio, String motivo, Integer montoReembolso) {
 		exigir(cancelarComoAdmin(folio, motivo, montoReembolso), "cancelar " + folio + " como Administrador", 200);
+	}
+
+	/** V8: el conductor devuelve el viaje ASIGNADO a PENDIENTE con un motivo. */
+	public Resp rechazar(String folio, String token, String motivo) {
+		return post("/viajes/" + folio + "/rechazar", token, "{\"motivo\":\"%s\"}".formatted(motivo));
+	}
+
+	public void rechazarOk(String folio, Cuenta conductor, String motivo) {
+		exigir(rechazar(folio, conductor.token(), motivo), "rechazar " + folio, 200);
 	}
 
 	public void cancelarOk(String folio, Cuenta solicitante) {

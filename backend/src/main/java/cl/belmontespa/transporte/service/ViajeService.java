@@ -4,6 +4,7 @@ import cl.belmontespa.transporte.client.FirebaseClient;
 import cl.belmontespa.transporte.dto.request.AsignarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.CambiarEstadoViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.CancelarViajeDTORequest;
+import cl.belmontespa.transporte.dto.request.RechazarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.model.Conductor;
@@ -12,6 +13,7 @@ import cl.belmontespa.transporte.model.EstadoSolicitud;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.model.Pago;
 import cl.belmontespa.transporte.model.Viaje;
+import cl.belmontespa.transporte.repository.AdministradorRepository;
 import cl.belmontespa.transporte.repository.DetalleMovilConductorRepository;
 import cl.belmontespa.transporte.repository.DetalleViajePasajeroRepository;
 import cl.belmontespa.transporte.repository.EstadoSolicitudRepository;
@@ -50,6 +52,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	private final EstadoSolicitudRepository estadoSolicitudRepository;
 	private final DetalleViajePasajeroRepository detalleViajePasajeroRepository;
 	private final DetalleMovilConductorRepository detalleMovilConductorRepository;
+	private final AdministradorRepository administradorRepository;
 	private final SolicitanteService solicitanteService;
 	private final ConductorService conductorService;
 	private final MovilService movilService;
@@ -61,7 +64,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 
 	public ViajeService(ViajeRepository viajeRepository, EstadoSolicitudRepository estadoSolicitudRepository,
 			DetalleViajePasajeroRepository detalleViajePasajeroRepository,
-			DetalleMovilConductorRepository detalleMovilConductorRepository,
+			DetalleMovilConductorRepository detalleMovilConductorRepository, AdministradorRepository administradorRepository,
 			SolicitanteService solicitanteService, ConductorService conductorService, MovilService movilService,
 			PagoService pagoService, UbicacionService ubicacionService, FirebaseClient firebaseClient,
 			EntityManager entityManager, Clock clock) {
@@ -69,6 +72,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		this.estadoSolicitudRepository = estadoSolicitudRepository;
 		this.detalleViajePasajeroRepository = detalleViajePasajeroRepository;
 		this.detalleMovilConductorRepository = detalleMovilConductorRepository;
+		this.administradorRepository = administradorRepository;
 		this.solicitanteService = solicitanteService;
 		this.conductorService = conductorService;
 		this.movilService = movilService;
@@ -183,10 +187,11 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setMovil(movil);
 		viaje.setEstado(estado(ASIGNADO));
 		viaje.setFhAsignacion(ahora);
+		// El motivo de un rechazo anterior (V8) ya no corresponde a un viaje asignado de nuevo.
+		viaje.setMotivo(null);
 		if (cambiaMovil) {
 			// Otro vehículo, otro QR: los pasajeros vuelven a Por abordar.
-			detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
-					.forEach(detalle -> detalle.setFhAbordaje(null));
+			limpiarAbordaje(viaje);
 		}
 		avisar(conductor.getUsuario().getTokenFcm(), AvisosDeViaje.nuevoViaje(viaje.getFolio(), viaje.getFhAgenda()));
 		avisar(viaje.getSolicitante().getUsuario().getTokenFcm(), AvisosDeViaje.viajeAsignado(viaje.getFolio()));
@@ -194,6 +199,11 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 			avisar(anterior.getUsuario().getTokenFcm(), AvisosDeViaje.viajeReasignado(viaje.getFolio()));
 		}
 		return aResponse(viaje);
+	}
+
+	private void limpiarAbordaje(Viaje viaje) {
+		detalleViajePasajeroRepository.findByIdViaje(viaje.getIdViaje())
+				.forEach(detalle -> detalle.setFhAbordaje(null));
 	}
 
 	private void avisar(String tokenFcm, AvisosDeViaje.Aviso aviso) {
@@ -265,6 +275,30 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setEstado(estado(nuevo));
 		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
 				"Viaje " + viaje.getFolio(), "Estado: " + nuevo, Map.of("folio", viaje.getFolio()));
+		return aResponse(viaje);
+	}
+
+	// HU25/RF24, V8: el conductor asignado devuelve el viaje a Pendiente antes de iniciarlo. Quita conductor,
+	// móvil, fecha de asignación y marcas de abordaje; no toca el pago ni la flota (antes de V3 siguen
+	// Disponibles). Con el viaje bloqueado, un rechazo y una cancelación del mismo viaje se serializan.
+	@Transactional
+	public ViajeDTOResponse rechazar(String folio, RechazarViajeDTORequest request, String correoConductor) {
+		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		if (viaje.getConductor() == null
+				|| !viaje.getConductor().getUsuario().getCorreo().equalsIgnoreCase(correoConductor)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+		}
+		exigirEstado(viaje, ASIGNADO);
+		viaje.setConductor(null);
+		viaje.setMovil(null);
+		viaje.setFhAsignacion(null);
+		viaje.setMotivo(request.motivo());
+		viaje.setEstado(estado(PENDIENTE));
+		limpiarAbordaje(viaje);
+		administradorRepository.findAll().forEach(administrador -> avisar(
+				administrador.getUsuario().getTokenFcm(), AvisosDeViaje.viajeRechazado(viaje.getFolio())));
+		avisar(viaje.getSolicitante().getUsuario().getTokenFcm(), AvisosDeViaje.viajeSinConductor(viaje.getFolio()));
 		return aResponse(viaje);
 	}
 

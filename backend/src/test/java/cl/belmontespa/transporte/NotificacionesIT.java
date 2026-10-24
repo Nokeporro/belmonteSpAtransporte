@@ -205,6 +205,44 @@ class NotificacionesIT extends IntegrationTest {
 		}
 
 		@Test
+		@DisplayName("V8: rechazar avisa a los Administradores y al solicitante, no al conductor; un rechazo inválido no avisa")
+		void rechazar() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			String tokenSolicitante = api.dispositivo(solicitante);
+			String tokenConductor = api.dispositivo(flota.conductor());
+			String tokenAdministrador = api.dispositivoDelAdministrador();
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(2);
+			dejarPasarEnvios();
+			fcm.limpiar();
+
+			assertThat(api.rechazar(folio, flota.conductor().token(), "abc").status()).isEqualTo(400);
+			dejarPasarEnvios();
+			assertThat(fcm.para(tokenAdministrador)).isEmpty();
+			assertThat(fcm.para(tokenSolicitante)).isEmpty();
+
+			api.rechazarOk(folio, flota.conductor(), "Falla del vehículo");
+
+			await().atMost(5, SECONDS)
+					.until(() -> !fcm.para(tokenAdministrador).isEmpty() && !fcm.para(tokenSolicitante).isEmpty());
+			dejarPasarEnvios();
+			assertThat(fcm.para(tokenAdministrador)).singleElement().satisfies(envio -> {
+				assertThat(envio.titulo()).isEqualTo("Viaje rechazado");
+				assertThat(envio.mensaje()).isEqualTo("El viaje " + folio + " volvió a pendiente");
+				assertThat(envio.datos()).containsOnlyKeys("tipo", "folio").containsEntry("tipo", "VIAJE")
+						.containsEntry("folio", folio);
+			});
+			assertThat(fcm.para(tokenSolicitante)).singleElement().satisfies(envio -> {
+				assertThat(envio.titulo()).isEqualTo("Viaje sin conductor");
+				assertThat(envio.mensaje()).isEqualTo("Tu viaje " + folio + " volvió a pendiente; se asignará otro conductor");
+				assertThat(envio.datos()).containsOnlyKeys("tipo", "folio").containsEntry("tipo", "VIAJE")
+						.containsEntry("folio", folio);
+			});
+			assertThat(fcm.para(tokenConductor)).isEmpty();
+		}
+
+		@Test
 		@DisplayName("EN_CURSO y FINALIZADO avisan al solicitante")
 		void cambioDeEstado() {
 			Cuenta solicitante = api.solicitante();

@@ -3,6 +3,7 @@ package cl.belmontespa.transporte.controller;
 import cl.belmontespa.transporte.dto.request.AsignarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.CambiarEstadoViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.CancelarViajeDTORequest;
+import cl.belmontespa.transporte.dto.request.RechazarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.service.CrudService;
@@ -88,6 +89,13 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 	public ViajeDTOResponse cambiarEstado(@PathVariable String folio,
 			@Valid @RequestBody CambiarEstadoViajeDTORequest request, Authentication auth) {
 		return paraRol(viajeService.cambiarEstado(folio, request, auth.getName()), auth);
+	}
+
+	// CU-16/RF24 (V8): solo el conductor asignado, con `motivo`; el viaje vuelve a PENDIENTE.
+	@PostMapping("/{folio}/rechazar")
+	public ViajeDTOResponse rechazar(@PathVariable String folio,
+			@Valid @RequestBody RechazarViajeDTORequest request, Authentication auth) {
+		return paraRol(viajeService.rechazar(folio, request, auth.getName()), auth);
 	}
 
 	// CU-08/RF15 (V5): el Solicitante dueño del viaje, sin cuerpo. CU-15/RF23 (V7): el Administrador, con

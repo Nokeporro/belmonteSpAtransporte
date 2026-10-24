@@ -650,6 +650,87 @@ class RepositoriosT06Test {
             assertEquals(antes, local.viaje("TR-1042"))
         }
     }
+    // HU25: V8. El Conductor asignado devuelve el viaje a Pendiente y dice por qué; no toca el pago ni la flota.
+    @Test fun rechazarDevuelveElViajeAPendienteSinNadaDeLaAsignacion() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        val antes = local.viaje("TR-1042")
+        val hashPago = antes.hashPago!!
+        val pagoAntes = db.pagoDao().obtener(hashPago)
+        assertEquals(1, db.viajePasajeroDao().obtenerDelViaje("TR-1042").count { it.fhAbordaje != null })
+        assertTrue(viajes.rechazar("TR-1042", "  Falla del vehículo  ") is Resultado.Exito)
+        // Solo cambia la asignación y el motivo (recortado): todo lo demás del viaje queda igual.
+        assertEquals(antes.copy(estado = "PENDIENTE", correoConductor = null, nombreConductor = null, patenteMovil = null,
+            fhAsignacion = null, motivo = "Falla del vehículo"), local.viaje("TR-1042"))
+        val marcas = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
+        assertEquals(3, marcas.size)
+        assertTrue(marcas.all { it.fhAbordaje == null })
+        assertEquals(pagoAntes, db.pagoDao().obtener(hashPago))
+        assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
+        assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
+    }
+    @Test fun elViajeRechazadoSaleDeMisViajesYElAdministradorLoAsignaDeNuevo() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        assertTrue(viajes.rechazar("TR-1042", "Falla del vehículo") is Resultado.Exito)
+        assertNull(viajes.observarViaje("TR-1042").first())
+        assertFalse(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
+        entrar(Rol.ADMINISTRADOR)
+        val pendiente = viajes.observarViaje("TR-1042").first()!!
+        assertEquals(EstadoViaje.PENDIENTE, pendiente.estado)
+        assertEquals("Falla del vehículo", pendiente.motivo)
+        assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
+        // V2 limpia el motivo del rechazo anterior y los pasajeros siguen Por abordar.
+        val asignado = local.viaje("TR-1042")
+        assertEquals("ASIGNADO", asignado.estado)
+        assertEquals("pmunoz@belmontespa.cl", asignado.correoConductor)
+        assertNull(asignado.motivo)
+        assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
+        entrar(Rol.CONDUCTOR, "pmunoz@belmontespa.cl")
+        assertTrue(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
+    }
+    @Test fun unViajeVencidoTambienSePuedeRechazar() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        vencer(local.viaje("TR-1042"))
+        assertTrue(viajes.rechazar("TR-1042", "Falla del vehículo") is Resultado.Exito)
+        assertEquals("PENDIENTE", local.viaje("TR-1042").estado)
+    }
+    private suspend fun rechazarSinCambiarNada(folio: String, motivo: String): Resultado<Unit> {
+        val viajeAntes = local.viaje(folio)
+        val marcasAntes = db.viajePasajeroDao().obtenerDelViaje(folio).toSet()
+        val resultado = viajes.rechazar(folio, motivo)
+        assertEquals(viajeAntes, local.viaje(folio))
+        assertEquals(marcasAntes, db.viajePasajeroDao().obtenerDelViaje(folio).toSet())
+        return resultado
+    }
+    @Test fun unMotivoInvalidoSeRechazaConSuErrorDeCampoSinCambiarNada() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        for (motivo in listOf("abcd", "  abcd  ", "x".repeat(201))) {
+            assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Debe tener entre 5 y 200 caracteres."))),
+                rechazarSinCambiarNada("TR-1042", motivo))
+        }
+        assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Es obligatorio."))), rechazarSinCambiarNada("TR-1042", "   "))
+    }
+    @Test fun soloSeRechazaUnViajeAsignadoDelConductor() = runBlocking {
+        entrar(Rol.CONDUCTOR)
+        // TR-1045 está En curso con Jorge Lara: se lo presta a Iván.
+        db.viajeDao().guardar(local.viaje("TR-1045").copy(correoConductor = "ireyes@belmontespa.cl"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje ya no se puede rechazar.")), rechazarSinCambiarNada("TR-1045", "Falla del vehículo"))
+        // Cancelar conserva la asignación: sigue siendo de Iván, pero ya no hay qué rechazar.
+        db.viajeDao().guardar(local.viaje("TR-1042").copy(estado = "CANCELADO"))
+        assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje ya no se puede rechazar.")), rechazarSinCambiarNada("TR-1042", "Falla del vehículo"))
+        // Un Pendiente no tiene conductor, así que no es de Iván; y un folio que no existe, no existe.
+        assertTrue((rechazarSinCambiarNada("TR-1051", "Falla del vehículo") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), viajes.rechazar("TR-9999", "Falla del vehículo"))
+    }
+    @Test fun elViajeDeOtroConductorNoSeRechaza() = runBlocking {
+        entrar(Rol.CONDUCTOR, "pmunoz@belmontespa.cl")
+        assertTrue((rechazarSinCambiarNada("TR-1042", "Falla del vehículo") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+    }
+    @Test fun soloElConductorRechaza() = runBlocking {
+        for (rol in listOf(Rol.ADMINISTRADOR, Rol.SOLICITANTE)) {
+            entrar(rol)
+            assertTrue((rechazarSinCambiarNada("TR-1042", "Falla del vehículo") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+    }
     // V3 y V4 (HU09): los mismos mensajes que el backend.
     @Test fun iniciarYFinalizarMarcanYLiberanAlConductorYAlVehiculo() = runBlocking {
         entrar(Rol.CONDUCTOR)
