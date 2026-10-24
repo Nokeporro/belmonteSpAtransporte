@@ -216,7 +216,7 @@ HU16 se detalla a continuación.
 
 - [x] Registro con patente normalizada y única, capacidad de 1 a 20 y serial GPS positivo opcional.
 - [x] Vehículo nuevo activo y disponible; detalle y lista conservan los datos guardados.
-- [x] Código de abordaje aleatorio de 16 hexadecimales, persistido y consultable solo por el Administrador; QR disponible para imprimir en la demo.
+- [x] Código de abordaje aleatorio de 16 hexadecimales, persistido y consultable solo por el Administrador.
 - [x] Formulario con errores por campo, conservación de datos ante conflictos y bloqueo del doble envío.
 - [x] Verificación local: 14 pruebas backend de HU17 y flota, y 153 pruebas JVM Android aprobadas.
 - [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
@@ -893,7 +893,7 @@ actualizan solo con un PR `chore/`.
 | Retrofit / OkHttp | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
 | `kotlinx-serialization-json` / `kotlinx-coroutines` | 1.11.0 / 1.11.0 |
 | Firebase BoM / plugin `google-services` / Places SDK | 35.0.2 (`firebase-messaging`) / 4.5.0 / 6.0.2 |
-| `com.journeyapps:zxing-android-embedded` | 4.3.0 (`ScanContract`, `ScanOptions`, `BarcodeEncoder`) |
+| `com.google.android.gms:play-services-code-scanner` | 16.1.0 (`GmsBarcodeScanning`, `GmsBarcodeScannerOptions`) |
 | JUnit / `androidx.test` | 4.13.2 / `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 |
 
 Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`,
@@ -942,7 +942,7 @@ Conductor, "Mis viajes · Perfil".
 | Administrador | Detalle de solicitud, Solicitud sin pasajeros, Cancelar viaje | Viaje, solicitante y empresa, pasajeros, motivo, pago y arqueo (`ASIGNADO`, `EN_CURSO`, `FINALIZADO`). "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0: "Sin pasajeros: no se puede asignar"). "Cancelar viaje" pide motivo y, si está vencido con pago `PAGADO`, el monto (precargado con el total). | `GET /viajes/{folio}`, `POST /viajes/{folio}/cancelar` |
 | Administrador | Asignar conductor y vehículo | Conductores activos con `viajesAsignados` (los `OCUPADO`, deshabilitados con su `folioEnCurso`); del elegido, sus vehículos activos, `DISPONIBLE` y con capacidad suficiente; resumen y confirmación. | `GET /conductores`, `GET /habilitaciones-movil-conductor?correo=`, `POST /viajes/{folio}/asignar` |
 | Administrador | Conductores, Registrar conductor, Detalle de conductor | Lista; alta (nombre, correo, teléfono, contraseña inicial); detalle con estado, vehículos habilitados, edición, reemplazo de contraseña y desactivar o reactivar. | `GET /conductores`, `POST /conductores`, `PUT /conductores/{correo}`, `POST /conductores/{correo}/activo` |
-| Administrador | Vehículos, Registrar vehículo, Detalle de vehículo | Lista; alta (patente, capacidad, serial GPS); detalle con conductores habilitados, desactivar o reactivar y el QR de abordaje para imprimir. | `GET /moviles`, `POST /moviles`, `POST /moviles/{patente}/activo` |
+| Administrador | Vehículos, Registrar vehículo, Detalle de vehículo | Lista; alta (patente, capacidad, serial GPS); detalle con conductores habilitados, desactivar o reactivar y el código de abordaje. | `GET /moviles`, `POST /moviles`, `POST /moviles/{patente}/activo` |
 | Administrador | Gestionar habilitaciones | Desde el conductor o el vehículo; filtros combinables por ambos, capacidad y estados visibles; solo agrega entre activos, sin duplicar. | `GET /habilitaciones-movil-conductor?patente=&correo=`, `POST /habilitaciones-movil-conductor` |
 | Administrador | Registrar pago, Detalle de pago | Monto, banco, medio de pago y tipo de recibo; el detalle tiene P2 y P3. Pagos solo desde el viaje. | `POST /pagos`, `GET /pagos/{hash}`, `POST /pagos/{hash}/estado` |
 | Administrador | Perfil, Registrar administrador | Datos, cambiar contraseña, alta de Administrador y cerrar sesión. | `GET /administradores/{correo}`, `POST /administradores` |
@@ -1013,7 +1013,7 @@ textos en `strings.xml`; nunca se muestran trazas ni códigos técnicos.
 | 404 / 409 | "No encontramos este registro." / el `message` del backend, y se recarga. |
 | Autorregistro sin respuesta | "No pudimos confirmar el registro. Tu cuenta puede existir: inicia sesión o recupera tu contraseña." |
 | Otros fallos | Sincronización sin `message`: "No pudimos sincronizar el cambio." Catálogos: "No pudimos cargar los datos del formulario." con "Reintentar". Room: "No pudimos acceder a los datos locales. Inténtalo de nuevo." Sin app de navegación: "Instala Google Maps o Waze para navegar." |
-| Abordaje | Indicación: "Escanea el código QR de la puerta del vehículo."; lector: "Apunta al código QR de la puerta."; QR ajeno: "Este código no es de un vehículo Belmonte."; 404: "No encontramos un viaje para tu documento en este vehículo. Consulta al conductor."; cámara negada: "Permite el uso de la cámara para escanear el código." con "Ingresar código" y "Abrir ajustes"; éxito: "Abordaje registrado a las {hora}. ¡Buen viaje!" con "Volver al inicio". |
+| Abordaje | Indicación: "Escanea el código QR de la puerta del vehículo."; variante "Escanear código QR": "Apunta al código QR de la puerta."; QR ajeno: "Este código no es de un vehículo Belmonte."; 404: "No encontramos un viaje para tu documento en este vehículo. Consulta al conductor."; lector no disponible: "No se pudo abrir el lector. Usa Ingresar código."; éxito: "Abordaje registrado a las {hora}. ¡Buen viaje!" con "Volver al inicio". |
 | Arqueo | "Abordaron {x} de {n}. Faltan: {nombres}."; con todos a bordo, "Todos los pasajeros abordaron." |
 | Build `demo` | En el Login: "Modo demostración: datos ficticios, sin conexión al servidor." |
 | Listas vacías | "Aún no tienes solicitudes. Crea la primera con «Nueva solicitud».", "No hay solicitudes pendientes.", "No hay cuentas por aprobar.", "No tienes viajes para este día." y, sin conductores, "No hay conductores disponibles. Espera a que terminen sus viajes o registra o reactiva uno." |
@@ -1027,9 +1027,8 @@ WCAG 2.1 AA, revisada con una pasada de TalkBack antes de cada entrega:
   alto y ocupan el ancho (RNF04). Texto en `sp`: al 200 % hay scroll y folio, patente y montos
   no se truncan.
 - TalkBack: `contentDescription` en los íconos ("Volver", "Editar pasajero", "Quitar pasajero",
-  "Seleccionar fecha"); un chip se lee "Estado: Asignado"; el arqueo es un solo elemento; el QR,
-  "Código QR de abordaje del vehículo {patente}"; títulos con `heading()` y errores con la
-  semántica `error` del campo.
+  "Seleccionar fecha"); un chip se lee "Estado: Asignado"; el arqueo es un solo elemento; títulos
+  con `heading()` y errores con la semántica `error` del campo.
 - Cada gesto tiene alternativa ("Actualizar" para deslizar, "Ingresar código" para el QR); cada
   campo, etiqueta visible y el teclado de su tipo.
 
@@ -1109,13 +1108,13 @@ en ms.
 ### Abordaje con código QR
 
 - **QR:** contiene `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}` (p. ej.
-  `BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6`). "Detalle de vehículo" lo genera con
-  `BarcodeEncoder` (`QR_CODE`, 512 × 512) y muestra debajo la patente, el código en grupos de 4 y
-  "Imprímelo y pégalo en la puerta de entrada."; la app no imprime.
+  `BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6`). "Detalle de vehículo" muestra la patente y el
+  código en grupos de 4; la app no genera ni imprime el QR.
 - **Lectura (`ui/abordaje/`):** desde el Login o el Perfil del Solicitante, sin JWT, sin cola y
-  sin tocar la sesión. "Escanear código QR" pide `CAMERA` (`android.hardware.camera.any` no
-  requerido) y abre `ScanContract` con `ScanOptions` solo `QR_CODE`, sin pitido y orientación
-  libre; cancelar vuelve sin aviso. En mayúsculas, el contenido debe cumplir
+  sin tocar la sesión. "Escanear código QR" abre `GmsBarcodeScanning` con `GmsBarcodeScannerOptions`
+  solo `FORMAT_QR_CODE` y `enableAutoZoom()`: el lector corre en Google Play services, así que la
+  app no pide `CAMERA`. Cancelar vuelve sin aviso; si no se puede abrir, avisa y deja "Ingresar
+  código". En mayúsculas, el contenido debe cumplir
   `^BELMONTE-ABORDAJE:([A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2}):[0-9A-F]{16}$`. "Ingresar código" pide
   patente y código; ambos caminos producen `CodigoAbordaje(patente, codigo)`.
 - **Confirmar abordaje:** tipo y documento, y `POST /abordajes`. "Volver al inicio" lleva al

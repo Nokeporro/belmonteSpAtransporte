@@ -384,6 +384,9 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
   - **Repetición:** repetir devuelve la misma hora.
   - **Pruebas:** `AbordajeIT`.
 - **Arqueo:** `fhAbordaje` va en el viaje (ver HU08).
+- **Android, lector:** Google Code Scanner (`play-services-code-scanner` 16.1.0), sin permiso `CAMERA`. Si
+  no se puede abrir, avisa y deja «Ingresar código». Requiere Google Play services; el abordaje por
+  QR no se probó en un teléfono ni en un emulador.
 
 ### HU15
 
@@ -425,7 +428,7 @@ HU21 y HU28 de P4 también están implementadas; el siguiente ítem es T11, el v
 - [x] `MovilDTOResponse` incluye `activo` y `codigoAbordaje` en alta, detalle y lista, solo para el Administrador.
 - [x] `MovilService` genera `codigo_abordaje` con `SecureRandom`; cada vehículo nace activo y disponible.
 - [x] Android: patente normalizada y única, capacidad 1..20, GPS opcional positivo, errores por campo y control del doble envío.
-- [x] Detalle con GPS y QR de abordaje imprimible; recarga de lista al volver del alta.
+- [x] Detalle con GPS y código de abordaje en grupos de 4; el generador de QR y «Imprimir» se quitaron (el QR se arma fuera de la app); recarga de lista al volver del alta.
 - [x] 14 pruebas backend de HU17 y flota y 153 pruebas JVM Android aprobadas.
 - [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
 

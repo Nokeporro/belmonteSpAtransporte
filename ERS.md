@@ -350,7 +350,7 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU26 | RF25 | Media | 3 | Administrador: dar de baja | Desactivar o reactivar un conductor o un vehículo desde su ficha; 409 con viajes `ASIGNADO` o `EN_CURSO`. Inactivo: no aparece en "Asignar"; un Conductor inactivo no inicia sesión. |
 | HU27 | RF26 | Media | 3 | Administrador: aprobar solicitantes | "Cuentas por aprobar" lista los `PENDIENTE` con su empresa; aprobar o rechazar avisa por correo al Solicitante. |
 | HU28 | RF27 | Baja | 2 | Administrador: registrar otro Administrador | Nombre, correo y contraseña inicial; teléfono opcional. Al entrar debe cambiar la contraseña. |
-| HU29 | RF28 | Alta | 5 | Pasajero: abordar con el código QR | Sin cuenta desde el Login, o desde el Perfil si es un Solicitante con sesión (que no ve el arqueo); lee el QR con la cámara o recibe patente y código escritos. Con su documento y el viaje `ASIGNADO` dentro de su ventana de inicio o `EN_CURSO` en ese vehículo, queda abordado con la hora; repetir responde la misma hora. Sin viaje candidato o con un documento que no viaja, el mismo aviso genérico (404). El documento no se guarda en el teléfono. El Administrador ve el QR de cada vehículo en su detalle, con patente y código escritos debajo. |
+| HU29 | RF28 | Alta | 5 | Pasajero: abordar con el código QR | Sin cuenta desde el Login, o desde el Perfil si es un Solicitante con sesión (que no ve el arqueo); lee el QR con la cámara o recibe patente y código escritos. Con su documento y el viaje `ASIGNADO` dentro de su ventana de inicio o `EN_CURSO` en ese vehículo, queda abordado con la hora; repetir responde la misma hora. Sin viaje candidato o con un documento que no viaja, el mismo aviso genérico (404). El documento no se guarda en el teléfono. El Administrador ve el código de abordaje de cada vehículo en su detalle. |
 | HU30 | RF29 | Alta | 3 | Conductor: arqueo de abordaje | En el detalle del viaje (también el del Administrador), en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`: "Abordaron X de N", cada pasajero como Abordado o Por abordar y la lista de los que faltan. Se actualiza al abrir o deslizar. "Iniciar viaje" no exige abordaje completo: su confirmación avisa cuántos faltan. |
 
 ## Modelamiento del problema
@@ -576,7 +576,7 @@ y la app también se demuestra sola, sin backend, con la build `demo`.
   - 2 empresas y 3 Solicitantes (1 `PENDIENTE` de aprobación);
   - viajes en los 5 estados, uno atrasado y uno vencido, con `fh_agenda` relativa a `NOW()`, y
     pagos en los 5 estados;
-  - un `codigo_abordaje` fijo y ficticio por vehículo, para imprimir sus QR de prueba, y un
+  - un `codigo_abordaje` fijo y ficticio por vehículo, para armar sus QR de prueba, y un
     viaje `ASIGNADO` a `NOW()` + 30 minutos (dentro de su ventana de inicio), de un Conductor
     activo en un vehículo habilitado, con 3 pasajeros y 1 ya abordado.
 
@@ -1389,7 +1389,7 @@ cambiarla) y `AUTENTICADA`.
 | Desarrollo y build | Android Studio (desarrollo, depuración, emuladores, compilación); Kotlin; Gradle Kotlin DSL y catálogo de versiones; KSP (anotaciones de Room y herramientas que lo requieran). |
 | UI y estado | Jetpack Compose; Material 3 (tema y componentes); Navigation Compose (flujos por rol); AndroidX ViewModel; Kotlin Coroutines y Flow / StateFlow. |
 | Datos | Room / SQLite (datos de la build `demo`, viajes consultados y cola de cambios pendientes); Retrofit con convertidor JSON de Kotlin Serialization (DTO); OkHttp (transporte HTTP e incorporación del JWT); WorkManager (envío de la cola sin conexión); DataStore (sesión). |
-| Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze); ZXing Android Embedded (lectura del QR de abordaje con la cámara y generación del QR de cada vehículo). |
+| Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze); Google Code Scanner (lectura del QR de abordaje con la cámara, sin permiso `CAMERA`). |
 | Pruebas | JUnit, AndroidX Test, Espresso y Compose UI Test. |
 
 **Versiones de partida.** Exactas en `android/gradle/libs.versions.toml` (sin `+` ni rangos);
@@ -1419,7 +1419,7 @@ Compose y Firebase por su BOM, que fija las versiones de sus librerías:
 | Firebase BoM | 35.0.2 | `firebase-messaging`. |
 | Plugin `google-services` | 4.5.0 | |
 | Places SDK (`com.google.android.libraries.places:places`) | 6.0.2 | |
-| `com.journeyapps:zxing-android-embedded` | 4.3.0 | Lector (`ScanContract`, `ScanOptions`) y generador (`BarcodeEncoder`); trae `com.google.zxing:core`. Requiere API 24 o superior, dentro del `minSdk` 26. |
+| `com.google.android.gms:play-services-code-scanner` | 16.1.0 | Lector (`GmsBarcodeScanning`, `GmsBarcodeScannerOptions`) en Google Play services; sin permiso `CAMERA`. Requiere `minSdk` 23 o superior (el proyecto usa 26) y Google Play services en el dispositivo. |
 | JUnit | 4.13.2 | |
 | `androidx.test` | `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 | |
 
@@ -1489,7 +1489,7 @@ El Conductor no tiene autorregistro ni recuperación por autoservicio.
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
 | Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior). Perfil: datos y empresa, cambio de contraseña, "Abordar viaje" (cuando el Solicitante viaja; [Abordaje con código QR](#abordaje-con-código-qr)) y cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
-| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje (HU30); "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar, y el código QR de abordaje con la patente y el código escritos debajo, para imprimirlo). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
+| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje (HU30); "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar, y el código de abordaje). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
 | Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje ("Abordaron X de N", cada pasajero Abordado o Por abordar y los que faltan; HU30). Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación (la de "Iniciar viaje" avisa cuántos pasajeros faltan por abordar, sin impedir el inicio); "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
 
 Reglas comunes:
@@ -1618,7 +1618,7 @@ técnicos.
 | Sin app de navegación | "Instala Google Maps o Waze para navegar." |
 | QR que no es de un vehículo Belmonte | "Este código no es de un vehículo Belmonte." No se envía nada. |
 | 404 en el abordaje | "No encontramos un viaje para tu documento en este vehículo. Consulta al conductor." (en vez del texto general del 404). |
-| Permiso de cámara negado | "Permite el uso de la cámara para escanear el código." con "Ingresar código" y, si el sistema ya no muestra el diálogo, "Abrir ajustes". |
+| Lector no disponible | "No se pudo abrir el lector. Usa Ingresar código." |
 | Lectura o escritura local fallida | "No pudimos acceder a los datos locales. Inténtalo de nuevo." |
 
 **Avisos de sesión y sincronización:**
@@ -1637,11 +1637,10 @@ técnicos.
 | Situación | Texto |
 |---|---|
 | Abordar viaje (indicación) | "Escanea el código QR de la puerta del vehículo." con "Escanear código QR" e "Ingresar código". |
-| Lector QR (indicación sobre la cámara) | "Apunta al código QR de la puerta." |
+| Escanear código QR (variante de la pantalla) | "Apunta al código QR de la puerta." |
 | Abordaje registrado | "Abordaje registrado a las {hora}. ¡Buen viaje!" (`{hora}` en `HH:mm`) con "Volver al inicio". |
 | Arqueo (detalle del viaje) | "Abordaron {x} de {n}. Faltan: {nombres}.", con los nombres separados por coma; con todos a bordo, "Todos los pasajeros abordaron." |
 | Confirmación de inicio con pasajeros por abordar | "Falta 1 pasajero por abordar." o "Faltan {n} pasajeros por abordar." (recurso plural de `strings.xml`). |
-| Código QR del vehículo | "Imprímelo y pégalo en la puerta de entrada." |
 | Login en la build `demo` | "Modo demostración: datos ficticios, sin conexión al servidor." |
 
 **Listas vacías:**
@@ -1671,9 +1670,8 @@ entrega ([Definición de terminado](#definición-de-terminado)).
   patente y montos no se truncan.
 - **TalkBack:** los botones con solo ícono tienen `contentDescription` ("Volver", "Editar
   pasajero", "Quitar pasajero", "Seleccionar fecha"); un chip se anuncia como "Estado: Asignado";
-  el arqueo es un solo elemento ("Abordaron 1 de 2. Faltan: Tomás Vidal."); el QR del vehículo
-  se anuncia como "Código QR de abordaje del vehículo {patente}"; los títulos de sección son
-  `heading()` y los errores van en la semántica `error` del campo.
+  el arqueo es un solo elemento ("Abordaron 1 de 2. Faltan: Tomás Vidal."); los títulos de
+  sección son `heading()` y los errores van en la semántica `error` del campo.
 - **Gestos con alternativa:** "deslizar para actualizar" tiene también la acción "Actualizar", y
   leer el QR tiene "Ingresar código".
 - **Formularios:** cada campo tiene etiqueta visible y teclado según su tipo (correo, teléfono,
@@ -1833,20 +1831,20 @@ del servidor están en [Abordaje](#abordaje).
 
 - **QR del vehículo:** su contenido es el texto `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}`
   (p. ej. `BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6`). "Detalle de vehículo" del Administrador
-  lo genera en el teléfono con `BarcodeEncoder` (formato `QR_CODE`, 512 × 512 px) y muestra
-  debajo la patente, el código en grupos de 4 y "Imprímelo y pégalo en la puerta de entrada."
-  La app no imprime ni comparte la imagen: el Administrador la imprime por otro medio.
+  muestra la patente y el código en grupos de 4. La app no genera, imprime ni comparte el QR:
+  el Administrador lo arma por otro medio con ese contenido.
 - **Entrada:** "Abordar viaje" se ofrece en el Login, para el pasajero sin cuenta, y en el
   Perfil del Solicitante, para quien viaja con la sesión abierta. Con sesión la petición va
   igual sin JWT: el interceptor no lo agrega a `/abordajes`. El flujo no usa la sesión ni la
   cola; en la build `demo`, `AbordajeLocalRepository` aplica las reglas de [Abordaje](#abordaje)
   sobre Room.
-- **Lectura con la cámara:** "Escanear código QR" pide el permiso `CAMERA` (el manifiesto
-  declara `android.hardware.camera.any` con `required="false"`) y abre el lector de ZXing con
-  `ScanContract`. Usa `ScanOptions` solo para `QR_CODE`, con la indicación de
-  [Textos y tema](#textos-y-tema), sin pitido y con orientación libre. Cancelar el lector
-  vuelve sin aviso. Con el permiso negado se muestra su aviso y "Ingresar código"; si el
-  sistema ya no muestra el diálogo, también "Abrir ajustes" (la ficha de la app en Ajustes).
+- **Lectura con la cámara:** "Escanear código QR" abre `GmsBarcodeScanning` con
+  `GmsBarcodeScannerOptions` solo para `FORMAT_QR_CODE` y con `enableAutoZoom()`. El lector corre
+  en Google Play services con su propia pantalla, así que la app no declara ni pide el permiso
+  `CAMERA`, y el manifiesto lleva el `meta-data` `com.google.mlkit.vision.DEPENDENCIES` con
+  `barcode_ui` para que el módulo se descargue al instalar. Cancelar el lector vuelve sin aviso.
+  Si no se puede abrir (sin Google Play services, módulo sin descargar o permiso negado en la
+  pantalla de Google), se muestra su aviso de [Textos y tema](#textos-y-tema) y "Ingresar código".
 - **Validación local:** el contenido, en mayúsculas, debe cumplir
   `^BELMONTE-ABORDAJE:([A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2}):[0-9A-F]{16}$`; si no, se muestra
   "Este código no es de un vehículo Belmonte." y no se envía nada. "Ingresar código" pide
@@ -1934,10 +1932,12 @@ pruebas contra el backend real (`FlujosE2ETest`).
 - **Fuera de la build `demo`:** push (no se pide el permiso de notificaciones), correos
   ("Recuperar contraseña" muestra su confirmación sin enviar nada) y la cola sin conexión. Google
   Places sigue siendo el SDK real: crear una solicitud necesita Internet y la clave de Places.
-- **Abordaje en la demostración:** el QR de cada vehículo se ve en su detalle con una cuenta de
-  Administrador. Se escanea desde otro teléfono con la build `demo` o desde una impresión; en un
-  emulador sin cámara se usa "Ingresar código". El abordaje queda en el teléfono que escanea, así
-  que el arqueo se ve entrando como el Conductor del viaje en ese mismo teléfono.
+- **Abordaje en la demostración:** el código de abordaje de cada vehículo se ve en su detalle con
+  una cuenta de Administrador. El QR se arma fuera de la app con el contenido
+  `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}` y se escanea con el lector de Google desde otro
+  teléfono o desde una impresión; en un emulador sin cámara o sin Google Play se usa "Ingresar
+  código". El abordaje queda en el teléfono que escanea, así que el arqueo se ve entrando como el
+  Conductor del viaje en ese mismo teléfono.
 - **Aviso:** el Login de la build `demo` muestra "Modo demostración: datos ficticios, sin
   conexión al servidor."
 - **Comandos:** `./gradlew assembleDemo` genera el APK `demo`; `./gradlew installDemo` lo instala

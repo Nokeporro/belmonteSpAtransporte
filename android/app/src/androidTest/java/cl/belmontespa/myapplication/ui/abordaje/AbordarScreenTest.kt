@@ -32,7 +32,6 @@ class AbordarScreenTest {
                     pantalla = pantalla, estado = estado,
                     onEscanear = { llamadas += "escanear" },
                     onIngresar = { llamadas += "ingresar" },
-                    onAbrirAjustes = { llamadas += "ajustes" },
                     onVolver = { llamadas += "volver" },
                     onPatente = { llamadas += "patente:$it" },
                     onCodigo = { llamadas += "codigo:$it" },
@@ -46,7 +45,7 @@ class AbordarScreenTest {
     private fun texto(id: Int) = textos.getString(id)
 
     @Test
-    fun ofreceEscanearEIngresarElCodigoSinPedirLaCamaraAlEntrar() {
+    fun ofreceEscanearEIngresarElCodigoSinAbrirElLectorAlEntrar() {
         mostrar()
 
         compose.onNodeWithTag("t06_contenido").assertExists()
@@ -54,7 +53,6 @@ class AbordarScreenTest {
         compose.onNodeWithText(texto(R.string.abordaje_escanear)).assertIsEnabled()
         compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled()
         compose.onNodeWithTag("t06_aviso_abordaje").assertDoesNotExist()
-        compose.onNodeWithText(texto(R.string.abordaje_abrir_ajustes)).assertDoesNotExist()
         assertEquals(emptyList<String>(), llamadas)
     }
 
@@ -88,23 +86,15 @@ class AbordarScreenTest {
     }
 
     @Test
-    fun conLaCamaraNegadaAunPedibleNoOfreceAbrirAjustes() {
-        mostrar(AbordarUiState(aviso = AvisoAbordar.CAMARA_NEGADA))
+    fun conElLectorNoDisponibleAvisaYDejaEscanearOIngresarElCodigo() {
+        mostrar(AbordarUiState(aviso = AvisoAbordar.LECTOR_NO_DISPONIBLE))
 
-        compose.onNodeWithText(texto(R.string.abordaje_camara_negada)).assertExists()
-        compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled()
-        compose.onNodeWithText(texto(R.string.abordaje_abrir_ajustes)).assertDoesNotExist()
-    }
+        compose.onNodeWithTag("t06_aviso_abordaje").assertExists()
+        compose.onNodeWithText(texto(R.string.abordaje_lector_no_disponible)).assertExists()
+        compose.onNodeWithText(texto(R.string.abordaje_escanear)).assertIsEnabled()
+        compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled().performClick()
 
-    @Test
-    fun conLaCamaraNegadaParaSiempreOfreceAbrirAjustesYElIngresoManual() {
-        mostrar(AbordarUiState(aviso = AvisoAbordar.CAMARA_NEGADA_PARA_SIEMPRE))
-
-        compose.onNodeWithText(texto(R.string.abordaje_camara_negada)).assertExists()
-        compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled()
-        compose.onNodeWithText(texto(R.string.abordaje_abrir_ajustes)).performClick()
-
-        assertEquals(listOf("ajustes"), llamadas)
+        assertEquals(listOf("ingresar"), llamadas)
     }
 
     @Test

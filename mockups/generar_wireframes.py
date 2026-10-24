@@ -12,7 +12,6 @@ archivos generados no se editan a mano. Solo usa la librería estándar.
 Las pantallas siguen la especificación del README ("Navegación y pantallas", "Máquinas de
 estado"). Todos los datos son ficticios (RNF09).
 """
-import random
 from html import escape
 from pathlib import Path
 
@@ -773,74 +772,14 @@ class Lista:
             f'<li>{icono_html("usuario", 13)}<span>{h(e)}</span></li>' for e in self.elementos) + '</ul>'
 
 
-class CodigoQR:
-    """QR de abordaje del vehículo: patrón ilustrativo de 21 × 21 módulos (no decodificable), patente y código."""
-
-    MODULOS = 21
-    LADO = 105  # px del patrón; margen blanco de 2 módulos alrededor
-
-    def __init__(self, patente, codigo):
-        self.patente, self.codigo = patente, codigo
-
-    def grupos(self):
-        return ' '.join(self.codigo[i:i + 4] for i in range(0, len(self.codigo), 4))
-
-    def oscuros(self):
-        n, azar = self.MODULOS, random.Random(self.patente + self.codigo)
-        marcas = [(0, 0), (0, n - 7), (n - 7, 0)]
-
-        def en_marca(f, c):
-            return any(mf - 1 <= f <= mf + 7 and mc - 1 <= c <= mc + 7 for mf, mc in marcas)
-
-        celdas = set()
-        for mf, mc in marcas:
-            for f in range(7):
-                for c in range(7):
-                    if f in (0, 6) or c in (0, 6) or (2 <= f <= 4 and 2 <= c <= 4):
-                        celdas.add((mf + f, mc + c))
-        for f in range(n):
-            for c in range(n):
-                if en_marca(f, c):
-                    continue
-                if f == 6 or c == 6:
-                    if (f + c) % 2 == 0:
-                        celdas.add((f, c))
-                elif azar.random() < 0.5:
-                    celdas.add((f, c))
-        return sorted(celdas)
-
-    def trazo(self):
-        return ' '.join(f'M{c + 2} {f + 2}h1v1h-1z' for f, c in self.oscuros())
-
-    def alto(self, w):
-        return self.LADO * (self.MODULOS + 4) / self.MODULOS + 34
-
-    def svg(self, out, x, y, w):
-        total = self.MODULOS + 4
-        lado = self.LADO * total / self.MODULOS
-        qx = x + (w - lado) / 2
-        rect(out, qx, y, lado, lado, '#FFFFFF', C['line_soft'], rx=6)
-        out.append(f'<path d="{self.trazo()}" fill="#111111" '
-                   f'transform="translate({qx:.1f},{y:.1f}) scale({lado / total:.3f})"/>')
-        cabe(self.grupos(), 10, w, 'código QR', mono=True)
-        texto(out, x + w / 2, y + lado + 15, self.patente, 11, C['ink'], mono=True, peso='600', ancla='middle')
-        texto(out, x + w / 2, y + lado + 30, self.grupos(), 10, C['ink_soft'], mono=True, ancla='middle')
-
-    def html(self):
-        total = self.MODULOS + 4
-        return (f'<div class="qr-box"><svg class="qr" viewBox="0 0 {total} {total}" role="img" '
-                f'aria-label="Código QR de abordaje del vehículo {h(self.patente)}"><path d="{self.trazo()}"/></svg>'
-                f'<p class="qr-plate">{h(self.patente)}</p><p class="qr-code">{h(self.grupos())}</p></div>')
-
-
 class Camara:
-    """Visor del lector QR a pantalla completa: fondo oscuro, marco, línea de lectura e indicación."""
+    """Visor del lector QR a pantalla completa: fondo oscuro, marco y línea de lectura; la indicación es opcional."""
 
-    def __init__(self, indicacion):
+    def __init__(self, indicacion=None):
         self.indicacion = indicacion
 
     def lineas(self, w):
-        return partir(self.indicacion, 11, w - 24, donde='cámara')
+        return partir(self.indicacion, 11, w - 24, donde='cámara') if self.indicacion else []
 
     def alto(self, w):
         return 230
@@ -858,8 +797,8 @@ class Camara:
             texto(out, x + w / 2, fy + m + 30 + i * 15, l, 11, '#FFFFFF', ancla='middle')
 
     def html(self):
-        return (f'<div class="camera"><div class="cam-frame"><span class="cam-laser"></span></div>'
-                f'<p>{h(self.indicacion)}</p></div>')
+        indicacion = f'<p>{h(self.indicacion)}</p>' if self.indicacion else ''
+        return f'<div class="camera"><div class="cam-frame"><span class="cam-laser"></span></div>{indicacion}</div>'
 
 
 class Dialogo:
@@ -1034,9 +973,10 @@ GRUPOS = [
             Nota('No necesitas cuenta: te identificas con tu RUT o pasaporte, que no se guarda en el teléfono. '
                  '"Ingresar código" pide la patente y el código escritos bajo el QR.')]),
         Pantalla('Escanear código QR', ['CU-19', 'RF28', 'HU29'], cuerpo=[
-            Camara('Apunta al código QR de la puerta.'),
-            Nota('Lector de ZXing a pantalla completa; atrás cancela sin aviso. Sin permiso de cámara: su '
-                 'aviso, "Ingresar código" y, si ya no se puede pedir, "Abrir ajustes".')]),
+            Camara(),
+            Nota('Lector de Google Code Scanner (Google Play services) a pantalla completa, sin permiso de '
+                 'cámara; atrás cancela sin aviso. Si no se puede abrir: "No se pudo abrir el lector. Usa '
+                 'Ingresar código." y "Ingresar código".')]),
         Pantalla('Confirmar abordaje', ['CU-19', 'RF28', 'HU29'], barra='Confirmar abordaje', atras=True, cuerpo=[
             KV('Vehículo', 'KXJR42'), Campo('Tipo de documento', 'RUT', icono='select'),
             Campo('Documento', '15.234.567-4'), Boton('Confirmar abordaje'),
@@ -1207,8 +1147,7 @@ GRUPOS = [
             Chip('DISPONIBLE', grande=True), KV('Capacidad', '4 pasajeros'), KV('Serial GPS', '50231'),
             Seccion('Conductores habilitados'), Lista('Iván Reyes', 'Paula Muñoz'),
             Boton('Gestionar habilitaciones', 'secundario'),
-            Seccion('Código QR de abordaje'), CodigoQR('KXJR42', '7F3A9C21B04E58D6'),
-            Nota('Imprímelo y pégalo en la puerta de entrada.', centro=True),
+            KV('Cód. abordaje', '7F3A 9C21 B04E 58D6'),
             Boton('Desactivar', 'peligro_sec')]),
         Pantalla('Gestionar habilitaciones', ['CU-10', 'RF17', 'HU18'], barra='Habilitaciones',
                  sub='Vehículo KXJR42', atras=True, cuerpo=[
@@ -1617,11 +1556,6 @@ h1{font-family:'IBM Plex Mono','Courier New',monospace;font-weight:700;font-size
 .plain-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:12px;}
 .plain-list li{display:flex;align-items:center;gap:7px;color:var(--ink);}
 .plain-list svg{color:var(--ink-soft);}
-.qr-box{display:flex;flex-direction:column;align-items:center;gap:2px;}
-.qr{width:125px;height:125px;background:#fff;border:1px solid var(--line-soft);border-radius:6px;}
-.qr path{fill:#111;}
-.qr-plate{margin:6px 0 0;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--ink);}
-.qr-code{margin:0;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--ink-soft);}
 .camera{background:#16181b;border-radius:10px;height:230px;display:flex;flex-direction:column;align-items:center;
   justify-content:center;gap:24px;}
 .cam-frame{position:relative;width:120px;height:120px;border:3px solid var(--accent-soft);border-radius:4px;}

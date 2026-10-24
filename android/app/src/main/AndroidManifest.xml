@@ -2,9 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- El ingreso manual permite usar la app también sin cámara. -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <!-- «Navegar» (CU-03) pasa la ruta a Google Maps o a Waze: desde Android 11 hay que declararlas para verlas. -->
     <queries>
@@ -23,6 +20,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Belmonte">
+
+        <!-- Google Play services descarga el módulo del lector de QR al instalar la app, no al primer escaneo. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
 
         <activity
             android:name=".MainActivity"
