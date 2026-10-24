@@ -2,6 +2,7 @@ package cl.belmontespa.transporte;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
 import cl.belmontespa.transporte.support.Api;
@@ -235,6 +236,80 @@ class NotificacionesIT extends IntegrationTest {
 
 			assertThat(fcm.envios()).extracting(Envio::titulo).doesNotContain("Viaje cancelado");
 			assertThat(fcm.para("fcm-" + solicitante.correo())).isEmpty();
+		}
+
+		@Test
+		@DisplayName("el Administrador cancela un viaje ASIGNADO con pago PAGADO: avisa al conductor y al solicitante, también del reembolso")
+		void cancelarAsignadoComoAdministrador() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			String tokenSolicitante = api.dispositivo(solicitante);
+			String tokenConductor = api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			String hash = Api.exigir(api.pagar(api.admin(), folio, 12, "TRANSFERENCIA", 50_000), "registrar pago", 201)
+					.texto("$.hash");
+			Api.exigir(api.cambiarEstadoPago(hash, api.admin(), "PAGADO"), "marcar pagado", 200);
+			esperarEnvios(2);
+			dejarPasarEnvios();
+			fcm.limpiar();
+
+			api.cancelarComoAdminOk(folio, "Falla del vehículo", null);
+
+			esperarEnvios(3);
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).hasSize(3);
+			assertThat(fcm.para(tokenConductor)).singleElement().satisfies(envio -> {
+				assertThat(envio.titulo()).isEqualTo("Viaje cancelado");
+				assertThat(envio.mensaje()).isEqualTo("El viaje " + folio + " fue cancelado");
+				assertThat(envio.datos()).containsOnlyKeys("tipo", "folio").containsEntry("tipo", "VIAJE")
+						.containsEntry("folio", folio);
+			});
+			assertThat(fcm.para(tokenSolicitante)).extracting(Envio::titulo, Envio::mensaje).containsExactlyInAnyOrder(
+					tuple("Viaje cancelado", "Tu viaje " + folio + " fue cancelado"),
+					tuple("Pago del viaje " + folio, "Estado: Reembolsado"));
+			assertThat(fcm.para(tokenSolicitante)).allSatisfy(envio -> assertThat(envio.datos())
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio));
+		}
+
+		@Test
+		@DisplayName("cancelar un viaje PENDIENTE como Administrador avisa solo al solicitante y no avisa del pago si no cambió")
+		void cancelarPendienteComoAdministrador() {
+			Cuenta solicitante = api.solicitante();
+			String tokenSolicitante = api.dispositivo(solicitante);
+			String folio = api.viaje(solicitante);
+			String hash = Api.exigir(api.pagar(api.admin(), folio, 12, "TRANSFERENCIA", 50_000), "registrar pago", 201)
+					.texto("$.hash");
+			Api.exigir(api.cambiarEstadoPago(hash, api.admin(), "PAGADO"), "marcar pagado", 200);
+			api.vencer(folio);
+			dejarPasarEnvios();
+			fcm.limpiar();
+
+			api.cancelarComoAdminOk(folio, "Sin reembolso", 0);
+
+			esperarEnvios(1);
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).singleElement().satisfies(envio -> {
+				assertThat(envio.token()).isEqualTo(tokenSolicitante);
+				assertThat(envio.titulo()).isEqualTo("Viaje cancelado");
+				assertThat(envio.mensaje()).isEqualTo("Tu viaje " + folio + " fue cancelado");
+			});
+		}
+
+		@Test
+		@DisplayName("un 400 al cancelar como Administrador no avisa a nadie")
+		void cancelacionRechazada() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			api.dispositivo(solicitante);
+			api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(2);
+			fcm.limpiar();
+
+			assertThat(api.cancelarComoAdmin(folio, "corto", null).status()).isEqualTo(400);
+
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).isEmpty();
 		}
 
 		@Test

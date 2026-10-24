@@ -31,8 +31,10 @@ import org.springframework.web.server.ResponseStatusException;
 public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoDTOResponse> {
 
 	static final String PENDIENTE = "PENDIENTE";
+	static final String PAGADO = "PAGADO";
 	static final String RECHAZADO = "RECHAZADO";
 	static final String ANULADO = "ANULADO";
+	static final String REEMBOLSADO = "REEMBOLSADO";
 
 	private final PagoRepository pagoRepository;
 	private final ViajeRepository viajeRepository;
@@ -138,9 +140,36 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		String actual = pago.getEstadoPago().getEstado();
 		if (PENDIENTE.equals(actual)) {
 			pago.setEstadoPago(estado(ANULADO));
-		} else if ("PAGADO".equals(actual)) {
+		} else if (PAGADO.equals(actual)) {
 			pago.setMontoReembolsado(pago.getMonto() / 2);
-			pago.setEstadoPago(estado("REEMBOLSADO"));
+			pago.setEstadoPago(estado(REEMBOLSADO));
+		}
+	}
+
+	// V7: el Administrador reembolsa el 100 %; con el viaje vencido y el pago PAGADO fija él el monto, de
+	// 0 al total. En cualquier otro caso el `montoReembolso` se ignora.
+	int reembolsoDelAdministrador(Pago pago, boolean vencido, Integer fijado) {
+		if (!PAGADO.equals(pago.getEstadoPago().getEstado()) || !vencido) {
+			return pago.getMonto();
+		}
+		if (fijado == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "montoReembolso: Es obligatorio.");
+		}
+		if (fijado < 0 || fijado > pago.getMonto()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"montoReembolso: Debe estar entre 0 y " + pago.getMonto() + ".");
+		}
+		return fijado;
+	}
+
+	// V7/P4/P5: un reembolso de 0 deja el pago PAGADO, sin monto reembolsado.
+	void cancelarPorAdministrador(Pago pago, int reembolso) {
+		String actual = pago.getEstadoPago().getEstado();
+		if (PENDIENTE.equals(actual)) {
+			pago.setEstadoPago(estado(ANULADO));
+		} else if (PAGADO.equals(actual) && reembolso > 0) {
+			pago.setMontoReembolsado(reembolso);
+			pago.setEstadoPago(estado(REEMBOLSADO));
 		}
 	}
 

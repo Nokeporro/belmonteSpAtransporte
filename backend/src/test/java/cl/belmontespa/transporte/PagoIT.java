@@ -178,6 +178,135 @@ class PagoIT extends IntegrationTest {
 	}
 
 	@Nested
+	@DisplayName("Al cancelar el Administrador (CU-15, V7, P4 y P5)")
+	class CancelacionDelAdministrador {
+
+		private String pagado(String folio, int monto) {
+			String hash = Api.exigir(api.pagar(api.admin(), folio, 12, "TRANSFERENCIA", monto), "registrar pago", 201)
+					.texto("$.hash");
+			Api.exigir(api.cambiarEstadoPago(hash, api.admin(), "PAGADO"), "marcar pagado", 200);
+			return hash;
+		}
+
+		private Resp pago(String hash) {
+			return Api.exigir(api.get("/pagos/" + hash, api.admin()), "consultar pago", 200);
+		}
+
+		@Test
+		@DisplayName("con el viaje al día reembolsa el 100 % e ignora el monto que llegue")
+		void reembolsaTodo() {
+			Cuenta solicitante = api.solicitante();
+			String folio = api.viaje(solicitante);
+			String hash = pagado(folio, 50_001);
+			String fechaPago = pago(hash).texto("$.fechaPago");
+
+			Resp viaje = Api.exigir(api.cancelarComoAdmin(folio, "Conductor sin disponibilidad", 1),
+					"cancelar como Administrador", 200);
+
+			assertThat(viaje.texto("$.estado")).isEqualTo("CANCELADO");
+			assertThat(viaje.texto("$.estadoPago")).isEqualTo("REEMBOLSADO");
+			Resp reembolso = pago(hash);
+			assertThat(reembolso.texto("$.estadoPago")).isEqualTo("REEMBOLSADO");
+			assertThat(reembolso.entero("$.montoReembolsado")).isEqualTo(50_001);
+			assertThat(reembolso.entero("$.monto")).isEqualTo(50_001);
+			assertThat(reembolso.texto("$.fechaPago")).isEqualTo(fechaPago);
+			assertThat(api.get("/pagos/" + hash, solicitante.token()).entero("$.montoReembolsado")).isEqualTo(50_001);
+		}
+
+		@Test
+		@DisplayName("vencido y PAGADO exige el monto, de 0 al total, y un 400 no cambia nada")
+		void vencidoExigeElMonto() {
+			String folio = api.viaje(api.solicitante());
+			String hash = pagado(folio, 50_000);
+			api.vencer(folio);
+
+			Resp sinMonto = api.cancelarComoAdmin(folio, "Nadie lo atendió", null);
+			assertThat(sinMonto.status()).isEqualTo(400);
+			assertThat(sinMonto.texto("$.message")).isEqualTo("montoReembolso: Es obligatorio.");
+			Resp demasiado = api.cancelarComoAdmin(folio, "Nadie lo atendió", 50_001);
+			assertThat(demasiado.status()).isEqualTo(400);
+			assertThat(demasiado.texto("$.message")).isEqualTo("montoReembolso: Debe estar entre 0 y 50000.");
+			assertThat(api.cancelarComoAdmin(folio, "Nadie lo atendió", -1).status()).isEqualTo(400);
+
+			assertThat(api.estadoViaje(folio)).isEqualTo("PENDIENTE");
+			assertThat(pago(hash).texto("$.estadoPago")).isEqualTo("PAGADO");
+			assertThat(pago(hash).texto("$.montoReembolsado")).isNull();
+		}
+
+		@Test
+		@DisplayName("vencido y PAGADO reembolsa el monto fijado o el total")
+		void vencidoFijado() {
+			Cuenta solicitante = api.solicitante();
+			String parcial = api.viaje(solicitante);
+			String hashParcial = pagado(parcial, 50_000);
+			api.vencer(parcial);
+			String total = api.viaje(solicitante);
+			String hashTotal = pagado(total, 50_000);
+			api.vencer(total);
+
+			api.cancelarComoAdminOk(parcial, "Nadie lo atendió", 20_000);
+			api.cancelarComoAdminOk(total, "Nadie lo atendió", 50_000);
+
+			assertThat(pago(hashParcial).texto("$.estadoPago")).isEqualTo("REEMBOLSADO");
+			assertThat(pago(hashParcial).entero("$.montoReembolsado")).isEqualTo(20_000);
+			assertThat(pago(hashTotal).entero("$.montoReembolsado")).isEqualTo(50_000);
+			assertThat(api.estadoViaje(parcial)).isEqualTo("CANCELADO");
+		}
+
+		@Test
+		@DisplayName("vencido con monto 0 cancela el viaje y el pago sigue PAGADO, sin reembolso")
+		void vencidoConCero() {
+			Cuenta solicitante = api.solicitante();
+			String folio = api.viaje(solicitante);
+			String hash = pagado(folio, 50_000);
+			api.vencer(folio);
+
+			Resp viaje = Api.exigir(api.cancelarComoAdmin(folio, "Sin reembolso", 0), "cancelar como Administrador", 200);
+
+			assertThat(viaje.texto("$.estado")).isEqualTo("CANCELADO");
+			assertThat(viaje.texto("$.estadoPago")).isEqualTo("PAGADO");
+			assertThat(pago(hash).texto("$.estadoPago")).isEqualTo("PAGADO");
+			assertThat(pago(hash).texto("$.montoReembolsado")).isNull();
+		}
+
+		@Test
+		@DisplayName("un pago PENDIENTE queda ANULADO y vencido no pide monto; sin pago tampoco")
+		void pendienteYSinPago() {
+			Cuenta solicitante = api.solicitante();
+			String conPendiente = api.viaje(solicitante);
+			String hash = api.pagarOk(conPendiente);
+			api.vencer(conPendiente);
+			String sinPago = api.viaje(solicitante);
+			api.vencer(sinPago);
+
+			api.cancelarComoAdminOk(conPendiente, "Nadie lo atendió", null);
+			api.cancelarComoAdminOk(sinPago, "Nadie lo atendió", null);
+
+			assertThat(pago(hash).texto("$.estadoPago")).isEqualTo("ANULADO");
+			assertThat(pago(hash).texto("$.montoReembolsado")).isNull();
+			assertThat(api.estadoViaje(sinPago)).isEqualTo("CANCELADO");
+		}
+
+		@Test
+		@DisplayName("un pago RECHAZADO no cambia y uno ya REEMBOLSADO queda final")
+		void terminales() {
+			Cuenta solicitante = api.solicitante();
+			String folio = api.viaje(solicitante);
+			String hash = api.pagarOk(folio);
+			api.cambiarEstadoPago(hash, api.admin(), "RECHAZADO");
+
+			api.cancelarComoAdminOk(folio, "Cambio de planes", null);
+
+			assertThat(pago(hash).texto("$.estadoPago")).isEqualTo("RECHAZADO");
+			String otro = api.viaje(solicitante);
+			String reembolsado = pagado(otro, 40_000);
+			api.cancelarComoAdminOk(otro, "Cambio de planes", null);
+			assertThat(api.cambiarEstadoPago(reembolsado, api.admin(), "PAGADO").status()).isEqualTo(409);
+			assertThat(pago(reembolsado).texto("$.estadoPago")).isEqualTo("REEMBOLSADO");
+		}
+	}
+
+	@Nested
 	@DisplayName("Alcance de la consulta (RF20)")
 	class Consulta {
 

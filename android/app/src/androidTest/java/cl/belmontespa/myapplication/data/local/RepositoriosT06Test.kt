@@ -331,6 +331,100 @@ class RepositoriosT06Test {
             assertEquals(cerrado, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
         }
     }
+    private suspend fun vencer(v: ViajeEntity): ViajeEntity =
+        v.copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(1).minusSeconds(1))).also { db.viajeDao().guardar(it) }
+    @Test fun elAdministradorCancelaConMotivoYReembolsaTodoSiNoEstaVencido() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val (v, p) = solicitudConPago(50_001)
+        // El monto solo cuenta con el viaje vencido: aquí se ignora.
+        assertTrue(viajes.cancelar(v.folio, "  Conductor sin disponibilidad  ", 1) is Resultado.Exito)
+        val pago = db.pagoDao().obtener(p.hash)!!
+        assertEquals("REEMBOLSADO", pago.estadoPago); assertEquals(50_001, pago.montoReembolsado)
+        assertEquals(p.fechaPago, pago.fechaPago); assertEquals(50_001, pago.monto)
+        assertEquals(v.copy(estado = "CANCELADO", estadoPago = "REEMBOLSADO", motivo = "Conductor sin disponibilidad"), local.viaje(v.folio))
+        assertTrue(viajes.cancelar(v.folio, "Otro motivo distinto", null) is Resultado.Fallo)
+        assertEquals(pago, db.pagoDao().obtener(p.hash))
+    }
+    @Test fun elAdministradorFijaElReembolsoDeUnViajeVencidoDeCeroAlTotal() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val (v, p) = solicitudConPago(50_000)
+        val vencido = vencer(v)
+        val rango = "Debe estar entre \$0 y \$50.000."
+        assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("montoReembolso" to "Es obligatorio."))), viajes.cancelar(v.folio, "Nadie lo atendió", null))
+        for (monto in listOf(-1, 50_001)) {
+            assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("montoReembolso" to rango))), viajes.cancelar(v.folio, "Nadie lo atendió", monto))
+        }
+        // Un rechazo no deja nada a medias: ni el viaje ni el pago cambian.
+        assertEquals(vencido, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
+        assertTrue(viajes.cancelar(v.folio, "Nadie lo atendió", 20_000) is Resultado.Exito)
+        assertEquals(p.copy(estadoPago = "REEMBOLSADO", montoReembolsado = 20_000), db.pagoDao().obtener(p.hash))
+        assertEquals(vencido.copy(estado = "CANCELADO", estadoPago = "REEMBOLSADO", motivo = "Nadie lo atendió"), local.viaje(v.folio))
+        val (total, pagoTotal) = solicitudConPago(30_000)
+        vencer(total)
+        assertTrue(viajes.cancelar(total.folio, "Nadie lo atendió", 30_000) is Resultado.Exito)
+        assertEquals(30_000, db.pagoDao().obtener(pagoTotal.hash)!!.montoReembolsado)
+    }
+    @Test fun conUnReembolsoDeCeroElViajeSeCancelaYElPagoSigueSiendoPagado() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val (v, p) = solicitudConPago(50_000)
+        vencer(v)
+        assertTrue(viajes.cancelar(v.folio, "Sin reembolso", 0) is Resultado.Exito)
+        assertEquals(p, db.pagoDao().obtener(p.hash))
+        assertEquals("CANCELADO", local.viaje(v.folio).estado); assertEquals("PAGADO", local.viaje(v.folio).estadoPago)
+    }
+    @Test fun elAdministradorAnulaUnPagoPendienteYRespetaLosTerminalesSinPedirMonto() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        for (estado in listOf("PENDIENTE", "ANULADO", "RECHAZADO", "REEMBOLSADO")) {
+            val (v, p) = solicitudConPago(25_000, estado)
+            val original = if (estado == "REEMBOLSADO") p.copy(montoReembolsado = 7_000) else p
+            db.pagoDao().guardar(original)
+            vencer(v)
+            assertTrue(viajes.cancelar(v.folio, "Nadie lo atendió", null) is Resultado.Exito)
+            assertEquals(if (estado == "PENDIENTE") original.copy(estadoPago = "ANULADO") else original, db.pagoDao().obtener(p.hash))
+        }
+        // Sin pago tampoco se pide monto.
+        val sinPago = local.viaje("TR-1055")
+        assertTrue(viajes.cancelar(sinPago.folio, "Cambio de planes", null) is Resultado.Exito)
+        assertEquals(sinPago.copy(estado = "CANCELADO", motivo = "Cambio de planes"), local.viaje(sinPago.folio))
+    }
+    @Test fun elMotivoDelAdministradorSeValidaAntesQueElViaje() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val original = local.viaje("TR-1051")
+        val invalido = Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Debe tener entre 5 y 200 caracteres.")))
+        assertEquals(invalido, viajes.cancelar("TR-1051", "1234", null))
+        assertEquals(invalido, viajes.cancelar("TR-1051", "  1234  ", null))
+        assertEquals(invalido, viajes.cancelar("TR-1051", "a".repeat(201), null))
+        assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Es obligatorio."))), viajes.cancelar("TR-1051", null, null))
+        assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("motivo" to "Es obligatorio."))), viajes.cancelar("TR-1051", "     ", null))
+        assertEquals(invalido, viajes.cancelar("TR-9999", "1234", null))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), viajes.cancelar("TR-9999", "Motivo válido", null))
+        assertEquals(original, local.viaje("TR-1051"))
+    }
+    @Test fun elAdministradorNoCancelaEstadosCerradosNiLoHaceUnConductor() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val (v, p) = solicitudConPago(25_000)
+        for (estado in listOf("EN_CURSO", "FINALIZADO", "CANCELADO")) {
+            val cerrado = v.copy(estado = estado)
+            db.viajeDao().guardar(cerrado)
+            val rechazo = viajes.cancelar(v.folio, "Motivo válido", null)
+            assertTrue(rechazo is Resultado.Fallo && rechazo.error is ErrorApp.Conflicto)
+            assertEquals(cerrado, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
+        }
+        entrar(Rol.CONDUCTOR)
+        assertEquals(Resultado.Fallo(ErrorApp.SinPermiso()), viajes.cancelar("TR-1042", "Motivo válido", null))
+    }
+    @Test fun elAdministradorCancelaUnViajeAsignadoYConservaLaAsignacionYLaFlota() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val conductor = local.usuario("ireyes@belmontespa.cl"); val movil = db.movilDao().obtener("KXJR42")!!
+        val asignado = local.viaje("TR-1042")
+        assertTrue(viajes.cancelar("TR-1042", "Falla del vehículo", null) is Resultado.Exito)
+        val cancelado = local.viaje("TR-1042")
+        assertEquals("CANCELADO", cancelado.estado); assertEquals("Falla del vehículo", cancelado.motivo)
+        assertEquals(asignado.correoConductor, cancelado.correoConductor); assertEquals(asignado.patenteMovil, cancelado.patenteMovil)
+        assertEquals(asignado.fhAsignacion, cancelado.fhAsignacion)
+        assertEquals(conductor, local.usuario(conductor.correo)); assertEquals(movil, db.movilDao().obtener(movil.patente))
+        assertEquals("REEMBOLSADO", db.pagoDao().obtener(asignado.hashPago!!)!!.estadoPago)
+    }
     @Test fun registroNuevoApruebaYEmpresaExistenteDejaLaCuentaPendiente() = runBlocking {
         val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
         val primera = RegistroSolicitante("Ana Demo", " ANA@nuevo.cl ", "9 5555-0101", "Clave12345", "Empresa Nueva", "12.345.678-5")

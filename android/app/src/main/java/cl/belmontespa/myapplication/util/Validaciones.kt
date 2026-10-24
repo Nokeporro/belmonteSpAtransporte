@@ -31,6 +31,23 @@ object Validaciones {
         TipoDocumento.RUT -> rutValido(valor)
         TipoDocumento.PASAPORTE -> documento(valor).matches(Regex("[A-Z0-9]{5,20}"))
     }
+    /** Motivo de una cancelación (V7) o de un rechazo (V8): de 5 a 200 caracteres, ya recortado. */
+    fun motivo(valor: String): String? = when {
+        valor.isBlank() -> "Es obligatorio."
+        valor.trim().length !in 5..200 -> "Debe tener entre 5 y 200 caracteres."
+        else -> null
+    }
+    /** Monto a reembolsar de V7: de 0 al total del pago. El texto es lo que escribió el Administrador. */
+    fun reembolso(texto: String, total: Int): String? {
+        if (texto.isBlank()) return "Es obligatorio."
+        val monto = texto.trim().toIntOrNull() ?: return "Ingresa un monto entero."
+        return reembolso(monto, total)
+    }
+    fun reembolso(monto: Int?, total: Int): String? = when {
+        monto == null -> "Es obligatorio."
+        monto !in 0..total -> "Debe estar entre ${Formatos.monto(0)} y ${Formatos.monto(total)}."
+        else -> null
+    }
     fun pasajero(p: NuevoPasajero): Map<String, String> = buildMap {
         if (p.nombre.trim().length !in 2..120) put("nombre", "Debe tener entre 2 y 120 caracteres.")
         if (!documentoValido(p.tipoDocumento, p.dni)) put("dni", "Ingresa un documento válido.")

@@ -151,7 +151,8 @@ class HU16IT extends IntegrationTest {
         String folio = api.viajeAsignado(solicitante, flota);
         assertThat(api.cancelar(folio, api.solicitante().token()).status()).isEqualTo(403);
         assertThat(api.cancelar(folio, flota.conductor().token()).status()).isEqualTo(403);
-        assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(403);
+        // El Administrador cancela con motivo (V7, HU24): sin cuerpo no hay motivo.
+        assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(400);
         assertThat(api.cancelar(folio, null).status()).isEqualTo(401);
         assertThat(api.cancelar("TR-99999999", solicitante.token()).status()).isEqualTo(404);
         jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", LocalDateTime.now(clock), folio);

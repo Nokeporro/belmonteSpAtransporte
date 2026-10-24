@@ -4,6 +4,7 @@ import cl.belmontespa.myapplication.data.local.Hashes
 import cl.belmontespa.myapplication.data.local.entity.*
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
+import cl.belmontespa.myapplication.util.Validaciones
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -90,11 +91,14 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
     suspend fun cancelar(folio: String, motivo: String?, monto: Int?): Resultado<Unit> = local.ejecutar {
         val s = local.sesion()
         if (s.rol == Rol.CONDUCTOR) falla(ErrorApp.SinPermiso())
+        val admin = s.rol == Rol.ADMINISTRADOR
+        // V7: el motivo se valida antes que el viaje, como el 400 del backend; el Solicitante no lo envía.
+        val motivoLimpio = motivo.orEmpty().trim()
+        if (admin) validar(listOfNotNull(Validaciones.motivo(motivoLimpio)?.let { "motivo" to it }).toMap())
         val v = local.alcance(folio)
         exigir(v.estado in listOf("PENDIENTE", "ASIGNADO"), "El viaje ya no se puede cancelar.")
-        if (s.rol == Rol.SOLICITANTE) exigir(!v.vencido(local), "El viaje está vencido. Contacta al Administrador.")
-        else exigir(!motivo.isNullOrBlank(), "Ingresa el motivo de cancelación.")
-        local.cancelarConPago(v, if (s.rol == Rol.ADMINISTRADOR) motivo else v.motivo, s.rol == Rol.ADMINISTRADOR, monto)
+        if (!admin) exigir(!v.vencido(local), "El viaje está vencido. Contacta al Administrador.")
+        local.cancelarConPago(v, if (admin) motivoLimpio else v.motivo, admin, monto)
     }
     suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = local.ejecutar {
         local.sesion(Rol.CONDUCTOR)
@@ -127,15 +131,12 @@ internal suspend fun SoporteLocal.cancelarConPago(v: ViajeEntity, motivo: String
     var estadoPago = v.estadoPago
     val p = v.hashPago?.let { db.pagoDao().obtener(it) }
     if (p != null) {
-        val nuevo = when (p.estadoPago) {
-            "PENDIENTE" -> p.copy(estadoPago = "ANULADO")
-            "PAGADO" -> {
-                val reembolso = if (!admin) p.monto / 2 else if (v.vencido(this)) monto ?: p.monto else p.monto
-                exigir(reembolso in 0..p.monto, "El reembolso debe estar entre cero y el total pagado.")
-                if (admin && reembolso == 0) p else p.copy(estadoPago = "REEMBOLSADO", montoReembolsado = reembolso)
-            }
-            else -> p
+        val vencido = v.vencido(this)
+        // V7: con el viaje vencido y el pago PAGADO el Administrador fija el monto, de 0 al total; si no, se ignora.
+        if (admin && vencido && p.estadoPago == "PAGADO") {
+            validar(listOfNotNull(Validaciones.reembolso(monto, p.monto)?.let { "montoReembolso" to it }).toMap())
         }
+        val nuevo = p.alCancelarElViaje(admin, vencido, monto)
         db.pagoDao().guardar(nuevo)
         estadoPago = nuevo.estadoPago
     }

@@ -335,12 +335,27 @@ public class Api {
 		exigir(cambiarEstadoEnLaVentana(folio, conductor.token(), "EN_CURSO"), "iniciar " + folio, 200);
 	}
 
-	private void fijarAgenda(String folio, LocalDateTime fhAgenda) {
+	public void fijarAgenda(String folio, LocalDateTime fhAgenda) {
 		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
+	}
+
+	/** Deja el viaje vencido (pasó más de una hora de su agenda sin iniciar): V1 no deja crearlo así. */
+	public void vencer(String folio) {
+		fijarAgenda(folio, LocalDateTime.now(ClockConfig.ZONA).minusHours(1).minusMinutes(5));
 	}
 
 	public Resp cancelar(String folio, String token) {
 		return post("/viajes/" + folio + "/cancelar", token, null);
+	}
+
+	/** V7: el Administrador cancela con motivo y, si hace falta, el monto a reembolsar. */
+	public Resp cancelarComoAdmin(String folio, String motivo, Integer montoReembolso) {
+		String monto = montoReembolso == null ? "" : ",\"montoReembolso\":" + montoReembolso;
+		return post("/viajes/" + folio + "/cancelar", admin(), "{\"motivo\":\"%s\"%s}".formatted(motivo, monto));
+	}
+
+	public void cancelarComoAdminOk(String folio, String motivo, Integer montoReembolso) {
+		exigir(cancelarComoAdmin(folio, motivo, montoReembolso), "cancelar " + folio + " como Administrador", 200);
 	}
 
 	public void cancelarOk(String folio, Cuenta solicitante) {

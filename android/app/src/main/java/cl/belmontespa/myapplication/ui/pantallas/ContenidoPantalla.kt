@@ -57,14 +57,8 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudFormulario()
         PantallaDemo.AGREGAR_PASAJERO -> { FormularioPasajero(false); Accion(R.string.accion_agregar_pasajero) }
         PantallaDemo.CONFIRMAR_CANCELACION -> ConfirmarCancelacionSolicitud()
-        PantallaDemo.CANCELAR_VIAJE -> {
-            estado.viaje?.let { Dato(R.string.campo_folio, it.folio); Dato(R.string.campo_fecha_agenda, Formatos.fechaHoraDetalle(it.fhAgenda)) }
-            Aviso(stringResource(R.string.aviso_cancelar_viaje), TonoAviso.AVISO)
-            Campo("motivo", R.string.campo_motivo)
-            if (estado.viaje?.estadoPago == EstadoPago.PAGADO && estado.viaje.fhAgenda.plusHours(1).isBefore(vm.ahora())) Campo("reembolso", R.string.campo_reembolso, KeyboardType.Number)
-            Accion(R.string.accion_confirmar, tipo = TipoBoton.PELIGRO)
-            Accion(R.string.accion_cancelar, volver, TipoBoton.SECUNDARIO)
-        }
+        // «Cancelar viaje» del Administrador la dibuja CancelarViajeScreen, desde PantallaT06 (HU24).
+        PantallaDemo.CANCELAR_VIAJE -> Unit
         PantallaDemo.SOLICITUD_CANCELADA -> {
             if (estado.viaje?.estado == EstadoViaje.CANCELADO) {
                 Aviso(stringResource(R.string.aviso_solicitud_cancelada), TonoAviso.INFORMACION)
@@ -245,6 +239,8 @@ private fun ContextoPantalla.DetalleViaje() {
         Text(pasajero.nombre)
         if (!veArqueo) EstadoChip(stringResource(if (pasajero.fhAbordaje != null) R.string.etiqueta_abordado else R.string.etiqueta_por_abordar), if (pasajero.fhAbordaje != null) EstiloChip.CORRECTO else EstiloChip.NEUTRO)
     } }
+    // El Administrador ve el pago del viaje, también su resultado tras cancelar (README: motivo, pago y arqueo).
+    if (estado.cuenta?.rol == Rol.ADMINISTRADOR) estado.pago?.let { PagoDelViaje(it) }
     when (estado.cuenta?.rol) {
         Rol.SOLICITANTE -> {
             if (editable) Enlace(R.string.accion_agregar_pasajero, PantallaDemo.AGREGAR_PASAJERO)
@@ -275,6 +271,15 @@ private fun ContextoPantalla.DetalleViaje() {
         null -> Unit
     }
     Dato(R.string.campo_motivo, viaje.motivo)
+}
+
+@Composable
+private fun PagoDelViaje(pago: Pago) {
+    Bloque(stringResource(R.string.campo_pago)) {
+        EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
+        Dato(R.string.campo_monto, Formatos.monto(pago.monto))
+        pago.montoReembolsado?.let { Dato(R.string.campo_monto_reembolsado, Formatos.monto(it)) }
+    }
 }
 
 @Composable

@@ -130,7 +130,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | Listo |
 | 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
 | 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
-| 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | — |
+| 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | Listo |
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | 3 ajustar | — |
@@ -406,10 +406,13 @@ HU16, HU17 y HU18 también están implementadas; el siguiente ítem de A es HU19
 
   API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
 
-- **V7 (Administrador), pendiente en HU24, en la misma ruta:**
-  - nuevo `CancelarViajeDTORequest`, con `motivo` y `montoReembolso`;
-  - reembolso del 100 %, o del monto fijado si el viaje está vencido;
-  - `SecurityConfig` debe permitir al Administrador; hoy solo al Solicitante.
+- **V7 (Administrador), implementado en HU24, en la misma ruta:**
+  - [x] `CancelarViajeDTORequest` con `motivo` (de 5 a 200 caracteres, recortado) y `montoReembolso`, obligatorio solo con el viaje vencido y el pago `PAGADO` (de 0 al total; si no, se ignora).
+  - [x] Reembolso del 100 %, o del monto fijado si el viaje está vencido; con 0 el pago sigue `PAGADO`; un pago `PENDIENTE` queda `ANULADO` y los terminales no cambian.
+  - [x] `SecurityConfig` permite al Administrador; el Conductor sigue en 403.
+  - [x] Push al conductor y al Solicitante, y del cambio del pago.
+  - [x] Android: «Cancelar viaje» con su pantalla y su ViewModel (monto precargado con el total, errores por campo, doble toque), y el pago y su resultado en el detalle del Administrador.
+  - [x] Pruebas: 12 unitarias nuevas del backend y 329 JVM Android; lint, APK debug y demo correctos. Las IT del backend (`ViajeIT`, `PagoIT`, `NotificacionesIT`) y las pruebas instrumentadas están escritas y compilan, pero no se ejecutaron (sin MariaDB ni AVD).
 
 ### HU17
 

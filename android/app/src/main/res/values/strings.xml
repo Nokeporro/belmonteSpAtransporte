@@ -282,6 +282,7 @@
     <string name="campo_vehiculo">Vehículo</string>
     <string name="campo_codigo">Código de abordaje</string>
     <string name="campo_reembolso">Monto a reembolsar</string>
+    <string name="campo_monto_reembolsado">Monto reembolsado</string>
     <string name="campo_estado">Estado</string>
     <string name="campo_empresa">Empresa</string>
     <string name="campo_folio">Folio</string>
@@ -343,6 +344,11 @@
     <string name="cancelacion_reembolso_previsto">Se registrará un reembolso del 50 %% del pago: %1$s.</string>
     <string name="cancelacion_anula_pago">El pago pendiente se anulará al cancelar la solicitud.</string>
     <string name="cancelacion_pago_anulado">El pago pendiente fue anulado.</string>
+    <string name="cancelar_viaje_no_disponible">El viaje ya no se puede cancelar. Actualiza su información.</string>
+    <string name="cancelar_viaje_reembolso_total">Se reembolsará el 100 %% del pago: %1$s.</string>
+    <string name="cancelar_viaje_anula_pago">El pago pendiente se anulará al cancelar el viaje.</string>
+    <string name="cancelar_viaje_vencido">El viaje está vencido: define cuánto reembolsar, desde $0 hasta el total del pago.</string>
+    <string name="cancelar_viaje_pago_sin_cambio">El pago no se modifica al cancelar el viaje.</string>
     <string name="vehiculo_registro_indicacion">Ingresa una patente AA1234 o BBBB12 y una capacidad de 1 a 20 pasajeros. El serial GPS es opcional. El vehículo quedará activo y disponible.</string>
     <string name="vehiculo_sin_gps">Sin GPS registrado</string>
     <string name="habilitaciones_ayuda">Agrega conductores activos a vehículos activos. Una habilitación existente se conserva sin duplicarse. Los filtros solo cambian la lista.</string>

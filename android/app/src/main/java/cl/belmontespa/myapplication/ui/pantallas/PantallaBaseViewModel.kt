@@ -138,12 +138,15 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                 } else if (p in pantallasDeViaje && id.isNotBlank()) {
                     mutable.update { it.copy(cargando = false) }
                     repos.viajes.observarViaje(id).collect { viaje ->
-                        val pagoCancelacion = if (p in listOf(PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA))
-                            viaje?.hashPago?.let { repos.pagos.obtenerPago(it).valor() } else null
-                        val reembolso = if (p == PantallaDemo.CANCELAR_VIAJE && viaje?.hashPago != null && "reembolso" !in mutable.value.campos) repos.pagos.obtenerPago(viaje.hashPago).valor().monto.toString() else null
-                        mutable.update { it.copy(viaje = viaje, cargando = false, pago = pagoCancelacion,
-                            error = if (viaje == null) ErrorApp.NoEncontrado else null,
-                            campos = if ("reembolso" in it.campos || viaje == null) it.campos else if (reembolso != null) it.campos + ("reembolso" to reembolso) else it.campos) }
+                        // La cancelación del Solicitante necesita el pago (HU16); el detalle del Administrador lo muestra,
+                        // sin que un pago ilegible le oculte el viaje (HU24).
+                        val pagoDelViaje = viaje?.hashPago?.let { hash -> when (p) {
+                            PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA -> repos.pagos.obtenerPago(hash).valor()
+                            PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN -> (repos.pagos.obtenerPago(hash) as? Resultado.Exito)?.valor
+                            else -> null
+                        } }
+                        mutable.update { it.copy(viaje = viaje, cargando = false, pago = pagoDelViaje,
+                            error = if (viaje == null) ErrorApp.NoEncontrado else null) }
                     }
                 } else mutable.update { it.copy(cargando = false) }
             } catch (e: CancellationException) { throw e
@@ -205,7 +208,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             repos.viajes.cancelar(referencia).valor()
                             destino = PantallaDemo.SOLICITUD_CANCELADA to referencia
                         }
-                        PantallaDemo.CANCELAR_VIAJE -> { repos.viajes.cancelar(referencia, valor("motivo").ifBlank { null }, valor("reembolso").toIntOrNull()).valor(); destino = PantallaDemo.DETALLE_ADMIN to referencia }
                         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
                             val c = NuevaCuenta(valor("nombre"), valor("correo"), valor("telefono").ifBlank { null }, valor("password"))
                             if (p == PantallaDemo.REGISTRAR_CONDUCTOR) {
@@ -258,7 +260,7 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
     }
     fun ahora(): LocalDateTime = LocalDateTime.now(repos.clock)
     private companion object {
-        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO)
+        val pantallasDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO)
     }
 }
 private class FalloPantalla(val error: ErrorApp) : RuntimeException()

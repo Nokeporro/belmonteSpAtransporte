@@ -42,6 +42,29 @@ class ValidacionesTest {
         assertTrue("pasajeros" in Validaciones.solicitud(base.copy(pasajeros = listOf(pasajero, pasajero.copy(dni = "demo 123"))), ahora))
         assertTrue("destino" in Validaciones.solicitud(base.copy(destino = origen), ahora))
     }
+    @Test fun elMotivoTieneDeCincoADoscientosCaracteresYaRecortado() {
+        assertNull(Validaciones.motivo("12345"))
+        assertNull(Validaciones.motivo("  12345  "))
+        assertNull(Validaciones.motivo("a".repeat(200)))
+        assertEquals("Debe tener entre 5 y 200 caracteres.", Validaciones.motivo("1234"))
+        assertEquals("Debe tener entre 5 y 200 caracteres.", Validaciones.motivo("  1234  "))
+        assertEquals("Debe tener entre 5 y 200 caracteres.", Validaciones.motivo("a".repeat(201)))
+        assertEquals("Es obligatorio.", Validaciones.motivo(""))
+        assertEquals("Es obligatorio.", Validaciones.motivo("      "))
+    }
+    @Test fun elReembolsoVaDeCeroAlTotalDelPago() {
+        assertNull(Validaciones.reembolso("0", 52_000))
+        assertNull(Validaciones.reembolso(" 52000 ", 52_000))
+        assertNull(Validaciones.reembolso(20_000, 52_000))
+        val fueraDeRango = "Debe estar entre \$0 y \$52.000."
+        assertEquals(fueraDeRango, Validaciones.reembolso("52001", 52_000))
+        assertEquals(fueraDeRango, Validaciones.reembolso("-1", 52_000))
+        assertEquals(fueraDeRango, Validaciones.reembolso(-1, 52_000))
+        assertEquals("Es obligatorio.", Validaciones.reembolso("  ", 52_000))
+        assertEquals("Es obligatorio.", Validaciones.reembolso(null, 52_000))
+        assertEquals("Ingresa un monto entero.", Validaciones.reembolso("20.5", 52_000))
+        assertEquals("Ingresa un monto entero.", Validaciones.reembolso("99999999999", 52_000))
+    }
     @Test fun registroDevuelveErroresPorCampo() {
         val valido = RegistroSolicitante("Ana Pérez", "ana@test.cl", null, "Clave12345", "Empresa", "12.345.678-5")
         assertTrue(Validaciones.registro(valido).isEmpty())

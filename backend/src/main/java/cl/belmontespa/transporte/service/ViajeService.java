@@ -3,12 +3,14 @@ package cl.belmontespa.transporte.service;
 import cl.belmontespa.transporte.client.FirebaseClient;
 import cl.belmontespa.transporte.dto.request.AsignarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.CambiarEstadoViajeDTORequest;
+import cl.belmontespa.transporte.dto.request.CancelarViajeDTORequest;
 import cl.belmontespa.transporte.dto.request.ViajeDTORequest;
 import cl.belmontespa.transporte.dto.response.ViajeDTOResponse;
 import cl.belmontespa.transporte.model.Conductor;
 import cl.belmontespa.transporte.model.DetalleMovilConductorId;
 import cl.belmontespa.transporte.model.EstadoSolicitud;
 import cl.belmontespa.transporte.model.Movil;
+import cl.belmontespa.transporte.model.Pago;
 import cl.belmontespa.transporte.model.Viaje;
 import cl.belmontespa.transporte.repository.DetalleMovilConductorRepository;
 import cl.belmontespa.transporte.repository.DetalleViajePasajeroRepository;
@@ -280,23 +282,59 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 			throw conflicto("El viaje está vencido. Contacta al Administrador.");
 		}
 		viaje.setEstado(estado(CANCELADO));
+		String estadoPagoAnterior = estadoDelPago(viaje);
 		if (viaje.getPago() != null) {
-			String estadoAnterior = viaje.getPago().getEstadoPago().getEstado();
 			pagoService.cancelarPorSolicitante(viaje.getPago());
-			String estadoPago = viaje.getPago().getEstadoPago().getEstado();
-			if (!estadoAnterior.equals(estadoPago)) {
-				firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
-						"Pago del viaje " + folio,
-						"Estado: " + ("REEMBOLSADO".equals(estadoPago) ? "Reembolsado" : "Anulado"),
-						Map.of("tipo", "VIAJE", "folio", folio));
-			}
+		}
+		avisarCancelacion(viaje, estadoPagoAnterior, false);
+		return aResponse(viaje);
+	}
+
+	// HU24/RF23, V7: el Administrador cancela con motivo, también un viaje vencido, y decide el reembolso.
+	// Como V5, no libera la flota y conserva la asignación. El 409 por estado va antes que la regla del
+	// monto: un viaje que ya no se puede cancelar tampoco está «vencido».
+	@Transactional
+	public ViajeDTOResponse cancelarPorAdministrador(String folio, CancelarViajeDTORequest request) {
+		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		exigirEstado(viaje, PENDIENTE, ASIGNADO);
+		boolean vencido = LocalDateTime.now(clock).isAfter(viaje.getFhAgenda().plusHours(1));
+		Pago pago = viaje.getPago();
+		int reembolso = pago == null ? 0
+				: pagoService.reembolsoDelAdministrador(pago, vencido, request.montoReembolso());
+		String estadoPagoAnterior = estadoDelPago(viaje);
+		viaje.setMotivo(request.motivo());
+		viaje.setEstado(estado(CANCELADO));
+		if (pago != null) {
+			pagoService.cancelarPorAdministrador(pago, reembolso);
+		}
+		avisarCancelacion(viaje, estadoPagoAnterior, true);
+		return aResponse(viaje);
+	}
+
+	private static String estadoDelPago(Viaje viaje) {
+		return viaje.getPago() == null ? null : viaje.getPago().getEstadoPago().getEstado();
+	}
+
+	// V5, V6 y V7 avisan al conductor, si lo hay; V6 y V7, además, al Solicitante, y todo cambio del pago
+	// (P4, P5) también le llega al Solicitante.
+	private void avisarCancelacion(Viaje viaje, String estadoPagoAnterior, boolean avisarAlSolicitante) {
+		String folio = viaje.getFolio();
+		Map<String, String> datos = Map.of("tipo", "VIAJE", "folio", folio);
+		String tokenSolicitante = viaje.getSolicitante().getUsuario().getTokenFcm();
+		if (avisarAlSolicitante) {
+			firebaseClient.notificar(tokenSolicitante,
+					"Viaje cancelado", "Tu viaje " + folio + " fue cancelado", datos);
+		}
+		String estadoPago = estadoDelPago(viaje);
+		if (estadoPago != null && !estadoPago.equals(estadoPagoAnterior)) {
+			firebaseClient.notificar(tokenSolicitante, "Pago del viaje " + folio,
+					"Estado: " + ("REEMBOLSADO".equals(estadoPago) ? "Reembolsado" : "Anulado"), datos);
 		}
 		if (viaje.getConductor() != null) {
 			firebaseClient.notificar(viaje.getConductor().getUsuario().getTokenFcm(),
-					"Viaje cancelado", "El viaje " + viaje.getFolio() + " fue cancelado",
-					Map.of("tipo", "VIAJE", "folio", viaje.getFolio()));
+					"Viaje cancelado", "El viaje " + folio + " fue cancelado", datos);
 		}
-		return aResponse(viaje);
 	}
 
 	// RF04: todos los viajes (con el estado y la fecha del filtro, si vienen).

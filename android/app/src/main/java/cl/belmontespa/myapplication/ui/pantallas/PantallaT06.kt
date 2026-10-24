@@ -28,6 +28,7 @@ import cl.belmontespa.myapplication.ui.abordaje.AbordarScreen
 import cl.belmontespa.myapplication.ui.abordaje.ConfirmarAbordajeScreen
 import cl.belmontespa.myapplication.ui.administrador.AdministracionViewModel
 import cl.belmontespa.myapplication.ui.administrador.AsignarScreen
+import cl.belmontespa.myapplication.ui.administrador.CancelarViajeScreen
 import cl.belmontespa.myapplication.ui.administrador.SolicitudesScreen
 import cl.belmontespa.myapplication.ui.auth.AccesoViewModel
 import cl.belmontespa.myapplication.ui.auth.mensajeLogin
@@ -104,6 +105,11 @@ fun PantallaT06(
     // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).
     if (pantalla == PantallaDemo.ASIGNAR) {
         AsignarScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
+        return
+    }
+    // «Cancelar viaje» del Administrador también (HU24, V7).
+    if (pantalla == PantallaDemo.CANCELAR_VIAJE) {
+        CancelarViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
         return
     }
     val vm: PantallaBaseViewModel = when {

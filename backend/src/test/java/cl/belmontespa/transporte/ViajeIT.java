@@ -345,7 +345,7 @@ class ViajeIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("solo el solicitante dueño cancela; un viaje inexistente responde 404")
+		@DisplayName("solo el solicitante dueño cancela sin cuerpo; un viaje inexistente responde 404")
 		void soloElDueno() {
 			Cuenta ana = api.solicitante();
 			Cuenta beto = api.solicitante();
@@ -354,9 +354,135 @@ class ViajeIT extends IntegrationTest {
 
 			assertThat(api.cancelar(folio, beto.token()).status()).isEqualTo(403);
 			assertThat(api.cancelar(folio, flota.conductor().token()).status()).isEqualTo(403);
-			assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(403);
+			// El Administrador cancela con motivo (V7): sin cuerpo no hay motivo.
+			assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(400);
 			assertThat(api.cancelar("NOEXISTE", ana.token()).status()).isEqualTo(404);
 			assertThat(api.estadoViaje(folio)).isEqualTo("ASIGNADO");
+		}
+	}
+
+	@Nested
+	@DisplayName("Cancelar como Administrador (CU-15/RF23, V7)")
+	class CancelacionDelAdministrador {
+
+		@Test
+		@DisplayName("cancela un viaje PENDIENTE con motivo, recortado y visible para el solicitante")
+		void pendiente() {
+			Cuenta solicitante = api.solicitante();
+			String folio = api.viaje(solicitante);
+
+			Resp cancelado = Api.exigir(api.cancelarComoAdmin(folio, "  Conductor sin disponibilidad  ", null),
+					"cancelar como Administrador", 200);
+
+			assertThat(cancelado.texto("$.estado")).isEqualTo("CANCELADO");
+			assertThat(cancelado.texto("$.motivo")).isEqualTo("Conductor sin disponibilidad");
+			assertThat(cancelado.texto("$.fhFin")).isNull();
+			Resp propio = Api.exigir(api.get("/viajes/" + folio, solicitante.token()), "ver viaje", 200);
+			assertThat(propio.texto("$.motivo")).isEqualTo("Conductor sin disponibilidad");
+		}
+
+		@Test
+		@DisplayName("cancela un viaje ASIGNADO y conserva la asignación y el estado de la flota")
+		void asignado() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			String folio = api.viajeAsignado(solicitante, flota);
+			String asignacion = ver(folio).texto("$.fhAsignacion");
+
+			Resp cancelado = Api.exigir(api.cancelarComoAdmin(folio, "Falla del vehículo", null),
+					"cancelar como Administrador", 200);
+
+			assertThat(cancelado.texto("$.estado")).isEqualTo("CANCELADO");
+			assertThat(cancelado.texto("$.correoConductor")).isEqualTo(flota.conductor().correo());
+			assertThat(cancelado.texto("$.patenteMovil")).isEqualTo(flota.patente());
+			assertThat(cancelado.texto("$.fhAsignacion")).isEqualTo(asignacion);
+			assertThat(api.estadoConductor(flota.conductor().correo())).isEqualTo("DISPONIBLE");
+			assertThat(api.estadoMovil(flota.patente())).isEqualTo("DISPONIBLE");
+			Resp agenda = api.get("/viajes?estado=ASIGNADO", flota.conductor().token());
+			assertThat(agenda.<List<String>>json("$[*].folio")).doesNotContain(folio);
+			Resp delConductor = Api.exigir(api.get("/viajes/" + folio, flota.conductor().token()), "ver viaje", 200);
+			assertThat(delConductor.texto("$.motivo")).isEqualTo("Falla del vehículo");
+		}
+
+		@Test
+		@DisplayName("también cancela un viaje vencido, sin pago")
+		void vencido() {
+			String folio = api.viaje(api.solicitante());
+			api.vencer(folio);
+
+			api.cancelarComoAdminOk(folio, "Nadie lo atendió", null);
+
+			assertThat(api.estadoViaje(folio)).isEqualTo("CANCELADO");
+		}
+
+		@Test
+		@DisplayName("el historial registra el estado y el motivo (trigger)")
+		void historial() {
+			String folio = api.viaje(api.solicitante());
+
+			api.cancelarComoAdminOk(folio, "Cambio de planes", null);
+
+			List<String> motivos = jdbc.queryForList("""
+					SELECT h.valor FROM historial_viaje h JOIN viaje v ON v.id_viaje = h.id_viaje
+					WHERE v.folio = ? AND h.campo_modificado = 'motivo'""", String.class, folio);
+			assertThat(motivos).containsExactly("Cambio de planes");
+			List<String> estados = jdbc.queryForList("""
+					SELECT h.valor FROM historial_viaje h JOIN viaje v ON v.id_viaje = h.id_viaje
+					WHERE v.folio = ? AND h.campo_modificado = 'estado' ORDER BY h.id_historial""", String.class, folio);
+			assertThat(estados).last().isEqualTo("CANCELADO");
+		}
+
+		@Test
+		@DisplayName("sin motivo, en blanco, corto o largo responde 400 y no cambia el viaje")
+		void motivoInvalido() {
+			String folio = api.viaje(api.solicitante());
+
+			Resp sinCuerpo = api.cancelar(folio, api.admin());
+			assertThat(sinCuerpo.status()).isEqualTo(400);
+			assertThat(sinCuerpo.texto("$.message")).isEqualTo("motivo: Es obligatorio.");
+			assertThat(api.post("/viajes/" + folio + "/cancelar", api.admin(), "{}").texto("$.message"))
+					.isEqualTo("motivo: Es obligatorio.");
+			assertThat(api.cancelarComoAdmin(folio, "      ", null).texto("$.message"))
+					.isEqualTo("motivo: Es obligatorio.");
+			for (String motivo : List.of("1234", "  1234  ", "a".repeat(201))) {
+				Resp corto = api.cancelarComoAdmin(folio, motivo, null);
+				assertThat(corto.status()).isEqualTo(400);
+				assertThat(corto.texto("$.message")).isEqualTo("motivo: Debe tener entre 5 y 200 caracteres.");
+			}
+			assertThat(api.cancelarComoAdmin(folio, "Cuerpo con motivo", -1).status()).isEqualTo(400);
+			assertThat(api.estadoViaje(folio)).isEqualTo("PENDIENTE");
+		}
+
+		@Test
+		@DisplayName("no cancela un viaje EN_CURSO, FINALIZADO ni ya cancelado (409)")
+		void noCancelable() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			String folio = api.viajeAsignado(solicitante, flota);
+			api.iniciarOk(folio, flota.conductor());
+			assertThat(api.cancelarComoAdmin(folio, "Motivo cualquiera", null).status()).isEqualTo(409);
+
+			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
+			assertThat(api.cancelarComoAdmin(folio, "Motivo cualquiera", null).status()).isEqualTo(409);
+
+			String cancelado = api.viaje(solicitante);
+			api.cancelarComoAdminOk(cancelado, "Primer motivo", null);
+			assertThat(api.cancelarComoAdmin(cancelado, "Segundo motivo", null).status()).isEqualTo(409);
+			assertThat(api.cancelar(cancelado, solicitante.token()).status()).isEqualTo(409);
+			assertThat(ver(cancelado).texto("$.motivo")).isEqualTo("Primer motivo");
+		}
+
+		@Test
+		@DisplayName("el conductor no puede (403), sin token es 401 y un viaje inexistente es 404")
+		void permisos() {
+			String folio = api.viaje(api.solicitante());
+			String cuerpo = "{\"motivo\":\"Motivo cualquiera\"}";
+
+			assertThat(api.post("/viajes/" + folio + "/cancelar", api.conductor().token(), cuerpo).status())
+					.isEqualTo(403);
+			assertThat(api.post("/viajes/" + folio + "/cancelar", null, cuerpo).status()).isEqualTo(401);
+			assertThat(api.cancelarComoAdmin("NOEXISTE", "Motivo cualquiera", null).status()).isEqualTo(404);
+			assertThat(api.estadoViaje(folio)).isEqualTo("PENDIENTE");
 		}
 	}
 
