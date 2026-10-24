@@ -75,6 +75,9 @@ class SeguridadIT extends IntegrationTest {
 		assertThat(api.get("/moviles", conductor.token()).status()).isEqualTo(403);
 		assertThat(api.get("/moviles", solicitante.token()).status()).isEqualTo(403);
 		assertThat(api.post("/viajes/NOEXISTE/asignar", solicitante.token(), "{}").status()).isEqualTo(403);
+		// V8 es solo del conductor: ni el Administrador ni el Solicitante, y antes de validar el cuerpo.
+		assertThat(api.post("/viajes/NOEXISTE/rechazar", solicitante.token(), "{}").status()).isEqualTo(403);
+		assertThat(api.post("/viajes/NOEXISTE/rechazar", api.admin(), "{}").status()).isEqualTo(403);
 		assertThat(api.post("/usuarios", solicitante.token(), "{}").status()).isEqualTo(403);
 		assertThat(api.post("/viajes", conductor.token(), "{}").status()).isEqualTo(403);
 	}

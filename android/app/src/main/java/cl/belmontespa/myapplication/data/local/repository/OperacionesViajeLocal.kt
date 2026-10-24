@@ -100,10 +100,13 @@ class OperacionesViajeLocal @Inject constructor(private val local: SoporteLocal)
         if (!admin) exigir(!v.vencido(local), "El viaje está vencido. Contacta al Administrador.")
         local.cancelarConPago(v, if (admin) motivoLimpio else v.motivo, admin, monto)
     }
+    // V8: el motivo se valida antes que el viaje, como el 400 del backend. Solo el conductor del viaje (uno ajeno o
+    // un PENDIENTE sin conductor es SinPermiso) y solo mientras está ASIGNADO. No toca el pago ni la flota.
     suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = local.ejecutar {
         local.sesion(Rol.CONDUCTOR)
+        validar(listOfNotNull(Validaciones.motivo(motivo)?.let { "motivo" to it }).toMap())
         val v = local.alcance(folio)
-        exigir(v.estado == "ASIGNADO" && motivo.isNotBlank(), "Ingresa un motivo para rechazar la asignación.")
+        exigir(v.estado == "ASIGNADO", "El viaje ya no se puede rechazar.")
         local.db.viajePasajeroDao().limpiarAbordaje(folio)
         local.db.viajeDao().guardar(v.copy(estado = "PENDIENTE", correoConductor = null, nombreConductor = null,
             patenteMovil = null, fhAsignacion = null, motivo = motivo.trim()))

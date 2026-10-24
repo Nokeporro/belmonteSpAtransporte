@@ -32,6 +32,17 @@ final class AvisosDeViaje {
 				Map.of("tipo", "AGENDA", "folio", folio));
 	}
 
+	// V8, a los Administradores: el conductor devolvió el viaje y hay que asignarlo de nuevo.
+	static Aviso viajeRechazado(String folio) {
+		return new Aviso("Viaje rechazado", "El viaje " + folio + " volvió a pendiente", viaje(folio));
+	}
+
+	// V8, al Solicitante.
+	static Aviso viajeSinConductor(String folio) {
+		return new Aviso("Viaje sin conductor", "Tu viaje " + folio + " volvió a pendiente; se asignará otro conductor",
+				viaje(folio));
+	}
+
 	private static Map<String, String> viaje(String folio) {
 		return Map.of("tipo", "VIAJE", "folio", folio);
 	}

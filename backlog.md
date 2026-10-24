@@ -139,7 +139,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
-| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | — |
+| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
 | 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | — |
 | 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
 | 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
@@ -471,6 +471,21 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 - **`PUT /usuarios/{correo}`:**
   - exige `passwordActual` si viene `password`;
   - el `correo` no cambia.
+
+### HU25
+
+- **V8 (Conductor), `POST /viajes/{folio}/rechazar`:**
+  - [x] `RechazarViajeDTORequest` con `motivo` (de 5 a 200 caracteres, recortado) y `SecurityConfig` solo para el Conductor.
+  - [x] `ViajeService.rechazar`, con el viaje bloqueado: 404 si no existe, 403 si no es el conductor del viaje (también un `PENDIENTE`, que ya no tiene conductor) y 409 si no está `ASIGNADO`; el vencido sí se rechaza.
+  - [x] Vuelve a `PENDIENTE` sin conductor, vehículo ni `fh_asignacion`, con el motivo guardado y las marcas de abordaje en Por abordar; el pago y el estado de la flota no cambian. `bu_viaje` ya admitía la transición (T08).
+  - [x] Push a todos los Administradores con token («Viaje rechazado») y al Solicitante («Viaje sin conductor»), con `data.tipo` `VIAJE`; los textos están en `AvisosDeViaje`.
+  - [x] V2 limpia el `motivo` al asignar o reasignar, como ya hacía la demo: sin eso, un viaje asignado de nuevo mostraría el motivo del rechazo anterior.
+- **Android:**
+  - [x] El diálogo «Rechazar» valida el motivo (de 5 a 200 caracteres) al confirmar y muestra el error bajo el campo; un 400 con `motivo` vuelve al diálogo y los demás fallos lo cierran y conservan lo escrito. Sin conexión no se encola (`ViajeRemoteRepository` responde Sin conexión hasta T14).
+  - [x] La demo separa el motivo del estado: `Validacion` para el motivo, `SinPermiso` para el viaje ajeno o sin conductor y `Conflicto` si ya no está `ASIGNADO`.
+- **Pruebas:**
+  - [x] 2 unitarias nuevas del backend (86) y 4 netas en `DetalleViajeViewModelTest` (337 JVM Android); lint sin hallazgos nuevos (36) y APK debug y demo correctos.
+  - [x] Escritas y compiladas, sin ejecutar (sin MariaDB ni AVD): `ViajeRechazarIT` (13), el push en `NotificacionesIT`, la ruta en `SeguridadIT`, 7 pruebas de Room de rechazar y `HU25ScreenTest` (3, una con texto al 200 %).
 
 ### HU26
 
