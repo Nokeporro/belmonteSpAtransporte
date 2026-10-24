@@ -94,6 +94,7 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     val habilitaciones = mutableListOf<Habilitacion>()
     var filtroHabilitacion: Pair<String?, String?>? = null
     var enviosHabilitacion = 0
+    var cambiosActivo = 0
     val viajeActual = MutableStateFlow<Viaje?>(null)
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
@@ -167,7 +168,12 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         conductor = conductor.copy(nombre = nombre.trim(), telefono = telefono)
         return Resultado.Exito(conductor)
     }
-    override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = sinUso()
+    override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> {
+        cambiosActivo++; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        conductor = conductor.copy(activo = activo)
+        return Resultado.Exito(conductor)
+    }
     override suspend fun listarMoviles() = Resultado.Exito(moviles.toList())
     override suspend fun obtenerMovil(patente: String): Resultado<Movil> = moviles.find { it.patente == patente }
         ?.let { Resultado.Exito(it) } ?: Resultado.Fallo(ErrorApp.NoEncontrado)
@@ -178,7 +184,13 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         moviles.add(registrado)
         return Resultado.Exito(registrado)
     }
-    override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = sinUso()
+    override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> {
+        cambiosActivo++; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val guardado = moviles.first { it.patente == patente }.copy(activo = activo)
+        moviles[moviles.indexOfFirst { it.patente == patente }] = guardado
+        return Resultado.Exito(guardado)
+    }
     override suspend fun listarHabilitaciones(patente: String?, correo: String?): Resultado<List<Habilitacion>> {
         filtroHabilitacion = patente to correo
         return Resultado.Exito(habilitaciones.filter { (patente == null || it.patente == patente) && (correo == null || it.correoConductor == correo) })

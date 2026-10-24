@@ -85,14 +85,14 @@ public class DetalleMovilConductorService extends CrudService<DetalleMovilConduc
 		return habilitar(request).habilitacion();
 	}
 
-	// El bloqueo del vehículo serializa altas del mismo par, incluso en peticiones simultáneas.
+	// Mismo orden que V2: conductor y luego vehículo; HU26 no puede desactivarlos durante el alta.
 	@Transactional
 	public Alta habilitar(DetalleMovilConductorDTORequest request) {
+		Conductor conductor = conductorService.bloquear(request.correoConductor());
 		Movil movil = movilRepository.bloquearPorPatente(request.patente())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		var existente = buscar(new Clave(request.patente(), request.correoConductor()));
 		if (existente.isPresent()) return new Alta(aResponse(existente.get()), false);
-		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
 		if (!movil.isActivo() || !conductor.isActivo()) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "El vehículo y el conductor deben estar activos.");
 		}

@@ -6,6 +6,8 @@ import cl.belmontespa.transporte.model.EstadoMovil;
 import cl.belmontespa.transporte.model.Movil;
 import cl.belmontespa.transporte.repository.EstadoMovilRepository;
 import cl.belmontespa.transporte.repository.MovilRepository;
+import cl.belmontespa.transporte.repository.ViajeRepository;
+import java.util.List;
 import java.security.SecureRandom;
 import java.util.HexFormat;
 import java.util.Optional;
@@ -13,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -25,11 +28,14 @@ public class MovilService extends CrudService<Movil, String, MovilDTORequest, Mo
 
 	private final MovilRepository movilRepository;
 	private final EstadoMovilRepository estadoMovilRepository;
+	private final ViajeRepository viajeRepository;
 	private final SecureRandom random = new SecureRandom();
 
-	public MovilService(MovilRepository movilRepository, EstadoMovilRepository estadoMovilRepository) {
+	public MovilService(MovilRepository movilRepository, EstadoMovilRepository estadoMovilRepository,
+			ViajeRepository viajeRepository) {
 		this.movilRepository = movilRepository;
 		this.estadoMovilRepository = estadoMovilRepository;
+		this.viajeRepository = viajeRepository;
 	}
 
 	@Override
@@ -69,6 +75,24 @@ public class MovilService extends CrudService<Movil, String, MovilDTORequest, Mo
 
 	void cambiarEstado(Movil movil, String nombreEstado) {
 		movil.setEstadoMovil(estado(nombreEstado));
+	}
+
+	Movil bloquear(String patente) {
+		return movilRepository.bloquearPorPatente(patente)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
+
+	@Transactional
+	public MovilDTOResponse cambiarActivo(String patente, boolean activo) {
+		Movil movil = bloquear(patente);
+		if (movil.isActivo() != activo) {
+			if (!activo && viajeRepository.existsByMovilIdMovilAndEstadoNombreEstadoIn(
+					movil.getIdMovil(), List.of("ASIGNADO", "EN_CURSO"))) {
+				throw new ResponseStatusException(HttpStatus.CONFLICT, "El vehículo tiene viajes asignados o en curso.");
+			}
+			movil.setActivo(activo);
+		}
+		return aResponse(movil);
 	}
 
 	// 8 bytes de SecureRandom como 16 hexadecimales en mayúsculas.

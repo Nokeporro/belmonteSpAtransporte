@@ -374,4 +374,8 @@
     <string name="pago_confirmar_pagado">Se registrará la fecha de pago. Después solo podrás anularlo.</string>
     <string name="pago_confirmar_rechazado">El rechazo es definitivo. No podrás volver a cambiar este pago ni reemplazarlo.</string>
     <string name="pago_confirmar_anulado">La anulación es definitiva y no genera reembolso. Si el viaje está pendiente o asignado, también se cancelará y se avisará a sus participantes.</string>
+    <string name="flota_activo_guardado">Estado actualizado.</string>
+    <string name="flota_activo_ayuda">Solo puedes desactivar si no hay viajes asignados o en curso. Las habilitaciones y el QR se conservan.</string>
+    <string name="flota_confirmar_desactivar">¿Desactivar %1$s? Dejará de estar disponible para nuevas asignaciones. Un conductor inactivo no podrá iniciar sesión.</string>
+    <string name="flota_confirmar_reactivar">¿Reactivar %1$s? Volverá a estar disponible para nuevas asignaciones.</string>
 </resources>

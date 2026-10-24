@@ -123,7 +123,7 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Accion(R.string.accion_guardar)
             if (estado.habilitaciones.isEmpty()) Text(stringResource(R.string.conductor_sin_habilitaciones))
             HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "conductor:${conductor.correo}")
-            Accion(if (conductor.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoConductor") }, TipoBoton.SECUNDARIO)
+            CambioActivo(conductor.correo, conductor.activo, "activoConductor")
         }
         PantallaDemo.VEHICULOS -> {
             Enlace(R.string.t06_registrar_vehiculo, PantallaDemo.REGISTRAR_VEHICULO, "")
@@ -147,7 +147,7 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
             HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "vehiculo:${movil.patente}")
             QrVehiculo(movil)
-            Accion(if (movil.activo) R.string.accion_desactivar else R.string.accion_reactivar, { vm.ejecutar("activoMovil") }, TipoBoton.SECUNDARIO)
+            CambioActivo(movil.patente, movil.activo, "activoMovil")
         }
         PantallaDemo.HABILITACIONES -> {
             Text(stringResource(R.string.habilitaciones_ayuda))
@@ -350,6 +350,21 @@ private fun ContextoPantalla.Perfil() {
         if (BuildConfig.MODO_LOCAL) Enlace(R.string.accion_ver_escenarios, PantallaDemo.NOTIFICACION, "")
     }
     Accion(R.string.accion_cerrar_sesion, cerrarSesion, TipoBoton.SECUNDARIO)
+}
+@Composable
+private fun ContextoPantalla.CambioActivo(identificador: String, activo: Boolean, accion: String) {
+    var confirmar by remember(identificador, activo) { mutableStateOf(false) }
+    val etiqueta = if (activo) R.string.accion_desactivar else R.string.accion_reactivar
+    Text(stringResource(R.string.flota_activo_ayuda))
+    Accion(etiqueta, { confirmar = true }, TipoBoton.SECUNDARIO, habilitada = estado.error == null)
+    if (confirmar) AlertDialog(
+        onDismissRequest = { confirmar = false },
+        title = { Text(stringResource(etiqueta)) },
+        text = { Text(stringResource(if (activo) R.string.flota_confirmar_desactivar else R.string.flota_confirmar_reactivar, identificador)) },
+        confirmButton = { TextButton(onClick = { confirmar = false; vm.ejecutar(accion) },
+            enabled = !estado.enviando && estado.error == null) { Text(stringResource(R.string.accion_confirmar)) } },
+        dismissButton = { TextButton(onClick = { confirmar = false }) { Text(stringResource(R.string.accion_cancelar)) } },
+    )
 }
 @Composable
 private fun ContextoPantalla.HoraActual(): LocalDateTime {

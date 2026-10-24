@@ -137,7 +137,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Implementado | Listo |
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Implementado | Listo |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Implementado | Listo |
-| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
+| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Implementado | Listo |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
 | 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
 | 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | — |
@@ -395,7 +395,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17, HU18, HU19, HU20, HU22 y HU27 también están implementadas; el siguiente ítem de A es HU26.
+HU16, HU17, HU18, HU19, HU20, HU22, HU27 y HU26 también están implementadas; todas las tareas P3 de A están listas.
 
 ### HU16 y HU24
 
@@ -504,9 +504,16 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU26
 
-- **Rutas nuevas:** `POST /conductores/{correo}/activo` y `POST /moviles/{patente}/activo`, con
-  `ActivoDTORequest`.
-- **Reglas:** 409 si hay viajes `ASIGNADO` o `EN_CURSO`. Un inactivo no se asigna ni inicia sesión.
+- [x] `POST /conductores/{correo}/activo` y `POST /moviles/{patente}/activo`, con `ActivoDTORequest` validado y acceso exclusivo del Administrador.
+- [x] Desactivar responde 409 con viajes `ASIGNADO` o `EN_CURSO`; los viajes finalizados o cancelados no bloquean. Reactivar sin condiciones y repetir el mismo valor responde 200 sin cambios.
+- [x] Asignación, habilitación y baja comparten bloqueos de flota; no se confirma una asignación sobre un recurso desactivado durante la operación.
+- [x] Conductor inactivo sin login (401 genérico); flota inactiva sin nuevas asignaciones. Reactivar restaura ambas operaciones.
+- [x] Se conservan datos, disponibilidad, historial, habilitaciones y código QR al desactivar y reactivar.
+- [x] Android: confirmación con identidad, doble envío bloqueado, estado confirmado sin perder la edición y errores con opción de recargar. La demo persiste en Room; conexión remota en T14.
+- [x] 381 pruebas backend y 368 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 95 pruebas de Room e interfaz aprobadas, incluida confirmación con texto al 200 %, conservación del QR y recarga tras conflictos.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU27
 
@@ -556,7 +563,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /conductores/{correo}` | Ajustar | HU15 |
 | `POST /conductores` | Ajustar | HU15 |
 | `PUT /conductores/{correo}` | Ajustar | HU15 |
-| `POST /conductores/{correo}/activo` | Falta | HU26 |
+| `POST /conductores/{correo}/activo` | Implementado | HU26 |
 | `GET /solicitantes` | Implementado | HU27 |
 | `GET /solicitantes/{correo}` | Ajustar | HU01 |
 | `POST /solicitantes` | Ajustar | HU01 |
@@ -567,7 +574,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /moviles` | Implementado | HU17 |
 | `GET /moviles/{patente}` | Implementado | HU17 |
 | `POST /moviles` | Implementado | HU17 |
-| `POST /moviles/{patente}/activo` | Falta | HU26 |
+| `POST /moviles/{patente}/activo` | Implementado | HU26 |
 | `GET /habilitaciones-movil-conductor` | Implementado | HU18 |
 | `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Implementado | HU18 |
 | `POST /habilitaciones-movil-conductor` | Implementado | HU18 |

@@ -42,11 +42,13 @@ class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) 
     }
     override suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val u = local.usuario(correo)
-        exigir(u.rol == "CONDUCTOR", "La cuenta no es de un conductor.")
-        exigir(activo || local.viajes().none { it.correoConductor == correo && it.estado in listOf("ASIGNADO", "EN_CURSO") }, "El conductor tiene viajes asignados o en curso.")
-        local.db.usuarioDao().guardar(u.copy(activo = activo))
-        local.conductor(correo)
+        val u = local.usuario(Validaciones.correo(correo))
+        if (u.rol != "CONDUCTOR") falla(ErrorApp.NoEncontrado)
+        if (u.activo != activo) {
+            exigir(activo || local.viajes().none { it.correoConductor == u.correo && it.estado in listOf("ASIGNADO", "EN_CURSO") }, "El conductor tiene viajes asignados o en curso.")
+            local.db.usuarioDao().guardar(u.copy(activo = activo))
+        }
+        local.conductor(u.correo)
     }
     override suspend fun listarMoviles(): Resultado<List<Movil>> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
@@ -70,8 +72,9 @@ class FlotaLocalRepository @Inject constructor(private val local: SoporteLocal) 
     }
     override suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        val m = local.db.movilDao().obtener(patente) ?: falla(ErrorApp.NoEncontrado)
-        exigir(activo || local.viajes().none { it.patenteMovil == patente && it.estado in listOf("ASIGNADO", "EN_CURSO") }, "El vehículo tiene viajes asignados o en curso.")
+        val m = local.db.movilDao().obtener(Validaciones.patente(patente)) ?: falla(ErrorApp.NoEncontrado)
+        if (m.activo == activo) return@ejecutar m.modelo()
+        exigir(activo || local.viajes().none { it.patenteMovil == m.patente && it.estado in listOf("ASIGNADO", "EN_CURSO") }, "El vehículo tiene viajes asignados o en curso.")
         val nuevo = m.copy(activo = activo)
         local.db.movilDao().guardar(nuevo)
         nuevo.modelo()

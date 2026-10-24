@@ -138,8 +138,12 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	public ViajeDTOResponse asignar(String folio, AsignarViajeDTORequest request) {
 		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
-		Movil movil = movilService.buscarOFallar(request.patente());
+		// HU26: siempre conductor y luego móvil, compartiendo los bloqueos de desactivación.
+		Conductor conductor = conductorService.bloquear(request.correoConductor());
+		Movil movil = movilService.bloquear(request.patente());
+		// El viaje pudo haber cargado estas entidades antes de esperar por los bloqueos.
+		entityManager.refresh(conductor, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+		entityManager.refresh(movil, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
 		LocalDateTime ahora = LocalDateTime.now(clock);
 		if (ahora.isAfter(viaje.getFhAgenda().plusHours(1))) {

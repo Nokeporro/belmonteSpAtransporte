@@ -102,6 +102,25 @@ public class ConductorService extends CrudService<Conductor, String, ConductorDT
 		conductor.setEstadoConductor(estado(nombreEstado));
 	}
 
+	// La asignación toma el mismo bloqueo antes de comprobar activo (HU26).
+	Conductor bloquear(String correo) {
+		return conductorRepository.bloquearPorCorreo(correo)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
+
+	@Transactional
+	public ConductorDTOResponse cambiarActivo(String correo, boolean activo) {
+		Conductor conductor = bloquear(correo);
+		if (conductor.isActivo() != activo) {
+			if (!activo && viajeRepository.existsByConductorIdUsuarioAndEstadoNombreEstadoIn(
+					conductor.getIdUsuario(), List.of("ASIGNADO", "EN_CURSO"))) {
+				throw new ResponseStatusException(HttpStatus.CONFLICT, "El conductor tiene viajes asignados o en curso.");
+			}
+			conductor.setActivo(activo);
+		}
+		return aResponse(conductor);
+	}
+
 	private EstadoConductor estado(String nombre) {
 		return estadoConductorRepository.findByEstado(nombre)
 				.orElseThrow(() -> new IllegalStateException("Falta el estado de conductor " + nombre));

@@ -41,6 +41,53 @@ class RepositoriosT06Test {
         viajes = ViajeLocalRepository(db.viajeDao(), sesiones, reloj, operaciones)
     }
     @After fun cerrar() { db.close() }
+    @Test fun hu26BajaYReactivacionConservanDatosQrYHabilitacionesYBloqueanLogin() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val flota = FlotaLocalRepository(local)
+        val correo = "pmunoz@belmontespa.cl"; val original = local.usuario(correo)
+        val relaciones = (flota.listarHabilitaciones(correo = correo) as Resultado.Exito).valor
+        for (activo in listOf(false, false, true, true)) {
+            assertEquals(activo, (flota.cambiarActivoConductor(correo.uppercase(), activo) as Resultado.Exito).valor.activo)
+            assertEquals(original.copy(activo = activo), local.usuario(correo))
+            assertEquals(relaciones.map { it.copy(activoConductor = activo) }, (flota.listarHabilitaciones(correo = correo) as Resultado.Exito).valor)
+        }
+        val movil = (flota.registrarMovil(NuevoMovil("ZZ1234", 4, 555L)) as Resultado.Exito).valor
+        for (activo in listOf(false, false, true, true))
+            assertEquals(movil.copy(activo = activo), (flota.cambiarActivoMovil("zz-1234", activo) as Resultado.Exito).valor)
+        flota.cambiarActivoConductor(correo, false)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(correo, DatosDemo.PASSWORD))
+        entrar(Rol.ADMINISTRADOR); flota.cambiarActivoConductor(correo, true)
+        assertTrue(auth.iniciarSesion(correo, DatosDemo.PASSWORD) is Resultado.Exito)
+    }
+    @Test fun hu26AsignadoYEnCursoBloqueanBajaSinModificarYRepetirActivoRespondeExito() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val flota = FlotaLocalRepository(local)
+        for ((correo, patente) in listOf("ireyes@belmontespa.cl" to "KXJR42", "jlara@belmontespa.cl" to "GZRW90")) {
+            assertTrue((flota.cambiarActivoConductor(correo, false) as Resultado.Fallo).error is ErrorApp.Conflicto)
+            assertTrue((flota.cambiarActivoMovil(patente, false) as Resultado.Fallo).error is ErrorApp.Conflicto)
+            assertTrue((flota.cambiarActivoConductor(correo, true) as Resultado.Exito).valor.activo)
+            assertTrue((flota.cambiarActivoMovil(patente, true) as Resultado.Exito).valor.activo)
+        }
+        for (v in local.viajes().filter { it.correoConductor == "ireyes@belmontespa.cl" })
+            db.viajeDao().guardar(v.copy(estado = if (v.folio == "TR-1042") "FINALIZADO" else "CANCELADO"))
+        assertTrue(flota.cambiarActivoConductor("ireyes@belmontespa.cl", false) is Resultado.Exito)
+        assertTrue(flota.cambiarActivoMovil("KXJR42", false) is Resultado.Exito)
+    }
+    @Test fun hu26SoloAdminRecursosExistentesYConductorInactivoNoSeAsigna() = runBlocking {
+        val flota = FlotaLocalRepository(local)
+        for (rol in listOf(Rol.CONDUCTOR, Rol.SOLICITANTE)) {
+            entrar(rol)
+            assertTrue((flota.cambiarActivoConductor("pmunoz@belmontespa.cl", false) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertTrue((flota.cambiarActivoMovil("HJKL21", true) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+        entrar(Rol.ADMINISTRADOR)
+        for (correo in listOf("ausente@test.cl", "recepcion@belmontespa.cl", "crios@andesconsult.cl"))
+            assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), flota.cambiarActivoConductor(correo, false))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), flota.cambiarActivoMovil("ZZ0000", false))
+        flota.cambiarActivoConductor("pmunoz@belmontespa.cl", false)
+        assertTrue((viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") as Resultado.Fallo).error is ErrorApp.Conflicto)
+        flota.cambiarActivoConductor("pmunoz@belmontespa.cl", true)
+        assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
+    }
     private suspend fun entrar(rol: Rol, correo: String = when(rol) {
         Rol.ADMINISTRADOR -> "recepcion@belmontespa.cl"
         Rol.SOLICITANTE -> "crios@andesconsult.cl"

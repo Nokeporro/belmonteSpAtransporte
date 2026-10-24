@@ -15,6 +15,9 @@ import org.springframework.data.repository.query.Param;
 // OrdenViajes y los filtros de GET /viajes, ViajeService.
 public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 
+	boolean existsByConductorIdUsuarioAndEstadoNombreEstadoIn(Long idUsuario, List<String> estados);
+	boolean existsByMovilIdMovilAndEstadoNombreEstadoIn(Long idMovil, List<String> estados);
+
 	// V5: serializa dos cancelaciones del mismo viaje dentro de su transacción.
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select v from Viaje v where v.folio = :folio")

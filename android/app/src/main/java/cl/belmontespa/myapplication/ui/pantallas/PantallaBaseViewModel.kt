@@ -190,8 +190,22 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                         mutable.update { it.copy(pendientes = it.pendientes.filterNot { c -> c.correo == cuenta.correo },
                             aviso = if (accion == "aprobar") R.string.cuenta_revision_aprobada else R.string.cuenta_revision_rechazada) }
                     }
-                    "activoConductor" -> { repos.flota.cambiarActivoConductor(referencia, mutable.value.conductor?.activo != true).valor(); actualizar() }
-                    "activoMovil" -> { repos.flota.cambiarActivoMovil(referencia, mutable.value.movil?.activo != true).valor(); actualizar() }
+                    "activoConductor" -> {
+                        if (p != PantallaDemo.DETALLE_CONDUCTOR || mutable.value.cuenta?.rol != Rol.ADMINISTRADOR)
+                            throw FalloPantalla(ErrorApp.SinPermiso())
+                        val conductor = mutable.value.conductor ?: throw FalloPantalla(ErrorApp.NoEncontrado)
+                        val guardado = repos.flota.cambiarActivoConductor(conductor.correo, !conductor.activo).valor()
+                        mutable.update { it.copy(conductor = guardado, aviso = R.string.flota_activo_guardado,
+                            habilitaciones = it.habilitaciones.map { h -> h.copy(activoConductor = guardado.activo) }) }
+                    }
+                    "activoMovil" -> {
+                        if (p != PantallaDemo.DETALLE_VEHICULO || mutable.value.cuenta?.rol != Rol.ADMINISTRADOR)
+                            throw FalloPantalla(ErrorApp.SinPermiso())
+                        val movil = mutable.value.movil ?: throw FalloPantalla(ErrorApp.NoEncontrado)
+                        val guardado = repos.flota.cambiarActivoMovil(movil.patente, !movil.activo).valor()
+                        mutable.update { it.copy(movil = guardado, aviso = R.string.flota_activo_guardado,
+                            habilitaciones = it.habilitaciones.map { h -> h.copy(activoMovil = guardado.activo) }) }
+                    }
                     "pago" -> {
                         val pago = mutable.value.pago ?: throw FalloPantalla(ErrorApp.NoEncontrado)
                         val nuevo = EstadoPago.entries.find { it.name == dato }

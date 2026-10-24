@@ -277,6 +277,20 @@ HU16 se detalla a continuación.
 - [x] API 36: 92 pruebas de Room e interfaz aprobadas, incluida aprobación con texto al 200 % y recarga del contador al volver.
 - [ ] Instrumentadas en API 26, TalkBack y CI.
 
+### Avance de implementación: HU26 de A
+
+- [x] Desactivar y reactivar conductores y vehículos, solo Administrador, con cuerpo validado e idempotencia.
+- [x] Baja bloqueada con 409 ante viajes asignados o en curso; reactivación sin condiciones. Finalizados y cancelados no bloquean.
+- [x] Bloqueos compartidos con asignación y habilitación para resolver operaciones simultáneas sin asignar flota inactiva.
+- [x] Conductor inactivo sin login (401 genérico); los recursos inactivos no admiten nuevas asignaciones.
+- [x] Datos, estados de disponibilidad, habilitaciones, historial y QR conservados.
+- [x] Android: confirmación, protección contra doble envío, respuesta persistida sin perder la edición y errores con recarga. La demo usa Room; conexión remota en T14.
+- [x] Verificación local: 381 pruebas backend y 368 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 95 pruebas de Room e interfaz aprobadas, incluida confirmación con texto al 200 %, conservación del QR y recarga tras conflictos.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
+Con HU26 quedan implementadas todas las tareas P3 de A.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en
