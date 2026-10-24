@@ -89,7 +89,7 @@ fun PantallaT06(
         return
     }
     // El abordaje del Pasajero (HU29): sin sesión y con una pantalla y un ViewModel por paso. «Escanear código QR» es el
-    // lector de ZXing: la variante del catálogo es la misma pantalla de «Abordar viaje».
+    // lector de Google Code Scanner: la variante del catálogo es la misma pantalla de «Abordar viaje».
     if (pantalla == PantallaDemo.ABORDAR || pantalla == PantallaDemo.ESCANEAR) {
         AbordarScreen(pantalla = pantalla, onNavegar = onNavegar, onVolver = onVolver)
         return

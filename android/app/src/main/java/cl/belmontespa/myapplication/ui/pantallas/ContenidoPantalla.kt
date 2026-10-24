@@ -146,7 +146,7 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Dato(R.string.campo_gps, movil.gpsSerial?.toString() ?: stringResource(R.string.vehiculo_sin_gps))
             EstadoChip(stringResource(movil.estado.etiqueta(movil.activo)), movil.estado.estiloChip(movil.activo))
             HabilitacionesResumen(); Enlace(R.string.accion_habilitaciones, PantallaDemo.HABILITACIONES, "vehiculo:${movil.patente}")
-            QrVehiculo(movil)
+            Dato(R.string.campo_codigo, Formatos.codigoAbordaje(movil.codigoAbordaje))
             CambioActivo(movil.patente, movil.activo, "activoMovil")
         }
         PantallaDemo.HABILITACIONES -> {

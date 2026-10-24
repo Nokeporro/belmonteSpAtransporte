@@ -14,11 +14,8 @@ enum class AvisoAbordar {
     /** El QR no es de un vehículo Belmonte. */
     QR_AJENO,
 
-    /** Se negó la cámara y todavía se puede volver a pedir. */
-    CAMARA_NEGADA,
-
-    /** Se negó la cámara y Android ya no la vuelve a pedir: solo queda «Abrir ajustes». */
-    CAMARA_NEGADA_PARA_SIEMPRE,
+    /** El lector de Google no se pudo abrir: solo queda «Ingresar código». */
+    LECTOR_NO_DISPONIBLE,
 }
 
 data class AbordarUiState(
@@ -33,7 +30,6 @@ data class AbordarUiState(
     val listo: CodigoAbordaje? = null,
 ) {
     val puedeContinuar: Boolean get() = patente.isNotBlank() && codigo.isNotBlank()
-    val camaraNegada: Boolean get() = aviso == AvisoAbordar.CAMARA_NEGADA || aviso == AvisoAbordar.CAMARA_NEGADA_PARA_SIEMPRE
 }
 
 /**
@@ -58,8 +54,8 @@ class AbordarViewModel @Inject constructor() : ViewModel() {
         _estado.update { if (codigo != null) it.copy(aviso = null, listo = codigo) else it.copy(aviso = AvisoAbordar.QR_AJENO) }
     }
 
-    fun camaraDenegada(paraSiempre: Boolean) {
-        _estado.update { it.copy(aviso = if (paraSiempre) AvisoAbordar.CAMARA_NEGADA_PARA_SIEMPRE else AvisoAbordar.CAMARA_NEGADA) }
+    fun lectorNoDisponible() {
+        _estado.update { it.copy(aviso = AvisoAbordar.LECTOR_NO_DISPONIBLE) }
     }
 
     fun abrirIngreso() {

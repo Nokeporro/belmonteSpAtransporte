@@ -73,21 +73,61 @@ class AbordarViewModelTest {
     }
 
     @Test
-    fun lasDosFormasDeNegarLaCamaraSeDistinguen() {
-        vm.camaraDenegada(paraSiempre = false)
-        assertEquals(AvisoAbordar.CAMARA_NEGADA, vm.estado.value.aviso)
-        assertTrue(vm.estado.value.camaraNegada)
+    fun unLectorQueNoSePuedeAbrirAvisaYNoDejaNadaListo() {
+        vm.lectorNoDisponible()
 
-        vm.camaraDenegada(paraSiempre = true)
-        assertEquals(AvisoAbordar.CAMARA_NEGADA_PARA_SIEMPRE, vm.estado.value.aviso)
-        assertTrue(vm.estado.value.camaraNegada)
+        assertEquals(AvisoAbordar.LECTOR_NO_DISPONIBLE, vm.estado.value.aviso)
+        assertNull(vm.estado.value.listo)
     }
 
     @Test
-    fun otroAvisoNoEsCamaraNegada() {
+    fun unNuevoEscaneoBorraElAvisoDelLectorNoDisponible() {
+        vm.lectorNoDisponible()
+
+        vm.alEscanear()
+
+        assertNull(vm.estado.value.aviso)
+    }
+
+    @Test
+    fun cancelarElLectorNoBorraElAvisoDelLectorNoDisponible() {
+        vm.lectorNoDisponible()
+
+        vm.alLeer(null)
+
+        assertEquals(AvisoAbordar.LECTOR_NO_DISPONIBLE, vm.estado.value.aviso)
+    }
+
+    @Test
+    fun unQrValidoDespuesDeUnLectorNoDisponibleQuitaElAviso() {
+        vm.lectorNoDisponible()
+
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
+
+        assertNull(vm.estado.value.aviso)
+        assertEquals(esperado, vm.estado.value.listo)
+    }
+
+    @Test
+    fun elIngresoManualValidoQuitaElAvisoDelLectorNoDisponible() {
+        vm.lectorNoDisponible()
+        vm.abrirIngreso()
+        vm.escribirPatente("KXJR42")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
+
+        vm.continuarIngreso()
+
+        assertNull(vm.estado.value.aviso)
+        assertEquals(esperado, vm.estado.value.listo)
+    }
+
+    @Test
+    fun unQrAjenoDespuesDeUnLectorNoDisponibleCambiaElAviso() {
+        vm.lectorNoDisponible()
+
         vm.alLeer("otra cosa")
 
-        assertFalse(vm.estado.value.camaraNegada)
+        assertEquals(AvisoAbordar.QR_AJENO, vm.estado.value.aviso)
     }
 
     @Test

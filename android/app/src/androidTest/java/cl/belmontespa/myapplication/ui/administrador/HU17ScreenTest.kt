@@ -16,6 +16,7 @@ import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
 import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
+import cl.belmontespa.myapplication.util.Formatos
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
 import kotlinx.coroutines.runBlocking
@@ -56,7 +57,7 @@ class HU17ScreenTest {
     }
     private fun campo(id: Int) = compose.onNode(hasText(compose.activity.getString(id)) and hasSetTextAction())
     private fun guardar() = compose.onNodeWithText(compose.activity.getString(R.string.accion_guardar)).performScrollTo().performClick()
-    @Test fun altaDesdeListaMuestraDetalleQrYRefrescaLaListaAlVolver() {
+    @Test fun altaDesdeListaMuestraDetalleConCodigoDeAbordajeYRefrescaLaListaAlVolver() {
         abrir()
         campo(R.string.campo_patente).performTextInput("zx-cv 17")
         campo(R.string.campo_capacidad).performTextInput("20")
@@ -64,14 +65,11 @@ class HU17ScreenTest {
         guardar()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("ZXCV17").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("123456").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription(compose.activity.getString(R.string.qr_vehiculo_descripcion, "ZXCV17")).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText(compose.activity.getString(R.string.accion_imprimir)).performScrollTo().assertIsDisplayed()
-        runBlocking {
-            val movil = local.db.movilDao().obtener("ZXCV17")!!
-            assertEquals(20, movil.capacidad); assertEquals(123456L, movil.gpsSerial)
-            assertTrue(movil.activo); assertEquals("DISPONIBLE", movil.estadoMovil)
-            assertTrue(movil.codigoAbordaje.matches(Regex("[0-9A-F]{16}")))
-        }
+        val movil = runBlocking { local.db.movilDao().obtener("ZXCV17")!! }
+        assertEquals(20, movil.capacidad); assertEquals(123456L, movil.gpsSerial)
+        assertTrue(movil.activo); assertEquals("DISPONIBLE", movil.estadoMovil)
+        assertTrue(movil.codigoAbordaje.matches(Regex("[0-9A-F]{16}")))
+        compose.onNodeWithText(Formatos.codigoAbordaje(movil.codigoAbordaje)).performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription(compose.activity.getString(R.string.accion_volver)).performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("ZXCV17").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText("ZXCV17").performScrollTo().assertIsDisplayed()
