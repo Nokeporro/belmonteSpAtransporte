@@ -182,7 +182,19 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                     "aprobar", "rechazarCuenta" -> { if (accion == "aprobar") repos.cuentas.aprobarSolicitante(dato).valor() else repos.cuentas.rechazarSolicitante(dato).valor(); actualizar() }
                     "activoConductor" -> { repos.flota.cambiarActivoConductor(referencia, mutable.value.conductor?.activo != true).valor(); actualizar() }
                     "activoMovil" -> { repos.flota.cambiarActivoMovil(referencia, mutable.value.movil?.activo != true).valor(); actualizar() }
-                    "pago" -> { repos.pagos.cambiarEstadoPago(referencia, EstadoPago.valueOf(dato)).valor(); actualizar() }
+                    "pago" -> {
+                        val pago = mutable.value.pago ?: throw FalloPantalla(ErrorApp.NoEncontrado)
+                        val nuevo = EstadoPago.entries.find { it.name == dato }
+                        if (p != PantallaDemo.DETALLE_PAGO || mutable.value.cuenta?.rol != Rol.ADMINISTRADOR) {
+                            throw FalloPantalla(ErrorApp.SinPermiso())
+                        }
+                        if (nuevo == null || !pago.estado.permiteCambioA(nuevo)) {
+                            throw FalloPantalla(ErrorApp.Conflicto("El cambio de pago no está permitido. Actualiza su información."))
+                        }
+                        val guardado = repos.pagos.cambiarEstadoPago(referencia, nuevo).valor()
+                        // La respuesta confirmada evita ofrecer de nuevo las acciones del estado anterior.
+                        mutable.update { it.copy(pago = guardado, aviso = R.string.pago_estado_guardado) }
+                    }
                     "finalizar" -> { repos.viajes.cambiarEstado(referencia, EstadoViaje.FINALIZADO).valor(); destino = PantallaDemo.DETALLE_VIAJE to referencia }
                     "rechazarViaje" -> { repos.viajes.rechazar(referencia, valor("motivo")).valor(); destino = PantallaDemo.MIS_VIAJES to "" }
                     else -> when (p) {

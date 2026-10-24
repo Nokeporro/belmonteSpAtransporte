@@ -170,7 +170,7 @@ class HU16IT extends IntegrationTest {
         String tokenConductor = api.dispositivo(flota.conductor());
         String folio = api.viajeAsignado(solicitante, flota);
         String hash = pago(folio, 50_001, true);
-        await().atMost(Duration.ofSeconds(5)).until(() -> fcm.envios().size() == 2);
+        await().atMost(Duration.ofSeconds(5)).until(() -> fcm.envios().size() == 3);
         fcm.limpiar();
         CountDownLatch salida = new CountDownLatch(1);
         var primera = CompletableFuture.supplyAsync(() -> cancelarAlSalir(salida, folio, solicitante.token()));

@@ -154,6 +154,7 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
                 estado.viaje?.let { it.estado != EstadoViaje.CANCELADO && it.hashPago == null } == true)
         }
         PantallaDemo.DETALLE_PAGO -> estado.pago?.let { pago ->
+            var confirmar by remember(pago.hash, pago.estado) { mutableStateOf<EstadoPago?>(null) }
             Dato(R.string.campo_folio, pago.folio); Dato(R.string.campo_monto, Formatos.monto(pago.monto))
             EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
             Dato(R.string.campo_banco, pago.banco); Dato(R.string.campo_medio_pago, stringResource(pago.medioPago.etiqueta)); Dato(R.string.campo_tipo_recibo, stringResource(pago.tipoRecibo.etiqueta))
@@ -161,10 +162,23 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             pago.montoReembolsado?.let { Dato(R.string.campo_reembolso, Formatos.monto(it)) }
             if (estado.cuenta?.rol == Rol.ADMINISTRADOR) {
                 if (pago.estado == EstadoPago.PENDIENTE) {
-                    Accion(R.string.accion_pagar, { vm.ejecutar("pago", "PAGADO") })
-                    Accion(R.string.accion_rechazar, { vm.ejecutar("pago", "RECHAZADO") }, TipoBoton.SECUNDARIO)
+                    Accion(R.string.accion_pagar, { confirmar = EstadoPago.PAGADO }, habilitada = estado.error == null)
+                    Accion(R.string.accion_rechazar, { confirmar = EstadoPago.RECHAZADO }, TipoBoton.SECUNDARIO, habilitada = estado.error == null)
                 }
-                if (pago.estado in listOf(EstadoPago.PENDIENTE, EstadoPago.PAGADO)) Accion(R.string.accion_anular, { vm.ejecutar("pago", "ANULADO") }, TipoBoton.PELIGRO)
+                if (pago.estado.permiteCambioA(EstadoPago.ANULADO)) Accion(R.string.accion_anular,
+                    { confirmar = EstadoPago.ANULADO }, TipoBoton.PELIGRO, habilitada = estado.error == null)
+                confirmar?.let { nuevo -> AlertDialog(
+                    onDismissRequest = { confirmar = null },
+                    title = { Text(stringResource(R.string.pago_confirmar_titulo, stringResource(nuevo.etiqueta))) },
+                    text = { Text(stringResource(when (nuevo) {
+                        EstadoPago.PAGADO -> R.string.pago_confirmar_pagado
+                        EstadoPago.RECHAZADO -> R.string.pago_confirmar_rechazado
+                        else -> R.string.pago_confirmar_anulado
+                    })) },
+                    confirmButton = { TextButton(onClick = { confirmar = null; vm.ejecutar("pago", nuevo.name) },
+                        enabled = !estado.enviando && estado.error == null) { Text(stringResource(R.string.accion_confirmar)) } },
+                    dismissButton = { TextButton(onClick = { confirmar = null }) { Text(stringResource(R.string.accion_cancelar)) } },
+                ) }
             }
         }
         // El abordaje del Pasajero lo dibujan AbordarScreen, ConfirmarAbordajeScreen y AbordadoScreen, desde PantallaT06 (HU29).

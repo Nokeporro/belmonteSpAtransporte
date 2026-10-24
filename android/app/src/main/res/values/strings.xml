@@ -361,4 +361,9 @@
     <string name="pago_registro_no_disponible">Este viaje está cancelado o ya tiene un pago registrado.</string>
     <string name="pago_fecha_label">Fecha de pago</string>
     <string name="pago_fecha_pendiente">Sin fecha hasta confirmar el pago.</string>
+    <string name="pago_estado_guardado">Estado del pago actualizado.</string>
+    <string name="pago_confirmar_titulo">Cambiar pago a %1$s</string>
+    <string name="pago_confirmar_pagado">Se registrará la fecha de pago. Después solo podrás anularlo.</string>
+    <string name="pago_confirmar_rechazado">El rechazo es definitivo. No podrás volver a cambiar este pago ni reemplazarlo.</string>
+    <string name="pago_confirmar_anulado">La anulación es definitiva y no genera reembolso. Si el viaje está pendiente o asignado, también se cancelará y se avisará a sus participantes.</string>
 </resources>

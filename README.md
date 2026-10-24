@@ -242,6 +242,17 @@ HU16 se detalla a continuación.
 - [x] API 36: 70 pruebas de Room e interfaz aprobadas, con formulario al 200 % de texto.
 - [ ] Instrumentadas en API 26, TalkBack y CI.
 
+### Avance de implementación: HU20 de A
+
+- [x] P2 y P3 manuales solo por el Administrador; estados terminales sin cambios y fecha fijada al confirmar el pago.
+- [x] Anular cancela únicamente viajes pendientes o asignados, sin reembolso y conservando asignación, fechas y flota.
+- [x] Pago y viaje se confirman juntos; cambios simultáneos serializados con asignación, inicio y cancelación.
+- [x] Push al Solicitante por cada cambio de pago y a los participantes al cancelar; solo después del commit.
+- [x] Android: confirmación del efecto, protección contra doble envío, respuesta persistida y recarga tras conflictos.
+- [x] Verificación local: 357 pruebas backend y 350 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en

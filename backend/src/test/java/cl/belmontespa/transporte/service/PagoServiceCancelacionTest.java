@@ -34,7 +34,9 @@ class PagoServiceCancelacionTest {
 		when(estados.findByEstado(anyString())).thenAnswer(invocacion -> Optional.of(estado(invocacion.getArgument(0))));
 		servicio = new PagoService(mock(PagoRepository.class), mock(ViajeRepository.class), estados,
 				mock(BancoRepository.class), mock(MedioPagoRepository.class), mock(TipoReciboRepository.class),
-				mock(SolicitanteService.class), Clock.systemUTC());
+				mock(SolicitanteService.class), Clock.systemUTC(),
+				mock(cl.belmontespa.transporte.repository.EstadoSolicitudRepository.class),
+				mock(cl.belmontespa.transporte.client.FirebaseClient.class));
 	}
 
 	private static EstadoPago estado(String nombre) {

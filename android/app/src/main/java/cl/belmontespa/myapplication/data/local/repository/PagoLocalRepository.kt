@@ -33,8 +33,7 @@ class PagoLocalRepository @Inject constructor(private val local: SoporteLocal) :
     override suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
         val p = local.db.pagoDao().obtener(hash) ?: falla(ErrorApp.NoEncontrado)
-        exigir(p.estadoPago == "PENDIENTE" && estado in listOf(EstadoPago.PAGADO, EstadoPago.RECHAZADO, EstadoPago.ANULADO) ||
-            p.estadoPago == "PAGADO" && estado == EstadoPago.ANULADO, "El cambio de pago no está permitido.")
+        exigir(EstadoPago.valueOf(p.estadoPago).permiteCambioA(estado), "El cambio de pago no está permitido.")
         val nuevo = p.copy(estadoPago = estado.name, fechaPago = if (estado == EstadoPago.PAGADO) FechaIso.texto(local.ahora()) else p.fechaPago)
         local.db.pagoDao().guardar(nuevo)
         val v = local.viaje(p.folio)

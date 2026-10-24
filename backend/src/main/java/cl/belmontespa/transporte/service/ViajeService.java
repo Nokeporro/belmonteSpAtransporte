@@ -136,7 +136,8 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	// valida lo que cambia. V2 no cambia el estado del conductor ni del móvil: solo lo hace V3.
 	@Transactional
 	public ViajeDTOResponse asignar(String folio, AsignarViajeDTORequest request) {
-		Viaje viaje = buscarOFallar(folio);
+		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		Conductor conductor = conductorService.buscarOFallar(request.correoConductor());
 		Movil movil = movilService.buscarOFallar(request.patente());
 		exigirEstado(viaje, PENDIENTE, ASIGNADO);
@@ -251,7 +252,9 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 	// CU-05/RF09: Asignado → En Curso → Finalizado, solo por el conductor del viaje.
 	@Transactional
 	public ViajeDTOResponse cambiarEstado(String folio, CambiarEstadoViajeDTORequest request, String correoConductor) {
-		Viaje viaje = buscarOFallar(folio);
+		// Serializa V3/V4 con V6: una anulación nunca debe sobrescribir un inicio ya confirmado.
+		Viaje viaje = viajeRepository.bloquearPorFolio(folio)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		if (viaje.getConductor() == null
 				|| !viaje.getConductor().getUsuario().getCorreo().equalsIgnoreCase(correoConductor)) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN);

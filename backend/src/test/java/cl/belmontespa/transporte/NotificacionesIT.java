@@ -370,7 +370,7 @@ class NotificacionesIT extends IntegrationTest {
 			esperarEnvios(2);
 			fcm.limpiar();
 
-			assertThat(api.cancelarComoAdmin(folio, "corto", null).status()).isEqualTo(400);
+			assertThat(api.cancelarComoAdmin(folio, "mal", null).status()).isEqualTo(400);
 
 			dejarPasarEnvios();
 			assertThat(fcm.envios()).isEmpty();

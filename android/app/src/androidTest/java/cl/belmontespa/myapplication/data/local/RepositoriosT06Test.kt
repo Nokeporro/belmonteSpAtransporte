@@ -50,6 +50,59 @@ class RepositoriosT06Test {
         val base = local.viaje("TR-1051")
         db.viajeDao().guardar(base.copy(folio = "TR-1919", estado = "PENDIENTE", hashPago = null, estadoPago = null))
     }
+    @Test fun pagoPendientePermiteConfirmarRechazarOAnularSinReembolso() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val pagos = PagoLocalRepository(local)
+        for (destino in listOf(EstadoPago.PAGADO, EstadoPago.RECHAZADO, EstadoPago.ANULADO)) {
+            val (v, p) = solicitudConPago(50001, "PENDIENTE")
+            db.pagoDao().guardar(p.copy(fechaPago = null))
+            val pago = (pagos.cambiarEstadoPago(p.hash, destino) as Resultado.Exito).valor
+            assertEquals(destino, pago.estado); assertEquals(50001, pago.monto); assertNull(pago.montoReembolsado)
+            assertEquals(if (destino == EstadoPago.PAGADO) local.ahora() else null, pago.fechaPago)
+            assertEquals(v.copy(estadoPago = destino.name, estado = if (destino == EstadoPago.ANULADO) "CANCELADO" else v.estado), local.viaje(v.folio))
+        }
+    }
+    @Test fun anularUnPagoPagadoCancelaSoloPendienteOAsignadoYConservaLaFlota() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val pagos = PagoLocalRepository(local)
+        val conductor = local.usuario("ireyes@belmontespa.cl"); val movil = db.movilDao().obtener("KXJR42")
+        for (estadoViaje in listOf("PENDIENTE", "ASIGNADO", "EN_CURSO", "FINALIZADO", "CANCELADO")) {
+            val (base, p) = solicitudConPago(50001)
+            val v = base.copy(estado = estadoViaje, correoConductor = conductor.correo, patenteMovil = movil!!.patente,
+                fhAgenda = FechaIso.texto(local.ahora().minusDays(1)))
+            db.viajeDao().guardar(v)
+            val pago = (pagos.cambiarEstadoPago(p.hash, EstadoPago.ANULADO) as Resultado.Exito).valor
+            assertEquals(FechaIso.leer(p.fechaPago!!), pago.fechaPago); assertNull(pago.montoReembolsado)
+            assertEquals(v.copy(estadoPago = "ANULADO", estado = if (estadoViaje in listOf("PENDIENTE", "ASIGNADO")) "CANCELADO" else estadoViaje), local.viaje(v.folio))
+        }
+        assertEquals(conductor, local.usuario(conductor.correo)); assertEquals(movil, db.movilDao().obtener("KXJR42"))
+    }
+    @Test fun cambiosInvalidosDePagoNoPersistenParcialmente() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val pagos = PagoLocalRepository(local)
+        for (estado in listOf("PAGADO", "RECHAZADO", "ANULADO", "REEMBOLSADO")) {
+            val (v, p) = solicitudConPago(1000, estado)
+            for (destino in EstadoPago.entries.filterNot { estado == "PAGADO" && it == EstadoPago.ANULADO }) {
+                assertTrue(pagos.cambiarEstadoPago(p.hash, destino) is Resultado.Fallo)
+                assertEquals(v, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
+            }
+        }
+        val (v, p) = solicitudConPago(1000, "PENDIENTE")
+        for (rol in listOf(Rol.SOLICITANTE, Rol.CONDUCTOR)) {
+            entrar(rol)
+            assertTrue((pagos.cambiarEstadoPago(p.hash, EstadoPago.ANULADO) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+            assertEquals(v, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
+        }
+    }
+    @Test fun dosCambiosIncompatiblesDePagoSoloConfirmanUno() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val pagos = PagoLocalRepository(local)
+        val (_, p) = solicitudConPago(1000, "PENDIENTE")
+        val resultados = coroutineScope {
+            val a = async { pagos.cambiarEstadoPago(p.hash, EstadoPago.PAGADO) }
+            val b = async { pagos.cambiarEstadoPago(p.hash, EstadoPago.RECHAZADO) }
+            listOf(a.await(), b.await())
+        }
+        assertEquals(1, resultados.count { it is Resultado.Exito }); assertEquals(1, resultados.count { it is Resultado.Fallo })
+    }
     @Test fun registroDePagoPersisteFolioEmpresaHashYFechaNula() = runBlocking {
         entrar(Rol.ADMINISTRADOR); viajeSinPagoHU19()
         val repos = PagoLocalRepository(local)

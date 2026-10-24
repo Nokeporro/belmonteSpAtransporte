@@ -20,6 +20,10 @@ public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 	@Query("select v from Viaje v where v.folio = :folio")
 	Optional<Viaje> bloquearPorFolio(@Param("folio") String folio);
 
+	// Solo identifica el viaje, sin cargar entidades ni bloquear el pago antes que el viaje.
+	@Query("select v.folio from Viaje v where v.pago.hash = :hash")
+	Optional<String> folioPorHashPago(@Param("hash") String hash);
+
 	// HU15: una consulta para el resumen de toda la lista, sin cargar viajes ni pasajeros.
 	interface ResumenConductor {
 		Long getIdConductor();

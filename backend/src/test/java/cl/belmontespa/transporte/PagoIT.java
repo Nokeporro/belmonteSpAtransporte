@@ -97,7 +97,7 @@ class PagoIT extends IntegrationTest {
 	class Estados {
 
 		@Test
-		@DisplayName("PENDIENTE → PAGADO, y luego ya no se puede cambiar")
+		@DisplayName("PENDIENTE → PAGADO no admite repetir ni rechazar")
 		void pagado() {
 			String hash = api.pagarOk(api.viaje(api.solicitante()));
 			assertThat(api.cambiarEstadoPago(hash, api.admin(), "PAGADO").status()).isEqualTo(200);
@@ -116,11 +116,11 @@ class PagoIT extends IntegrationTest {
 		}
 
 		@Test
-		@DisplayName("ANULADO no se fija a mano, un pago inexistente responde 404 y solo el administrador cambia estados")
+		@DisplayName("los destinos automáticos no se fijan a mano, un pago inexistente responde 404 y solo el administrador cambia estados")
 		void validaciones() {
 			Cuenta solicitante = api.solicitante();
 			String hash = api.pagarOk(api.viaje(solicitante));
-			assertThat(api.cambiarEstadoPago(hash, api.admin(), "ANULADO").status()).isEqualTo(400);
+			assertThat(api.cambiarEstadoPago(hash, api.admin(), "REEMBOLSADO").status()).isEqualTo(400);
 			assertThat(api.cambiarEstadoPago("NOEXISTE", api.admin(), "PAGADO").status()).isEqualTo(404);
 			assertThat(api.cambiarEstadoPago(hash, solicitante.token(), "PAGADO").status()).isEqualTo(403);
 			assertThat(api.estadoPago(hash)).isEqualTo("PENDIENTE");

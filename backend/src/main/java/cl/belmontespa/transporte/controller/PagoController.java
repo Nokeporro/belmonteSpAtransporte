@@ -52,7 +52,7 @@ public class PagoController extends CrudController<PagoDTORequest, PagoDTORespon
 		}
 	}
 
-	// CU-12: Pagado o Rechazado. Anulado es automático al cancelar el viaje.
+	// CU-12: P2/P3; anular cancela un viaje Pendiente o Asignado (V6).
 	@PostMapping("/{hash}/estado")
 	public PagoDTOResponse cambiarEstado(@PathVariable String hash,
 			@Valid @RequestBody CambiarEstadoPagoDTORequest request) {

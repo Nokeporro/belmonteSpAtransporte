@@ -134,7 +134,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Implementado | Listo |
-| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | 1 ajustar | — |
+| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Implementado | Listo |
 | 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
@@ -395,7 +395,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17, HU18 y HU19 también están implementadas; el siguiente ítem de A es HU20.
+HU16, HU17, HU18, HU19 y HU20 también están implementadas; el siguiente ítem de A es HU22.
 
 ### HU16 y HU24
 
@@ -455,13 +455,23 @@ API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entreg
 
 API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
-### HU20 y HU21
+### HU20
 
-- `folio` y `montoReembolsado` ya están disponibles; la fecha de pago se corrigió en HU19.
-- **`CambiarEstadoPagoDTORequest`:** acepta `ANULADO`; hoy solo `PAGADO` o `RECHAZADO`.
-- **`PagoService.cambiarEstado`:**
-  - admite P3 (`PAGADO → ANULADO`);
-  - anular cancela el viaje (V6).
+- [x] P2: `PENDIENTE → PAGADO / RECHAZADO / ANULADO`; P3: `PAGADO → ANULADO`; estados terminales rechazados con 409.
+- [x] Solo el Administrador cambia estados; P4 y P5 siguen siendo automáticas en V5 y V7.
+- [x] `fechaPago` se fija al confirmar, se conserva al anular y coincide entre respuesta y persistencia.
+- [x] V6 cancela un viaje pendiente o asignado, incluso vencido, sin reembolso; no cancela uno en curso o finalizado ni altera la flota o las fechas.
+- [x] Pago y viaje cambian en la misma transacción; bloqueos en orden viaje/pago evitan estados antiguos y bloqueos cruzados.
+- [x] Avisos de pago y cancelación después del commit; un rollback no persiste cambios ni envía push.
+- [x] Android: confirmación, doble envío bloqueado, acciones según estado, resultado guardado y recarga ante conflictos.
+- [x] 357 pruebas backend y 350 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
+
+### HU21 (P4)
+
+- `folio` y `montoReembolsado` ya están disponibles; sigue pendiente cerrar la consulta del estado de pago desde el detalle del Solicitante.
 
 ### HU22
 
@@ -552,7 +562,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /pagos` | Implementado | HU19 |
 | `GET /pagos/{hash}` | Implementado | HU19 |
 | `POST /pagos` | Implementado | HU19 |
-| `POST /pagos/{hash}/estado` | Ajustar | HU20 |
+| `POST /pagos/{hash}/estado` | Implementado | HU20 |
 | `GET /pasajeros` | Ajustar (orden) | HU02 |
 | `GET /pasajeros/{dni_hash}` | Hecha | HU02 |
 | `POST /pasajeros` | Ajustar | HU02 |

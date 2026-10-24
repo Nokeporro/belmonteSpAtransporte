@@ -1,5 +1,6 @@
 package cl.belmontespa.transporte.service;
 
+import cl.belmontespa.transporte.client.FirebaseClient;
 import cl.belmontespa.transporte.dto.request.CambiarEstadoPagoDTORequest;
 import cl.belmontespa.transporte.dto.request.PagoDTORequest;
 import cl.belmontespa.transporte.dto.response.PagoDTOResponse;
@@ -9,6 +10,7 @@ import cl.belmontespa.transporte.model.Solicitante;
 import cl.belmontespa.transporte.model.Viaje;
 import cl.belmontespa.transporte.repository.BancoRepository;
 import cl.belmontespa.transporte.repository.EstadoPagoRepository;
+import cl.belmontespa.transporte.repository.EstadoSolicitudRepository;
 import cl.belmontespa.transporte.repository.MedioPagoRepository;
 import cl.belmontespa.transporte.repository.PagoRepository;
 import cl.belmontespa.transporte.repository.TipoReciboRepository;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,11 +47,14 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 	private final TipoReciboRepository tipoReciboRepository;
 	private final SolicitanteService solicitanteService;
 	private final Clock clock;
+	private final EstadoSolicitudRepository estadoSolicitudRepository;
+	private final FirebaseClient firebaseClient;
 
 	public PagoService(PagoRepository pagoRepository, ViajeRepository viajeRepository,
 			EstadoPagoRepository estadoPagoRepository, BancoRepository bancoRepository,
 			MedioPagoRepository medioPagoRepository, TipoReciboRepository tipoReciboRepository,
-			SolicitanteService solicitanteService, Clock clock) {
+			SolicitanteService solicitanteService, Clock clock,
+			EstadoSolicitudRepository estadoSolicitudRepository, FirebaseClient firebaseClient) {
 		this.pagoRepository = pagoRepository;
 		this.viajeRepository = viajeRepository;
 		this.estadoPagoRepository = estadoPagoRepository;
@@ -57,6 +63,8 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		this.tipoReciboRepository = tipoReciboRepository;
 		this.solicitanteService = solicitanteService;
 		this.clock = clock;
+		this.estadoSolicitudRepository = estadoSolicitudRepository;
+		this.firebaseClient = firebaseClient;
 	}
 
 	@Override
@@ -109,18 +117,49 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return PagoDTOResponse.from(pago, request.folio());
 	}
 
-	// CU-12/RF19: solo un pago Pendiente pasa a Pagado o Rechazado.
+	// CU-12/RF19: P2/P3 y V6 se confirman juntos. El bloqueo precede a la lectura del pago
+	// para que dos cambios o una cancelación concurrentes no usen un estado anterior.
 	@Transactional
 	public PagoDTOResponse cambiarEstado(String hash, CambiarEstadoPagoDTORequest request) {
-		Pago pago = buscarOFallar(hash);
-		if (!PENDIENTE.equals(pago.getEstadoPago().getEstado())) {
-			throw new ResponseStatusException(HttpStatus.CONFLICT, "Solo se puede cambiar un pago Pendiente");
+		String claveViaje = viajeRepository.folioPorHashPago(hash)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		Viaje viaje = viajeRepository.bloquearPorFolio(claveViaje)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		// Orden único: VIAJE, luego PAGO. La lectura bloqueante ve el último estado confirmado
+		// aunque la búsqueda del folio haya abierto una instantánea REPEATABLE_READ anterior.
+		Pago pago = pagoRepository.bloquearPorHash(hash)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		String actual = pago.getEstadoPago().getEstado();
+		String nuevo = request.estado().toUpperCase(Locale.ROOT);
+		boolean permitido = PENDIENTE.equals(actual) && List.of(PAGADO, RECHAZADO, ANULADO).contains(nuevo)
+				|| PAGADO.equals(actual) && ANULADO.equals(nuevo);
+		if (!permitido) {
+			throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede pasar de " + actual + " a " + nuevo);
 		}
-		pago.setEstadoPago(estado(request.estado().toUpperCase(Locale.ROOT)));
-		if (PAGADO.equals(pago.getEstadoPago().getEstado())) {
-			pago.setFechaPago(LocalDateTime.now(clock));
+		pago.setEstadoPago(estado(nuevo));
+		if (PAGADO.equals(nuevo)) {
+			pago.setFechaPago(LocalDateTime.now(clock).withNano(0));
 		}
-		return aResponse(pago);
+		String folio = viaje.getFolio();
+		String token = viaje.getSolicitante().getUsuario().getTokenFcm();
+		Map<String, String> datos = Map.of("tipo", "VIAJE", "folio", folio);
+		if (ANULADO.equals(nuevo) && List.of(ViajeService.PENDIENTE, ViajeService.ASIGNADO)
+				.contains(viaje.getEstado().getNombreEstado())) {
+			viaje.setEstado(estadoSolicitudRepository.findByNombreEstado(ViajeService.CANCELADO)
+					.orElseThrow(() -> new IllegalStateException("Falta el estado CANCELADO")));
+			firebaseClient.notificar(token, "Viaje cancelado", "Tu viaje " + folio + " fue cancelado", datos);
+			if (viaje.getConductor() != null) {
+				firebaseClient.notificar(viaje.getConductor().getUsuario().getTokenFcm(),
+						"Viaje cancelado", "El viaje " + folio + " fue cancelado", datos);
+			}
+		}
+		String etiqueta = switch (nuevo) {
+			case PAGADO -> "Pagado";
+			case RECHAZADO -> "Rechazado";
+			default -> "Anulado";
+		};
+		firebaseClient.notificar(token, "Pago del viaje " + folio, "Estado: " + etiqueta, datos);
+		return PagoDTOResponse.from(pago, folio);
 	}
 
 	// Todos los pagos, por folio descendente. El pago no guarda su folio: es el del viaje que lo

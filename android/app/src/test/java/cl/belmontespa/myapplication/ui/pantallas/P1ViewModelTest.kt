@@ -98,6 +98,7 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
     var enviosPago = 0
+    var cambiosPago = 0
     var nuevoPago: NuevoPago? = null
     var catalogosPago: Catalogos? = null
     var errorCatalogos: ErrorApp? = null
@@ -109,7 +110,8 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         envios++; this.solicitud = solicitud; espera?.await()
         return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito("TR-2000")
     }
-    override suspend fun obtenerPerfil() = Resultado.Exito(Cuenta("Cuenta", "cuenta@test.cl", null, Rol.SOLICITANTE, LocalDateTime.of(2026, 10, 22, 12, 0)))
+    var perfil = Cuenta("Cuenta", "cuenta@test.cl", null, Rol.SOLICITANTE, LocalDateTime.of(2026, 10, 22, 12, 0))
+    override suspend fun obtenerPerfil() = Resultado.Exito(perfil)
     override suspend fun obtenerCatalogos(): Resultado<Catalogos> = errorCatalogos?.let { Resultado.Fallo(it) }
         ?: Resultado.Exito(catalogosPago ?: Catalogos(emptyList(), emptyList(), emptyList(), listOf(Region("Metropolitana", listOf("Providencia", "Las Condes")))))
     override suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> = fallo?.let { Resultado.Fallo(it) }
@@ -180,7 +182,14 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         this.pago = guardado
         return Resultado.Exito(guardado)
     }
-    override suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = sinUso()
+    override suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> {
+        cambiosPago++; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        val guardado = pago!!.copy(estado = estado,
+            fechaPago = if (estado == EstadoPago.PAGADO) LocalDateTime.of(2026, 10, 23, 12, 0) else pago!!.fechaPago)
+        pago = guardado
+        return Resultado.Exito(guardado)
+    }
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> = sinUso()
     override suspend fun recuperarPassword(correo: String): Resultado<Unit> = sinUso()
     override suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = sinUso()
