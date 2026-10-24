@@ -303,6 +303,21 @@ HU16 se detalla a continuación.
 
 Con HU26 quedan implementadas todas las tareas P3 de A.
 
+### Avance de implementación: HU28 de A
+
+- [x] Alta de otros Administradores con datos normalizados, contraseña obligatoria validada y correo único entre todos los roles.
+- [x] Inicial guardada solo como temporal BCrypt, con vencimiento a `ALTA_TEMPORAL_HORAS` (72 por defecto); no sirve como contraseña permanente.
+- [x] Login inicial restringido al cambio obligatorio; después de cambiar, la inicial deja de servir y el login normal habilita el rol.
+- [x] Listado ordenado por nombre y correo, fecha de registro persistida en la respuesta y ausencia de credenciales en las consultas.
+- [x] Alta atómica y protegida ante duplicados y peticiones simultáneas; rollback sin cuentas incompletas.
+- [x] Android: formulario desde Perfil con aviso de temporal, validación, control de doble envío y errores conservando datos; contraseña limpiada al confirmar y sesión del creador conservada.
+- [x] Demo sobre Room con temporal ficticia de 72 horas; conexión remota en T14.
+- [x] Verificación local: 392 pruebas backend y 378 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 103 pruebas de Room, HU28 y regresión de HU22 aprobadas, incluidos el alta y el cambio obligatorio con texto al 200 %.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
+Con HU21 y HU28 quedan implementadas las historias P4 de A.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en
@@ -575,9 +590,13 @@ Todas son `POST` con el prefijo `/api/v1/`. Las reglas están en [Máquinas de e
   `PUT /usuarios/{correo}` propios y `POST /auth/logout` (otra ruta: 403 "Debes cambiar la
   contraseña"). Correo desconocido, contraseña incorrecta, temporal vencida, usuario sin rol o
   Conductor inactivo: el mismo 401 "Credenciales inválidas". Solicitante no aprobado: 403.
-- **Temporal (solo Solicitante y Administrador):** 12 caracteres, guardada en
+- **Temporal de recuperación (RF21, solo Solicitante y Administrador):** 12 caracteres, guardada en
   `password_temporal_hash`, vence a `PASSWORD_TEMPORAL_MINUTOS` y llega por correo. No reemplaza
   la actual (ambas sirven hasta usar una); otro pedido la reemplaza y cambiar la contraseña la anula.
+- **Alta de Administrador (CU-18):** la contraseña inicial ingresada al registrar la cuenta se
+  guarda solo como temporal y vence a `ALTA_TEMPORAL_HORAS` (72 por defecto, mayor que cero).
+  No hay contraseña permanente hasta completar el cambio obligatorio. El login inicial entrega
+  la misma sesión restringida descrita arriba; una inicial vencida responde el 401 genérico.
 - **Token FCM:** único; al guardarlo se quita de cualquier otro usuario.
 - **Administrador inicial:** `admin@belmontespa.cl`, creado por migración con una contraseña
   temporal de desarrollo (en el comentario de la migración) que vence a los 30 días.

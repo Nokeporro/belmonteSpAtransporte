@@ -7,6 +7,8 @@ import java.util.Locale
 
 /** Reglas de entrada compartidas por formularios y repositorios de la demo. */
 object Validaciones {
+    // CU-18 comparte los datos de alta y las reglas de contraseña de CU-07.
+    fun administrador(cuenta: NuevaCuenta): Map<String, String> = conductor(cuenta)
     fun correo(valor: String) = valor.trim().lowercase(Locale.ROOT)
     fun telefono(valor: String?): String? = valor?.filterNot { it.isWhitespace() || it in "()-" }
         ?.takeIf { it.isNotBlank() }?.let { if (it.length == 9) "+56$it" else it }

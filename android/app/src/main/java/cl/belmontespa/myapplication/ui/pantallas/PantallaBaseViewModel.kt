@@ -287,7 +287,15 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                                 mutable.update { it.copy(campos = it.campos - "password") }
                                 destino = PantallaDemo.DETALLE_CONDUCTOR to conductor.correo
                             }
-                            else { repos.cuentas.registrarAdministrador(c).valor(); aviso(R.string.aviso_guardado) }
+                            else {
+                                if (mutable.value.cuenta?.rol != Rol.ADMINISTRADOR) throw FalloPantalla(ErrorApp.SinPermiso())
+                                val errores = Validaciones.administrador(c)
+                                if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                                val administrador = repos.cuentas.registrarAdministrador(c).valor()
+                                mutable.update { it.copy(campos = it.campos - "password" + mapOf("nombre" to administrador.nombre,
+                                    "correo" to administrador.correo, "telefono" to administrador.telefono.orEmpty()),
+                                    modificado = false, aviso = R.string.admin_alta_guardada) }
+                            }
                         }
                         PantallaDemo.DETALLE_CONDUCTOR -> {
                             val cuenta = NuevaCuenta(valor("nombre"), referencia, valor("telefono").ifBlank { null }, valor("password"))

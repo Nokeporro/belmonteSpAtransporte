@@ -382,4 +382,7 @@
     <string name="pago_consulta_error">No se pudo consultar el pago. Puedes volver a intentarlo.</string>
     <string name="pago_consulta_reintentar">Reintentar consulta del pago</string>
     <string name="pago_consulta_ver_detalle">Ver detalle del pago</string>
+    <string name="admin_password_inicial">Contraseña inicial temporal</string>
+    <string name="admin_alta_ayuda">La contraseña inicial tiene vencimiento. El nuevo Administrador deberá cambiarla al iniciar sesión.</string>
+    <string name="admin_alta_guardada">Administrador registrado. Deberá cambiar su contraseña inicial al entrar.</string>
 </resources>

@@ -88,6 +88,8 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var cuentaConductor: NuevaCuenta? = null
     var passwordConductor: String? = null
     var enviosConductor = 0
+    var enviosAdministrador = 0
+    var cuentaAdministrador: NuevaCuenta? = null
     var nuevoMovil: NuevoMovil? = null
     var enviosMovil = 0
     val moviles = mutableListOf<Movil>()
@@ -157,7 +159,12 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     }
     override suspend fun aprobarSolicitante(correo: String) = revisarCuenta(correo, true)
     override suspend fun rechazarSolicitante(correo: String) = revisarCuenta(correo, false)
-    override suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = sinUso()
+    override suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> {
+        enviosAdministrador++; cuentaAdministrador = cuenta; espera?.await()
+        fallo?.let { return Resultado.Fallo(it) }
+        return Resultado.Exito(Cuenta(cuenta.nombre.trim(), cl.belmontespa.myapplication.util.Validaciones.correo(cuenta.correo),
+            cl.belmontespa.myapplication.util.Validaciones.telefono(cuenta.telefono), Rol.ADMINISTRADOR, perfil.fechaRegistro))
+    }
     override suspend fun listarConductores() = Resultado.Exito(listOf(conductor))
     override suspend fun obtenerConductor(correo: String) = Resultado.Exito(conductor)
     override suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> {

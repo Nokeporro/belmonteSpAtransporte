@@ -109,8 +109,10 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
         }
         PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_ADMIN -> {
             Campo("nombre", R.string.campo_nombre); Campo("correo", R.string.campo_correo, KeyboardType.Email)
-            Campo("telefono", R.string.campo_telefono, KeyboardType.Phone); Campo("password", R.string.campo_password, KeyboardType.Password)
+            Campo("telefono", R.string.campo_telefono, KeyboardType.Phone)
+            Campo("password", if (pantalla == PantallaDemo.REGISTRAR_ADMIN) R.string.admin_password_inicial else R.string.campo_password, KeyboardType.Password)
             if (pantalla == PantallaDemo.REGISTRAR_CONDUCTOR) Text(stringResource(R.string.conductor_alta_ayuda))
+            else Text(stringResource(R.string.admin_alta_ayuda))
             Accion(R.string.accion_guardar)
         }
         PantallaDemo.DETALLE_CONDUCTOR -> estado.conductor?.let { conductor ->

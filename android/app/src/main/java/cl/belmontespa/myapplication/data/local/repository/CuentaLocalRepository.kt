@@ -5,6 +5,8 @@ import cl.belmontespa.myapplication.data.local.entity.UsuarioEntity
 import cl.belmontespa.myapplication.data.repository.CuentaRepository
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.util.FechaIso
+import cl.belmontespa.myapplication.util.Validaciones
+import java.time.Duration
 import javax.inject.Inject
 
 // Los perfiles y formularios de T06 leen la cuenta real de la sesión demo.
@@ -56,9 +58,12 @@ class CuentaLocalRepository @Inject constructor(private val local: SoporteLocal)
     override suspend fun rechazarSolicitante(correo: String) = aprobar(correo, EstadoSolicitante.RECHAZADO)
     override suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR)
-        exigir(cuenta.nombre.isNotBlank() && cuenta.correo.contains('@') && cuenta.password.length in 8..72, "Revisa los datos ingresados.")
-        val u = UsuarioEntity(cuenta.correo.trim().lowercase(), cuenta.nombre.trim(), cuenta.telefono,
-            "ADMINISTRADOR", true, null, null, null, null, FechaIso.texto(local.ahora()), Hashes.password(cuenta.password))
+        validar(Validaciones.administrador(cuenta))
+        val correo = Validaciones.correo(cuenta.correo)
+        if (local.db.usuarioDao().obtener(correo) != null) falla(ErrorApp.Conflicto("El correo ya está registrado."))
+        val u = UsuarioEntity(correo, cuenta.nombre.trim(), Validaciones.telefono(cuenta.telefono),
+            "ADMINISTRADOR", true, null, null, null, null, FechaIso.texto(local.ahora()), null,
+            Hashes.password(cuenta.password), local.clock.millis() + Duration.ofHours(72).toMillis())
         local.db.usuarioDao().insertar(u)
         u.cuenta()
     }

@@ -68,6 +68,21 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 
 	// Usuario guardado y listo para extenderse con un rol (Administrador, Conductor, Solicitante).
 	Usuario nuevo(String nombre, String correo, String telefono, String password) {
+		Usuario usuario = prepararAlta(nombre, correo, telefono, password);
+		usuario.setPasswordHash(passwordEncoder.encode(password));
+		return usuarioRepository.saveAndFlush(usuario);
+	}
+
+	// CU-18: no existe una contraseña permanente hasta completar el cambio obligatorio.
+	Usuario nuevoConTemporal(String nombre, String correo, String telefono, String password, long horas) {
+		Usuario usuario = prepararAlta(nombre, correo, telefono, password);
+		usuario.setPasswordHash("*");
+		usuario.setPasswordTemporalHash(passwordEncoder.encode(password));
+		usuario.setPasswordTemporalExpira(java.time.LocalDateTime.now(clock).plusHours(horas).withNano(0));
+		return usuarioRepository.saveAndFlush(usuario);
+	}
+
+	private Usuario prepararAlta(String nombre, String correo, String telefono, String password) {
 		if (password == null || password.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña es obligatoria");
 		}
@@ -78,8 +93,7 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 		usuario.setNombre(nombre);
 		usuario.setCorreo(correo);
 		usuario.setTelefono(telefono);
-		usuario.setPasswordHash(passwordEncoder.encode(password));
-		return usuarioRepository.saveAndFlush(usuario);
+		return usuario;
 	}
 
 	// PUT: password vacía conserva la actual; una nueva anula la contraseña temporal (RF21).

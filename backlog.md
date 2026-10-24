@@ -141,7 +141,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
 | 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
 | 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | Listo |
-| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | 1 hecha, 2 ajustar | — |
+| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | Implementado | Listo |
 | 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
 | 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — | — |
 | 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — | — |
@@ -396,7 +396,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
 HU16, HU17, HU18, HU19, HU20, HU22, HU27 y HU26 también están implementadas; todas las tareas P3 de A están listas.
-HU21 de P4 también está implementada; el siguiente ítem de A es HU28.
+HU21 y HU28 de P4 también están implementadas; el siguiente ítem es T11, el video de cierre compartido.
 
 ### HU16 y HU24
 
@@ -541,8 +541,18 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU28
 
-- **`POST /administradores`:** la contraseña inicial es temporal, con vencimiento a
-  `ALTA_TEMPORAL_HORAS`; la variable aún no existe.
+- [x] Alta exclusiva del Administrador autenticado; validación por campo, normalización y correo único entre todos los roles (409 si ya existe).
+- [x] Contraseña inicial solo en `password_temporal_hash` BCrypt; sin contraseña permanente hasta completar el cambio obligatorio.
+- [x] Vencimiento configurable con `ALTA_TEMPORAL_HORAS` (72 por defecto y mayor que cero), basado en el Clock de Chile; inicial vencida en 401 genérico.
+- [x] Login inicial con JWT temporal y rutas restringidas; cambiar la contraseña crea la permanente y anula la inicial.
+- [x] Listado ordenado por nombre y correo; alta y consultas con la misma fecha de registro, sin contraseñas ni hashes en las respuestas.
+- [x] Alta atómica de usuario y rol, sin sobrescribir cuentas ante duplicados o peticiones simultáneas; rollback sin usuario huérfano.
+- [x] Android: acceso desde Perfil, aviso de contraseña inicial temporal, validación, doble envío bloqueado, datos conservados ante errores y contraseña limpiada al guardar; sesión del creador conservada.
+- [x] Demo persistida en Room con temporal ficticia de 72 horas; conexión remota en T14.
+- [x] 392 pruebas backend y 378 JVM Android aprobadas; lint sin errores y APK demo compilado.
+- [x] API 36: 103 pruebas de Room, HU28 y regresión de HU22 aprobadas, incluidos el alta y el cambio obligatorio con texto al 200 %.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU14, HU13 y HU12 (Etapa 2)
 
@@ -566,9 +576,9 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `GET /usuarios` | Hecha | HU22 |
 | `GET /usuarios/{correo}` | Hecha | HU22 |
 | `PUT /usuarios/{correo}` | Implementado | HU22 |
-| `GET /administradores` | Ajustar (orden) | HU28 |
-| `GET /administradores/{correo}` | Hecha | HU28 |
-| `POST /administradores` | Ajustar | HU28 |
+| `GET /administradores` | Implementado | HU28 |
+| `GET /administradores/{correo}` | Implementado | HU28 |
+| `POST /administradores` | Implementado | HU28 |
 | `GET /conductores` | Ajustar | HU15 |
 | `GET /conductores/{correo}` | Ajustar | HU15 |
 | `POST /conductores` | Ajustar | HU15 |

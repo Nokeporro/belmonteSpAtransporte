@@ -41,6 +41,57 @@ class RepositoriosT06Test {
         viajes = ViajeLocalRepository(db.viajeDao(), sesiones, reloj, operaciones)
     }
     @After fun cerrar() { db.close() }
+    @Test fun hu28AltaNormalizadaSoloConTemporalYExigeCambioAntesDeOperar() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val cuentas = CuentaLocalRepository(local)
+        val administrador = (cuentas.registrarAdministrador(NuevaCuenta("  Nueva Administradora  ", "  ADMIN@TEST.CL  ", "9 5555-0101", "Inicial12345")) as Resultado.Exito).valor
+        assertEquals("Nueva Administradora", administrador.nombre); assertEquals("admin@test.cl", administrador.correo)
+        assertEquals("+56955550101", administrador.telefono); assertEquals(Rol.ADMINISTRADOR, administrador.rol)
+        val usuario = local.usuario(administrador.correo)
+        assertNull(usuario.passwordSha256); assertEquals(Hashes.password("Inicial12345"), usuario.passwordTemporalSha256)
+        assertEquals(reloj.millis() + java.time.Duration.ofHours(72).toMillis(), usuario.passwordTemporalExpira)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertTrue((auth.iniciarSesion(administrador.correo, "Inicial12345") as Resultado.Exito).valor is EstadoSesion.Temporal)
+        assertEquals(administrador, (cuentas.obtenerPerfil() as Resultado.Exito).valor)
+        assertTrue((cuentas.registrarAdministrador(NuevaCuenta("Otro Administrador", "otro@test.cl", null, "Inicial12345")) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        assertTrue(cuentas.cambiarPassword("Inicial12345", "NuevaClave987") is Resultado.Exito)
+        assertTrue(sesiones.estado.first() is EstadoSesion.Autenticada)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(administrador.correo, "Inicial12345"))
+        assertTrue((auth.iniciarSesion(administrador.correo, "NuevaClave987") as Resultado.Exito).valor is EstadoSesion.Autenticada)
+        assertNull(local.usuario(administrador.correo).passwordTemporalSha256)
+    }
+    @Test fun hu28TemporalVencidaInclusoEnElLimiteNoEsUnaClavePermanente() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val cuentas = CuentaLocalRepository(local)
+        cuentas.registrarAdministrador(NuevaCuenta("Administrador", "admin@test.cl", null, "Inicial12345"))
+        val usuario = local.usuario("admin@test.cl")
+        db.usuarioDao().guardar(usuario.copy(passwordTemporalExpira = reloj.millis()))
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(usuario.correo, "Inicial12345"))
+        assertNull(local.usuario(usuario.correo).passwordSha256)
+    }
+    @Test fun hu28ValidaDatosYRolSinSobrescribirCuentasExistentes() = runBlocking {
+        val cuentas = CuentaLocalRepository(local); val alta = NuevaCuenta("Administrador", "nuevo@test.cl", null, "Inicial12345")
+        for (rol in listOf(Rol.CONDUCTOR, Rol.SOLICITANTE)) {
+            entrar(rol)
+            assertTrue((cuentas.registrarAdministrador(alta) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        }
+        entrar(Rol.ADMINISTRADOR)
+        for (invalida in listOf(alta.copy(nombre = "A"), alta.copy(correo = "invalido"), alta.copy(telefono = "123"),
+            alta.copy(password = "abcdefgh"), alta.copy(password = "ñ".repeat(36) + "1")))
+            assertTrue((cuentas.registrarAdministrador(invalida) as Resultado.Fallo).error is ErrorApp.Validacion)
+        assertNull(db.usuarioDao().obtener(alta.correo))
+        val original = local.usuario("crios@andesconsult.cl")
+        assertTrue((cuentas.registrarAdministrador(alta.copy(correo = original.correo.uppercase())) as Resultado.Fallo).error is ErrorApp.Conflicto)
+        assertEquals(original, local.usuario(original.correo))
+    }
+    @Test fun hu28AltasSimultaneasDejanUnSoloAdministrador() = runBlocking {
+        entrar(Rol.ADMINISTRADOR); val cuentas = CuentaLocalRepository(local)
+        val alta = NuevaCuenta("Administrador", "nuevo@test.cl", null, "Inicial12345")
+        val respuestas = coroutineScope {
+            listOf(async { cuentas.registrarAdministrador(alta) }, async { cuentas.registrarAdministrador(alta.copy(correo = alta.correo.uppercase())) }).map { it.await() }
+        }
+        assertEquals(1, respuestas.count { it is Resultado.Exito }); assertEquals(1, respuestas.count { it is Resultado.Fallo })
+        assertEquals("ADMINISTRADOR", local.usuario(alta.correo).rol)
+    }
     @Test fun hu21ConsultaPropiaEnLosCincoEstadosConDatosYReembolsoSinPermitirCambios() = runBlocking {
         entrar(Rol.SOLICITANTE); val repos = PagoLocalRepository(local)
         for (estado in EstadoPago.entries) {

@@ -11,7 +11,7 @@ public record AdministradorDTORequest(
 		@NotBlank @Size(min = 2, max = 120) String nombre,
 		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correo,
 		@Pattern(regexp = Reglas.TELEFONO) String telefono,
-		@Contrasena String password
+		@NotBlank @Contrasena String password
 ) {
 
 	public AdministradorDTORequest {
