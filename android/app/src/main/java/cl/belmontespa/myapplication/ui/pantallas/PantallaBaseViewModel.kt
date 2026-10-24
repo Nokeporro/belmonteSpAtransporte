@@ -202,10 +202,19 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
                             val r = repos.auth.registrarSolicitante(RegistroSolicitante(valor("nombre"), valor("correo"), valor("telefono").ifBlank { null }, valor("password"), valor("razonSocial"), valor("rutEmpresa"))).valor()
                             mutable.update { it.copy(aviso = if (r.estado == EstadoSolicitante.PENDIENTE) R.string.aviso_registro_pendiente else R.string.aviso_registro_aprobado) }
                         }
-                        PantallaDemo.RECUPERAR -> { repos.auth.recuperarPassword(valor("correo")).valor(); aviso(R.string.aviso_recuperacion_enviada) }
+                        PantallaDemo.RECUPERAR -> {
+                            val errores = Validaciones.recuperarPassword(valor("correo"))
+                            if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                            repos.auth.recuperarPassword(Validaciones.correo(valor("correo"))).valor()
+                            aviso(R.string.aviso_recuperacion_enviada)
+                        }
                         PantallaDemo.CAMBIAR_PASSWORD, PantallaDemo.CAMBIO_OBLIGATORIO -> {
-                            if (valor("passwordNueva") != valor("confirmacion")) throw FalloPantalla(ErrorApp.Validacion(mapOf("confirmacion" to "Las contraseñas no coinciden.")))
-                            repos.cuentas.cambiarPassword(valor("passwordActual"), valor("passwordNueva")).valor(); aviso(R.string.aviso_password_guardada)
+                            val errores = Validaciones.cambioPassword(valor("passwordActual"), valor("passwordNueva"), valor("confirmacion"))
+                            if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
+                            if (mutable.value.cuenta?.rol == Rol.CONDUCTOR) throw FalloPantalla(ErrorApp.SinPermiso())
+                            repos.cuentas.cambiarPassword(valor("passwordActual"), valor("passwordNueva")).valor()
+                            mutable.update { it.copy(campos = it.campos - setOf("passwordActual", "passwordNueva", "confirmacion")) }
+                            aviso(R.string.aviso_password_guardada)
                         }
                         PantallaDemo.NUEVA_SOLICITUD -> {
                             val origen = mutable.value.ubicaciones["origen"] ?: throw FalloPantalla(ErrorApp.Validacion(mapOf("origen" to "Selecciona el origen desde Google Places.")))

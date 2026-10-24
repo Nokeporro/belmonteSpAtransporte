@@ -1,0 +1,653 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "7bb0cd666650ea281376f2707459113e",
+    "entities": [
+      {
+        "tableName": "usuarios",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`correo` TEXT NOT NULL, `nombre` TEXT NOT NULL, `telefono` TEXT, `rol` TEXT NOT NULL, `activo` INTEGER NOT NULL, `estado_conductor` TEXT, `estado_solicitante` TEXT, `razon_social` TEXT, `rut_empresa` TEXT, `fecha_registro` TEXT NOT NULL, `password_sha256` TEXT, `password_temporal_sha256` TEXT, `password_temporal_expira` INTEGER, PRIMARY KEY(`correo`))",
+        "fields": [
+          {
+            "fieldPath": "correo",
+            "columnName": "correo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "telefono",
+            "columnName": "telefono",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rol",
+            "columnName": "rol",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoConductor",
+            "columnName": "estado_conductor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estadoSolicitante",
+            "columnName": "estado_solicitante",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "razonSocial",
+            "columnName": "razon_social",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rutEmpresa",
+            "columnName": "rut_empresa",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fechaRegistro",
+            "columnName": "fecha_registro",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "passwordSha256",
+            "columnName": "password_sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "passwordTemporalSha256",
+            "columnName": "password_temporal_sha256",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "passwordTemporalExpira",
+            "columnName": "password_temporal_expira",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "correo"
+          ]
+        }
+      },
+      {
+        "tableName": "moviles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`patente` TEXT NOT NULL, `capacidad` INTEGER NOT NULL, `gps_serial` INTEGER, `activo` INTEGER NOT NULL, `estado_movil` TEXT NOT NULL, `codigo_abordaje` TEXT NOT NULL, PRIMARY KEY(`patente`))",
+        "fields": [
+          {
+            "fieldPath": "patente",
+            "columnName": "patente",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capacidad",
+            "columnName": "capacidad",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gpsSerial",
+            "columnName": "gps_serial",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoMovil",
+            "columnName": "estado_movil",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codigoAbordaje",
+            "columnName": "codigo_abordaje",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "patente"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_moviles_codigo_abordaje",
+            "unique": true,
+            "columnNames": [
+              "codigo_abordaje"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_moviles_codigo_abordaje` ON `${TABLE_NAME}` (`codigo_abordaje`)"
+          }
+        ]
+      },
+      {
+        "tableName": "habilitaciones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`patente` TEXT NOT NULL, `correo_conductor` TEXT NOT NULL, PRIMARY KEY(`patente`, `correo_conductor`), FOREIGN KEY(`patente`) REFERENCES `moviles`(`patente`) ON UPDATE NO ACTION ON DELETE NO ACTION , FOREIGN KEY(`correo_conductor`) REFERENCES `usuarios`(`correo`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "patente",
+            "columnName": "patente",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correoConductor",
+            "columnName": "correo_conductor",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "patente",
+            "correo_conductor"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_habilitaciones_correo_conductor",
+            "unique": false,
+            "columnNames": [
+              "correo_conductor"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_habilitaciones_correo_conductor` ON `${TABLE_NAME}` (`correo_conductor`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "moviles",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "patente"
+            ],
+            "referencedColumns": [
+              "patente"
+            ]
+          },
+          {
+            "table": "usuarios",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "correo_conductor"
+            ],
+            "referencedColumns": [
+              "correo"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "viajes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`folio` TEXT NOT NULL, `estado` TEXT NOT NULL, `correo_solicitante` TEXT NOT NULL, `nombre_solicitante` TEXT NOT NULL, `telefono_solicitante` TEXT, `razon_social` TEXT NOT NULL, `origen_direccion` TEXT NOT NULL, `origen_comuna` TEXT NOT NULL, `origen_region` TEXT NOT NULL, `origen_latitud` REAL NOT NULL, `origen_longitud` REAL NOT NULL, `destino_direccion` TEXT NOT NULL, `destino_comuna` TEXT NOT NULL, `destino_region` TEXT NOT NULL, `destino_latitud` REAL NOT NULL, `destino_longitud` REAL NOT NULL, `fh_creacion` TEXT NOT NULL, `fh_agenda` TEXT NOT NULL, `fh_asignacion` TEXT, `fh_inicio` TEXT, `fh_fin` TEXT, `numero_vuelo` TEXT, `cantidad_pasajeros` INTEGER NOT NULL, `correo_conductor` TEXT, `nombre_conductor` TEXT, `patente_movil` TEXT, `hash_pago` TEXT, `estado_pago` TEXT, `motivo` TEXT, `folio_correlativo` INTEGER NOT NULL, `descargado_en` INTEGER NOT NULL, PRIMARY KEY(`folio`))",
+        "fields": [
+          {
+            "fieldPath": "folio",
+            "columnName": "folio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estado",
+            "columnName": "estado",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correoSolicitante",
+            "columnName": "correo_solicitante",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombreSolicitante",
+            "columnName": "nombre_solicitante",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "telefonoSolicitante",
+            "columnName": "telefono_solicitante",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "razonSocial",
+            "columnName": "razon_social",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origenDireccion",
+            "columnName": "origen_direccion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origenComuna",
+            "columnName": "origen_comuna",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origenRegion",
+            "columnName": "origen_region",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origenLatitud",
+            "columnName": "origen_latitud",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "origenLongitud",
+            "columnName": "origen_longitud",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoDireccion",
+            "columnName": "destino_direccion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoComuna",
+            "columnName": "destino_comuna",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoRegion",
+            "columnName": "destino_region",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoLatitud",
+            "columnName": "destino_latitud",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoLongitud",
+            "columnName": "destino_longitud",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fhCreacion",
+            "columnName": "fh_creacion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fhAgenda",
+            "columnName": "fh_agenda",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fhAsignacion",
+            "columnName": "fh_asignacion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fhInicio",
+            "columnName": "fh_inicio",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fhFin",
+            "columnName": "fh_fin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "numeroVuelo",
+            "columnName": "numero_vuelo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cantidadPasajeros",
+            "columnName": "cantidad_pasajeros",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correoConductor",
+            "columnName": "correo_conductor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nombreConductor",
+            "columnName": "nombre_conductor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "patenteMovil",
+            "columnName": "patente_movil",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hashPago",
+            "columnName": "hash_pago",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estadoPago",
+            "columnName": "estado_pago",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "motivo",
+            "columnName": "motivo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "folioCorrelativo",
+            "columnName": "folio_correlativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descargadoEn",
+            "columnName": "descargado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "folio"
+          ]
+        }
+      },
+      {
+        "tableName": "pasajeros",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`dni_hash` TEXT NOT NULL, `nombre` TEXT NOT NULL, PRIMARY KEY(`dni_hash`))",
+        "fields": [
+          {
+            "fieldPath": "dniHash",
+            "columnName": "dni_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "dni_hash"
+          ]
+        }
+      },
+      {
+        "tableName": "viaje_pasajeros",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`folio` TEXT NOT NULL, `dni_hash` TEXT NOT NULL, `fh_abordaje` TEXT, PRIMARY KEY(`folio`, `dni_hash`), FOREIGN KEY(`folio`) REFERENCES `viajes`(`folio`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`dni_hash`) REFERENCES `pasajeros`(`dni_hash`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "folio",
+            "columnName": "folio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dniHash",
+            "columnName": "dni_hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fhAbordaje",
+            "columnName": "fh_abordaje",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "folio",
+            "dni_hash"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_viaje_pasajeros_dni_hash",
+            "unique": false,
+            "columnNames": [
+              "dni_hash"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_viaje_pasajeros_dni_hash` ON `${TABLE_NAME}` (`dni_hash`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "viajes",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "folio"
+            ],
+            "referencedColumns": [
+              "folio"
+            ]
+          },
+          {
+            "table": "pasajeros",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "dni_hash"
+            ],
+            "referencedColumns": [
+              "dni_hash"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "pagos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`hash` TEXT NOT NULL, `folio` TEXT NOT NULL, `monto` INTEGER NOT NULL, `estado_pago` TEXT NOT NULL, `banco` TEXT NOT NULL, `cod_sbif` INTEGER NOT NULL, `rut_empresa` TEXT NOT NULL, `medio_pago` TEXT NOT NULL, `tipo_recibo` TEXT NOT NULL, `fecha_pago` TEXT, `monto_reembolsado` INTEGER, PRIMARY KEY(`hash`))",
+        "fields": [
+          {
+            "fieldPath": "hash",
+            "columnName": "hash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folio",
+            "columnName": "folio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "monto",
+            "columnName": "monto",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoPago",
+            "columnName": "estado_pago",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "banco",
+            "columnName": "banco",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "codSbif",
+            "columnName": "cod_sbif",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rutEmpresa",
+            "columnName": "rut_empresa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medioPago",
+            "columnName": "medio_pago",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipoRecibo",
+            "columnName": "tipo_recibo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fechaPago",
+            "columnName": "fecha_pago",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "montoReembolsado",
+            "columnName": "monto_reembolsado",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "hash"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pagos_folio",
+            "unique": true,
+            "columnNames": [
+              "folio"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_pagos_folio` ON `${TABLE_NAME}` (`folio`)"
+          }
+        ]
+      },
+      {
+        "tableName": "operaciones_pendientes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `cuenta` TEXT NOT NULL, `folio` TEXT NOT NULL, `estado_destino` TEXT NOT NULL, `creado_en` INTEGER NOT NULL, `estado_envio` TEXT NOT NULL, `mensaje_error` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`folio`) REFERENCES `viajes`(`folio`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cuenta",
+            "columnName": "cuenta",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folio",
+            "columnName": "folio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoDestino",
+            "columnName": "estado_destino",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creadoEn",
+            "columnName": "creado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoEnvio",
+            "columnName": "estado_envio",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mensajeError",
+            "columnName": "mensaje_error",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_operaciones_pendientes_folio",
+            "unique": false,
+            "columnNames": [
+              "folio"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operaciones_pendientes_folio` ON `${TABLE_NAME}` (`folio`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "viajes",
+            "onDelete": "NO ACTION",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "folio"
+            ],
+            "referencedColumns": [
+              "folio"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7bb0cd666650ea281376f2707459113e')"
+    ]
+  }
+}

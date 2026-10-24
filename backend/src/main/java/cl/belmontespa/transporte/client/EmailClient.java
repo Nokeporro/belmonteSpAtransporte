@@ -1,6 +1,8 @@
 package cl.belmontespa.transporte.client;
 
 import jakarta.annotation.PreDestroy;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,7 +38,7 @@ public class EmailClient {
 		this.executor = executor;
 	}
 
-	public void enviarPasswordTemporal(String correo, String passwordTemporal, long minutosVigencia) {
+	public void enviarPasswordTemporal(String correo, String nombre, String passwordTemporal, LocalDateTime vence) {
 		if (mailSender == null) {
 			log.info("Correo no configurado (define SPRING_MAIL_HOST): no se envió la contraseña temporal a {}", correo);
 			return;
@@ -46,18 +48,10 @@ public class EmailClient {
 		mensaje.setTo(correo);
 		mensaje.setSubject("Belmonte SpA: tu contraseña temporal");
 		mensaje.setText("""
-				Hola,
-
-				Recibimos una solicitud para recuperar el acceso a tu cuenta. Tu contraseña temporal es:
-
-				    %s
-
-				Es válida por %d minutos. Inicia sesión y cámbiala de inmediato.
-
-				Si no lo solicitaste, ignora este mensaje.
+				Hola %s: tu contraseña temporal es %s y vence el %s. Úsala para iniciar sesión; la app te pedirá crear una nueva. Si no la pediste, ignora este correo: tu contraseña actual sigue funcionando.
 
 				Belmonte SpA
-				""".formatted(passwordTemporal, minutosVigencia));
+				""".formatted(nombre, passwordTemporal, DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss").format(vence)));
 		EnvioDiferido.ejecutar(executor, "enviar la contraseña temporal por correo", () -> {
 			mailSender.send(mensaje);
 			log.info("Contraseña temporal enviada a {}", correo);

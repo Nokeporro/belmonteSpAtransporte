@@ -22,11 +22,15 @@ class CuentaLocalRepository @Inject constructor(private val local: SoporteLocal)
     override suspend fun cambiarPassword(passwordActual: String, passwordNueva: String): Resultado<Unit> {
         val s = try { local.sesion(permitirTemporal = true) } catch (e: ReglaLocal) { return Resultado.Fallo(e.error) }
         val resultado = local.ejecutar {
-            exigir(s.rol != Rol.CONDUCTOR, "La contraseña del conductor la administra un Administrador.")
+            if (s.rol == Rol.CONDUCTOR) falla(ErrorApp.SinPermiso())
+            validar(cl.belmontespa.myapplication.util.Validaciones.cambioPassword(passwordActual, passwordNueva, passwordNueva))
             val u = local.usuario(s.correo)
-            exigir(u.passwordSha256 == Hashes.password(passwordActual), "La contraseña actual no es correcta.")
-            exigir(passwordNueva.length in 8..72, "La contraseña debe tener entre 8 y 72 caracteres.")
-            local.db.usuarioDao().guardar(u.copy(passwordSha256 = Hashes.password(passwordNueva)))
+            val normal = u.passwordSha256 == Hashes.password(passwordActual)
+            val temporal = u.passwordTemporalSha256 == Hashes.password(passwordActual) &&
+                (u.passwordTemporalExpira ?: Long.MIN_VALUE) > local.clock.millis()
+            if (!normal && !temporal) falla(ErrorApp.Validacion(mapOf("passwordActual" to "No coincide.")))
+            local.db.usuarioDao().guardar(u.copy(passwordSha256 = Hashes.password(passwordNueva),
+                passwordTemporalSha256 = null, passwordTemporalExpira = null))
         }
         // Solo sale del flujo obligatorio después de persistir el cambio.
         if (resultado is Resultado.Exito) local.sesiones.guardar(s)

@@ -27,6 +27,7 @@ object BaseDatosModule {
     @Singleton
     fun baseDatos(@ApplicationContext context: Context, semilla: SemillaDemo): BelmonteDatabase {
         val constructor = Room.databaseBuilder(context, BelmonteDatabase::class.java, BelmonteDatabase.NOMBRE)
+            .addMigrations(BelmonteDatabase.MIGRACION_1_2)
         // DatosDemo solo va en la build demo; en la remota, Room guarda lo que llega del backend.
         if (BuildConfig.MODO_LOCAL) constructor.addCallback(semilla)
         return constructor.build()

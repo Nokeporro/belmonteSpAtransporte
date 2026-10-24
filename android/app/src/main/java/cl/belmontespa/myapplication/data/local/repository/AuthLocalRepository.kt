@@ -31,25 +31,31 @@ class AuthLocalRepository @Inject constructor(
     override fun observarSesion(): Flow<EstadoSesion> = sesionStore.estado
 
     override suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> {
-        val usuario = usuarioDao.obtener(correo.trim().lowercase())
-        // Mismo 401 genérico que el backend: correo desconocido, contraseña incorrecta o Conductor inactivo.
-        if (usuario == null || usuario.passwordSha256 != Hashes.password(password) || !usuario.activo) {
-            return Resultado.Fallo(ErrorApp.SesionExpirada)
+        val resultado = local.ejecutar {
+            val usuario = usuarioDao.obtener(cl.belmontespa.myapplication.util.Validaciones.correo(correo))
+                ?: falla(ErrorApp.SesionExpirada)
+            val normal = usuario.passwordSha256 == Hashes.password(password)
+            val temporal = usuario.rol in listOf("SOLICITANTE", "ADMINISTRADOR") &&
+                usuario.passwordTemporalSha256 == Hashes.password(password) &&
+                (usuario.passwordTemporalExpira ?: Long.MIN_VALUE) > clock.millis()
+            if ((!normal && !temporal) || !usuario.activo) falla(ErrorApp.SesionExpirada)
+            when (usuario.estadoSolicitante) {
+                EstadoSolicitante.PENDIENTE.name -> falla(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE))
+                EstadoSolicitante.RECHAZADO.name -> falla(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_RECHAZADA))
+            }
+            val sesion = Sesion("demo-${UUID.randomUUID()}", usuario.correo, Rol.valueOf(usuario.rol),
+                clock.millis() + DURACION_SESION.toMillis())
+            if (normal) {
+                usuarioDao.guardar(usuario.copy(passwordTemporalSha256 = null, passwordTemporalExpira = null))
+                EstadoSesion.Autenticada(sesion)
+            } else EstadoSesion.Temporal(sesion)
         }
-        when (usuario.estadoSolicitante) {
-            EstadoSolicitante.PENDIENTE.name ->
-                return Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE))
-            EstadoSolicitante.RECHAZADO.name ->
-                return Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_RECHAZADA))
+        if (resultado is Resultado.Exito) when (val estado = resultado.valor) {
+            is EstadoSesion.Temporal -> sesionStore.guardarTemporal(estado.sesion)
+            is EstadoSesion.Autenticada -> sesionStore.guardar(estado.sesion)
+            EstadoSesion.SinSesion -> Unit
         }
-        val sesion = Sesion(
-            token = "demo-${UUID.randomUUID()}",
-            correo = usuario.correo,
-            rol = Rol.valueOf(usuario.rol),
-            expiraEn = clock.millis() + DURACION_SESION.toMillis(),
-        )
-        sesionStore.guardar(sesion)
-        return Resultado.Exito(EstadoSesion.Autenticada(sesion))
+        return resultado
     }
 
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> =
@@ -70,7 +76,9 @@ class AuthLocalRepository @Inject constructor(
         }
 
     /** La build demo no envía correos: "Recuperar contraseña" solo muestra su confirmación. */
-    override suspend fun recuperarPassword(correo: String): Resultado<Unit> = Resultado.Exito(Unit)
+    override suspend fun recuperarPassword(correo: String): Resultado<Unit> = local.ejecutar {
+        validar(cl.belmontespa.myapplication.util.Validaciones.recuperarPassword(correo))
+    }
 
     /** La build demo no tiene push. */
     override suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = Resultado.Exito(Unit)

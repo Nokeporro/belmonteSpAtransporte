@@ -29,7 +29,12 @@ internal fun ContenidoPantalla(c: ContextoPantalla) = with(c) {
             Accion(R.string.login_crear_cuenta)
             if (estado.aviso in listOf(R.string.aviso_registro_aprobado, R.string.aviso_registro_pendiente)) Accion(R.string.login_iniciar_sesion, { navegar(PantallaDemo.LOGIN, vm.valor("correo")) }, TipoBoton.SECUNDARIO)
         }
-        PantallaDemo.RECUPERAR -> { Campo("correo", R.string.campo_correo, KeyboardType.Email); Accion(R.string.login_recuperar_password) }
+        PantallaDemo.RECUPERAR -> {
+            if (BuildConfig.MODO_LOCAL) Aviso(stringResource(R.string.recuperacion_demo), TonoAviso.INFORMACION)
+            Campo("correo", R.string.campo_correo, KeyboardType.Email)
+            Accion(R.string.login_recuperar_password, habilitada = estado.aviso != R.string.aviso_recuperacion_enviada)
+            if (estado.aviso == R.string.aviso_recuperacion_enviada) Enlace(R.string.login_iniciar_sesion, PantallaDemo.LOGIN, vm.valor("correo"))
+        }
         PantallaDemo.CAMBIO_OBLIGATORIO, PantallaDemo.CAMBIAR_PASSWORD -> {
             if (pantalla == PantallaDemo.CAMBIO_OBLIGATORIO) Aviso(stringResource(R.string.aviso_cambio_password_obligatorio), TonoAviso.AVISO)
             Campo("passwordActual", R.string.campo_password_actual, KeyboardType.Password)

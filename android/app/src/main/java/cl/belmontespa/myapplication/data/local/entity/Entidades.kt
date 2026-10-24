@@ -24,6 +24,9 @@ data class UsuarioEntity(
     @ColumnInfo(name = "fecha_registro") val fechaRegistro: String,
     /** Solo en la build demo: SHA-256 de la contraseña ficticia. */
     @ColumnInfo(name = "password_sha256") val passwordSha256: String?,
+    /** Credencial temporal ficticia; nunca se conserva su valor en claro. */
+    @ColumnInfo(name = "password_temporal_sha256") val passwordTemporalSha256: String? = null,
+    @ColumnInfo(name = "password_temporal_expira") val passwordTemporalExpira: Long? = null,
 )
 
 @Entity(

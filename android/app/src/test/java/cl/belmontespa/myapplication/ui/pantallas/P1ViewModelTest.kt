@@ -99,6 +99,10 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     var errorPago: ErrorApp? = null
     var enviosPago = 0
     var cambiosPago = 0
+    var recuperaciones = 0
+    var correoRecuperacion: String? = null
+    var cambiosPassword = 0
+    var clavesCambiadas: Pair<String, String>? = null
     var nuevoPago: NuevoPago? = null
     var catalogosPago: Catalogos? = null
     var errorCatalogos: ErrorApp? = null
@@ -130,7 +134,10 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
     override suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = sinUso()
     override suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> = sinUso()
     override suspend fun actualizarCuentaPropia(nombre: String, telefono: String?): Resultado<Cuenta> = sinUso()
-    override suspend fun cambiarPassword(passwordActual: String, passwordNueva: String): Resultado<Unit> = sinUso()
+    override suspend fun cambiarPassword(passwordActual: String, passwordNueva: String): Resultado<Unit> {
+        cambiosPassword++; clavesCambiadas = passwordActual to passwordNueva; espera?.await()
+        return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
+    }
     override suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> = sinUso()
     override suspend fun aprobarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
     override suspend fun rechazarSolicitante(correo: String): Resultado<Solicitante> = sinUso()
@@ -191,7 +198,10 @@ internal class ReposP1Falsos : ViajeRepository, CuentaRepository, FlotaRepositor
         return Resultado.Exito(guardado)
     }
     override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> = sinUso()
-    override suspend fun recuperarPassword(correo: String): Resultado<Unit> = sinUso()
+    override suspend fun recuperarPassword(correo: String): Resultado<Unit> {
+        recuperaciones++; correoRecuperacion = correo; espera?.await()
+        return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
+    }
     override suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = sinUso()
     override suspend fun cerrarSesion(): Resultado<Unit> = sinUso()
 }

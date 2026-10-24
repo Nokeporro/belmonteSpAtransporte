@@ -2,6 +2,8 @@ package cl.belmontespa.myapplication.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import cl.belmontespa.myapplication.data.local.dao.HabilitacionDao
 import cl.belmontespa.myapplication.data.local.dao.MovilDao
 import cl.belmontespa.myapplication.data.local.dao.OperacionPendienteDao
@@ -20,7 +22,7 @@ import cl.belmontespa.myapplication.data.local.entity.ViajeEntity
 import cl.belmontespa.myapplication.data.local.entity.ViajePasajeroEntity
 
 /**
- * `belmonte_local.db`, versión 1. En la build demo es la fuente de verdad; en la remota guarda solo
+ * `belmonte_local.db`, versión 2. En la build demo es la fuente de verdad; en la remota guarda solo
  * los viajes consultados y la cola. Un cambio de esquema sube la versión con su Migration (el esquema
  * exportado queda en app/schemas/), nunca con fallbackToDestructiveMigration.
  */
@@ -35,7 +37,7 @@ import cl.belmontespa.myapplication.data.local.entity.ViajePasajeroEntity
         PagoEntity::class,
         OperacionPendienteEntity::class,
     ],
-    version = 1,
+    version = 2,
 )
 abstract class BelmonteDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
@@ -49,5 +51,11 @@ abstract class BelmonteDatabase : RoomDatabase() {
 
     companion object {
         const val NOMBRE = "belmonte_local.db"
+        val MIGRACION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE usuarios ADD COLUMN password_temporal_sha256 TEXT")
+                db.execSQL("ALTER TABLE usuarios ADD COLUMN password_temporal_expira INTEGER")
+            }
+        }
     }
 }

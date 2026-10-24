@@ -55,6 +55,8 @@ class SemillaDemo @Inject constructor(private val clock: Clock) : RoomDatabase.C
         "rut_empresa" to rutEmpresa,
         "fecha_registro" to fechaRegistro,
         "password_sha256" to passwordSha256,
+        "password_temporal_sha256" to passwordTemporalSha256,
+        "password_temporal_expira" to passwordTemporalExpira,
     )
 
     private fun MovilEntity.valores() = contentValuesOf(

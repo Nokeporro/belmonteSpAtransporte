@@ -135,7 +135,7 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Implementado | Listo |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Implementado | Listo |
-| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | 2 hechas, 2 ajustar | — |
+| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Implementado | Listo |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | 1 hecha, 2 ajustar, 2 faltan | — |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | 2 faltan | — |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
@@ -395,7 +395,7 @@ anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el códig
 - [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
 
 Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17, HU18, HU19 y HU20 también están implementadas; el siguiente ítem de A es HU22.
+HU16, HU17, HU18, HU19, HU20 y HU22 también están implementadas; el siguiente ítem de A es HU27.
 
 ### HU16 y HU24
 
@@ -475,12 +475,17 @@ API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU22
 
-- **Recuperar contraseña:**
-  - la temporal se guarda en `password_temporal_hash`, sin reemplazar la actual;
-  - el correo usa el texto del README; hoy `client/EmailClient.java` usa otro.
-- **`PUT /usuarios/{correo}`:**
-  - exige `passwordActual` si viene `password`;
-  - el `correo` no cambia.
+- [x] Solo Solicitante y Administrador reciben temporal de 12 caracteres; HTTP 204 genérico para correos elegibles, inexistentes o de Conductor.
+- [x] Temporal BCrypt separada de la actual, con vencimiento; un nuevo pedido la reemplaza, y login normal o cambio de clave la invalidan.
+- [x] Correo con nombre, vencimiento y texto del README; envío posterior al commit y rollback sin correo ni temporal persistida.
+- [x] `PUT /usuarios/{correo}` exige `passwordActual` normal o temporal vigente al cambiar la contraseña; conserva el correo y no modifica el perfil si falla.
+- [x] Recuperación, login y edición propia serializadas por cuenta para evitar cambios sobre credenciales antiguas.
+- [x] Android: validación por campo, doble envío bloqueado, errores conservando datos y limpieza de contraseñas al guardar; el cambio obligatorio solo termina después de persistir.
+- [x] Demo con confirmación genérica y aviso explícito de simulación sin correo; credencial temporal ficticia soportada en Room 2 con migración que conserva datos. La conexión remota corresponde a T14.
+- [x] 76 pruebas backend de HU22 y regresión de cuentas, seguridad y correo; 356 JVM Android; lint sin errores y APK demo compilado.
+- [x] API 36: 88 pruebas de Room, migración e interfaz aprobadas, incluido cambio obligatorio con texto al 200 %.
+
+API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
 
 ### HU25
 
@@ -532,11 +537,11 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | `POST /auth/login` | Ajustar | HU01 |
 | `POST /auth/logout` | Falta | HU14 (E2) |
 | `POST /auth/token-fcm` | Falta | HU14 (E2) |
-| `POST /auth/recuperar-password` | Ajustar | HU22 |
+| `POST /auth/recuperar-password` | Implementado | HU22 |
 | `GET /catalogos` | Falta | HU02 |
 | `GET /usuarios` | Hecha | HU22 |
 | `GET /usuarios/{correo}` | Hecha | HU22 |
-| `PUT /usuarios/{correo}` | Ajustar | HU22 |
+| `PUT /usuarios/{correo}` | Implementado | HU22 |
 | `GET /administradores` | Ajustar (orden) | HU28 |
 | `GET /administradores/{correo}` | Hecha | HU28 |
 | `POST /administradores` | Ajustar | HU28 |

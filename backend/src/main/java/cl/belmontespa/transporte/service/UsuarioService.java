@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -35,6 +36,15 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 	}
 
 	@Override
+	@Transactional
+	public UsuarioDTOResponse actualizar(String correo, UsuarioDTORequest request) {
+		Usuario usuario = usuarioRepository.bloquearPorCorreo(correo)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		reemplazar(usuario, request);
+		return aResponse(usuario);
+	}
+
+	@Override
 	protected void reemplazar(Usuario usuario, UsuarioDTORequest request) {
 		if (!usuario.getCorreo().equalsIgnoreCase(request.correo())) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "correo: Debe coincidir con el de la ruta.");
@@ -48,7 +58,7 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 					&& passwordEncoder.matches(actual, usuario.getPasswordTemporalHash());
 			if (!normal && !temporal) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "passwordActual: No coincide.");
 		}
-		reemplazarDatos(usuario, request.nombre(), request.correo(), request.telefono(), request.password());
+		reemplazarDatos(usuario, request.nombre(), usuario.getCorreo(), request.telefono(), request.password());
 	}
 
 	@Override

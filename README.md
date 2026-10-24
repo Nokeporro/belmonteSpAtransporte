@@ -253,6 +253,18 @@ HU16 se detalla a continuación.
 - [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
 - [ ] Instrumentadas en API 26, TalkBack y CI.
 
+### Avance de implementación: HU22 de A
+
+- [x] Recuperación solo para Solicitante y Administrador, con respuesta genérica y temporal BCrypt de 12 caracteres que conserva la contraseña actual.
+- [x] Correo con nombre, vencimiento y texto del contrato; envío después del commit, sin contraseña en respuesta HTTP ni logs.
+- [x] Otro pedido reemplaza la temporal; login normal o cambio de contraseña la invalidan; vencida no sirve para entrar ni cambiar la clave.
+- [x] Cambio propio con contraseña actual o temporal vigente, correo inmutable y validación antes de modificar el perfil; operaciones serializadas por cuenta.
+- [x] Android: validación por campo, doble envío bloqueado, errores conservando datos, limpieza de contraseñas al guardar y sesión temporal restringida hasta confirmar el cambio.
+- [x] Room 2 con migración desde la versión 1, sin borrar datos; la demo simula la recuperación y avisa que no envía correos. La conexión con la API sigue en T14.
+- [x] Verificación local: 76 pruebas backend de HU22 y regresión de cuentas, seguridad y correo; 356 JVM Android; lint sin errores y APK demo compilado.
+- [x] API 36: 88 pruebas de Room, migración e interfaz aprobadas, incluido cambio obligatorio con texto al 200 %.
+- [ ] Instrumentadas en API 26, TalkBack y CI.
+
 ## Máquinas de estado
 
 Fuente única de las transiciones. Toda transición inválida responde 409 y cada cambio queda en
@@ -1003,13 +1015,13 @@ recibe 409 y queda en conflicto.
 
 ### Base de datos local
 
-`belmonte_local.db`, Room versión 1: fuente de verdad en la build `demo`; en la remota, solo los
+`belmonte_local.db`, Room versión 2: fuente de verdad en la build `demo`; en la remota, solo los
 viajes consultados y la cola. Fechas de negocio como `String` ISO; instantes técnicos como `Long`
 en ms.
 
 | Tabla | Campos | Claves |
 |---|---|---|
-| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?` (solo `demo`) | PK `correo` |
+| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?`, `password_temporal_sha256?`, `password_temporal_expira?` (credenciales ficticias solo `demo`) | PK `correo`; migración 1 → 2 conserva las filas |
 | `moviles` | `patente`, `capacidad`, `gps_serial?`, `activo`, `estado_movil`, `codigo_abordaje` | PK `patente`; UQ `codigo_abordaje` |
 | `habilitaciones` | `patente`, `correo_conductor` | PK compuesta; FK a `moviles` y `usuarios` |
 | `viajes` | Los de `ViajeDTOResponse` salvo `pasajeros` (`origen_*` y `destino_*` aplanados), `folio_correlativo`, `descargado_en` | PK `folio` |

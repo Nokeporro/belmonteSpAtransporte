@@ -50,6 +50,66 @@ class RepositoriosT06Test {
         val base = local.viaje("TR-1051")
         db.viajeDao().guardar(base.copy(folio = "TR-1919", estado = "PENDIENTE", hashPago = null, estadoPago = null))
     }
+    @Test fun temporalAbreSoloCambioObligatorioYLoginNormalLaInvalida() = runBlocking {
+        val correo = "recepcion@belmontespa.cl"
+        val original = local.usuario(correo).copy(passwordSha256 = Hashes.password("Normal1234"),
+            passwordTemporalSha256 = Hashes.password("Temporal1234"), passwordTemporalExpira = reloj.millis() + 1800000)
+        db.usuarioDao().guardar(original)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertTrue((auth.iniciarSesion(correo, "Temporal1234") as Resultado.Exito).valor is EstadoSesion.Temporal)
+        assertTrue(sesiones.estado.first() is EstadoSesion.Temporal)
+        assertEquals(original.passwordSha256, local.usuario(correo).passwordSha256)
+        assertTrue(viajes.observarViajes(FiltroViajes()).first().isEmpty())
+        assertTrue((auth.iniciarSesion(correo, "Normal1234") as Resultado.Exito).valor is EstadoSesion.Autenticada)
+        assertNull(local.usuario(correo).passwordTemporalSha256); assertNull(local.usuario(correo).passwordTemporalExpira)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(correo, "Temporal1234"))
+    }
+    @Test fun cambiarConTemporalVigentePersisteLaNuevaClaveYLimpiaTemporal() = runBlocking {
+        val correo = "crios@andesconsult.cl"
+        db.usuarioDao().guardar(local.usuario(correo).copy(passwordSha256 = Hashes.password("Normal1234"),
+            passwordTemporalSha256 = Hashes.password("Temporal1234"), passwordTemporalExpira = reloj.millis() + 1800000))
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        auth.iniciarSesion(correo, "Temporal1234")
+        assertEquals(Resultado.Exito(Unit), CuentaLocalRepository(local).cambiarPassword("Temporal1234", "NuevaClave123"))
+        assertTrue(sesiones.estado.first() is EstadoSesion.Autenticada)
+        assertNull(local.usuario(correo).passwordTemporalSha256); assertNull(local.usuario(correo).passwordTemporalExpira)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(correo, "Normal1234"))
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(correo, "Temporal1234"))
+        assertTrue(auth.iniciarSesion(correo, "NuevaClave123") is Resultado.Exito)
+    }
+    @Test fun temporalVencidaEnElLimiteNoSirveNiRetiraElFlujoObligatorio() = runBlocking {
+        val correo = "recepcion@belmontespa.cl"
+        val original = local.usuario(correo).copy(passwordTemporalSha256 = Hashes.password("Temporal1234"), passwordTemporalExpira = reloj.millis())
+        db.usuarioDao().guardar(original)
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), auth.iniciarSesion(correo, "Temporal1234"))
+        sesiones.guardarTemporal(Sesion("temporal", correo, Rol.ADMINISTRADOR, reloj.millis() + 3600000))
+        assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("passwordActual" to "No coincide."))),
+            CuentaLocalRepository(local).cambiarPassword("Temporal1234", "NuevaClave123"))
+        assertEquals(original, local.usuario(correo)); assertTrue(sesiones.estado.first() is EstadoSesion.Temporal)
+    }
+    @Test fun cambioPasswordValidaCamposYElConductorNoCambiaNiUsaTemporal() = runBlocking {
+        entrar(Rol.ADMINISTRADOR)
+        val antes = local.usuario("recepcion@belmontespa.cl")
+        for (nueva in listOf("corta1", "soloLetras", "123456789", "á".repeat(36) + "1")) {
+            assertTrue((CuentaLocalRepository(local).cambiarPassword("Actual1234", nueva) as Resultado.Fallo).error is ErrorApp.Validacion)
+        }
+        assertEquals(antes, local.usuario(antes.correo))
+        entrar(Rol.CONDUCTOR)
+        assertTrue((CuentaLocalRepository(local).cambiarPassword("Actual1234", "NuevaClave123") as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        val conductor = local.usuario("ireyes@belmontespa.cl").copy(passwordTemporalSha256 = Hashes.password("Temporal1234"), passwordTemporalExpira = reloj.millis() + 1800000)
+        db.usuarioDao().guardar(conductor)
+        assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local).iniciarSesion(conductor.correo, "Temporal1234"))
+    }
+    @Test fun recuperarEnDemoEsGenericoYConservaCredenciales() = runBlocking {
+        val auth = AuthLocalRepository(db.usuarioDao(), sesiones, reloj, local)
+        val antes = local.usuario("recepcion@belmontespa.cl")
+        for (correo in listOf(antes.correo, "ireyes@belmontespa.cl", "ausente@test.cl")) {
+            assertEquals(Resultado.Exito(Unit), auth.recuperarPassword(correo))
+        }
+        assertEquals(antes, local.usuario(antes.correo))
+        assertTrue((auth.recuperarPassword("sin-correo") as Resultado.Fallo).error is ErrorApp.Validacion)
+    }
     @Test fun pagoPendientePermiteConfirmarRechazarOAnularSinReembolso() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val pagos = PagoLocalRepository(local)

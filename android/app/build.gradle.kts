@@ -87,6 +87,7 @@ android {
         compose = true
         buildConfig = true
     }
+    sourceSets.getByName("androidTest").assets.directories.add("schemas")
 }
 
 ksp {

@@ -55,11 +55,12 @@ public class AuthService {
 	// CU-14: cualquier fallo da el mismo 401, sin indicar qué falló.
 	@Transactional
 	public LoginDTOResponse login(LoginDTORequest request) {
-		Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(request.correo())
+		Usuario usuario = usuarioRepository.bloquearPorCorreo(request.correo())
 				.filter(u -> contrasenaValida(request.password(), u))
 				.orElseThrow(AuthService::credencialesInvalidas);
 		String rol = rol(usuario.getIdUsuario());
-		if ("CONDUCTOR".equals(rol) && !conductorRepository.findById(usuario.getIdUsuario()).orElseThrow().isActivo()) {
+		boolean temporal = !passwordEncoder.matches(request.password(), usuario.getPasswordHash());
+		if ("CONDUCTOR".equals(rol) && (temporal || !conductorRepository.findById(usuario.getIdUsuario()).orElseThrow().isActivo())) {
 			throw credencialesInvalidas();
 		}
 		if ("SOLICITANTE".equals(rol)) {
@@ -70,7 +71,6 @@ public class AuthService {
 						: "Tu cuenta no fue aprobada. Contacta a Belmonte SpA.");
 			}
 		}
-		boolean temporal = !passwordEncoder.matches(request.password(), usuario.getPasswordHash());
 		if (!temporal) {
 			usuario.setPasswordTemporalHash(null);
 			usuario.setPasswordTemporalExpira(null);
@@ -83,7 +83,7 @@ public class AuthService {
 				jwtProvider.getExpirationSeconds(), usuario.getCorreo(), rol, temporal);
 	}
 
-	// CU-13/RF21: solo Solicitante y Administrador; nunca revela si el correo existe.
+	// Cerrar sesión conserva las contraseñas y retira el token del dispositivo.
 	@Transactional
 	public void logout(String correo) {
 		usuarioRepository.findByCorreoIgnoreCase(correo).ifPresent(u -> u.setTokenFcm(null));
@@ -91,14 +91,16 @@ public class AuthService {
 
 	@Transactional
 	public void recuperarPassword(RecuperarPasswordDTORequest request) {
-		usuarioRepository.findByCorreoIgnoreCase(request.correo())
+		// CU-13/RF21: solo Solicitante y Administrador; nunca revela si el correo existe.
+		usuarioRepository.bloquearPorCorreo(request.correo())
 				.filter(u -> solicitanteRepository.existsById(u.getIdUsuario())
 						|| administradorRepository.existsById(u.getIdUsuario()))
 				.ifPresent(usuario -> {
 					String passwordTemporal = passwordTemporal();
 					usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
-					usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusMinutes(minutosPasswordTemporal));
-					emailClient.enviarPasswordTemporal(usuario.getCorreo(), passwordTemporal, minutosPasswordTemporal);
+					usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusMinutes(minutosPasswordTemporal).withNano(0));
+					emailClient.enviarPasswordTemporal(usuario.getCorreo(), usuario.getNombre(), passwordTemporal,
+							usuario.getPasswordTemporalExpira());
 				});
 	}
 

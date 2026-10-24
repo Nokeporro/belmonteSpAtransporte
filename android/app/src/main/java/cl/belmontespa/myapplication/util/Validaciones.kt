@@ -27,6 +27,14 @@ object Validaciones {
     }
     fun passwordValida(valor: String) = valor.length in 8..72 && valor.toByteArray(Charsets.UTF_8).size <= 72 &&
         valor.any(Char::isLetter) && valor.any(Char::isDigit)
+    fun recuperarPassword(valor: String): Map<String, String> =
+        if (correo(valor).length <= 150 && correo(valor).matches(Regex("[^\\s@]+@[^\\s@]+\\.[^\\s@]+"))) emptyMap()
+        else mapOf("correo" to "Ingresa un correo válido.")
+    fun cambioPassword(actual: String, nueva: String, confirmacion: String): Map<String, String> = buildMap {
+        if (actual.isEmpty()) put("passwordActual", "Ingresa tu contraseña actual o temporal.")
+        if (!passwordValida(nueva)) put("passwordNueva", "Usa entre 8 y 72 caracteres, con una letra y un dígito (máximo 72 bytes).")
+        if (nueva != confirmacion) put("confirmacion", "Las contraseñas no coinciden.")
+    }
     fun documentoValido(tipo: TipoDocumento, valor: String) = when (tipo) {
         TipoDocumento.RUT -> rutValido(valor)
         TipoDocumento.PASAPORTE -> documento(valor).matches(Regex("[A-Z0-9]{5,20}"))

@@ -65,8 +65,8 @@ class NotificacionesIT extends IntegrationTest {
 			assertThat(correo.getFrom()[0].toString()).isEqualTo("no-reply@belmontespa.cl");
 			assertThat(correo.getSubject()).isEqualTo("Belmonte SpA: tu contraseña temporal");
 			String cuerpo = (String) correo.getContent();
-			assertThat(cuerpo).contains("30 minutos");
-			Matcher clave = Pattern.compile("(?m)^\\s+([A-Za-z0-9]{12})\\s*$").matcher(cuerpo);
+			assertThat(cuerpo).contains("tu contraseña actual sigue funcionando.", "vence el", "Belmonte SpA");
+			Matcher clave = Pattern.compile("tu contraseña temporal es ([A-Za-z0-9]{12}) y vence el").matcher(cuerpo);
 			assertThat(clave.find()).as("el cuerpo trae la clave temporal").isTrue();
 
 			assertThat(api.iniciarSesion(ana.correo(), clave.group(1)).status()).isEqualTo(200);

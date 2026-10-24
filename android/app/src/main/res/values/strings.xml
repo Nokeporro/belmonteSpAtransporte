@@ -292,6 +292,7 @@
     <string name="campo_registrado">Fecha de registro</string>
     <string name="aviso_descartar">Tienes cambios sin guardar. ¿Quieres descartarlos?</string>
     <string name="aviso_recuperacion_enviada">Si el correo corresponde a una cuenta habilitada, recibirás instrucciones para recuperar tu contraseña.</string>
+    <string name="recuperacion_demo">Modo demo: esta pantalla simula la solicitud; no envía correos ni cambia tu contraseña.</string>
     <string name="aviso_registro_aprobado">Cuenta creada. Ya puedes iniciar sesión.</string>
     <string name="aviso_registro_pendiente">Cuenta creada. Espera la aprobación de un Administrador para iniciar sesión.</string>
     <string name="aviso_guardado">Los cambios se guardaron correctamente.</string>
