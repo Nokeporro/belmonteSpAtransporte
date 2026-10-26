@@ -30,3 +30,6 @@ templates/
 
 # Pyhon cache
 __pycache__
+
+# Video
+*.webm
