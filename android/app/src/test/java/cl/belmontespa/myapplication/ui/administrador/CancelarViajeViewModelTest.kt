@@ -289,7 +289,7 @@ class CancelarViajeViewModelTest {
     }
 
     @Test
-    fun unViajeQueVenceMientrasSeMiraSeEnviaConElTotalQueSeVeia() {
+    fun unViajeQueVenceMientrasSeMiraPideElMontoAntesDeEnviar() {
         val vm = escenario(minutosDeAtraso = 30)
         assertFalse(vm.estado.value.pideReembolso)
         vm.escribirMotivo("Nadie lo atendió")
@@ -298,7 +298,26 @@ class CancelarViajeViewModelTest {
         reloj.ahora = ahora.plusMinutes(31)
         vm.confirmar()
 
-        assertTrue(vm.estado.value.vencido)
+        // El monto no estaba a la vista: se muestra, precargado con el total, y no se envía nada.
+        assertTrue(vm.estado.value.pideReembolso)
+        assertEquals("52000", vm.estado.value.reembolso)
+        assertEquals(MONTO_POR_CONFIRMAR, vm.estado.value.errores[CAMPO_REEMBOLSO])
+        assertTrue(viajes.cancelaciones.isEmpty())
+
+        // Con el campo ya visible, «Confirmar» envía lo que decidió el Administrador.
+        vm.escribirReembolso("26000")
+        vm.confirmar()
+        assertEquals(26_000, viajes.cancelaciones.single().monto)
+    }
+
+    @Test
+    fun unViajeQueVenceMientrasSeMiraSeEnviaConElTotalSiSeConfirmaTalCual() {
+        val vm = escenario(minutosDeAtraso = 30)
+        vm.escribirMotivo("Nadie lo atendió")
+        reloj.ahora = ahora.plusMinutes(31)
+        vm.confirmar()
+        vm.confirmar()
+
         assertEquals(52_000, viajes.cancelaciones.single().monto)
     }
 

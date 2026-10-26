@@ -47,29 +47,6 @@ fun PantallaCargando(
     }
 }
 
-// Se utiliza cuando una consulta terminó y no encontró elementos.
-// La pantalla que lo llama debe proporcionar el texto de strings.xml.
-@Composable
-fun PantallaVacia(
-    texto: String,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = texto,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 // Muestra el error y permite que el usuario solicite otro intento.
 // Dibujar esta pantalla no ejecuta el reintento automáticamente.
 @Composable

@@ -21,7 +21,7 @@ class HU20ViewModelTest {
         repos.perfil = repos.perfil.copy(rol = Rol.ADMINISTRADOR)
         repos.pago = Pago(hash, "TR-1051", 50_000, EstadoPago.PENDIENTE, "Banco", 12,
             "12345678-5", MedioPago.EFECTIVO, TipoRecibo.BOLETA, null, null)
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun cargar() { vm.cargar(PantallaDemo.DETALLE_PAGO, hash) }

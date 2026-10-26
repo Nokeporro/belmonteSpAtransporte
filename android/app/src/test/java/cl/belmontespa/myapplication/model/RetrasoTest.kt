@@ -30,15 +30,15 @@ class RetrasoTest {
     @Test
     fun unMinutoAntesDeLaVentanaNoPuedeIniciarse() {
         val v = viaje()
-        assertFalse(v.enVentanaDeInicio(relojA(-61)))
+        assertEquals(Inicio.ANTES_DE_LA_VENTANA, v.ventanaDeInicio(relojA(-61)))
         assertNull(v.retraso(relojA(-61)))
     }
 
     @Test
     fun laVentanaSeAbreUnaHoraAntesYIncluyeElExtremo() {
         val v = viaje()
-        assertTrue(v.enVentanaDeInicio(relojA(-60)))
-        assertTrue(v.enVentanaDeInicio(relojA(-59)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(-60)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(-59)))
         assertNull(v.retraso(relojA(-60)))
     }
 
@@ -68,29 +68,29 @@ class RetrasoTest {
         val v = viaje()
         assertNull(v.retraso(relojA(-1)))
         assertNull(v.retraso(relojA(0)))
-        assertTrue(v.enVentanaDeInicio(relojA(-1)))
-        assertTrue(v.enVentanaDeInicio(relojA(0)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(-1)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(0)))
     }
 
     @Test
     fun unMinutoDespuesDeLaHoraAgendadaEstaAtrasadoYAunPuedeIniciarse() {
         val v = viaje()
         assertEquals(Retraso.ATRASADO, v.retraso(relojA(1)))
-        assertTrue(v.enVentanaDeInicio(relojA(1)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(1)))
     }
 
     @Test
     fun alCumplirseUnaHoraSigueAtrasadoYLaVentanaIncluyeElExtremo() {
         val v = viaje()
         assertEquals(Retraso.ATRASADO, v.retraso(relojA(60)))
-        assertTrue(v.enVentanaDeInicio(relojA(60)))
+        assertEquals(Inicio.HABILITADO, v.ventanaDeInicio(relojA(60)))
     }
 
     @Test
     fun unMinutoDespuesDeLaHoraDeCierreEstaVencidoYFueraDeLaVentana() {
         val v = viaje()
         assertEquals(Retraso.VENCIDO, v.retraso(relojA(61)))
-        assertFalse(v.enVentanaDeInicio(relojA(61)))
+        assertEquals(Inicio.VENCIDO, v.ventanaDeInicio(relojA(61)))
     }
 
     @Test

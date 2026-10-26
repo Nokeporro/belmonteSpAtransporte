@@ -33,7 +33,6 @@ import cl.belmontespa.myapplication.ui.administrador.AsignarScreen
 import cl.belmontespa.myapplication.ui.administrador.CancelarViajeScreen
 import cl.belmontespa.myapplication.ui.administrador.SolicitudesScreen
 import cl.belmontespa.myapplication.ui.auth.AccesoViewModel
-import cl.belmontespa.myapplication.ui.auth.mensajeLogin
 import cl.belmontespa.myapplication.ui.components.*
 import cl.belmontespa.myapplication.ui.conductor.ConductorViewModel
 import cl.belmontespa.myapplication.ui.conductor.ConfirmarInicioScreen
@@ -146,13 +145,13 @@ fun PantallaT06(
         } else {
             Column(Modifier.testTag("t06_contenido").weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 estado.error?.let { error ->
-                    val texto = when(error) {
-                        is ErrorApp.Conflicto -> error.mensaje
-                        is ErrorApp.Validacion -> error.errores.values.joinToString("\n")
-                        else -> stringResource(mensajeLogin(error))
-                    }
+                    // Fuera del Login un 401 es una sesión terminada, no credenciales inválidas.
+                    val texto = if (error is ErrorApp.Validacion) error.errores.values.joinToString("\n") else error.texto()
                     Aviso(texto, TonoAviso.PELIGRO, modifier = Modifier.testTag("t06_error"))
-                    BotonAncho(stringResource(R.string.accion_reintentar), vm::actualizar, tipo = TipoBoton.SECUNDARIO)
+                    // Recargar no corrige un formulario; tras un 409 sí es la forma de leer el estado vigente.
+                    if (error !is ErrorApp.Validacion) {
+                        BotonAncho(stringResource(R.string.accion_reintentar), vm::actualizar, tipo = TipoBoton.SECUNDARIO)
+                    }
                 }
                 estado.aviso?.let { Aviso(stringResource(it), TonoAviso.INFORMACION) }
                 val contexto = ContextoPantalla(pantalla, referencia, estado, vm, onNavegar, volver, onCerrarSesion)

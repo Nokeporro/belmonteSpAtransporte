@@ -19,7 +19,7 @@ class HU21ViewModelTest {
         repos.viajeActual.value = viajeDePrueba(LocalDateTime.now(clock).plusHours(3)).copy(hashPago = "pago", estadoPago = EstadoPago.PAGADO)
         repos.pago = Pago("pago", repos.viajeActual.value!!.folio, 50001, EstadoPago.PAGADO, "Banco", 12,
             "12345678-5", MedioPago.TRANSFERENCIA, TipoRecibo.BOLETA, LocalDateTime.now(clock), null)
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock, emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun cargar() = vm.cargar(PantallaDemo.DETALLE_SOLICITUD, repos.viajeActual.value!!.folio)

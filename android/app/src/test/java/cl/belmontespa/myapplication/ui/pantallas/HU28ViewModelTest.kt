@@ -17,7 +17,7 @@ class HU28ViewModelTest {
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher); repos = ReposP1Falsos()
         repos.perfil = repos.perfil.copy(rol = Rol.ADMINISTRADOR)
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun formulario() {

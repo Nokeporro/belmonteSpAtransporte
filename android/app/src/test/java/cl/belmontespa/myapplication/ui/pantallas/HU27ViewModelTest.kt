@@ -20,7 +20,7 @@ class HU27ViewModelTest {
         Dispatchers.setMain(dispatcher); repos = ReposP1Falsos()
         repos.perfil = repos.perfil.copy(rol = Rol.ADMINISTRADOR)
         repos.pendientesRevision = listOf(cuenta("a@test.cl"), cuenta("b@test.cl"))
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun cargar() { vm.cargar(PantallaDemo.CUENTAS_PENDIENTES, "") }

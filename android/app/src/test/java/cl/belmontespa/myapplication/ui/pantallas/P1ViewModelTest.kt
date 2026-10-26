@@ -21,7 +21,7 @@ class P1ViewModelTest {
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock, emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, clock))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private suspend fun TestScope.formulario() {

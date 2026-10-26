@@ -52,7 +52,6 @@ class DependenciasPantallas @Inject constructor(
     val auth: AuthRepository,
     val catalogos: CatalogoRepository,
     val clock: Clock,
-    @param:javax.inject.Named("ubicaciones_demo") val ubicacionesDemo: List<Ubicacion>,
 )
 
 open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : ViewModel() {
@@ -352,7 +351,6 @@ open class PantallaBaseViewModel(private val repos: DependenciasPantallas) : Vie
             } catch (e: Exception) { mutable.update { it.copy(enviando = false, error = ErrorApp.Validacion(mapOf("datos" to "Revisa los datos ingresados."))) } }
         }
     }
-    suspend fun lugares(): List<Ubicacion> = repos.ubicacionesDemo
     private fun validarConductor(cuenta: NuevaCuenta, passwordRequerida: Boolean = true) {
         val errores = Validaciones.conductor(cuenta, passwordRequerida)
         if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))

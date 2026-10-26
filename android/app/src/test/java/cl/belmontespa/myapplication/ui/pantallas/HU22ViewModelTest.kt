@@ -16,7 +16,7 @@ class HU22ViewModelTest {
     private lateinit var vm: PantallaBaseViewModel
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher); repos = ReposP1Falsos()
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun datos(actual: String = "Temporal1234", nueva: String = "NuevaClave123", confirmacion: String = nueva) {

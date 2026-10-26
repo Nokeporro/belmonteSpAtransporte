@@ -112,9 +112,6 @@ object DatosDemo {
     private val VINA_DEL_MAR = Ubicacion("Av. San Martín 199", "Viña del Mar", "Valparaíso", -33.019800, -71.552100)
     private val VALPARAISO = Ubicacion("Muelle Prat", "Valparaíso", "Valparaíso", -33.037900, -71.627600)
 
-    // Catálogo demo independiente del historial: también sirve a una cuenta recién creada.
-    val ubicaciones: List<Ubicacion> = listOf(AEROPUERTO, APOQUINDO, ISIDORA_GOYENECHEA, VITACURA_2939, EL_BOSQUE_NORTE, VITACURA, NUNOA, PROVIDENCIA, VINA_DEL_MAR, VALPARAISO)
-
     private data class Empresa(val razonSocial: String, val rut: String)
 
     private val ANDES = Empresa("Andes Consultores SpA", "76543210-3")

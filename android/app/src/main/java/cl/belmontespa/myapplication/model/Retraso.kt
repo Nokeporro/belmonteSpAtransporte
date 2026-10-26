@@ -41,9 +41,6 @@ fun ventanaDeInicio(fhAgenda: LocalDateTime, ahora: LocalDateTime): Inicio = whe
 fun Viaje.ventanaDeInicio(clock: Clock): Inicio =
     if (estado == EstadoViaje.ASIGNADO) ventanaDeInicio(fhAgenda, LocalDateTime.now(clock)) else Inicio.NO_APLICA
 
-fun Viaje.enVentanaDeInicio(clock: Clock): Boolean =
-    ventanaDeInicio(fhAgenda, LocalDateTime.now(clock)) == Inicio.HABILITADO
-
 /** Desde cuándo puede iniciarse: el "Disponible desde las {hora}" del Conductor. */
 fun Viaje.disponibleDesde(): LocalDateTime = fhAgenda.minusHours(1)
 

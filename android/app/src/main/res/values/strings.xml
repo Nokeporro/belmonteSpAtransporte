@@ -35,12 +35,7 @@
     <string name="login_abordar_viaje">Abordar viaje</string>
     <string name="login_nota_conductores">Conductores: usen las credenciales que entrega el Administrador.</string>
     <string name="aviso_modo_demo">Modo demostración: datos ficticios, sin conexión al servidor.</string>
-    <string name="titulo_registro_solicitante">Crear cuenta solicitante</string>
-    <string name="titulo_recuperar_password">Recuperar contraseña</string>
-    <string name="titulo_abordar_viaje">Abordar viaje</string>
-    <string name="titulo_cambiar_password">Cambiar contraseña</string>
     <string name="aviso_cambio_password_obligatorio">Debes cambiar la contraseña: entraste con una contraseña temporal.</string>
-    <string name="pantalla_en_construccion">Pantalla en construcción.</string>
 
     <!-- Errores -->
     <string name="error_sin_conexion">Sin conexión. Revisa tu red e inténtalo de nuevo.</string>
@@ -137,13 +132,7 @@
     <string name="etiqueta_abordado">Abordado</string>
     <string name="etiqueta_por_abordar">Por abordar</string>
     <string name="etiqueta_inactivo">Inactivo</string>
-    <!-- Solicitudes del Solicitante: títulos y acciones de navegación. -->
-    <string name="titulo_nueva_solicitud">Nueva solicitud</string>
-    <string name="titulo_detalle_solicitud">Detalle de solicitud</string>
-    <string name="titulo_agregar_pasajero">Agregar pasajero</string>
-    <string name="titulo_cancelar_solicitud">Cancelar solicitud</string>
-    <string name="titulo_solicitud_cancelada">Solicitud cancelada</string>
-
+    <!-- Solicitudes del Solicitante: acciones de navegación. -->
     <string name="accion_nueva_solicitud">Nueva solicitud</string>
     <string name="accion_agregar_pasajero">Agregar pasajero</string>
     <string name="accion_cancelar_solicitud">Cancelar solicitud</string>
@@ -151,7 +140,6 @@
     <string name="accion_volver_solicitudes">Volver a mis solicitudes</string>
 
     <!-- Datos visibles en las tarjetas de solicitudes. -->
-    <string name="solicitud_folio">Folio: %1$s</string>
     <plurals name="solicitud_cantidad_pasajeros">
         <item quantity="one">%d pasajero</item>
         <item quantity="other">%d pasajeros</item>
@@ -237,7 +225,6 @@
     <string name="accion_rechazar">Rechazar</string>
     <string name="accion_editar">Editar</string>
     <string name="accion_quitar">Quitar pasajero</string>
-    <string name="accion_seleccionar">Seleccionar</string>
     <string name="accion_iniciar">Iniciar viaje</string>
     <string name="accion_finalizar">Finalizar viaje</string>
     <string name="accion_navegar">Navegar</string>
@@ -306,32 +293,22 @@
     <string name="aviso_sin_pago">Este viaje todavía no tiene un pago registrado.</string>
     <string name="aviso_sin_resultados">No hay registros para mostrar.</string>
     <string name="aviso_selecciona">Selecciona una opción.</string>
-    <string name="aviso_pasajero_guardado">Pasajero agregado.</string>
     <string name="aviso_solicitud_cancelada">Tu solicitud fue cancelada.</string>
     <string name="aviso_password_guardada">Tu contraseña fue actualizada.</string>
-    <string name="aviso_confirmacion_password">Las contraseñas no coinciden.</string>
     <string name="aviso_campos_obligatorios">Completa los campos obligatorios.</string>
     <string name="aviso_cambio_conflicto">El viaje cambió. Revisa su información antes de volver a intentar.</string>
-    <string name="aviso_antes_ventana">Todavía no puedes iniciar este viaje. Revisa la hora disponible.</string>
-    <string name="aviso_sin_app_camara">No pudimos abrir la cámara. Puedes ingresar el código manualmente.</string>
-    <string name="aviso_demo_lugares">En esta demostración puedes elegir entre las ubicaciones ficticias disponibles.</string>
     <string name="aviso_sincronizacion_demo">En modo demostración los cambios se guardan en este dispositivo.</string>
     <string name="navegacion_abrir_con">Abrir con</string>
-    <string name="aviso_rechazar_viaje">Ingresa un motivo para rechazar la asignación.</string>
-    <string name="accion_ingresar">Ingresar</string>
-    <string name="accion_ver_solicitudes">Ver solicitudes</string>
     <string name="accion_ver_viaje">Ver viaje</string>
     <string name="accion_aceptar">Aceptar</string>
     <string name="accion_pagar">Marcar pagado</string>
     <string name="accion_anular">Anular pago</string>
     <string name="accion_habilitar">Habilitar</string>
     <string name="accion_ver_escenarios">Escenarios de demostración</string>
-    <string name="accion_revisar">Revisar</string>
     <string name="filtro_todos">Todos</string>
     <!-- Filtros de «Solicitudes» del Administrador (HU04); el resto reutiliza las etiquetas de estado. -->
     <string name="filtro_pendientes">Pendientes</string>
     <string name="filtro_todas">Todas</string>
-    <string name="qr_formato">BELMONTE-ABORDAJE:%1$s:%2$s</string>
     <string name="aviso_notificacion">Hay novedades en este viaje. Revisa su detalle.</string>
     <string name="cuentas_pendientes_cantidad">Cuentas por aprobar: %1$d</string>
     <!-- Las variantes de sincronización de T06 son escenarios visuales; HU11 conecta la cola. -->

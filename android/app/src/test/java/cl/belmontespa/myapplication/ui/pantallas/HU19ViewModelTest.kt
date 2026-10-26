@@ -18,7 +18,7 @@ class HU19ViewModelTest {
         repos = ReposP1Falsos()
         repos.viajeActual.value = viajeDePrueba(LocalDateTime.of(2026, 10, 26, 12, 0)).copy(hashPago = null, estadoPago = null)
         repos.catalogosPago = Catalogos(listOf(Banco("Banco", 12)), listOf(MedioPago.EFECTIVO), listOf(TipoRecibo.FACTURA), emptyList())
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun cargar() { vm.cargar(PantallaDemo.REGISTRAR_PAGO, "TR-1051") }

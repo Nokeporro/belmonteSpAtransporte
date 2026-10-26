@@ -28,6 +28,9 @@ import kotlinx.coroutines.launch
 internal const val CAMPO_MOTIVO = "motivo"
 internal const val CAMPO_REEMBOLSO = "montoReembolso"
 
+/** Bajo el monto cuando el viaje venció con la pantalla abierta y el campo aún no se había mostrado. */
+internal const val MONTO_POR_CONFIRMAR = "El viaje venció: confirma el monto a reembolsar."
+
 data class CancelarViajeUiState(
     val cargando: Boolean = true,
     val viaje: Viaje? = null,
@@ -119,6 +122,8 @@ class CancelarViajeViewModel @Inject constructor(
         val errores = buildMap {
             Validaciones.motivo(estado.motivo)?.let { put(CAMPO_MOTIVO, it) }
             if (pideReembolso) Validaciones.reembolso(estado.reembolso, pago.monto)?.let { put(CAMPO_REEMBOLSO, it) }
+            // Vencido el viaje el monto lo decide el Administrador (V7): si el campo no estaba a la vista, primero se muestra.
+            if (pideReembolso && !estado.pideReembolso && CAMPO_REEMBOLSO !in this) put(CAMPO_REEMBOLSO, MONTO_POR_CONFIRMAR)
         }
         if (errores.isNotEmpty()) {
             _estado.update { it.copy(vencido = vencido, errores = errores, error = null) }

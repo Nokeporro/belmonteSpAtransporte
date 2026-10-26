@@ -18,7 +18,7 @@ class HU26ViewModelTest {
         Dispatchers.setMain(dispatcher); repos = ReposP1Falsos()
         repos.perfil = repos.perfil.copy(rol = Rol.ADMINISTRADOR)
         repos.moviles.add(Movil("ZZ1234", 4, null, true, EstadoMovil.DISPONIBLE, "0123456789ABCDEF"))
-        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC(), emptyList()))
+        vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos, Clock.systemUTC()))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     @Test fun desactivaYReactivaConductorConRespuestaConfirmadaSinPerderEdicion() = runTest(dispatcher) {

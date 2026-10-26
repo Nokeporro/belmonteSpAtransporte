@@ -47,7 +47,12 @@ fun BelmonteApp(
             else -> DestinoDemo(pantalla, id)
         }
         val rutaActual = navController.currentBackStackEntry?.takeIf { it.destination.hasRoute(DestinoDemo::class) }?.toRoute<DestinoDemo>()
-        navController.navigate(destino) {
+        val anterior = navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(DestinoDemo::class) }?.toRoute<DestinoDemo>()
+        if (reemplazaDetalleAnterior(rutaActual, anterior, destino)) {
+            // Todas las DestinoDemo comparten id: se saca el formulario y luego el detalle de abajo, que queda reemplazado.
+            navController.popBackStack()
+            navController.navigate(destino) { navController.currentDestination?.id?.let { popUpTo(it) { inclusive = true } } }
+        } else navController.navigate(destino) {
             launchSingleTop = destino !is DestinoDemo || rutaActual == destino
             // Un envío confirmado elimina el formulario del historial.
             if (rutaActual?.pantalla in formulariosConSalida && pantalla in detallesTrasGuardar) {
@@ -101,20 +106,10 @@ fun BelmonteApp(
                     onRecuperarPassword = { navegar(PantallaDemo.RECUPERAR, "") },
                     onAbordarViaje = { navegar(PantallaDemo.ABORDAR, "") }, correoInicial = correoRegistro,
                 ) }
-                composable<RegistroSolicitante> { PantallaT06(PantallaDemo.REGISTRO, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar) }
-                composable<RecuperarPassword> { PantallaT06(PantallaDemo.RECUPERAR, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar) }
-                composable<AbordarViaje> { PantallaT06(PantallaDemo.ABORDAR, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar) }
-                composable<CambioPasswordObligatorio> { PantallaT06(PantallaDemo.CAMBIO_OBLIGATORIO, onNavegar = navegar, onVolver = cerrar, onCerrarSesion = cerrar) }
             }
             navigation<GrafoSolicitante>(startDestination = MisSolicitudes) {
                 composable<MisSolicitudes> { PantallaT06(PantallaDemo.MIS_SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
                 composable<PerfilSolicitante> { PantallaT06(PantallaDemo.PERFIL_SOLICITANTE, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<NuevaSolicitud> { PantallaT06(PantallaDemo.NUEVA_SOLICITUD, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar) }
-                composable<DetalleSolicitud> { PantallaT06(PantallaDemo.DETALLE_SOLICITUD, it.toRoute<DetalleSolicitud>().folio, navegar, volver, cerrar) }
-                composable<AgregarPasajero> { PantallaT06(PantallaDemo.AGREGAR_PASAJERO, it.toRoute<AgregarPasajero>().folio, navegar, volver, cerrar) }
-                composable<ConfirmarCancelacionSolicitud> { PantallaT06(PantallaDemo.CONFIRMAR_CANCELACION, it.toRoute<ConfirmarCancelacionSolicitud>().folio, navegar, volver, cerrar) }
-                composable<SolicitudCancelada> { PantallaT06(PantallaDemo.SOLICITUD_CANCELADA, it.toRoute<SolicitudCancelada>().folio, navegar, volver, cerrar) }
-                composable<CambiarPassword> { PantallaT06(PantallaDemo.CAMBIAR_PASSWORD, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar) }
             }
             navigation<GrafoAdministrador>(startDestination = Solicitudes) {
                 composable<Solicitudes> { PantallaT06(PantallaDemo.SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
@@ -147,6 +142,14 @@ internal fun permitePantalla(pantalla: PantallaDemo, estado: EstadoSesion?): Boo
     EstadoSesion.SinSesion -> pantalla.publica
     null -> false
 }
+/**
+ * Un formulario guardado que vuelve al detalle del viaje del que salió (Asignar, Cancelar viaje, Agregar pasajero) lo
+ * reemplaza en vez de apilar otro igual: así «atrás» vuelve a la lista y no al mismo viaje.
+ */
+internal fun reemplazaDetalleAnterior(formulario: DestinoDemo?, anterior: DestinoDemo?, destino: Any): Boolean =
+    formulario?.pantalla in formulariosConSalida && destino is DestinoDemo && destino.pantalla in detallesDeViaje &&
+        anterior != null && anterior.pantalla in detallesDeViaje && anterior.id == destino.id
 private fun debeNavegar(actual: NavDestination?, destino: Any): Boolean = actual == null || !actual.esRuta(destino)
 private val formulariosConSalida = setOf(PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_VEHICULO, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_ABORDAJE)
+private val detallesDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN)
 private val detallesTrasGuardar = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.DETALLE_PAGO, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.ABORDADO)

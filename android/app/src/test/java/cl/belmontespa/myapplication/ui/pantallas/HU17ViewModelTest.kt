@@ -17,7 +17,7 @@ class HU17ViewModelTest {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
         vm = PantallaBaseViewModel(DependenciasPantallas(repos, repos, repos, repos, repos, repos,
-            Clock.fixed(Instant.parse("2026-10-23T15:00:00Z"), ZoneId.of("America/Santiago")), emptyList()))
+            Clock.fixed(Instant.parse("2026-10-23T15:00:00Z"), ZoneId.of("America/Santiago"))))
     }
     @After fun cerrar() { Dispatchers.resetMain() }
     private fun formulario() {

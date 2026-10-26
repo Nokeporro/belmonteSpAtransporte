@@ -12,12 +12,6 @@ import dagger.hilt.testing.TestInstallIn
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [RepositorioModule::class])
 abstract class RepositoriosNavegacionModule {
-    companion object {
-        @dagger.Provides
-        @javax.inject.Named("ubicaciones_demo")
-        fun ubicaciones(): List<cl.belmontespa.myapplication.model.Ubicacion> =
-            cl.belmontespa.myapplication.data.local.DatosDemo.ubicaciones
-    }
     @Binds abstract fun cuentas(local: CuentaLocalRepository): CuentaRepository
     @Binds abstract fun viajes(local: ViajeLocalRepository): ViajeRepository
     @Binds abstract fun flota(local: FlotaLocalRepository): FlotaRepository
