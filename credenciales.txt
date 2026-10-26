@@ -1,5 +1,29 @@
-recepcion@belmontespa.cl
-ireyes@belmotespa.cl
-crios@andesconsult.cl
 
-Belmonte2026
+Datos ficticios de la build demo (RNF09), con los ejemplos de los mockups. SemillaDemo los inserta
+en Room al crear la base, con fechas relativas a ese primer arranque: el viaje en ventana vence
+unos 90 minutos después. Antes de cada demostración o grabación se borran los datos de la app:
+    adb shell pm clear cl.belmontespa.myapplication
+
+Contraseña común de todas las cuentas: Belmonte2026
+
+Administradores: recepcion@belmontespa.cl (Andrea Castro), cherrera@belmontespa.cl (Camila Herrera)
+Conductores:     ireyes@belmontespa.cl (Iván Reyes, conductor del viaje en ventana TR-1042)
+                 pmunoz@belmontespa.cl (Paula Muñoz)
+                 jlara@belmontespa.cl (Jorge Lara, con TR-1045 en curso)
+                 msoto@belmontespa.cl (Marta Soto, inactiva: no inicia sesión)
+Solicitantes:    crios@andesconsult.cl (Constanza Ríos, Andes Consultores SpA)
+                 rperez@andesconsult.cl (Rodrigo Pérez, por aprobar: no inicia sesión)
+                 mrojas@pacificoservicios.cl (Matías Rojas, Pacífico Servicios Ltda.)
+
+Documentos ficticios de los pasajeros (para "Abordar viaje"):
+  Constanza Ríos RUT 15.234.567-4 · Tomás Vidal pasaporte P4471023 · Marcela Soto RUT 16.789.012-1
+  Roberto Aguilar RUT 12.345.678-5 · Paula Lagos RUT 13.579.246-2 · Luis Pino RUT 14.682.035-2
+  Diego Fuentes RUT 17.246.810-1 · Felipe Mora pasaporte X9087654 · Javiera Núñez RUT 18.364.925-6
+
+Vehículos y código de abordaje (QR: BELMONTE-ABORDAJE:{patente}:{código}):
+  KXJR42 7F3A9C21B04E58D6 · LPHT17 2B8E41D07C95A316 · GZRW90 9D04C6E2A1F7B853
+  HJKL21 5C1A8F3E0B6D2947 (inactivo, en taller)
+
+Viaje en ventana: TR-1042, ASIGNADO a ahora + 30 min, de Iván Reyes en KXJR42, con 3 pasajeros y
+Constanza Ríos ya abordada; para abordar, usar el documento de Tomás Vidal o de Marcela Soto.
+
