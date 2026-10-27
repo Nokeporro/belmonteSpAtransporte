@@ -237,12 +237,12 @@ estado del viaje, del conductor, del vehículo ni del pago.
 | CU-10 Habilitar conductor para vehículo | ACT-03 | Relaciona un conductor (CU-07) con uno o más vehículos (CU-09); M:N. | Relación existente: se ignora sin duplicar. Las habilitaciones no se eliminan en el MVP. |
 | CU-11 Registrar pago de un viaje | ACT-03 | En un viaje no `CANCELADO`: monto, banco, medio de pago y tipo de recibo → pago `PENDIENTE` asociado al viaje. | Viaje `CANCELADO`: no se registra. |
 | CU-12 Actualizar estado de un pago | ACT-03 | Sobre un pago `PENDIENTE` (o `PAGADO`, solo para anularlo) marca `PAGADO`, `RECHAZADO` o `ANULADO` ([P2](#pago) desde `PENDIENTE`; [P3](#pago) `PAGADO` → `ANULADO`); anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)). | Estado terminal: no cambia. |
-| CU-13 Recuperar contraseña | ACT-01, ACT-03 | Ingresa su correo en "Recuperar contraseña". Si es de un Solicitante o Administrador: contraseña temporal aleatoria, guardada hasheada en `password_temporal_hash` con `password_temporal_expira`, sin tocar la contraseña actual, y enviada en texto plano solo a ese correo vía `EmailClient` (único momento en claro; nunca se persiste así, RNF01). Sirve para el login (CU-14) hasta expirar y obliga a cambiar la contraseña al entrar. | Correo inexistente o de un Conductor: mismo mensaje genérico. Expirada sin uso: pedir otra. |
+| CU-13 Recuperar contraseña | ACT-03 | Un Administrador ingresa el correo de un Solicitante o de otro Administrador en "Recuperar contraseña" (desde su Perfil). El sistema crea una contraseña temporal aleatoria, guardada hasheada en `password_temporal_hash` con `password_temporal_expira` a las 24 horas, sin tocar la contraseña actual, y se la devuelve una sola vez al Administrador (único momento en claro; nunca se persiste así, RNF01). El Administrador se la envía por su propio correo: el sistema no envía correo. Sirve para el login (CU-14) hasta expirar y obliga a cambiar la contraseña al entrar. | Correo inexistente o de un Conductor: 404. Expirada sin uso: generar otra. |
 | CU-14 Iniciar sesión | ACT-01, ACT-03, ACT-04 | Cuenta autorregistrada (Solicitante, RF01), creada por el Administrador (Conductor, RF14; Administrador, RF27) o por migración Flyway (Administrador inicial). Envía correo, contraseña y el token FCM si existe (RF13). Se valida contra `USUARIO.password_hash` o contra la temporal vigente (`password_temporal_hash`, RF21), que obliga a cambiar la contraseña. El rol es la tabla (`SOLICITANTE`/`ADMINISTRADOR`/`CONDUCTOR`) donde existe el `id_usuario`, único por `USUARIO_ROL_ACTIVO`. Se guarda o reemplaza `USUARIO.token_fcm` y se emite un JWT de 8 horas (`sub` = correo, `rol`, `exp`; RNF01, [Autenticación](#autenticación)); con la temporal, un JWT restringido a cambiar la contraseña. El cliente adjunta el JWT en cada request protegida y el `SecurityFilterChain` lo valida aplicando el mapeo rol→endpoint. | Correo inexistente, contraseña incorrecta, temporal expirada o Conductor inactivo: mismo error genérico. Solicitante no aprobado: 403 "Cuenta pendiente de aprobación" o "Cuenta rechazada" (CU-17). |
 | CU-15 Cancelar un viaje (Administrador) | ACT-03 | En el detalle de un viaje `PENDIENTE` o `ASIGNADO`: "Cancelar viaje", motivo y, si el viaje está vencido, monto a reembolsar → [V7](#viaje), con reembolso según [P4](#pago) o, si el pago está `PENDIENTE`, su anulación ([P5](#pago)). | `EN_CURSO`, `FINALIZADO` o `CANCELADO`: no hay botón y se rechaza (409). Sin motivo: 400. |
 | CU-16 Rechazar una asignación | ACT-04 | En el detalle de un viaje propio `ASIGNADO`, antes de iniciarlo: "Rechazar", motivo → [V8](#viaje); el viaje vuelve a `PENDIENTE` y sale de su agenda. | Sin conexión: no se ofrece (no se encola). Sin motivo: 400. |
 | CU-17 Aprobar un Solicitante | ACT-03 | Quien se registra con el RUT de una empresa existente queda `PENDIENTE` (RF01). El Administrador lo ve en "Cuentas por aprobar" y lo aprueba (puede crear solicitudes) o rechaza (no inicia sesión). | Cuenta ya revisada: 409. |
-| CU-18 Registrar un Administrador | ACT-03 | Un Administrador ingresa nombre, correo, teléfono opcional y una contraseña inicial, que queda como temporal por `ALTA_TEMPORAL_HORAS` y obliga a cambiarla al entrar. No se envía correo: quien lo registra le comunica la contraseña en persona. | Correo existente o campo faltante: rechazo. |
+| CU-18 Registrar un Administrador | ACT-03 | Un Administrador ingresa nombre, correo, teléfono opcional y una contraseña inicial, que queda como temporal por 24 horas (`PASSWORD_TEMPORAL_HORAS`) y obliga a cambiarla al entrar. No se envía correo: quien lo registra le comunica la contraseña en persona. | Correo existente o campo faltante: rechazo. |
 | CU-19 Registrar abordaje | ACT-02 | "Abordar viaje" en el Login (sin cuenta) o en el Perfil de un Solicitante con sesión: escanea el código QR de la puerta del vehículo (o ingresa su patente y código) y su documento (RUT o pasaporte) → se registra `fh_abordaje` en su viaje de ese vehículo ([Abordaje](#abordaje), [Abordaje con código QR](#abordaje-con-código-qr)). El Conductor y el Administrador ven el arqueo: cuántos y cuáles pasajeros faltan. | Código que no es de Belmonte: aviso, sin enviar. Sin viaje para ese documento en ese vehículo en este momento: 404 genérico, que no revela si el documento viaja (RNF08). Sin conexión: no se encola. Repetido: responde la misma hora. |
 
 El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza su contraseña
@@ -274,7 +274,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 | **RF18** | Administrador | Registrar el pago de un viaje en cualquier estado previo a Cancelado (monto, banco, medio de pago, tipo de recibo); nace en Pendiente. |
 | **RF19** | Administrador | Marcar un pago Pagado, Rechazado o Anulado (p. ej. problema con el banco); Anulado cancela el viaje en Pendiente o Asignado. Reembolsado lo fija el sistema (RF15/RF23). |
 | **RF20** | Solicitante | Ver el estado de pago de sus viajes en el detalle de la solicitud. |
-| **RF21** | Solicitante, Administrador | Recuperar la contraseña con su correo (CU-13): temporal enviada al correo, con expiración, que no reemplaza la actual y obliga a cambiarla al entrar. El Conductor no tiene este autoservicio (solo RF14). |
+| **RF21** | Administrador | Restablecer la contraseña de un Solicitante o de otro Administrador con su correo (CU-13): temporal que vence a las 24 horas, no reemplaza la actual y obliga a cambiarla al entrar; el Administrador la entrega por correo. El Conductor no tiene este flujo (solo RF14). |
 | **RF22** | Administrador | Reasignar una solicitud Asignado (conductor, vehículo o ambos) con las reglas de RF05; sigue Asignado, el viaje sale de la agenda de los reemplazados y se avisa por push al nuevo conductor, al conductor reemplazado y al solicitante (RF12). |
 | **RF23** | Administrador | Cancelar un viaje Pendiente o Asignado con motivo: un pago Pagado se reembolsa al 100 %, o en el monto que decida si el viaje está vencido, y uno Pendiente se anula ([V7](#viaje), [P4](#pago), [P5](#pago)). |
 | **RF24** | Conductor | Rechazar con motivo un viaje Asignado antes de iniciarlo: vuelve a Pendiente y se avisa a los Administradores y al solicitante ([V8](#viaje)). |
@@ -288,8 +288,8 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 
 - **RNF01 Seguridad:** contraseñas solo como hash; app↔backend con JWT de acceso de 8 horas, sin renovación
   (CU-14); autorización por rol en un `SecurityFilterChain` centralizado. Única excepción al
-  "nunca en texto plano": la contraseña temporal de RF21, enviada una vez por correo y nunca
-  guardada en claro.
+  "nunca en texto plano": la contraseña temporal de RF21, devuelta una sola vez al Administrador que
+  la genera (quien la entrega por correo) y nunca guardada en claro.
 - **RNF02 Conectividad:** Internet continuo (Anexo §3.3); no es offline-first y crear o
   recibir una solicitud nueva exige conexión. Tolera cortes breves para datos ya
   sincronizados (Room/SQLite) y para los cambios de estado del Conductor (En Curso/Finalizado)
@@ -304,8 +304,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 - **RNF06 Mantenibilidad:** capas estrictas (`Controller-Service-Repository` en Spring Boot,
   `Model-View-ViewModel` en Android): una regla de negocio se cambia en un solo lugar.
 - **RNF07 Servicios externos:** tres dependencias con cuota gratuita limitada (Google Places
-  API, Firebase Cloud Messaging y un proveedor de correo transaccional por SMTP, para RF21/CU-13
-  y CU-17); el uso se monitorea para no exceder el nivel gratuito.
+  API, Firebase Cloud Messaging y un proveedor de correo transaccional por SMTP, para CU-17); el uso se monitorea para no exceder el nivel gratuito.
 - **RNF08 Privacidad:** nombre, teléfono y dirección de pasajeros y solicitantes no van a
   logs, y solo los ven el Solicitante, el Administrador y el Conductor asignado de cada
   solicitud.
@@ -343,7 +342,7 @@ Los efectos de estado se citan por el ID de su transición en [Máquinas de esta
 | HU19 | RF18 | Media | 5 | Administrador: registrar pago | Viaje en cualquier estado salvo `CANCELADO`; hash único; banco, medio de pago y tipo de recibo desde catálogos; nace `PENDIENTE`. |
 | HU20 | RF19 | Media | 3 | Administrador: estado del pago | Transiciones [P2](#pago) `PENDIENTE` → `PAGADO`/`RECHAZADO`/`ANULADO`, [P3](#pago) `PAGADO` → `ANULADO`, [P4](#pago) `PAGADO` → `REEMBOLSADO` y [P5](#pago) `PENDIENTE` → `ANULADO` (solo automáticas, al cancelar el viaje: HU16 y HU24); `RECHAZADO`, `ANULADO` y `REEMBOLSADO` terminales. Anular cancela el viaje `PENDIENTE` o `ASIGNADO` ([V6](#viaje)) con los efectos de HU16 (agenda y push al conductor). |
 | HU21 | RF20 | Baja | 2 | Solicitante: estado de pago | En "Detalle de solicitud" (HU03), solo si el viaje tiene pago. |
-| HU22 | RF21 | Media | 3 | Solicitante/Administrador: recuperar contraseña | Solo esos roles; cualquier otro correo recibe el mismo mensaje genérico. La temporal no reemplaza la actual y expira; usarla obliga a cambiar la contraseña; sin uso, se pide otra. |
+| HU22 | RF21 | Media | 3 | Administrador: restablecer la contraseña de un Solicitante o Administrador | Solo esos roles de cuenta (otro correo: 404). El Administrador recibe la temporal una sola vez y la envía por correo. La temporal vence a las 24 horas, no reemplaza la actual; usarla obliga a cambiar la contraseña; sin uso, se genera otra. |
 | HU23 | RF22 | Media | 3 | Administrador: reasignar | [V2](#viaje) `ASIGNADO` → `ASIGNADO`, solo en `ASIGNADO`. Cambia conductor, vehículo o ambos con las reglas de HU05; sigue `ASIGNADO`; el viaje sale de la agenda de los reemplazados; push al nuevo conductor, al reemplazado y al solicitante (RF12); queda en `HISTORIAL_VIAJE`. |
 | HU24 | RF23 | Alta | 3 | Administrador: cancelar un viaje | Solo en `PENDIENTE` o `ASIGNADO`; motivo obligatorio. [V7](#viaje): push al conductor y al solicitante; pago `PAGADO` reembolsado al 100 % o, con el viaje vencido, en el monto que se indique (0 lo deja `PAGADO`); pago `PENDIENTE` anulado ([P5](#pago)). |
 | HU25 | RF24 | Media | 2 | Conductor: rechazar una asignación | Solo `ASIGNADO`, antes de iniciar y con conexión; motivo obligatorio. [V8](#viaje): vuelve a `PENDIENTE`, sale de su agenda y avisa a los Administradores y al solicitante. |
@@ -525,7 +524,7 @@ erDiagram
 |---|---|
 | Base de datos | **MariaDB** (oficial): `InnoDB` (ACID), soporte directo en Spring (`MariaDBDialect`, `mariadb-java-client`), GPL v2, bajo consumo en desarrollo local. |
 | Backend | **Spring Boot 4.1**, Java 21, Gradle; API REST JSON para Android (Retrofit); `Controller` ➔ `Service` ➔ `Repository`; Spring Data JPA; Flyway. |
-| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login` y `/recuperar-password`, `POST /api/v1/solicitantes` (autorregistro, RF01) y `POST /api/v1/abordajes` (abordaje con QR, CU-19). |
+| Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login`, `POST /api/v1/solicitantes` (autorregistro, RF01) y `POST /api/v1/abordajes` (abordaje con QR, CU-19). |
 | Integraciones | Push con Firebase Admin SDK (FCM) desde la capa `Service`; correo con `spring-boot-starter-mail` a un SMTP configurable. Ambos después del commit, en otro hilo y sin afectar la operación ([Notificaciones externas](#notificaciones-externas)). |
 | Android | Kotlin + Jetpack Compose, Model-View-ViewModel con un Repository simple sobre el DAO ([Frontend (Android)](#frontend-android)). |
 
@@ -536,7 +535,7 @@ Docker Compose en `database/docker-compose.yaml`:
 | Servicio | Contenedor | Puertos | Uso |
 |---|---|---|---|
 | `mariadb` | `belmonte-mariadb` | `3307` | Base de datos de la API. Escucha solo en `127.0.0.1`. |
-| `mailpit` | `belmonte-mailpit` | `1025` (SMTP), `8025` (web) | SMTP de desarrollo: recibe los correos del backend (RF21 y CU-17) y los muestra en <http://localhost:8025> sin entregarlos. Escucha solo en `127.0.0.1` porque no tiene contraseña. |
+| `mailpit` | `belmonte-mailpit` | `1025` (SMTP), `8025` (web) | SMTP de desarrollo: recibe los correos del backend (CU-17) y los muestra en <http://localhost:8025> sin entregarlos. Escucha solo en `127.0.0.1` porque no tiene contraseña. |
 
 Desde la raíz del repositorio:
 
@@ -626,7 +625,7 @@ y la app también se demuestra sola, sin backend, con la build `demo`.
 
 | Recurso | Clave de ruta | Roles | Alcance |
 |---|---|---|---|
-| `auth` | — | Público; `logout` y `token-fcm` con JWT de cualquier rol | Login (CU-14), cierre de sesión, token FCM (RF13) y recuperación de contraseña (CU-13/RF21). |
+| `auth` | — | `login` público; `logout` y `token-fcm` con JWT de cualquier rol; `recuperar-password` solo Administrador | Login (CU-14), cierre de sesión, token FCM (RF13); la recuperación de contraseña (CU-13/RF21) exige JWT de Administrador. |
 | `catalogos` | — | Solicitante, Administrador, Conductor (lectura) | Solo `GET /api/v1/catalogos`: bancos, medios de pago, tipos de recibo, regiones y comunas. |
 | `usuarios` | `correo` | Solicitante, Administrador, Conductor | Cada uno solo su cuenta (RNF08): `GET` y, salvo el Conductor, `PUT` (datos y contraseña propios). Sin `POST`: cada cuenta se crea por su rol (`solicitantes`, `conductores`, `administradores`). El Conductor solo consulta; su cuenta y contraseña las edita el Administrador (`PUT /conductores`). |
 | `administradores` | `correo` | Administrador | Consulta y alta (`POST`, CU-18/RF27); el inicial se crea por migración. |
@@ -835,7 +834,7 @@ la respuesta del recurso (el abordaje, `AbordajeDTOResponse`). Reglas y efectos 
 | `POST` | `/api/v1/auth/login` | No | Autenticar con correo y contraseña (CU-14). |
 | `POST` | `/api/v1/auth/logout` | Sí | Cerrar sesión: borra el token FCM del usuario. |
 | `POST` | `/api/v1/auth/token-fcm` | Sí | Reemplazar el token FCM del usuario (RF13). |
-| `POST` | `/api/v1/auth/recuperar-password` | No | Pedir una contraseña temporal por correo (CU-13/RF21). |
+| `POST` | `/api/v1/auth/recuperar-password` | Sí (Administrador) | Generar una contraseña temporal de 24 horas para un Solicitante o Administrador y devolverla una sola vez (CU-13/RF21). |
 
 Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `TokenFcmDTORequest` y
 `RecuperarPasswordDTORequest` ([Contratos JSON](#contratos-json)).
@@ -857,10 +856,12 @@ Las atiende `AuthController` con `LoginDTORequest`/`LoginDTOResponse`, `TokenFcm
   `exp`; al vencer, la app pide iniciar sesión de nuevo.
 - **Logout:** `POST /auth/logout` deja `USUARIO.token_fcm` en NULL y responde `204`.
 - **Contraseñas:** BCrypt.
-- **Recuperar contraseña:** solo Solicitante y Administrador (el Conductor recurre al
-  Administrador, CU-07/RF14). Siempre `204`, exista o no el correo. Genera una temporal de 12
-  caracteres, la guarda hasheada en `password_temporal_hash` con vencimiento a los
-  `PASSWORD_TEMPORAL_MINUTOS` (30) y la envía por correo; nunca va a los logs. **No reemplaza la
+- **Recuperar contraseña:** la ejecuta un Administrador, solo para un Solicitante o Administrador
+  (el Conductor recurre al Administrador, CU-07/RF14; su correo o uno desconocido: 404). Genera una
+  temporal de 12 caracteres, la guarda hasheada en `password_temporal_hash` con vencimiento a las
+  24 horas (`PASSWORD_TEMPORAL_HORAS`) y la devuelve una sola vez con `200`
+  (`PasswordTemporalDTOResponse`); el Administrador la envía por su correo y el sistema no envía
+  ninguno. Nunca va a los logs. **No reemplaza la
   contraseña actual:** ambas sirven hasta que se use una, y un nuevo pedido reemplaza la temporal
   anterior. Cambiar la contraseña con `PUT /api/v1/usuarios/{correo}` (con `passwordActual`, que
   puede ser la temporal) deja la temporal en NULL.
@@ -897,7 +898,7 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 |---|---|---|
 | `LoginDTORequest` | `POST /auth/login` | `correo`, `password`, `tokenFcm?` |
 | `TokenFcmDTORequest` | `POST /auth/token-fcm` | `tokenFcm` |
-| `RecuperarPasswordDTORequest` | `POST /auth/recuperar-password` | `correo` |
+| `RecuperarPasswordDTORequest` | `POST /auth/recuperar-password` (Administrador) | `correo` |
 | `SolicitanteDTORequest` | `POST /solicitantes` | `nombre`, `correo`, `telefono?`, `password`, `razonSocial`, `rutEmpresa` |
 | `ConductorDTORequest` | `POST /conductores`, `PUT /conductores/{correo}` | `nombre`, `correo`, `telefono?`, `password` (opcional en `PUT`) |
 | `AdministradorDTORequest` | `POST /administradores` | `nombre`, `correo`, `telefono?`, `password` (inicial y temporal, CU-18) |
@@ -937,6 +938,7 @@ Cuerpos de petición y respuesta de cada DTO. Convenciones comunes:
 | DTO | Campos |
 |---|---|
 | `LoginDTOResponse` | `accessToken`, `tokenType` (`Bearer`), `expiresIn` (segundos), `cambioPasswordRequerido` (booleano), `correo`, `rol` (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`) |
+| `PasswordTemporalDTOResponse` | `correo`, `passwordTemporal` (en claro, solo en esta respuesta), `expira` (24 horas después) |
 | `UsuarioDTOResponse`, `AdministradorDTOResponse` | `nombre`, `correo`, `telefono?`, `fechaRegistro` |
 | `ConductorDTOResponse` | Los de `UsuarioDTOResponse`, `activo`, `estadoConductor` (`DISPONIBLE` u `OCUPADO`), `viajesAsignados` (cantidad de sus viajes `ASIGNADO`) y `folioEnCurso?` (su viaje `EN_CURSO`, si tiene) |
 | `SolicitanteDTOResponse` | Los de `UsuarioDTOResponse`, `razonSocial`, `rutEmpresa` y `estadoSolicitante` (`PENDIENTE`, `APROBADO` o `RECHAZADO`) |
@@ -1144,7 +1146,7 @@ backend/
 - **`config`**: `SecurityConfig` (cadena de seguridad), `JwtProvider` (emite y valida el JWT,
   CU-14), `FirebaseConfig` (envío FCM solo con credenciales), `ClockConfig` (bean `Clock` en
   `America/Santiago` y Jackson con `LocalDateTime` sin zona; ver [Datos iniciales](#datos-iniciales)).
-- **`client`**: `EmailClient` (SMTP, RF21 y CU-17) y `FirebaseClient` (FCM, RF12/RF13, sobre
+- **`client`**: `EmailClient` (SMTP, CU-17) y `FirebaseClient` (FCM, RF12/RF13, sobre
   `FcmSender`); `EnvioDiferido` los ejecuta después del commit y fuera de la transacción.
 
 ### Persistencia MariaDB
@@ -1213,8 +1215,7 @@ Todo por variables de entorno; `application.properties` trae valores de desarrol
 | `JWT_SECRET` | valor de desarrollo | Clave Base64 de al menos 256 bits para firmar el JWT. |
 | `JWT_EXPIRATION_SECONDS` | `28800` | Vigencia del JWT de acceso (8 horas). |
 | `DNI_SECRET` | valor de desarrollo | Clave del HMAC-SHA256 de `PASAJERO.dni_hash`. |
-| `PASSWORD_TEMPORAL_MINUTOS` | `30` | Vigencia de la contraseña temporal (RF21). |
-| `ALTA_TEMPORAL_HORAS` | `72` | Vigencia de la contraseña inicial de un Administrador nuevo (CU-18). |
+| `PASSWORD_TEMPORAL_HORAS` | `24` | Vigencia de la contraseña temporal (RF21) y de la inicial de un Administrador nuevo (CU-18). |
 | `SPRING_MAIL_HOST` | sin valor | Servidor SMTP; sin él el correo queda desactivado. |
 | `SPRING_MAIL_PORT` | `25` (valor de Spring) | Puerto SMTP. |
 | `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | sin valor | Credenciales SMTP. |
@@ -1270,12 +1271,12 @@ escriben con su etiqueta ([Textos y tema](#textos-y-tema)), p. ej. "Estado: En c
 
 | Correo | Asunto | Cuerpo |
 |---|---|---|
-| Recuperar contraseña (RF21) | Belmonte SpA: tu contraseña temporal | "Hola {nombre}: tu contraseña temporal es {temporal} y vence el {vence}. Úsala para iniciar sesión; la app te pedirá crear una nueva. Si no la pediste, ignora este correo: tu contraseña actual sigue funcionando." |
 | Cuenta aprobada (CU-17/RF26) | Belmonte SpA: tu cuenta fue aprobada | "Hola {nombre}: tu cuenta para {razonSocial} fue aprobada. Ya puedes iniciar sesión con tu correo y contraseña." |
 | Cuenta rechazada (CU-17/RF26) | Belmonte SpA: tu cuenta fue rechazada | "Hola {nombre}: tu cuenta para {razonSocial} no fue aprobada. Si crees que es un error, contacta a Belmonte SpA." |
 
-`{vence}` va en formato `24-09-2026 · 14:30`. Todos firman "Belmonte SpA" en una línea final.
-No hay otros correos: el alta de Conductores y Administradores no envía ninguno. La cuenta
+Todos firman "Belmonte SpA" en una línea final. No hay otros correos: el alta de Conductores y
+Administradores no envía ninguno y la contraseña temporal la entrega el Administrador con su
+propio correo. La cuenta
 pendiente no puede iniciar sesión, así que la revisión le llega solo por correo.
 
 **Correo en la demostración.** Un proveedor transaccional con plan gratuito (p. ej. Brevo),
@@ -1285,8 +1286,8 @@ remitente verificado en el proveedor (una dirección institucional del equipo);
 del plan.
 
 **Probar el correo con Mailpit.** Con el servicio `mailpit` arriba, desde `backend/` (usuario y
-clave cualesquiera, pero definidos, porque la API autentica por defecto); luego "Recuperar
-contraseña" y leer el correo en <http://localhost:8025>:
+clave cualesquiera, pero definidos, porque la API autentica por defecto); luego aprobar o
+rechazar una cuenta y leer el correo en <http://localhost:8025>:
 
 ```bash
 SPRING_MAIL_HOST=localhost SPRING_MAIL_PORT=1025 \
@@ -1318,13 +1319,13 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 | Pruebas | Cubren |
 |---|---|
 | `SeguridadIT` | JWT (ausente, alterado, vencido, otra clave), JWT temporal solo para cambiar la contraseña, roles, ruta no listada, login y validación. |
-| `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login) y reactivado. |
+| `CuentasIT` | Autorregistro, alta y edición de cuentas, recuperación de contraseña por el Administrador (24 horas) y 403 en cuentas ajenas; aprobación y rechazo de Solicitantes (403 en el login mientras tanto, 409 si ya se revisó); alta de Administrador con contraseña temporal; Conductor desactivado (401 en el login) y reactivado. |
 | `FlotaIT` | Vehículos y habilitación de conductores; desactivar y reactivar vehículos y conductores (409 con viajes `ASIGNADO` o `EN_CURSO`; un inactivo no es asignable); `codigoAbordaje` generado, único y ausente de las respuestas a otros roles. |
 | `PasajeroIT` | Hash del documento, pasajeros de un viaje, capacidad y contador (trigger). |
 | `ViajeIT` | Creación y rango de `fhAgenda` (V1); alcance por rol (Conductor sin datos de pago, agenda con el `EN_CURSO` de ayer); ciclo Pendiente → Finalizado; asignación y reasignación con al menos un pasajero, activos, sin solapamiento y sin vencer (V2); ventana de inicio ± 1 hora (V3) en sus extremos; cancelación del Solicitante solo sin vencer (V5), del Administrador con motivo (V7) y rechazo del Conductor (V8); historial (trigger); consultas por rol. |
 | `PagoIT` | Registro, estados (con `folio` en la respuesta) y cancelación del viaje al anular el pago; reembolso del 50 % en V5 y del 100 % o el monto fijado en V7 (con 0 sigue `PAGADO`), con su `montoReembolsado`; pago `PENDIENTE` anulado al cancelar (P5). |
 | `AbordajeIT` | Ruta pública sin JWT; abordaje dentro de la ventana y en `EN_CURSO`; mismo 404 para patente inexistente, código ajeno, sin viaje candidato, documento que no viaja, fuera de ventana y otros estados; repetición con la misma hora; elección por documento entre dos viajes del vehículo; limpieza en V2 con cambio de vehículo y en V8, no al cambiar solo el conductor; `fhAbordaje` en `pasajeros` para los tres roles. |
-| `NotificacionesIT` | Correo de recuperación (con la clave se inicia sesión), correos de aprobación y rechazo de cuentas, y push de cada evento con su `data` (`tipo` y `folio`). |
+| `NotificacionesIT` | Correos de aprobación y rechazo de cuentas, y push de cada evento con su `data` (`tipo` y `folio`). |
 | `MigracionesIT` | La cadena completa de migraciones en una base vacía: esquema final, catálogos y Administrador inicial. |
 | Unitarias | `JwtProviderTest`, `PasajeroServiceTest`, `EmailClientTest`, `FirebaseClientTest`, `FirebaseConfigTest` y la guarda del esquema. |
 
@@ -1482,9 +1483,9 @@ autorización del backend.
 | Acceso | Contenido | Destino |
 |---|---|---|
 | Inicio de aplicación | Lee la sesión guardada. | Inicio del rol si hay una sesión vigente; si no, Login. |
-| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña", "Abordar viaje". | Inicio del rol (o "Cambiar contraseña" si entró con la temporal), registro, recuperación o abordaje. |
+| Login | Correo, contraseña, "Iniciar sesión", "Crear cuenta solicitante", "Recuperar contraseña" (indica que pidan la temporal a un Administrador), "Abordar viaje". | Inicio del rol (o "Cambiar contraseña" si entró con la temporal), registro, aviso o abordaje. |
 | Registro de solicitante | Nombre, correo, teléfono, contraseña, razón social y RUT de empresa. | Login con el correo precargado; si la empresa ya existía, aviso de que la cuenta espera aprobación (CU-17). |
-| Recuperar contraseña | Correo y explicación de la temporal (Solicitante y Administrador). | Confirmación genérica y login. |
+| Recuperar contraseña (Administrador, desde su Perfil) | Correo de un Solicitante o Administrador y explicación de la temporal de 24 horas. | La temporal, visible una sola vez, con su vencimiento y "Copiar", para enviarla por correo. |
 | Abordar viaje | Desde el Login (pasajero sin cuenta) o el Perfil del Solicitante: "Escanear código QR" o "Ingresar código" (patente y código), luego tipo de documento, documento y "Confirmar abordaje" ([Abordaje con código QR](#abordaje-con-código-qr)). | "Abordaje registrado" con la hora y "Volver al inicio": el Login sin sesión o "Mis solicitudes" con sesión; no crea ni cambia la sesión. |
 
 El Conductor no tiene autorregistro ni recuperación por autoservicio.
@@ -1492,7 +1493,7 @@ El Conductor no tiene autorregistro ni recuperación por autoservicio.
 | Rol | Barra inferior | Pantallas | Reglas |
 |---|---|---|---|
 | Solicitante | Mis solicitudes · Perfil | Mis solicitudes (inicio): folio, pasajero(s), fecha, hora, origen, destino, estado y "Nueva solicitud". Nueva solicitud: fecha y hora, origen y destino con Places (con selector de comuna si no calza; ver [Ubicaciones desde Google Places](#ubicaciones-desde-google-places)), uno o más pasajeros con nombre y documento (agregar, editar, quitar antes de enviar), vuelo opcional. Detalle de solicitud: viaje, pasajeros, estado, conductor, vehículo y estado de pago si existe; con 0 pasajeros, el aviso "Faltan pasajeros: el viaje no se puede asignar hasta agregar al menos uno"; en `PENDIENTE`/`ASIGNADO`, "Agregar pasajero" (nombre, tipo de documento y documento, en una hoja inferior). Perfil: datos y empresa, cambio de contraseña, "Abordar viaje" (cuando el Solicitante viaja; [Abordaje con código QR](#abordaje-con-código-qr)) y cerrar sesión. Cambiar contraseña: actual, nueva y confirmación (también Administrador). | Enviar abre el detalle; volver lleva a "Mis solicitudes". "Cancelar solicitud" solo en `PENDIENTE`/`ASIGNADO` y con el viaje no vencido (CU-08), con confirmación; luego se queda en el detalle con el nuevo estado. "Agregar pasajero" recarga el detalle al confirmarse; si supera la capacidad del vehículo asignado, muestra el 409. No se quitan pasajeros de un viaje enviado. |
-| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje (HU30); "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar, y el código de abordaje). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
+| Administrador | Solicitudes · Conductores · Vehículos · Perfil | Solicitudes (inicio): lista con filtro inicial "Pendientes" y filtros por estado. Cuentas por aprobar (enlace en Solicitudes con su cantidad): aprobar o rechazar (CU-17). Detalle de solicitud: viaje, solicitante y empresa, pasajeros, asignación, motivo y pago; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje (HU30); "Asignar"/"Reasignar" solo en `PENDIENTE`/`ASIGNADO` no vencido y con pasajeros (con 0, el texto "Sin pasajeros: no se puede asignar"; vencido, no aparece), registrar/consultar pago y "Cancelar viaje" en `PENDIENTE`/`ASIGNADO` (motivo y, si está vencido con el pago `PAGADO`, monto a reembolsar, precargado con el total; CU-15). Asignar conductor y vehículo: lista los conductores activos (los `OCUPADO`, deshabilitados, con su `folioEnCurso`) y, del elegido, los vehículos habilitados activos, `DISPONIBLE` y con `capacidad` ≥ pasajeros; resumen y confirmación. Conductores → Registrar conductor (nombre, correo, teléfono, contraseña inicial) y Detalle de conductor (datos, estado, activo, vehículos habilitados, edición, reemplazo de contraseña, desactivar o reactivar). Vehículos → Registrar vehículo (patente, capacidad, serial GPS opcional) y Detalle de vehículo (datos, estado, activo, conductores habilitados, desactivar o reactivar, y el código de abordaje). Gestionar habilitaciones: solo agregar; no se eliminan en el MVP. Registrar pago: monto, banco, medio de pago, tipo de recibo. Detalle de pago: datos, estado y transiciones manuales [P2](#pago) (desde `PENDIENTE`) y [P3](#pago) (`PAGADO` → `ANULADO`). Perfil / Cambiar contraseña / Registrar administrador (desde Perfil; CU-18) / Restablecer contraseña (desde Perfil; CU-13). | Pagos solo desde el viaje (sin sección propia en el MVP). Sin asignación automática ni dashboard. Lista de solicitudes → detalle → asignación o pago; en las pendientes, "Asignar" abre directo la asignación (HU04); listas de conductores y vehículos → su detalle y registro; habilitaciones desde el detalle del conductor o del vehículo. |
 | Conductor | Mis viajes · Perfil | Mis viajes (inicio): agenda del día por hora (pasajero, hora y estado; HU07), con selector de fecha. Detalle de viaje: folio, horario, solicitante y su teléfono, pasajeros, vuelo, origen, destino, vehículo y estado; en `ASIGNADO`, `EN_CURSO` y `FINALIZADO`, el arqueo de abordaje ("Abordaron X de N", cada pasajero Abordado o Por abordar y los que faltan; HU30). Perfil: datos y cerrar sesión (la contraseña la gestiona el Administrador). | En el detalle: "Navegar al origen" en `ASIGNADO` y "Navegar al destino" en `EN_CURSO` (en otros estados no aparece; ver [Notificaciones y navegación externa](#notificaciones-y-navegación-externa)); "Iniciar viaje" en `ASIGNADO`, habilitado solo dentro de la ventana de ± 1 hora (antes, deshabilitado con "Disponible desde las {hora}", con `{hora}` = `fh_agenda` − 1 hora; vencido, deshabilitado con "Vencido: avisa al Administrador"), y "Finalizar viaje" en `EN_CURSO`, ambos con confirmación (la de "Iniciar viaje" avisa cuántos pasajeros faltan por abordar, sin impedir el inicio); "Rechazar" en `ASIGNADO` antes de iniciar, con motivo y solo con conexión (CU-16); sin conexión, "Pendiente de sincronizar" hasta que el servidor confirme; si la operación queda en conflicto, el detalle muestra el `message` y "Descartar cambio" ([Base de datos local](#base-de-datos-local)). El selector de fecha no agrega pantalla de historial. |
 
 Reglas comunes:
@@ -1932,7 +1933,7 @@ pruebas contra el backend real (`FlujosE2ETest`).
   minutos después: antes de cada demostración o grabación se borran los datos de la app (Ajustes
   o `adb shell pm clear cl.belmontespa.transporte`), como se recarga `database/demo.sql`.
 - **Fuera de la build `demo`:** push (no se pide el permiso de notificaciones), correos
-  ("Recuperar contraseña" muestra su confirmación sin enviar nada) y la cola sin conexión. Google
+  ("Recuperar contraseña" genera y muestra la temporal sin enviar nada) y la cola sin conexión. Google
   Places sigue siendo el SDK real: crear una solicitud necesita Internet y la clave de Places.
 - **Abordaje en la demostración:** el código de abordaje de cada vehículo se ve en su detalle con
   una cuenta de Administrador. El QR se arma fuera de la app con el contenido

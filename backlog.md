@@ -125,7 +125,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Hecho | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Hecho | Listo |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Hecho | Listo |
-| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Hecho | Listo |
+| 30 | HU22 | Administrador: restablecer la contraseña de una cuenta | A | P3 | Media | 3 | T07 | En curso | El README cambió: la temporal la genera el Administrador y vence a las 24 h (ver [Pendiente del backend](#pendiente-del-backend-etapa-2)) |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Hecho | Listo |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Hecho | Listo |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
@@ -226,6 +226,12 @@ Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/`.
 
 - **`POST /auth/token-fcm` (HU14):** falta. El token es único: al guardarlo se quita de cualquier otro
   usuario. `POST /auth/logout` ya existe.
+- **`POST /auth/recuperar-password` y alta de Administrador (HU22, HU28):** la ruta existe, pero el README cambió. Hoy es
+  pública, responde `204` y envía la temporal por correo con `PASSWORD_TEMPORAL_MINUTOS` (30). Debe exigir JWT de
+  Administrador, responder `200` con `PasswordTemporalDTOResponse` (la temporal una sola vez), devolver 404 para un
+  correo desconocido o de un Conductor, y no enviar correo. `PASSWORD_TEMPORAL_MINUTOS` y `ALTA_TEMPORAL_HORAS` se
+  reemplazan por `PASSWORD_TEMPORAL_HORAS` (24) para ambas temporales. En Android, la pantalla «Recuperar
+  contraseña» pasa al Perfil del Administrador («Restablecer contraseña») y el Login solo informa.
 - **Push de V3 y V4 al Solicitante (HU12):** `ViajeService` envía `data` solo con `folio` y el mensaje con el
   código ("Estado: EN_CURSO"). Debe llevar `data.tipo = VIAJE`, el título "Viaje {folio}" y la etiqueta
   ("En curso" o "Finalizado").

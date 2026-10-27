@@ -928,7 +928,8 @@ GRUPOS = [
             Boton('Crear cuenta solicitante', 'fantasma'), Boton('Recuperar contraseña', 'fantasma'),
             Boton('Abordar viaje', 'fantasma', icono='qr'),
             Nota('Conductores: usen las credenciales que entrega el Administrador. El rol lo define el '
-                 'backend; no hay selector de rol.', centro=True)]),
+                 'backend; no hay selector de rol. "Recuperar contraseña" indica que pidan la temporal a un '
+                 'Administrador.', centro=True)]),
         Pantalla('Login en modo demo', ['CU-14', 'CU-19'], centro=True, cuerpo=[
             Marca(), Aviso('Modo demostración: datos ficticios, sin conexión al servidor.'),
             Campo('Correo electrónico', 'ireyes@belmontespa.cl'), Campo('Contraseña', '••••••••'),
@@ -944,12 +945,6 @@ GRUPOS = [
             Campo('RUT de la empresa', '76.543.210-3'), Boton('Crear cuenta'),
             Nota('Al terminar vuelve al login con el correo precargado. Si el RUT ya existe, la cuenta '
                  'espera la aprobación de un Administrador.')]),
-        Pantalla('Recuperar contraseña', ['CU-13', 'RF21', 'HU22'], barra='Recuperar contraseña', atras=True, cuerpo=[
-            Nota('Te enviaremos una contraseña temporal al correo registrado. Tu contraseña actual sigue '
-                 'funcionando; la temporal vence en 30 minutos.'),
-            Campo('Correo', 'crios@andesconsult.cl'), Boton('Enviar contraseña temporal'),
-            Aviso('Si el correo pertenece a una cuenta habilitada, recibirás la contraseña temporal.'),
-            Nota('Solo Solicitante y Administrador. Conductores: el Administrador reemplaza su contraseña.')]),
         Pantalla('Cambio obligatorio de contraseña', ['CU-13', 'CU-14', 'RF21'], barra='Cambiar contraseña',
                  cuerpo=[
             Aviso('Debes cambiar la contraseña: entraste con una contraseña temporal.', tono='aviso'),
@@ -1173,13 +1168,22 @@ GRUPOS = [
             Persona('Andrea Castro', 'recepcion@belmontespa.cl'), KV('Rol', 'Administrador'),
             Boton('Cambiar contraseña', 'secundario', icono='llave'),
             Boton('Registrar administrador', 'secundario', icono='mas'),
+            Boton('Restablecer contraseña', 'secundario', icono='llave'),
             Boton('Cerrar sesión', 'fantasma', icono='salir')]),
         Pantalla('Registrar administrador', ['CU-18', 'RF27', 'HU28'], barra='Registrar administrador',
                  atras=True, cuerpo=[
             Campo('Nombre', 'Tomás Ibarra'), Campo('Correo', 'tibarra@belmontespa.cl'),
             Campo('Teléfono (opcional)', 'Opcional', vacio=True), Campo('Contraseña inicial', '••••••••'),
             Boton('Registrar administrador'),
-            Nota('La contraseña inicial es temporal: vence en 72 horas y debe cambiarse al entrar.')]),
+            Nota('La contraseña inicial es temporal: vence en 24 horas y debe cambiarse al entrar.')]),
+        Pantalla('Recuperar contraseña', ['CU-13', 'RF21', 'HU22'], barra='Recuperar contraseña', atras=True, cuerpo=[
+            Nota('Genera una contraseña temporal para un Solicitante o Administrador. Su contraseña actual '
+                 'sigue funcionando; la temporal vence en 24 horas.'),
+            Campo('Correo de la cuenta', 'crios@andesconsult.cl'), Boton('Generar contraseña temporal'),
+            Aviso('Contraseña temporal: Kd7mQ2xRv9Tp. Se muestra una sola vez: cópiala y envíala por tu correo. '
+                  'Vence el 28-10-2026 · 10:30.', tono='aviso'),
+            Boton('Copiar', 'secundario'),
+            Nota('Conductores: el Administrador reemplaza su contraseña al editarlos.')]),
     ]),
     ('Conductor', 'en terreno', [
         Pantalla('Notificación push', ['RF12', 'HU13'], bloqueo=True, cuerpo=[
