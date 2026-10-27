@@ -3,7 +3,6 @@ package cl.belmontespa.myapplication.viewmodel.administrador
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.Rol
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.viewmodel.ReposP1Falsos
 import cl.belmontespa.myapplication.viewmodel.aplicacionFalsa
 import kotlinx.coroutines.CompletableDeferred

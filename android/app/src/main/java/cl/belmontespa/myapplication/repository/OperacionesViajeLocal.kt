@@ -1,7 +1,6 @@
 package cl.belmontespa.myapplication.repository
 
 import cl.belmontespa.myapplication.database.DatosDemo
-import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.NuevaSolicitud
 import cl.belmontespa.myapplication.model.NuevoPasajero
@@ -20,19 +19,22 @@ import kotlinx.coroutines.flow.first
 // Operaciones locales para que los formularios navegables de T06 persistan en la demo.
 // No realizan llamadas al backend ni simulan notificaciones remotas.
 //
-// Cómo se lee cada operación: `local.ejecutar { ... }` corre el bloque en una transacción de Room. Dentro,
-// `exigir(condicion, mensaje)` corta con un 409 si no se cumple, `validar(errores)` con un 400 y `falla(error)`
-// con el error indicado; `ejecutar` los convierte en `Resultado.Fallo` y deshace los cambios. Si el bloque llega
-// al final, devuelve `Resultado.Exito` con el último valor.
+// Cómo se lee cada operación: `local.ejecutar { ... }` corre el bloque en una transacción de Room y el bloque
+// devuelve un `Resultado`. Cada comprobación que no se cumple sale con `return@ejecutar` y su fallo (409 con
+// `conflicto`, 400 con `invalido`, 404 con `noEncontrado`, 403 con `sinPermiso`); `ejecutar` deshace entonces lo que
+// el bloque ya haya escrito. Si el bloque llega al final, devuelve `Resultado.Exito` con el valor.
 class OperacionesViajeLocal(private val local: SoporteLocal) {
     suspend fun crear(solicitud: NuevaSolicitud): Resultado<String> = local.ejecutar {
-        val sesion = local.sesion(Rol.SOLICITANTE)
-        val usuario = local.usuario(sesion.correo)
-        exigir(usuario.estadoSolicitante == "APROBADO", "La cuenta debe estar aprobada.")
-        validar(Validaciones.solicitud(solicitud, local.ahora()))
-        val origen = normalizarLugar(solicitud.origen, "origen")
-        val destino = normalizarLugar(solicitud.destino, "destino")
-        exigir(solicitud.pasajeros.map { Hashes.documento(it.dni) }.distinct().size == solicitud.pasajeros.size, "Hay pasajeros repetidos.")
+        val sesion = local.sesion(Rol.SOLICITANTE).obtener { return@ejecutar it }
+        val usuario = local.buscarUsuario(sesion.correo) ?: return@ejecutar noEncontrado
+        if (usuario.estadoSolicitante != "APROBADO") return@ejecutar conflicto("La cuenta debe estar aprobada.")
+        val errores = Validaciones.solicitud(solicitud, local.ahora())
+        if (errores.isNotEmpty()) return@ejecutar invalido(errores)
+        val origen = normalizarLugar(solicitud.origen, "origen").obtener { return@ejecutar it }
+        val destino = normalizarLugar(solicitud.destino, "destino").obtener { return@ejecutar it }
+        if (solicitud.pasajeros.map { Hashes.documento(it.dni) }.distinct().size != solicitud.pasajeros.size) {
+            return@ejecutar conflicto("Hay pasajeros repetidos.")
+        }
         val numero = (local.viajes().maxOfOrNull { it.folioCorrelativo } ?: 1000) + 1
         val folio = "TR-$numero"
         val viaje = ViajeEntity(
@@ -51,17 +53,17 @@ class OperacionesViajeLocal(private val local: SoporteLocal) {
         )
         local.db.viajeDao().guardar(viaje)
         solicitud.pasajeros.forEach { insertarPasajero(folio, it) }
-        folio
+        Resultado.Exito(folio)
     }
-    private fun normalizarLugar(lugar: Ubicacion, campo: String): Ubicacion {
+    private fun normalizarLugar(lugar: Ubicacion, campo: String): Resultado<Ubicacion> {
         val nombre = Validaciones.nombreCatalogo(lugar.comuna)
         val region = DatosDemo.regiones.firstOrNull { candidata ->
             candidata.comunas.any { Validaciones.nombreCatalogo(it) == nombre }
-        } ?: falla(ErrorApp.Validacion(mapOf("$campo.comuna" to "No existe en el catálogo.")))
+        } ?: return invalido(mapOf("$campo.comuna" to "No existe en el catálogo."))
         val comuna = region.comunas.first { Validaciones.nombreCatalogo(it) == nombre }
-        return lugar.copy(direccion = lugar.direccion.trim(), comuna = comuna, region = region.nombre,
+        return Resultado.Exito(lugar.copy(direccion = lugar.direccion.trim(), comuna = comuna, region = region.nombre,
             latitud = lugar.latitud.toBigDecimal().setScale(6, RoundingMode.HALF_UP).toDouble(),
-            longitud = lugar.longitud.toBigDecimal().setScale(6, RoundingMode.HALF_UP).toDouble())
+            longitud = lugar.longitud.toBigDecimal().setScale(6, RoundingMode.HALF_UP).toDouble()))
     }
     private suspend fun insertarPasajero(folio: String, pasajero: NuevoPasajero) {
         val hash = Hashes.documento(pasajero.dni)
@@ -70,23 +72,25 @@ class OperacionesViajeLocal(private val local: SoporteLocal) {
         local.db.viajePasajeroDao().insertar(ViajePasajeroEntity(folio, hash, null))
     }
     suspend fun agregar(folio: String, pasajero: NuevoPasajero): Resultado<Unit> = local.ejecutar {
-        local.sesion(Rol.SOLICITANTE)
-        val viaje = local.alcance(folio)
-        exigir(viaje.estado in listOf("PENDIENTE", "ASIGNADO"), "El viaje ya no admite pasajeros.")
-        validar(Validaciones.pasajero(pasajero))
+        local.sesion(Rol.SOLICITANTE).obtener { return@ejecutar it }
+        val viaje = local.alcance(folio).obtener { return@ejecutar it }
+        if (viaje.estado !in listOf("PENDIENTE", "ASIGNADO")) return@ejecutar conflicto("El viaje ya no admite pasajeros.")
+        val errores = Validaciones.pasajero(pasajero)
+        if (errores.isNotEmpty()) return@ejecutar invalido(errores)
         val anteriores = local.db.viajePasajeroDao().obtenerDelViaje(folio)
-        if (anteriores.any { it.dniHash == Hashes.documento(pasajero.dni) }) return@ejecutar Unit
+        if (anteriores.any { it.dniHash == Hashes.documento(pasajero.dni) }) return@ejecutar Resultado.Exito(Unit)
         val capacidad = viaje.patenteMovil?.let { local.db.movilDao().obtener(it)?.capacidad }
-        exigir(capacidad == null || anteriores.size < capacidad, "El vehículo no tiene capacidad disponible.")
+        if (capacidad != null && anteriores.size >= capacidad) return@ejecutar conflicto("El vehículo no tiene capacidad disponible.")
         insertarPasajero(folio, pasajero)
         local.db.viajeDao().guardar(viaje.copy(cantidadPasajeros = anteriores.size + 1))
+        Resultado.Exito(Unit)
     }
     suspend fun asignar(folio: String, correo: String, patente: String): Resultado<Unit> = local.ejecutar {
-        local.sesion(Rol.ADMINISTRADOR)
-        val viaje = local.viaje(folio)
-        val cuenta = local.usuario(correo)
-        exigir(cuenta.rol == "CONDUCTOR", "La cuenta no es de un conductor.")
-        val vehiculo = local.db.movilDao().obtener(patente) ?: falla(ErrorApp.NoEncontrado)
+        local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
+        val viaje = local.buscarViaje(folio) ?: return@ejecutar noEncontrado
+        val cuenta = local.buscarUsuario(correo) ?: return@ejecutar noEncontrado
+        if (cuenta.rol != "CONDUCTOR") return@ejecutar conflicto("La cuenta no es de un conductor.")
+        val vehiculo = local.db.movilDao().obtener(patente) ?: return@ejecutar noEncontrado
         val ocupados = local.viajes().filter { it.folio != folio && it.estado in listOf("ASIGNADO", "EN_CURSO") }
         val conductor = ParticipanteAsignacion(cuenta.activo, cuenta.estadoConductor == "DISPONIBLE",
             ocupados.filter { it.correoConductor == correo }.map { FechaIso.leer(it.fhAgenda) }, viaje.correoConductor == correo)
@@ -95,68 +99,77 @@ class OperacionesViajeLocal(private val local: SoporteLocal) {
         val habilitado = local.db.habilitacionDao().observarDelConductor(correo).first().any { it.patente == patente }
         val conflicto = conflictoDeAsignacion(EstadoViaje.valueOf(viaje.estado), FechaIso.leer(viaje.fhAgenda), viaje.cantidadPasajeros,
             local.ahora(), conductor, movil, vehiculo.capacidad, habilitado)
-        exigir(conflicto == null, conflicto.orEmpty())
+        if (conflicto != null) return@ejecutar conflicto(conflicto)
         // Repetir la misma asignación no cambia nada: ni fecha de asignación ni abordaje.
-        if (conductor.yaAsignado && movil.yaAsignado) return@ejecutar
+        if (conductor.yaAsignado && movil.yaAsignado) return@ejecutar Resultado.Exito(Unit)
         // Otro vehículo, otro QR: los pasajeros vuelven a Por abordar.
         if (!movil.yaAsignado) local.db.viajePasajeroDao().limpiarAbordaje(folio)
         local.db.viajeDao().guardar(viaje.copy(estado = "ASIGNADO", correoConductor = correo, nombreConductor = cuenta.nombre,
             patenteMovil = patente, fhAsignacion = FechaIso.texto(local.ahora()), motivo = null))
+        Resultado.Exito(Unit)
     }
     suspend fun cancelar(folio: String, motivo: String?, monto: Int?): Resultado<Unit> = local.ejecutar {
-        val sesion = local.sesion()
-        if (sesion.rol == Rol.CONDUCTOR) falla(ErrorApp.SinPermiso())
+        val sesion = local.sesion().obtener { return@ejecutar it }
+        if (sesion.rol == Rol.CONDUCTOR) return@ejecutar sinPermiso()
         val admin = sesion.rol == Rol.ADMINISTRADOR
         // V7: el motivo se valida antes que el viaje, como el 400 del backend; el Solicitante no lo envía.
         val motivoLimpio = motivo.orEmpty().trim()
-        if (admin) validar(listOfNotNull(Validaciones.motivo(motivoLimpio)?.let { "motivo" to it }).toMap())
-        val viaje = local.alcance(folio)
-        exigir(viaje.estado in listOf("PENDIENTE", "ASIGNADO"), "El viaje ya no se puede cancelar.")
-        if (!admin) exigir(!viaje.vencido(local), "El viaje está vencido. Contacta al Administrador.")
+        if (admin) {
+            val errorMotivo = Validaciones.motivo(motivoLimpio)
+            if (errorMotivo != null) return@ejecutar invalido(mapOf("motivo" to errorMotivo))
+        }
+        val viaje = local.alcance(folio).obtener { return@ejecutar it }
+        if (viaje.estado !in listOf("PENDIENTE", "ASIGNADO")) return@ejecutar conflicto("El viaje ya no se puede cancelar.")
+        if (!admin && viaje.vencido(local)) return@ejecutar conflicto("El viaje está vencido. Contacta al Administrador.")
         local.cancelarConPago(viaje, if (admin) motivoLimpio else viaje.motivo, admin, monto)
     }
     // V8: el motivo se valida antes que el viaje, como el 400 del backend. Solo el conductor del viaje (uno ajeno o
     // un PENDIENTE sin conductor es SinPermiso) y solo mientras está ASIGNADO. No toca el pago ni la flota.
     suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = local.ejecutar {
-        local.sesion(Rol.CONDUCTOR)
-        validar(listOfNotNull(Validaciones.motivo(motivo)?.let { "motivo" to it }).toMap())
-        val viaje = local.alcance(folio)
-        exigir(viaje.estado == "ASIGNADO", "El viaje ya no se puede rechazar.")
+        local.sesion(Rol.CONDUCTOR).obtener { return@ejecutar it }
+        val errorMotivo = Validaciones.motivo(motivo)
+        if (errorMotivo != null) return@ejecutar invalido(mapOf("motivo" to errorMotivo))
+        val viaje = local.alcance(folio).obtener { return@ejecutar it }
+        if (viaje.estado != "ASIGNADO") return@ejecutar conflicto("El viaje ya no se puede rechazar.")
         local.db.viajePasajeroDao().limpiarAbordaje(folio)
         local.db.viajeDao().guardar(viaje.copy(estado = "PENDIENTE", correoConductor = null, nombreConductor = null,
             patenteMovil = null, fhAsignacion = null, motivo = motivo.trim()))
+        Resultado.Exito(Unit)
     }
     suspend fun estado(folio: String, estado: EstadoViaje): Resultado<Unit> = local.ejecutar {
-        local.sesion(Rol.CONDUCTOR)
-        val viaje = local.alcance(folio)
+        local.sesion(Rol.CONDUCTOR).obtener { return@ejecutar it }
+        val viaje = local.alcance(folio).obtener { return@ejecutar it }
         val otrosEnCurso = local.viajes().filter { it.folio != folio && it.estado == "EN_CURSO" }
         val conflicto = conflictoDeEstado(EstadoViaje.valueOf(viaje.estado), estado, FechaIso.leer(viaje.fhAgenda), local.ahora(),
             conductorConOtroEnCurso = otrosEnCurso.any { it.correoConductor == viaje.correoConductor },
             movilConOtroEnCurso = otrosEnCurso.any { it.patenteMovil == viaje.patenteMovil })
-        exigir(conflicto == null, conflicto.orEmpty())
+        if (conflicto != null) return@ejecutar conflicto(conflicto)
         val inicio = estado == EstadoViaje.EN_CURSO
-        val usuario = local.usuario(viaje.correoConductor!!)
-        val vehiculo = local.db.movilDao().obtener(viaje.patenteMovil!!) ?: falla(ErrorApp.NoEncontrado)
+        val usuario = local.buscarUsuario(viaje.correoConductor!!) ?: return@ejecutar noEncontrado
+        val vehiculo = local.db.movilDao().obtener(viaje.patenteMovil!!) ?: return@ejecutar noEncontrado
         local.db.usuarioDao().guardar(usuario.copy(estadoConductor = if (inicio) "OCUPADO" else "DISPONIBLE"))
         local.db.movilDao().guardar(vehiculo.copy(estadoMovil = if (inicio) "EN_USO" else "DISPONIBLE"))
         local.db.viajeDao().guardar(if (inicio) viaje.copy(estado = estado.name, fhInicio = FechaIso.texto(local.ahora()))
             else viaje.copy(estado = estado.name, fhFin = FechaIso.texto(local.ahora())))
+        Resultado.Exito(Unit)
     }
 }
 internal fun ViajeEntity.vencido(local: SoporteLocal) = local.ahora().isAfter(FechaIso.leer(fhAgenda).plusHours(1))
 // La cancelación actualiza el pago y la copia del estado en el viaje en una sola transacción.
-internal suspend fun SoporteLocal.cancelarConPago(viaje: ViajeEntity, motivo: String?, admin: Boolean, monto: Int?) {
+internal suspend fun SoporteLocal.cancelarConPago(viaje: ViajeEntity, motivo: String?, admin: Boolean, monto: Int?): Resultado<Unit> {
     var estadoPago = viaje.estadoPago
     val pago = viaje.hashPago?.let { db.pagoDao().obtener(it) }
     if (pago != null) {
         val vencido = viaje.vencido(this)
         // V7: con el viaje vencido y el pago PAGADO el Administrador fija el monto, de 0 al total; si no, se ignora.
         if (admin && vencido && pago.estadoPago == "PAGADO") {
-            validar(listOfNotNull(Validaciones.reembolso(monto, pago.monto)?.let { "montoReembolso" to it }).toMap())
+            val errorMonto = Validaciones.reembolso(monto, pago.monto)
+            if (errorMonto != null) return invalido(mapOf("montoReembolso" to errorMonto))
         }
         val nuevo = pago.alCancelarElViaje(admin, vencido, monto)
         db.pagoDao().guardar(nuevo)
         estadoPago = nuevo.estadoPago
     }
     db.viajeDao().guardar(viaje.copy(estado = "CANCELADO", motivo = motivo, estadoPago = estadoPago))
+    return Resultado.Exito(Unit)
 }

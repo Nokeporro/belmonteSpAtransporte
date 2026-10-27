@@ -157,10 +157,23 @@ object DatosDemo {
 
     /** Crea la semilla con fechas relativas a [ahora] (hora de Chile, truncada al minuto). */
     fun crear(ahora: LocalDateTime, descargadoEn: Long = 0): Semilla {
-        val passwordSha256 = Hashes.password(PASSWORD)
-        val registro = FechaIso.texto(ahora.minusDays(90))
+        val cuentas = Cuentas(registro = FechaIso.texto(ahora.minusDays(90)), passwordSha256 = Hashes.password(PASSWORD))
+        val pagos = pagos(ahora)
+        val viajes = viajes(cuentas, pagos, ahora, descargadoEn)
+        return Semilla(
+            usuarios = cuentas.todas,
+            moviles = moviles(),
+            habilitaciones = habilitaciones(cuentas),
+            pasajeros = pasajerosDemo.map { PasajeroEntity(it.dniHash, it.nombre) },
+            viajes = viajes.map { it.viaje },
+            viajePasajeros = viajes.flatMap { it.pasajeros },
+            pagos = pagos,
+        )
+    }
 
-        fun cuenta(
+    /** Las 9 cuentas de la demo, con la misma contraseña y la misma fecha de registro. */
+    private class Cuentas(private val registro: String, private val passwordSha256: String) {
+        private fun cuenta(
             correo: String,
             nombre: String,
             telefono: String?,
@@ -193,60 +206,69 @@ object DatosDemo {
         val rodrigo = cuenta("rperez@andesconsult.cl", "Rodrigo Pérez", null, Rol.SOLICITANTE, estadoSolicitante = EstadoSolicitante.PENDIENTE, empresa = ANDES)
         val matias = cuenta("mrojas@pacificoservicios.cl", "Matías Rojas", "+56955550404", Rol.SOLICITANTE, estadoSolicitante = EstadoSolicitante.APROBADO, empresa = PACIFICO)
 
-        val moviles = listOf(
-            MovilEntity("KXJR42", 4, 50231, true, EstadoMovil.DISPONIBLE.name, "7F3A9C21B04E58D6"),
-            MovilEntity("LPHT17", 6, null, true, EstadoMovil.DISPONIBLE.name, "2B8E41D07C95A316"),
-            MovilEntity("GZRW90", 4, 50477, true, EstadoMovil.EN_USO.name, "9D04C6E2A1F7B853"),
-            MovilEntity("HJKL21", 4, null, false, EstadoMovil.DISPONIBLE.name, "5C1A8F3E0B6D2947"),
-        )
+        val todas = listOf(andrea, camila, ivan, paula, jorge, marta, constanza, rodrigo, matias)
+    }
 
-        val habilitaciones = listOf(
-            HabilitacionEntity("KXJR42", ivan.correo),
-            HabilitacionEntity("LPHT17", ivan.correo),
-            HabilitacionEntity("KXJR42", paula.correo),
-            HabilitacionEntity("GZRW90", jorge.correo),
-            HabilitacionEntity("HJKL21", marta.correo),
-        )
+    private fun moviles() = listOf(
+        MovilEntity("KXJR42", 4, 50231, true, EstadoMovil.DISPONIBLE.name, "7F3A9C21B04E58D6"),
+        MovilEntity("LPHT17", 6, null, true, EstadoMovil.DISPONIBLE.name, "2B8E41D07C95A316"),
+        MovilEntity("GZRW90", 4, 50477, true, EstadoMovil.EN_USO.name, "9D04C6E2A1F7B853"),
+        MovilEntity("HJKL21", 4, null, false, EstadoMovil.DISPONIBLE.name, "5C1A8F3E0B6D2947"),
+    )
 
-        fun pago(
-            hash: String,
-            folio: Int,
-            monto: Int,
-            estado: EstadoPago,
-            codSbif: Int,
-            medioPago: MedioPago,
-            tipoRecibo: TipoRecibo,
-            empresa: Empresa,
-            fechaPago: LocalDateTime? = null,
-            montoReembolsado: Int? = null,
-        ) = PagoEntity(
-            hash = hash,
-            folio = "TR-$folio",
-            monto = monto,
-            estadoPago = estado.name,
-            banco = bancos.first { it.codSbif == codSbif }.nombre,
-            codSbif = codSbif,
-            rutEmpresa = empresa.rut,
-            medioPago = medioPago.name,
-            tipoRecibo = tipoRecibo.name,
-            fechaPago = fechaPago?.let(FechaIso::texto),
-            montoReembolsado = montoReembolsado,
-        )
+    private fun habilitaciones(cuentas: Cuentas) = listOf(
+        HabilitacionEntity("KXJR42", cuentas.ivan.correo),
+        HabilitacionEntity("LPHT17", cuentas.ivan.correo),
+        HabilitacionEntity("KXJR42", cuentas.paula.correo),
+        HabilitacionEntity("GZRW90", cuentas.jorge.correo),
+        HabilitacionEntity("HJKL21", cuentas.marta.correo),
+    )
 
-        val pagos = listOf(
-            // V5 con el pago Pagado: reembolso del 50 % (P4).
-            pago("9a4c2e7b1d5f3086c2a9e4b7d1f5c3e2", 1033, 40000, EstadoPago.REEMBOLSADO, 12, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(4), 20000),
-            // V7 con el pago Pendiente: anulado (P5).
-            pago("5d3b1f8e2a7c4096d1e5b3a8c7f2e014", 1036, 35000, EstadoPago.ANULADO, 1, MedioPago.TARJETA_CREDITO, TipoRecibo.BOLETA, PACIFICO),
-            pago("b71e4d2a9c3f5086a1d7e2c4b9f03a58", 1038, 52000, EstadoPago.PAGADO, 37, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(2)),
-            pago("0c5e8a3d7f1b4926b8e2d5a7c1f0e963", 1039, 45000, EstadoPago.RECHAZADO, 16, MedioPago.TARJETA_DEBITO, TipoRecibo.FACTURA, ANDES),
-            pago("3f9a1c7e5b2d4a608e1f7c3b9d2a5e41", 1042, 48000, EstadoPago.PAGADO, 12, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(1)),
-            pago("e2a7c9f1d4b6083a5c7e1b9d2f4a6c80", 1051, 38000, EstadoPago.PENDIENTE, 39, MedioPago.EFECTIVO, TipoRecibo.BOLETA, ANDES),
-        )
+    private fun pago(
+        hash: String,
+        folio: Int,
+        monto: Int,
+        estado: EstadoPago,
+        codSbif: Int,
+        medioPago: MedioPago,
+        tipoRecibo: TipoRecibo,
+        empresa: Empresa,
+        fechaPago: LocalDateTime? = null,
+        montoReembolsado: Int? = null,
+    ) = PagoEntity(
+        hash = hash,
+        folio = "TR-$folio",
+        monto = monto,
+        estadoPago = estado.name,
+        banco = bancos.first { it.codSbif == codSbif }.nombre,
+        codSbif = codSbif,
+        rutEmpresa = empresa.rut,
+        medioPago = medioPago.name,
+        tipoRecibo = tipoRecibo.name,
+        fechaPago = fechaPago?.let(FechaIso::texto),
+        montoReembolsado = montoReembolsado,
+    )
 
-        val viajes = mutableListOf<ViajeEntity>()
-        val viajePasajeros = mutableListOf<ViajePasajeroEntity>()
+    private fun pagos(ahora: LocalDateTime) = listOf(
+        // V5 con el pago Pagado: reembolso del 50 % (P4).
+        pago("9a4c2e7b1d5f3086c2a9e4b7d1f5c3e2", 1033, 40000, EstadoPago.REEMBOLSADO, 12, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(4), 20000),
+        // V7 con el pago Pendiente: anulado (P5).
+        pago("5d3b1f8e2a7c4096d1e5b3a8c7f2e014", 1036, 35000, EstadoPago.ANULADO, 1, MedioPago.TARJETA_CREDITO, TipoRecibo.BOLETA, PACIFICO),
+        pago("b71e4d2a9c3f5086a1d7e2c4b9f03a58", 1038, 52000, EstadoPago.PAGADO, 37, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(2)),
+        pago("0c5e8a3d7f1b4926b8e2d5a7c1f0e963", 1039, 45000, EstadoPago.RECHAZADO, 16, MedioPago.TARJETA_DEBITO, TipoRecibo.FACTURA, ANDES),
+        pago("3f9a1c7e5b2d4a608e1f7c3b9d2a5e41", 1042, 48000, EstadoPago.PAGADO, 12, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(1)),
+        pago("e2a7c9f1d4b6083a5c7e1b9d2f4a6c80", 1051, 38000, EstadoPago.PENDIENTE, 39, MedioPago.EFECTIVO, TipoRecibo.BOLETA, ANDES),
+    )
 
+    /** Un viaje con sus filas de pasajeros. */
+    private class ViajeDemo(val viaje: ViajeEntity, val pasajeros: List<ViajePasajeroEntity>)
+
+    /** Arma los viajes con fechas relativas a [ahora] y toma el pago que tenga el mismo folio. */
+    private class FabricaViaje(
+        private val ahora: LocalDateTime,
+        private val descargadoEn: Long,
+        private val pagos: List<PagoEntity>,
+    ) {
         fun viaje(
             folio: Int,
             estado: EstadoViaje,
@@ -262,9 +284,9 @@ object DatosDemo {
             fhAsignacion: LocalDateTime? = null,
             fhInicio: LocalDateTime? = null,
             fhFin: LocalDateTime? = null,
-        ) {
+        ): ViajeDemo {
             val pago = pagos.find { it.folio == "TR-$folio" }
-            viajes += ViajeEntity(
+            val viaje = ViajeEntity(
                 folio = "TR-$folio",
                 estado = estado.name,
                 correoSolicitante = solicitante.correo,
@@ -297,76 +319,70 @@ object DatosDemo {
                 folioCorrelativo = folio.toLong(),
                 descargadoEn = descargadoEn,
             )
-            pasajeros.forEach { (pasajero, fhAbordaje) ->
-                viajePasajeros += ViajePasajeroEntity("TR-$folio", pasajero.dniHash, fhAbordaje?.let(FechaIso::texto))
+            val filas = pasajeros.map { (pasajero, fhAbordaje) ->
+                ViajePasajeroEntity("TR-$folio", pasajero.dniHash, fhAbordaje?.let(FechaIso::texto))
             }
+            return ViajeDemo(viaje, filas)
         }
+    }
 
-        viaje(
-            1033, EstadoViaje.CANCELADO, constanza, EL_BOSQUE_NORTE, AEROPUERTO, ahora.minusDays(1),
-            listOf(PAULA_LAGOS to null),
-        )
-        viaje(
-            1036, EstadoViaje.CANCELADO, matias, VINA_DEL_MAR, VALPARAISO, ahora.plusDays(2),
-            listOf(JAVIERA_NUNEZ to null),
-            motivo = "Cliente reprogramó el traslado",
-        )
-        // Vencido (más de 1 hora después de su hora agendada), con el pago Pagado.
-        viaje(
-            1038, EstadoViaje.PENDIENTE, constanza, NUNOA, AEROPUERTO, ahora.minusHours(3),
-            listOf(LUIS_PINO to null),
-        )
-        viaje(
-            1039, EstadoViaje.FINALIZADO, constanza, APOQUINDO, AEROPUERTO, ahora.minusHours(5),
-            listOf(ROBERTO_AGUILAR to ahora.minusHours(5).minusMinutes(10)),
-            conductor = ivan, patente = "LPHT17",
-            fhAsignacion = ahora.minusDays(2), fhInicio = ahora.minusHours(5).minusMinutes(5), fhFin = ahora.minusHours(4),
-        )
-        // Viaje en ventana de inicio: 3 pasajeros, 1 ya abordado.
-        viaje(
-            1042, EstadoViaje.ASIGNADO, constanza, AEROPUERTO, APOQUINDO, ahora.plusMinutes(30),
-            listOf(CONSTANZA_RIOS to ahora.minusMinutes(5), TOMAS_VIDAL to null, MARCELA_SOTO to null),
-            conductor = ivan, patente = "KXJR42", numeroVuelo = "LA1502", fhAsignacion = ahora.minusDays(1),
-        )
-        viaje(
-            1045, EstadoViaje.EN_CURSO, matias, PROVIDENCIA, AEROPUERTO, ahora.minusMinutes(20),
-            listOf(JAVIERA_NUNEZ to ahora.minusMinutes(30)),
-            conductor = jorge, patente = "GZRW90", fhAsignacion = ahora.minusDays(1), fhInicio = ahora.minusMinutes(25),
-        )
-        // Atrasado: pasó su hora agendada, pero aún puede iniciarse.
-        viaje(
-            1047, EstadoViaje.PENDIENTE, constanza, PROVIDENCIA, AEROPUERTO, ahora.minusMinutes(30),
-            listOf(DIEGO_FUENTES to null),
-        )
-        viaje(
-            1049, EstadoViaje.ASIGNADO, constanza, ISIDORA_GOYENECHEA, AEROPUERTO, ahora.plusHours(4).plusMinutes(15),
-            listOf(FELIPE_MORA to null),
-            conductor = ivan, patente = "LPHT17", fhAsignacion = ahora.minusDays(1),
-        )
-        viaje(
-            1051, EstadoViaje.PENDIENTE, constanza, VITACURA, AEROPUERTO, ahora.plusDays(1),
-            listOf(MARCELA_SOTO to null, TOMAS_VIDAL to null),
-        )
-        viaje(
-            1053, EstadoViaje.PENDIENTE, matias, VINA_DEL_MAR, AEROPUERTO, ahora.plusDays(3),
-            listOf(JAVIERA_NUNEZ to null),
-        )
-        // Sin pasajeros: no se puede asignar hasta agregar al menos uno.
-        viaje(
-            1055, EstadoViaje.PENDIENTE, constanza, VITACURA_2939, AEROPUERTO, ahora.plusDays(2),
-            emptyList(),
-        )
-
-        val pasajeros = pasajerosDemo.map { PasajeroEntity(it.dniHash, it.nombre) }
-
-        return Semilla(
-            usuarios = listOf(andrea, camila, ivan, paula, jorge, marta, constanza, rodrigo, matias),
-            moviles = moviles,
-            habilitaciones = habilitaciones,
-            pasajeros = pasajeros,
-            viajes = viajes,
-            viajePasajeros = viajePasajeros,
-            pagos = pagos,
+    private fun viajes(cuentas: Cuentas, pagos: List<PagoEntity>, ahora: LocalDateTime, descargadoEn: Long): List<ViajeDemo> {
+        val fabrica = FabricaViaje(ahora, descargadoEn, pagos)
+        return listOf(
+            fabrica.viaje(
+                1033, EstadoViaje.CANCELADO, cuentas.constanza, EL_BOSQUE_NORTE, AEROPUERTO, ahora.minusDays(1),
+                listOf(PAULA_LAGOS to null),
+            ),
+            fabrica.viaje(
+                1036, EstadoViaje.CANCELADO, cuentas.matias, VINA_DEL_MAR, VALPARAISO, ahora.plusDays(2),
+                listOf(JAVIERA_NUNEZ to null),
+                motivo = "Cliente reprogramó el traslado",
+            ),
+            // Vencido (más de 1 hora después de su hora agendada), con el pago Pagado.
+            fabrica.viaje(
+                1038, EstadoViaje.PENDIENTE, cuentas.constanza, NUNOA, AEROPUERTO, ahora.minusHours(3),
+                listOf(LUIS_PINO to null),
+            ),
+            fabrica.viaje(
+                1039, EstadoViaje.FINALIZADO, cuentas.constanza, APOQUINDO, AEROPUERTO, ahora.minusHours(5),
+                listOf(ROBERTO_AGUILAR to ahora.minusHours(5).minusMinutes(10)),
+                conductor = cuentas.ivan, patente = "LPHT17",
+                fhAsignacion = ahora.minusDays(2), fhInicio = ahora.minusHours(5).minusMinutes(5), fhFin = ahora.minusHours(4),
+            ),
+            // Viaje en ventana de inicio: 3 pasajeros, 1 ya abordado.
+            fabrica.viaje(
+                1042, EstadoViaje.ASIGNADO, cuentas.constanza, AEROPUERTO, APOQUINDO, ahora.plusMinutes(30),
+                listOf(CONSTANZA_RIOS to ahora.minusMinutes(5), TOMAS_VIDAL to null, MARCELA_SOTO to null),
+                conductor = cuentas.ivan, patente = "KXJR42", numeroVuelo = "LA1502", fhAsignacion = ahora.minusDays(1),
+            ),
+            fabrica.viaje(
+                1045, EstadoViaje.EN_CURSO, cuentas.matias, PROVIDENCIA, AEROPUERTO, ahora.minusMinutes(20),
+                listOf(JAVIERA_NUNEZ to ahora.minusMinutes(30)),
+                conductor = cuentas.jorge, patente = "GZRW90", fhAsignacion = ahora.minusDays(1), fhInicio = ahora.minusMinutes(25),
+            ),
+            // Atrasado: pasó su hora agendada, pero aún puede iniciarse.
+            fabrica.viaje(
+                1047, EstadoViaje.PENDIENTE, cuentas.constanza, PROVIDENCIA, AEROPUERTO, ahora.minusMinutes(30),
+                listOf(DIEGO_FUENTES to null),
+            ),
+            fabrica.viaje(
+                1049, EstadoViaje.ASIGNADO, cuentas.constanza, ISIDORA_GOYENECHEA, AEROPUERTO, ahora.plusHours(4).plusMinutes(15),
+                listOf(FELIPE_MORA to null),
+                conductor = cuentas.ivan, patente = "LPHT17", fhAsignacion = ahora.minusDays(1),
+            ),
+            fabrica.viaje(
+                1051, EstadoViaje.PENDIENTE, cuentas.constanza, VITACURA, AEROPUERTO, ahora.plusDays(1),
+                listOf(MARCELA_SOTO to null, TOMAS_VIDAL to null),
+            ),
+            fabrica.viaje(
+                1053, EstadoViaje.PENDIENTE, cuentas.matias, VINA_DEL_MAR, AEROPUERTO, ahora.plusDays(3),
+                listOf(JAVIERA_NUNEZ to null),
+            ),
+            // Sin pasajeros: no se puede asignar hasta agregar al menos uno.
+            fabrica.viaje(
+                1055, EstadoViaje.PENDIENTE, cuentas.constanza, VITACURA_2939, AEROPUERTO, ahora.plusDays(2),
+                emptyList(),
+            ),
         )
     }
 }

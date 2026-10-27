@@ -18,6 +18,7 @@ import cl.belmontespa.myapplication.navigation.BelmonteApp
 import cl.belmontespa.myapplication.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.navigation.PantallaDemo
 import cl.belmontespa.myapplication.repository.AuthRepository
+import cl.belmontespa.myapplication.repository.usuario
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.util.Hashes
 import kotlinx.coroutines.flow.first

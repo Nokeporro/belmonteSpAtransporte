@@ -46,61 +46,86 @@ open class SoporteLocal(
             SoporteLocal(AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago)
     }
 
-    suspend fun sesion(rol: Rol? = null, permitirTemporal: Boolean = false): Sesion {
-        val estado = sesiones.estado.first()
-        val sesion = when (estado) {
+    suspend fun sesion(rol: Rol? = null, permitirTemporal: Boolean = false): Resultado<Sesion> {
+        val sesion = when (val estado = sesiones.estado.first()) {
             is EstadoSesion.Autenticada -> estado.sesion
-            is EstadoSesion.Temporal -> if (permitirTemporal) estado.sesion else falla(ErrorApp.SinPermiso())
-            else -> falla(ErrorApp.SesionExpirada)
+            is EstadoSesion.Temporal -> if (permitirTemporal) estado.sesion else return sinPermiso()
+            else -> return Resultado.Fallo(ErrorApp.SesionExpirada)
         }
-        if (rol != null && sesion.rol != rol) falla(ErrorApp.SinPermiso())
-        return sesion
+        if (rol != null && sesion.rol != rol) return sinPermiso()
+        return Resultado.Exito(sesion)
     }
-    // Todas las escrituras demo se confirman juntas o se revierten.
-    suspend fun <T> ejecutar(block: suspend () -> T): Resultado<T> = try {
-        Resultado.Exito(db.withTransaction { block() })
+
+    /**
+     * Corre [bloque] en una transacción de Room. Si devuelve un fallo, deshace lo que ya haya escrito: sale de la
+     * transacción con [Deshacer], que se atrapa aquí mismo y entrega ese fallo.
+     */
+    suspend fun <T> ejecutar(bloque: suspend () -> Resultado<T>): Resultado<T> = try {
+        db.withTransaction {
+            when (val resultado = bloque()) {
+                is Resultado.Exito -> resultado
+                is Resultado.Fallo -> throw Deshacer(resultado)
+                is Resultado.Encolado -> throw Deshacer(resultado)
+            }
+        }
     } catch (e: CancellationException) { throw e
-    } catch (e: ReglaLocal) { Resultado.Fallo(e.error)
+    } catch (e: Deshacer) { e.resultado
     } catch (e: android.database.sqlite.SQLiteConstraintException) {
         Resultado.Fallo(ErrorApp.Conflicto("El registro ya existe o está relacionado con otros datos."))
     } catch (e: IllegalArgumentException) {
         Resultado.Fallo(ErrorApp.Validacion(mapOf("datos" to "Revisa los datos ingresados.")))
     } catch (e: Exception) { Resultado.Fallo(ErrorApp.Inesperado) }
+
     suspend fun viajes(): List<ViajeEntity> = db.viajeDao().observarLista(null, null, null, null, false).first().map { it.viaje }
-    suspend fun viaje(folio: String): ViajeEntity = db.viajeDao().obtener(folio) ?: falla(ErrorApp.NoEncontrado)
-    suspend fun usuario(correo: String): UsuarioEntity = db.usuarioDao().obtener(correo) ?: falla(ErrorApp.NoEncontrado)
-    suspend fun conductor(correo: String): Conductor {
-        val u = usuario(correo)
-        if (u.rol != Rol.CONDUCTOR.name) falla(ErrorApp.NoEncontrado)
-        val agenda = viajes().filter { it.correoConductor == correo }
-        return Conductor(u.nombre, u.correo, u.telefono, FechaIso.leer(u.fechaRegistro), u.activo,
-            EstadoConductor.valueOf(u.estadoConductor!!), agenda.count { it.estado == "ASIGNADO" },
+    suspend fun buscarViaje(folio: String): ViajeEntity? = db.viajeDao().obtener(folio)
+    suspend fun buscarUsuario(correo: String): UsuarioEntity? = db.usuarioDao().obtener(correo)
+
+    /** El conductor con ese correo; `null` si no existe o la cuenta es de otro rol. */
+    suspend fun conductor(correo: String): Conductor? =
+        buscarUsuario(correo)?.takeIf { it.rol == Rol.CONDUCTOR.name }?.let { conductorDe(it) }
+
+    suspend fun conductorDe(usuario: UsuarioEntity): Conductor {
+        val agenda = viajes().filter { it.correoConductor == usuario.correo }
+        return Conductor(usuario.nombre, usuario.correo, usuario.telefono, FechaIso.leer(usuario.fechaRegistro), usuario.activo,
+            EstadoConductor.valueOf(usuario.estadoConductor!!), agenda.count { it.estado == "ASIGNADO" },
             agenda.firstOrNull { it.estado == "EN_CURSO" }?.folio)
     }
-    suspend fun alcance(folio: String): ViajeEntity {
-        val s = sesion()
-        val v = viaje(folio)
-        if (s.rol == Rol.SOLICITANTE && v.correoSolicitante != s.correo ||
-            s.rol == Rol.CONDUCTOR && v.correoConductor != s.correo) falla(ErrorApp.SinPermiso())
-        return v
+
+    /** El viaje, solo si está dentro del alcance de la sesión (el Solicitante los suyos, el Conductor los asignados). */
+    suspend fun alcance(folio: String): Resultado<ViajeEntity> {
+        val sesion = sesion().obtener { return it }
+        val viaje = buscarViaje(folio) ?: return noEncontrado
+        val ajeno = sesion.rol == Rol.SOLICITANTE && viaje.correoSolicitante != sesion.correo ||
+            sesion.rol == Rol.CONDUCTOR && viaje.correoConductor != sesion.correo
+        return if (ajeno) sinPermiso() else Resultado.Exito(viaje)
     }
 }
+
+/** Sale de la transacción de [SoporteLocal.ejecutar] para deshacerla; lleva el fallo que se devuelve. */
+private class Deshacer(val resultado: Resultado<Nothing>) : RuntimeException()
 
 /** Vigencia de toda contraseña temporal: la de RF21 y la inicial de un Administrador nuevo (CU-18). */
 internal val VIGENCIA_TEMPORAL: Duration = Duration.ofHours(24)
 
-internal class ReglaLocal(val error: ErrorApp) : RuntimeException()
-internal fun validar(errores: Map<String, String>) {
-    if (errores.isNotEmpty()) falla(ErrorApp.Validacion(errores))
+// Los fallos que una operación devuelve con `return@ejecutar`.
+internal fun conflicto(mensaje: String) = Resultado.Fallo(ErrorApp.Conflicto(mensaje))
+internal fun invalido(errores: Map<String, String>) = Resultado.Fallo(ErrorApp.Validacion(errores))
+internal fun sinPermiso() = Resultado.Fallo(ErrorApp.SinPermiso())
+internal val noEncontrado = Resultado.Fallo(ErrorApp.NoEncontrado)
+
+/**
+ * El valor de un resultado exitoso; si no lo es, ejecuta [salir] con el fallo, que corta la operación:
+ * `val sesion = local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }`.
+ */
+internal inline fun <T> Resultado<T>.obtener(salir: (Resultado<Nothing>) -> Nothing): T = when (this) {
+    is Resultado.Exito -> valor
+    is Resultado.Fallo -> salir(this)
+    is Resultado.Encolado -> salir(this)
 }
-internal fun falla(error: ErrorApp): Nothing = throw ReglaLocal(error)
-internal fun exigir(condicion: Boolean, mensaje: String) {
-    if (!condicion) falla(ErrorApp.Conflicto(mensaje))
-}
-internal fun UsuarioEntity.cuenta() = Cuenta(nombre, correo, telefono, Rol.valueOf(rol),
-    FechaIso.leer(fechaRegistro), razonSocial, rutEmpresa, estadoSolicitante?.let(EstadoSolicitante::valueOf))
-internal fun UsuarioEntity.solicitante() = Solicitante(nombre, correo, telefono, FechaIso.leer(fechaRegistro),
-    razonSocial!!, rutEmpresa!!, EstadoSolicitante.valueOf(estadoSolicitante!!))
-internal fun MovilEntity.modelo() = Movil(patente, capacidad, gpsSerial, activo, EstadoMovil.valueOf(estadoMovil), codigoAbordaje)
-internal fun PagoEntity.modelo() = Pago(hash, folio, monto, EstadoPago.valueOf(estadoPago), banco, codSbif,
-    rutEmpresa, MedioPago.valueOf(medioPago), TipoRecibo.valueOf(tipoRecibo), fechaPago?.let(FechaIso::leer), montoReembolsado)
+internal fun aCuenta(u: UsuarioEntity) = Cuenta(u.nombre, u.correo, u.telefono, Rol.valueOf(u.rol),
+    FechaIso.leer(u.fechaRegistro), u.razonSocial, u.rutEmpresa, u.estadoSolicitante?.let(EstadoSolicitante::valueOf))
+internal fun aSolicitante(u: UsuarioEntity) = Solicitante(u.nombre, u.correo, u.telefono, FechaIso.leer(u.fechaRegistro),
+    u.razonSocial!!, u.rutEmpresa!!, EstadoSolicitante.valueOf(u.estadoSolicitante!!))
+internal fun aMovil(m: MovilEntity) = Movil(m.patente, m.capacidad, m.gpsSerial, m.activo, EstadoMovil.valueOf(m.estadoMovil), m.codigoAbordaje)
+internal fun aPago(p: PagoEntity) = Pago(p.hash, p.folio, p.monto, EstadoPago.valueOf(p.estadoPago), p.banco, p.codSbif,
+    p.rutEmpresa, MedioPago.valueOf(p.medioPago), TipoRecibo.valueOf(p.tipoRecibo), p.fechaPago?.let(FechaIso::leer), p.montoReembolsado)

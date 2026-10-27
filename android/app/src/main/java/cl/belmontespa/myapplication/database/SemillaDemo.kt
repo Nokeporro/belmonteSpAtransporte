@@ -29,105 +29,105 @@ class SemillaDemo(private val clock: Clock = Reloj.santiago) : RoomDatabase.Call
             ahora = LocalDateTime.now(clock).truncatedTo(ChronoUnit.MINUTES),
             descargadoEn = clock.millis(),
         )
-        semilla.usuarios.forEach { db.insertar("usuarios", it.valores()) }
-        semilla.moviles.forEach { db.insertar("moviles", it.valores()) }
-        semilla.habilitaciones.forEach { db.insertar("habilitaciones", it.valores()) }
-        semilla.pasajeros.forEach { db.insertar("pasajeros", it.valores()) }
-        semilla.viajes.forEach { db.insertar("viajes", it.valores()) }
-        semilla.viajePasajeros.forEach { db.insertar("viaje_pasajeros", it.valores()) }
-        semilla.pagos.forEach { db.insertar("pagos", it.valores()) }
+        semilla.usuarios.forEach { db.insertar("usuarios", valoresUsuario(it)) }
+        semilla.moviles.forEach { db.insertar("moviles", valoresMovil(it)) }
+        semilla.habilitaciones.forEach { db.insertar("habilitaciones", valoresHabilitacion(it)) }
+        semilla.pasajeros.forEach { db.insertar("pasajeros", valoresPasajero(it)) }
+        semilla.viajes.forEach { db.insertar("viajes", valoresViaje(it)) }
+        semilla.viajePasajeros.forEach { db.insertar("viaje_pasajeros", valoresViajePasajero(it)) }
+        semilla.pagos.forEach { db.insertar("pagos", valoresPago(it)) }
     }
 
     private fun SupportSQLiteDatabase.insertar(tabla: String, valores: ContentValues) {
         insert(tabla, SQLiteDatabase.CONFLICT_ABORT, valores)
     }
 
-    private fun UsuarioEntity.valores() = contentValuesOf(
-        "correo" to correo,
-        "nombre" to nombre,
-        "telefono" to telefono,
-        "rol" to rol,
-        "activo" to activo,
-        "estado_conductor" to estadoConductor,
-        "estado_solicitante" to estadoSolicitante,
-        "razon_social" to razonSocial,
-        "rut_empresa" to rutEmpresa,
-        "fecha_registro" to fechaRegistro,
-        "password_sha256" to passwordSha256,
-        "password_temporal_sha256" to passwordTemporalSha256,
-        "password_temporal_expira" to passwordTemporalExpira,
+    private fun valoresUsuario(e: UsuarioEntity) = contentValuesOf(
+        "correo" to e.correo,
+        "nombre" to e.nombre,
+        "telefono" to e.telefono,
+        "rol" to e.rol,
+        "activo" to e.activo,
+        "estado_conductor" to e.estadoConductor,
+        "estado_solicitante" to e.estadoSolicitante,
+        "razon_social" to e.razonSocial,
+        "rut_empresa" to e.rutEmpresa,
+        "fecha_registro" to e.fechaRegistro,
+        "password_sha256" to e.passwordSha256,
+        "password_temporal_sha256" to e.passwordTemporalSha256,
+        "password_temporal_expira" to e.passwordTemporalExpira,
     )
 
-    private fun MovilEntity.valores() = contentValuesOf(
-        "patente" to patente,
-        "capacidad" to capacidad,
-        "gps_serial" to gpsSerial,
-        "activo" to activo,
-        "estado_movil" to estadoMovil,
-        "codigo_abordaje" to codigoAbordaje,
+    private fun valoresMovil(e: MovilEntity) = contentValuesOf(
+        "patente" to e.patente,
+        "capacidad" to e.capacidad,
+        "gps_serial" to e.gpsSerial,
+        "activo" to e.activo,
+        "estado_movil" to e.estadoMovil,
+        "codigo_abordaje" to e.codigoAbordaje,
     )
 
-    private fun HabilitacionEntity.valores() = contentValuesOf(
-        "patente" to patente,
-        "correo_conductor" to correoConductor,
+    private fun valoresHabilitacion(e: HabilitacionEntity) = contentValuesOf(
+        "patente" to e.patente,
+        "correo_conductor" to e.correoConductor,
     )
 
-    private fun PasajeroEntity.valores() = contentValuesOf(
-        "dni_hash" to dniHash,
-        "nombre" to nombre,
+    private fun valoresPasajero(e: PasajeroEntity) = contentValuesOf(
+        "dni_hash" to e.dniHash,
+        "nombre" to e.nombre,
     )
 
-    private fun ViajeEntity.valores() = contentValuesOf(
-        "folio" to folio,
-        "estado" to estado,
-        "correo_solicitante" to correoSolicitante,
-        "nombre_solicitante" to nombreSolicitante,
-        "telefono_solicitante" to telefonoSolicitante,
-        "razon_social" to razonSocial,
-        "origen_direccion" to origenDireccion,
-        "origen_comuna" to origenComuna,
-        "origen_region" to origenRegion,
-        "origen_latitud" to origenLatitud,
-        "origen_longitud" to origenLongitud,
-        "destino_direccion" to destinoDireccion,
-        "destino_comuna" to destinoComuna,
-        "destino_region" to destinoRegion,
-        "destino_latitud" to destinoLatitud,
-        "destino_longitud" to destinoLongitud,
-        "fh_creacion" to fhCreacion,
-        "fh_agenda" to fhAgenda,
-        "fh_asignacion" to fhAsignacion,
-        "fh_inicio" to fhInicio,
-        "fh_fin" to fhFin,
-        "numero_vuelo" to numeroVuelo,
-        "cantidad_pasajeros" to cantidadPasajeros,
-        "correo_conductor" to correoConductor,
-        "nombre_conductor" to nombreConductor,
-        "patente_movil" to patenteMovil,
-        "hash_pago" to hashPago,
-        "estado_pago" to estadoPago,
-        "motivo" to motivo,
-        "folio_correlativo" to folioCorrelativo,
-        "descargado_en" to descargadoEn,
+    private fun valoresViaje(e: ViajeEntity) = contentValuesOf(
+        "folio" to e.folio,
+        "estado" to e.estado,
+        "correo_solicitante" to e.correoSolicitante,
+        "nombre_solicitante" to e.nombreSolicitante,
+        "telefono_solicitante" to e.telefonoSolicitante,
+        "razon_social" to e.razonSocial,
+        "origen_direccion" to e.origenDireccion,
+        "origen_comuna" to e.origenComuna,
+        "origen_region" to e.origenRegion,
+        "origen_latitud" to e.origenLatitud,
+        "origen_longitud" to e.origenLongitud,
+        "destino_direccion" to e.destinoDireccion,
+        "destino_comuna" to e.destinoComuna,
+        "destino_region" to e.destinoRegion,
+        "destino_latitud" to e.destinoLatitud,
+        "destino_longitud" to e.destinoLongitud,
+        "fh_creacion" to e.fhCreacion,
+        "fh_agenda" to e.fhAgenda,
+        "fh_asignacion" to e.fhAsignacion,
+        "fh_inicio" to e.fhInicio,
+        "fh_fin" to e.fhFin,
+        "numero_vuelo" to e.numeroVuelo,
+        "cantidad_pasajeros" to e.cantidadPasajeros,
+        "correo_conductor" to e.correoConductor,
+        "nombre_conductor" to e.nombreConductor,
+        "patente_movil" to e.patenteMovil,
+        "hash_pago" to e.hashPago,
+        "estado_pago" to e.estadoPago,
+        "motivo" to e.motivo,
+        "folio_correlativo" to e.folioCorrelativo,
+        "descargado_en" to e.descargadoEn,
     )
 
-    private fun ViajePasajeroEntity.valores() = contentValuesOf(
-        "folio" to folio,
-        "dni_hash" to dniHash,
-        "fh_abordaje" to fhAbordaje,
+    private fun valoresViajePasajero(e: ViajePasajeroEntity) = contentValuesOf(
+        "folio" to e.folio,
+        "dni_hash" to e.dniHash,
+        "fh_abordaje" to e.fhAbordaje,
     )
 
-    private fun PagoEntity.valores() = contentValuesOf(
-        "hash" to hash,
-        "folio" to folio,
-        "monto" to monto,
-        "estado_pago" to estadoPago,
-        "banco" to banco,
-        "cod_sbif" to codSbif,
-        "rut_empresa" to rutEmpresa,
-        "medio_pago" to medioPago,
-        "tipo_recibo" to tipoRecibo,
-        "fecha_pago" to fechaPago,
-        "monto_reembolsado" to montoReembolsado,
+    private fun valoresPago(e: PagoEntity) = contentValuesOf(
+        "hash" to e.hash,
+        "folio" to e.folio,
+        "monto" to e.monto,
+        "estado_pago" to e.estadoPago,
+        "banco" to e.banco,
+        "cod_sbif" to e.codSbif,
+        "rut_empresa" to e.rutEmpresa,
+        "medio_pago" to e.medioPago,
+        "tipo_recibo" to e.tipoRecibo,
+        "fecha_pago" to e.fechaPago,
+        "monto_reembolsado" to e.montoReembolsado,
     )
 }

@@ -11,7 +11,6 @@ import cl.belmontespa.myapplication.model.Movil
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.repository.CuentaRepository
 import cl.belmontespa.myapplication.repository.FlotaRepository
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.viewmodel.DATOS_INVALIDOS
 import cl.belmontespa.myapplication.viewmodel.FalloPantalla
 import cl.belmontespa.myapplication.viewmodel.capturar

@@ -2,7 +2,6 @@ package cl.belmontespa.myapplication.repository
 
 import android.app.Application
 import cl.belmontespa.myapplication.model.CodigoAbordaje
-import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.TipoDocumento
@@ -22,10 +21,10 @@ open class AbordajeRepository(private val local: SoporteLocal) {
     /** Devuelve la hora de abordaje guardada (la misma si se repite). */
     open suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> = local.ejecutar {
         // Primero la forma (400) y después la búsqueda (404), como el backend.
-        if (!Validaciones.documentoValido(tipoDocumento, dni)) falla(ErrorApp.Validacion(mapOf("dni" to "Ingresa un documento válido.")))
+        if (!Validaciones.documentoValido(tipoDocumento, dni)) return@ejecutar invalido(mapOf("dni" to "Ingresa un documento válido."))
         // Patente inexistente, código ajeno, sin viaje candidato o documento que no viaja: siempre el mismo NoEncontrado.
-        val movil = local.db.movilDao().obtener(codigo.patente.uppercase()) ?: falla(ErrorApp.NoEncontrado)
-        if (movil.codigoAbordaje != codigo.codigo.filterNot(Char::isWhitespace).uppercase()) falla(ErrorApp.NoEncontrado)
+        val movil = local.db.movilDao().obtener(codigo.patente.uppercase()) ?: return@ejecutar noEncontrado
+        if (movil.codigoAbordaje != codigo.codigo.filterNot(Char::isWhitespace).uppercase()) return@ejecutar noEncontrado
         val hash = Hashes.documento(dni)
         val ahora = local.ahora()
         val candidatos = ordenarPorCercania(
@@ -40,6 +39,6 @@ open class AbordajeRepository(private val local: SoporteLocal) {
             local.db.viajePasajeroDao().marcarAbordaje(viaje.folio, hash, FechaIso.texto(marca))
             break
         }
-        marca ?: falla(ErrorApp.NoEncontrado)
+        if (marca == null) noEncontrado else Resultado.Exito(marca)
     }
 }

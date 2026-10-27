@@ -2,6 +2,8 @@ package cl.belmontespa.myapplication.view.abordaje
 
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -43,6 +45,9 @@ class ConfirmarAbordajeScreenTest {
 
     private fun texto(id: Int) = textos.getString(id)
 
+    // El título de la pantalla dice lo mismo que el botón: el botón es el que se puede tocar.
+    private fun botonConfirmar() = hasText(texto(R.string.abordaje_confirmar)) and hasClickAction()
+
     @Test
     fun muestraElVehiculoYPideElTipoYElDocumento() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo))
@@ -59,14 +64,14 @@ class ConfirmarAbordajeScreenTest {
     fun noDejaConfirmarSinDocumento() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo))
 
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsNotEnabled()
+        compose.onNode(botonConfirmar()).assertIsNotEnabled()
     }
 
     @Test
     fun conDocumentoDejaConfirmar() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo, documento = "15.234.567-4"))
 
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsEnabled().performClick()
+        compose.onNode(botonConfirmar()).assertIsEnabled().performClick()
 
         assertEquals(listOf("confirmar"), llamadas)
     }
@@ -94,7 +99,7 @@ class ConfirmarAbordajeScreenTest {
 
         compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_no_encontrado)).assertExists()
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsEnabled()
+        compose.onNode(botonConfirmar()).assertIsEnabled()
     }
 
     @Test
@@ -103,14 +108,14 @@ class ConfirmarAbordajeScreenTest {
 
         compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.error_sin_conexion)).assertExists()
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsEnabled()
+        compose.onNode(botonConfirmar()).assertIsEnabled()
     }
 
     @Test
     fun mientrasSeEnviaNoSePuedeConfirmarDeNuevo() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo, documento = "15.234.567-4", enviando = true))
 
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsNotEnabled()
+        compose.onNode(botonConfirmar()).assertIsNotEnabled()
     }
 
     @Test
@@ -119,7 +124,7 @@ class ConfirmarAbordajeScreenTest {
 
         compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_qr_ajeno)).assertExists()
-        compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertDoesNotExist()
+        compose.onNode(botonConfirmar()).assertDoesNotExist()
         compose.onNodeWithText(texto(R.string.accion_volver)).performClick()
 
         assertEquals(listOf("volver"), llamadas)

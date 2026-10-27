@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import cl.belmontespa.myapplication.model.Cuenta
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.repository.CuentaRepository
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.viewmodel.capturar
 import cl.belmontespa.myapplication.viewmodel.valor
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -155,7 +155,8 @@ class CancelarViajeScreenTest {
         campo(R.string.campo_motivo).performTextInput("Nadie lo atendió")
         campo(R.string.campo_reembolso).performTextReplacement("20000")
 
-        assertEquals(listOf("Nadie lo atendió"), avisos.motivos)
+        // Con un estado fijo el campo vuelve a su valor y avisa otra vez: interesa lo primero que escribió.
+        assertEquals("Nadie lo atendió", avisos.motivos.first())
         assertEquals(listOf("20000"), avisos.reembolsos)
     }
 
@@ -190,7 +191,8 @@ class CancelarViajeScreenTest {
         mostrar(estado().copy(enviando = true, motivo = "Nadie lo atendió"))
 
         compose.onNodeWithText(texto(R.string.accion_confirmar)).assertIsNotEnabled()
-        campo(R.string.campo_motivo).assertIsNotEnabled()
+        // Un campo deshabilitado ya no ofrece la acción de escribir, así que se busca solo por su etiqueta.
+        compose.onNode(hasText(texto(R.string.campo_motivo))).assertIsNotEnabled()
     }
 
     @Test

@@ -12,7 +12,6 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.permiteCambioA
 import cl.belmontespa.myapplication.repository.CuentaRepository
 import cl.belmontespa.myapplication.repository.PagoRepository
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.viewmodel.DATOS_INVALIDOS
 import cl.belmontespa.myapplication.viewmodel.FalloPantalla
 import cl.belmontespa.myapplication.viewmodel.capturar

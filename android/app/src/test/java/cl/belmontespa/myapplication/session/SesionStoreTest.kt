@@ -14,12 +14,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -97,26 +94,13 @@ class SesionStoreTest {
         normal.guardar(sesion)
         temporal.guardarTemporal(sesion)
 
-        val estadosNormales = mutableListOf<EstadoSesion>()
-        val estadosTemporales = mutableListOf<EstadoSesion>()
-
-        // Las suscripciones se cancelan automáticamente al terminar la prueba.
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            normal.estado.collect { estadosNormales.add(it) }
-        }
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-            temporal.estado.collect { estadosTemporales.add(it) }
-        }
-        runCurrent()
-
-        assertEquals(EstadoSesion.Autenticada(sesion), estadosNormales.last())
-        assertEquals(EstadoSesion.Temporal(sesion), estadosTemporales.last())
+        assertEquals(EstadoSesion.Autenticada(sesion), normal.estado.first())
+        assertEquals(EstadoSesion.Temporal(sesion), temporal.estado.first())
 
         advanceTimeBy(1_000)
-        runCurrent()
 
-        assertEquals(EstadoSesion.SinSesion, estadosNormales.last())
-        assertEquals(EstadoSesion.SinSesion, estadosTemporales.last())
+        assertEquals(EstadoSesion.SinSesion, normal.estado.first())
+        assertEquals(EstadoSesion.SinSesion, temporal.estado.first())
     }
 
     private fun sesion(expiraEn: Long) = Sesion(

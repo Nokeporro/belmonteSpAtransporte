@@ -13,6 +13,7 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.navigation.PantallaDemo
+import cl.belmontespa.myapplication.repository.viaje
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.*
@@ -73,7 +74,8 @@ class HU24ScreenTest {
         confirmar()
 
         esperarTexto(compose.activity.getString(R.string.campo_monto_reembolsado))
-        compose.onNodeWithText("\$48.000").performScrollTo().assertIsDisplayed()
+        // El detalle del pago muestra el monto y, con el mismo valor, el monto reembolsado.
+        compose.onAllNodesWithText("\$48.000").assertCountEquals(2)
         runBlocking {
             val pago = local.db.pagoDao().obtener(local.viaje("TR-1042").hashPago!!)!!
             assertEquals("REEMBOLSADO", pago.estadoPago); assertEquals(48_000, pago.montoReembolsado)

@@ -15,10 +15,10 @@ import cl.belmontespa.myapplication.model.aModelo
 import cl.belmontespa.myapplication.session.SesionStore
 import java.time.Clock
 import java.time.LocalDate
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -36,21 +36,19 @@ open class ViajeRepository(private val local: SoporteLocal) {
     private val clock: Clock get() = local.clock
     private val operaciones = OperacionesViajeLocal(local)
 
-    // `flatMapLatest` hace que la lista siga a la sesión: si cambia la cuenta, deja la consulta de la anterior y
-    // empieza la de la nueva. Sin sesión autenticada no se entregan viajes de la demo.
-    @OptIn(ExperimentalCoroutinesApi::class)
-    open fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> =
-        sesionStore.estado.flatMapLatest { estado ->
-            val sesion = (estado as? EstadoSesion.Autenticada)?.sesion
-            if (sesion == null) flowOf(emptyList()) else listaPara(sesion, filtro)
-        }
+    // La sesión se lee una vez, al empezar a observar: al cambiar de cuenta la app abre otras pantallas y vuelve a
+    // observar. Sin sesión autenticada no se entregan viajes de la demo.
+    open fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> = flow {
+        val sesion = sesionAutenticada()
+        if (sesion == null) emit(emptyList()) else emitAll(listaPara(sesion, filtro))
+    }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    open fun observarViaje(folio: String): Flow<Viaje?> =
-        sesionStore.estado.flatMapLatest { estado ->
-            val sesion = (estado as? EstadoSesion.Autenticada)?.sesion
-            if (sesion == null) flowOf(null) else detallePara(sesion, folio)
-        }
+    open fun observarViaje(folio: String): Flow<Viaje?> = flow {
+        val sesion = sesionAutenticada()
+        if (sesion == null) emit(null) else emitAll(detallePara(sesion, folio))
+    }
+
+    private suspend fun sesionAutenticada(): Sesion? = (sesionStore.estado.first() as? EstadoSesion.Autenticada)?.sesion
 
     // Los viajes de la sesión que cumplen el filtro; el filtro de cuenta se aplica en la consulta de Room.
     private fun listaPara(sesion: Sesion, filtro: FiltroViajes): Flow<List<Viaje>> {

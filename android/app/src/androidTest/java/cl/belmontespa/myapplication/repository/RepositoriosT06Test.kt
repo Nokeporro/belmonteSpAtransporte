@@ -320,6 +320,8 @@ class RepositoriosT06Test {
         assertEquals(Hashes.password(temporal.password), guardado.passwordTemporalSha256)
         assertEquals(reloj.millis() + java.time.Duration.ofHours(24).toMillis(), guardado.passwordTemporalExpira)
         assertTrue((auth.iniciarSesion(solicitante.correo, temporal.password) as Resultado.Exito).valor is EstadoSesion.Temporal)
+        // Entrar con la temporal reemplaza la sesión del Administrador: se vuelve a entrar como Administrador.
+        entrar(Rol.ADMINISTRADOR)
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ireyes@belmontespa.cl"))
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ausente@test.cl"))
         assertTrue((auth.recuperarPassword("sin-correo") as Resultado.Fallo).error is ErrorApp.Validacion)

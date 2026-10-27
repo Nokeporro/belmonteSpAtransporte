@@ -14,14 +14,10 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.util.Reloj
 import java.time.Clock
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -37,33 +33,19 @@ class SesionStore(
     private val temporal = MutableStateFlow<Sesion?>(null)
 
     /**
-     * El estado de la sesión, en dos pasos:
-     * 1. `combine` junta lo guardado en DataStore con la sesión temporal (si hay una, esa manda).
-     * 2. `flatMapLatest` emite ese estado y, cuando la sesión vence, `SinSesion`. Si la sesión cambia antes, descarta
-     *    la espera anterior y arranca la de la nueva.
-     * Una sesión vencida cuenta como sin sesión: la app abre el Login.
+     * El estado de la sesión: lo guardado en DataStore junto con la sesión temporal (si hay una, esa manda).
+     * Una sesión vencida cuenta como sin sesión. El vencimiento se comprueba cada vez que cambia lo guardado; quien
+     * muestre la sesión en pantalla (`SesionViewModel`) espera además a la hora de vencimiento.
      */
-    @OptIn(ExperimentalCoroutinesApi::class)
     val estado: Flow<EstadoSesion> =
         combine(dataStore.data, temporal) { preferencias, sesionTemporal ->
-            if (sesionTemporal != null) EstadoSesion.Temporal(sesionTemporal)
-            else leer(preferencias)?.let { EstadoSesion.Autenticada(it) }
-        }.flatMapLatest { vigente -> hastaQueVenza(vigente) }.distinctUntilChanged()
-
-    // Emite el estado mientras la sesión no haya vencido y, al vencer, SinSesion. La espera es local: no consulta al backend.
-    private fun hastaQueVenza(vigente: EstadoSesion?): Flow<EstadoSesion> = flow {
-        val sesion = when (vigente) {
-            is EstadoSesion.Temporal -> vigente.sesion
-            is EstadoSesion.Autenticada -> vigente.sesion
-            else -> null
-        }
-        val restante = if (sesion == null) 0L else sesion.expiraEn - clock.millis()
-        if (vigente != null && restante > 0) {
-            emit(vigente)
-            delay(restante)
-        }
-        emit(EstadoSesion.SinSesion)
-    }
+            val sesion = sesionTemporal ?: leer(preferencias)
+            when {
+                sesion == null || sesion.expiraEn <= clock.millis() -> EstadoSesion.SinSesion
+                sesionTemporal != null -> EstadoSesion.Temporal(sesion)
+                else -> EstadoSesion.Autenticada(sesion)
+            }
+        }.distinctUntilChanged()
 
     /** Correo de la última cuenta que entró, para detectar un cambio de cuenta. */
     val ultimaCuenta: Flow<String?> =

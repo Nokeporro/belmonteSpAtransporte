@@ -44,22 +44,24 @@ open class AuthRepository(private val local: SoporteLocal) {
     open suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> {
         val resultado = local.ejecutar {
             val usuario = usuarioDao.obtener(Validaciones.correo(correo))
-                ?: falla(ErrorApp.SesionExpirada)
+                ?: return@ejecutar Resultado.Fallo(ErrorApp.SesionExpirada)
             val normal = usuario.passwordSha256 == Hashes.password(password)
             val temporal = usuario.rol in listOf("SOLICITANTE", "ADMINISTRADOR") &&
                 usuario.passwordTemporalSha256 == Hashes.password(password) &&
                 (usuario.passwordTemporalExpira ?: Long.MIN_VALUE) > clock.millis()
-            if ((!normal && !temporal) || !usuario.activo) falla(ErrorApp.SesionExpirada)
+            if ((!normal && !temporal) || !usuario.activo) return@ejecutar Resultado.Fallo(ErrorApp.SesionExpirada)
             when (usuario.estadoSolicitante) {
-                EstadoSolicitante.PENDIENTE.name -> falla(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE))
-                EstadoSolicitante.RECHAZADO.name -> falla(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_RECHAZADA))
+                EstadoSolicitante.PENDIENTE.name ->
+                    return@ejecutar Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_PENDIENTE))
+                EstadoSolicitante.RECHAZADO.name ->
+                    return@ejecutar Resultado.Fallo(ErrorApp.SinPermiso(MotivoSinPermiso.CUENTA_RECHAZADA))
             }
             val sesion = Sesion("demo-${UUID.randomUUID()}", usuario.correo, Rol.valueOf(usuario.rol),
                 clock.millis() + DURACION_SESION.toMillis())
             if (normal) {
                 usuarioDao.guardar(usuario.copy(passwordTemporalSha256 = null, passwordTemporalExpira = null))
-                EstadoSesion.Autenticada(sesion)
-            } else EstadoSesion.Temporal(sesion)
+                Resultado.Exito(EstadoSesion.Autenticada(sesion))
+            } else Resultado.Exito(EstadoSesion.Temporal(sesion))
         }
         if (resultado is Resultado.Exito) when (val estado = resultado.valor) {
             is EstadoSesion.Temporal -> sesionStore.guardarTemporal(estado.sesion)
@@ -71,9 +73,10 @@ open class AuthRepository(private val local: SoporteLocal) {
 
     open suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> =
         local.ejecutar {
-            validar(Validaciones.registro(registro))
+            val errores = Validaciones.registro(registro)
+            if (errores.isNotEmpty()) return@ejecutar invalido(errores)
             if (usuarioDao.obtener(Validaciones.correo(registro.correo)) != null) {
-                falla(ErrorApp.Conflicto("El correo ya está registrado."))
+                return@ejecutar conflicto("El correo ya está registrado.")
             }
             val rut = Hashes.normalizarDocumento(registro.rutEmpresa)
             val existentes = usuarioDao.observarPorRol("SOLICITANTE").first()
@@ -92,7 +95,7 @@ open class AuthRepository(private val local: SoporteLocal) {
                 Hashes.password(registro.password),
             )
             usuarioDao.insertar(u)
-            u.solicitante()
+            Resultado.Exito(aSolicitante(u))
         }
 
     /**
@@ -100,17 +103,20 @@ open class AuthRepository(private val local: SoporteLocal) {
      * Se devuelve una sola vez; la build demo no envía correos y el Administrador la entrega por el suyo.
      */
     open suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> = local.ejecutar {
-        local.sesion(Rol.ADMINISTRADOR)
-        validar(Validaciones.recuperarPassword(correo))
-        val usuario = local.usuario(Validaciones.correo(correo))
-        if (usuario.rol == Rol.CONDUCTOR.name) falla(ErrorApp.NoEncontrado)
+        local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
+        val errores = Validaciones.recuperarPassword(correo)
+        if (errores.isNotEmpty()) return@ejecutar invalido(errores)
+        val usuario = local.buscarUsuario(Validaciones.correo(correo)) ?: return@ejecutar noEncontrado
+        if (usuario.rol == Rol.CONDUCTOR.name) return@ejecutar noEncontrado
         val password = passwordTemporal()
         val expiraMillis = clock.millis() + VIGENCIA_TEMPORAL.toMillis()
         usuarioDao.guardar(usuario.copy(
             passwordTemporalSha256 = Hashes.password(password),
             passwordTemporalExpira = expiraMillis,
         ))
-        PasswordTemporal(usuario.correo, password, LocalDateTime.ofInstant(Instant.ofEpochMilli(expiraMillis), clock.zone))
+        Resultado.Exito(
+            PasswordTemporal(usuario.correo, password, LocalDateTime.ofInstant(Instant.ofEpochMilli(expiraMillis), clock.zone)),
+        )
     }
 
     /** La build demo no tiene push. */

@@ -3,6 +3,10 @@ package cl.belmontespa.myapplication.view.conductor
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -11,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.platform.app.InstrumentationRegistry
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.AppNavegacion
@@ -104,6 +109,10 @@ class DetalleViajeScreenTest {
     }
 
     private fun texto(id: Int) = textos.getString(id)
+
+    // El diálogo repite «Rechazar» en el título y en el botón, y la pantalla de atrás tiene el suyo.
+    private fun botonRechazarDelDialogo() =
+        hasText(texto(R.string.accion_rechazar)) and hasClickAction() and hasAnyAncestor(isDialog())
 
     @Test
     fun muestraLosDatosDelViaje() {
@@ -258,10 +267,11 @@ class DetalleViajeScreenTest {
         val avisos = Avisos()
         mostrar(estado(), avisos)
 
-        compose.onNodeWithText(texto(R.string.accion_iniciar)).performClick()
-        compose.onNodeWithText(texto(R.string.accion_navegar_origen)).performClick()
-        compose.onNodeWithText(texto(R.string.accion_rechazar)).performClick()
-        compose.onNodeWithText(texto(R.string.accion_actualizar)).performClick()
+        // La pantalla se desplaza: los botones de abajo se buscan y se muestran antes de tocarlos.
+        compose.onNodeWithText(texto(R.string.accion_iniciar)).performScrollTo().performClick()
+        compose.onNodeWithText(texto(R.string.accion_navegar_origen)).performScrollTo().performClick()
+        compose.onNodeWithText(texto(R.string.accion_rechazar)).performScrollTo().performClick()
+        compose.onNodeWithText(texto(R.string.accion_actualizar)).performScrollTo().performClick()
 
         assertEquals(listOf("iniciar", "navegar", "rechazar", "actualizar"), avisos.llamadas)
     }
@@ -278,11 +288,12 @@ class DetalleViajeScreenTest {
     }
 
     @Test
-    fun rechazarPideMotivoYNoSePuedeConfirmarSinEl() {
+    fun rechazarPideElMotivoYLoValidaElViewModelAlConfirmar() {
         mostrar(estado(rechazando = true))
 
         compose.onNodeWithText(texto(R.string.campo_motivo)).assertExists()
-        compose.onAllNodesWithText(texto(R.string.accion_rechazar))[1].assertIsNotEnabled()
+        // El botón siempre está disponible: el ViewModel valida el motivo al confirmar y deja el error bajo el campo.
+        compose.onNode(botonRechazarDelDialogo()).assertIsEnabled()
     }
 
     @Test
@@ -290,7 +301,7 @@ class DetalleViajeScreenTest {
         val avisos = Avisos()
         mostrar(estado(rechazando = true, motivo = "Vehículo con falla"), avisos)
 
-        compose.onAllNodesWithText(texto(R.string.accion_rechazar))[1].assertIsEnabled().performClick()
+        compose.onNode(botonRechazarDelDialogo()).assertIsEnabled().performClick()
 
         assertEquals(listOf("confirmarRechazo"), avisos.llamadas)
     }

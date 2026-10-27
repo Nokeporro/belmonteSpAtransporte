@@ -9,7 +9,6 @@ import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.NuevaCuenta
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.repository.CuentaRepository
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.util.Validaciones
 import cl.belmontespa.myapplication.viewmodel.DATOS_INVALIDOS
 import cl.belmontespa.myapplication.viewmodel.FalloPantalla

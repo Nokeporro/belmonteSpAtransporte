@@ -13,6 +13,7 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.navigation.PantallaDemo
+import cl.belmontespa.myapplication.repository.usuario
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.*

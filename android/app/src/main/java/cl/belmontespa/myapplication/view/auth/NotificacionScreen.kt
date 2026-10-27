@@ -10,7 +10,6 @@ import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.navigation.PantallaDemo
-import cl.belmontespa.myapplication.repository.cuenta
 import cl.belmontespa.myapplication.util.Formatos
 import cl.belmontespa.myapplication.view.components.Accion
 import cl.belmontespa.myapplication.view.components.Aviso
