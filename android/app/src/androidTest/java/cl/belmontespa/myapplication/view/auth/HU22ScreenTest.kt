@@ -12,6 +12,8 @@ import cl.belmontespa.myapplication.MainActivity
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.Resultado
+import cl.belmontespa.myapplication.model.Rol
+import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.navigation.BelmonteApp
 import cl.belmontespa.myapplication.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.navigation.PantallaDemo
@@ -34,12 +36,13 @@ class HU22ScreenTest {
     private fun accion(id: Int) = compose.onNode(hasText(texto(id)) and hasClickAction())
     private fun esperar(id: Int) = compose.waitUntil(15_000) { compose.onAllNodesWithText(texto(id)).fetchSemanticsNodes().isNotEmpty() }
     private fun abrirRecuperacion() {
+        runBlocking { sesiones.guardar(Sesion("prueba", correo, Rol.ADMINISTRADOR, System.currentTimeMillis() + 3_600_000)) }
         compose.activity.runOnUiThread { compose.activity.setContent { BelmonteTheme {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
                 DestinoPantalla(PantallaDemo.RECUPERAR, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {})
             }
         } } }
-        esperar(R.string.campo_correo)
+        esperar(R.string.campo_correo_cuenta)
     }
     private fun abrirCambio(escala: Float = 1f) {
         runBlocking {
@@ -57,17 +60,31 @@ class HU22ScreenTest {
         } }
         esperar(R.string.aviso_cambio_password_obligatorio)
     }
-    @Test fun recuperacionValidaElCorreoYLaConfirmacionEsGenericaAl200PorCiento() {
+    @Test fun elAdministradorGeneraLaTemporalDeUnaCuentaYSeMuestraUnaSolaVezAl200PorCiento() {
         abrirRecuperacion()
-        campo(R.string.campo_correo).performTextInput("invalido")
-        accion(R.string.login_recuperar_password).performScrollTo().performClick()
+        campo(R.string.campo_correo_cuenta).performTextInput("invalido")
+        accion(R.string.recuperar_generar).performScrollTo().performClick()
         compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
-        for (valor in listOf(correo, "desconocido@test.cl")) {
-            campo(R.string.campo_correo).performScrollTo().performTextReplacement(valor)
-            accion(R.string.login_recuperar_password).performScrollTo().performClick(); esperar(R.string.aviso_recuperacion_enviada)
-            accion(R.string.login_recuperar_password).assertIsNotEnabled()
-            accion(R.string.login_iniciar_sesion).performScrollTo().assertIsDisplayed()
-        }
+        campo(R.string.campo_correo_cuenta).performScrollTo().performTextReplacement("ireyes@belmontespa.cl")
+        accion(R.string.recuperar_generar).performScrollTo().performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodesWithText(texto(R.string.recuperar_resultado)).assertCountEquals(0)
+        campo(R.string.campo_correo_cuenta).performScrollTo().performTextReplacement("crios@andesconsult.cl")
+        accion(R.string.recuperar_generar).performScrollTo().performClick(); esperar(R.string.recuperar_resultado)
+        accion(R.string.accion_copiar).performScrollTo().assertIsDisplayed()
+        assertNotNull(runBlocking { local.usuario("crios@andesconsult.cl").passwordTemporalSha256 })
+        campo(R.string.campo_correo_cuenta).performScrollTo().performTextReplacement("rperez@andesconsult.cl")
+        compose.onAllNodesWithText(texto(R.string.recuperar_resultado)).assertCountEquals(0)
+    }
+    @Test fun recuperarContrasenaEnElLoginSoloIndicaPedirLaTemporalAUnAdministrador() {
+        runBlocking { sesiones.borrar() }
+        compose.activity.runOnUiThread { compose.activity.setContent { BelmonteTheme {
+            DestinoPantalla(PantallaDemo.LOGIN, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {})
+        } } }
+        esperar(R.string.login_recuperar_password)
+        compose.onAllNodesWithText(texto(R.string.aviso_pedir_temporal_admin)).assertCountEquals(0)
+        accion(R.string.login_recuperar_password).performScrollTo().performClick()
+        esperar(R.string.aviso_pedir_temporal_admin)
     }
     @Test fun cambioConTemporalAl200PorCientoValidaCamposYAbreElInicioSoloAlGuardar() {
         abrirCambio(2f)

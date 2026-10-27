@@ -40,7 +40,7 @@ class HU28IT extends IntegrationTest {
         return "{\"nombre\":\"Nueva Administradora\",\"correo\":\"" + correo + "\",\"password\":\"NuevaClave987\",\"passwordActual\":\"" + actual + "\"}";
     }
 
-    @Test void altaNormalizadaSoloConTemporalBcryptDe72HorasYRespuestaSinSecretos() {
+    @Test void altaNormalizadaSoloConTemporalBcryptDe24HorasYRespuestaSinSecretos() {
         String correo = correo(); LocalDateTime antes = LocalDateTime.now(ClockConfig.ZONA);
         var alta = Api.exigir(api.post("/administradores", api.admin(), cuerpo("  " + correo.toUpperCase(java.util.Locale.ROOT) + "  ")
                 .replace("Nueva Administradora", "  Nueva Administradora  ").replace("\"password\"", "\"telefono\":\"9 5555-0101\",\"password\"")), "alta normalizada", 201);
@@ -52,7 +52,7 @@ class HU28IT extends IntegrationTest {
         String temporal = columna(correo, "password_temporal_hash");
         assertThat(temporal).startsWith("$2").isNotEqualTo(INICIAL); assertThat(encoder.matches(INICIAL, temporal)).isTrue();
         LocalDateTime vence = jdbc.queryForObject("select password_temporal_expira from usuario where correo=?", LocalDateTime.class, correo);
-        assertThat(vence).isBetween(antes.plusHours(72).minusSeconds(1), LocalDateTime.now(ClockConfig.ZONA).plusHours(72));
+        assertThat(vence).isBetween(antes.plusHours(24).minusSeconds(1), LocalDateTime.now(ClockConfig.ZONA).plusHours(24));
         var guardado = Api.exigir(api.get("/administradores/" + correo.toUpperCase(java.util.Locale.ROOT), api.admin()), "consultar", 200);
         assertThat(guardado.cuerpo()).isEqualTo(alta.cuerpo());
     }

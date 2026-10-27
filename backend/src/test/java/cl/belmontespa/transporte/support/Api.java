@@ -112,6 +112,12 @@ public class Api {
 				{"correo":"%s","password":"%s","tokenFcm":"%s"}""".formatted(correo, clave, tokenFcm));
 	}
 
+	/** CU-13: el Administrador (u otro token) pide la temporal de la cuenta con ese correo. */
+	public Resp recuperarPassword(String token, String correo) {
+		return post("/auth/recuperar-password", token, """
+				{"correo":"%s"}""".formatted(correo));
+	}
+
 	/** Registra el token FCM del dispositivo (RF13) al iniciar sesión y lo devuelve. */
 	public String dispositivo(Cuenta cuenta) {
 		String tokenFcm = "fcm-" + cuenta.correo();

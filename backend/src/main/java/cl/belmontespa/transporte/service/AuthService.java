@@ -1,10 +1,10 @@
 package cl.belmontespa.transporte.service;
 
-import cl.belmontespa.transporte.client.EmailClient;
 import cl.belmontespa.transporte.config.JwtProvider;
 import cl.belmontespa.transporte.dto.request.LoginDTORequest;
 import cl.belmontespa.transporte.dto.request.RecuperarPasswordDTORequest;
 import cl.belmontespa.transporte.dto.response.LoginDTOResponse;
+import cl.belmontespa.transporte.dto.response.PasswordTemporalDTOResponse;
 import cl.belmontespa.transporte.model.Usuario;
 import cl.belmontespa.transporte.repository.AdministradorRepository;
 import cl.belmontespa.transporte.repository.ConductorRepository;
@@ -32,24 +32,22 @@ public class AuthService {
 	private final SolicitanteRepository solicitanteRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtProvider jwtProvider;
-	private final EmailClient emailClient;
 	private final Clock clock;
-	private final long minutosPasswordTemporal;
+	private final long horasPasswordTemporal;
 	private final SecureRandom random = new SecureRandom();
 
 	public AuthService(UsuarioRepository usuarioRepository, AdministradorRepository administradorRepository,
 			ConductorRepository conductorRepository, SolicitanteRepository solicitanteRepository,
-			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, EmailClient emailClient, Clock clock,
-			@Value("${app.password-temporal.minutos:30}") long minutosPasswordTemporal) {
+			PasswordEncoder passwordEncoder, JwtProvider jwtProvider, Clock clock,
+			@Value("${app.password-temporal.horas:24}") long horasPasswordTemporal) {
 		this.usuarioRepository = usuarioRepository;
 		this.administradorRepository = administradorRepository;
 		this.conductorRepository = conductorRepository;
 		this.solicitanteRepository = solicitanteRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.jwtProvider = jwtProvider;
-		this.emailClient = emailClient;
 		this.clock = clock;
-		this.minutosPasswordTemporal = minutosPasswordTemporal;
+		this.horasPasswordTemporal = horasPasswordTemporal;
 	}
 
 	// CU-14: cualquier fallo da el mismo 401, sin indicar qué falló.
@@ -89,19 +87,18 @@ public class AuthService {
 		usuarioRepository.findByCorreoIgnoreCase(correo).ifPresent(u -> u.setTokenFcm(null));
 	}
 
+	// CU-13/RF21: lo llama un Administrador; solo Solicitante y Administrador tienen temporal.
+	// La devuelve una sola vez: el Administrador la entrega por su correo y el sistema no envía ninguno.
 	@Transactional
-	public void recuperarPassword(RecuperarPasswordDTORequest request) {
-		// CU-13/RF21: solo Solicitante y Administrador; nunca revela si el correo existe.
-		usuarioRepository.bloquearPorCorreo(request.correo())
+	public PasswordTemporalDTOResponse recuperarPassword(RecuperarPasswordDTORequest request) {
+		Usuario usuario = usuarioRepository.bloquearPorCorreo(request.correo())
 				.filter(u -> solicitanteRepository.existsById(u.getIdUsuario())
 						|| administradorRepository.existsById(u.getIdUsuario()))
-				.ifPresent(usuario -> {
-					String passwordTemporal = passwordTemporal();
-					usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
-					usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusMinutes(minutosPasswordTemporal).withNano(0));
-					emailClient.enviarPasswordTemporal(usuario.getCorreo(), usuario.getNombre(), passwordTemporal,
-							usuario.getPasswordTemporalExpira());
-				});
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		String passwordTemporal = passwordTemporal();
+		usuario.setPasswordTemporalHash(passwordEncoder.encode(passwordTemporal));
+		usuario.setPasswordTemporalExpira(LocalDateTime.now(clock).plusHours(horasPasswordTemporal).withNano(0));
+		return new PasswordTemporalDTOResponse(usuario.getCorreo(), passwordTemporal, usuario.getPasswordTemporalExpira());
 	}
 
 	// Sirve la contraseña normal o, mientras no venza, la temporal (RF21): ninguna reemplaza a la otra.

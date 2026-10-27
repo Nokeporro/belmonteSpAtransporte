@@ -73,7 +73,7 @@ class RepositoriosT06Test {
         assertEquals("+56955550101", administrador.telefono); assertEquals(Rol.ADMINISTRADOR, administrador.rol)
         val usuario = local.usuario(administrador.correo)
         assertNull(usuario.passwordSha256); assertEquals(Hashes.password("Inicial12345"), usuario.passwordTemporalSha256)
-        assertEquals(reloj.millis() + java.time.Duration.ofHours(72).toMillis(), usuario.passwordTemporalExpira)
+        assertEquals(reloj.millis() + java.time.Duration.ofHours(24).toMillis(), usuario.passwordTemporalExpira)
         val auth = AuthRepository(local)
         assertTrue((auth.iniciarSesion(administrador.correo, "Inicial12345") as Resultado.Exito).valor is EstadoSesion.Temporal)
         assertEquals(administrador, (cuentas.obtenerPerfil() as Resultado.Exito).valor)
@@ -306,13 +306,22 @@ class RepositoriosT06Test {
         db.usuarioDao().guardar(conductor)
         assertEquals(Resultado.Fallo(ErrorApp.SesionExpirada), AuthRepository(local).iniciarSesion(conductor.correo, "Temporal1234"))
     }
-    @Test fun recuperarEnDemoEsGenericoYConservaCredenciales() = runBlocking {
+    @Test fun recuperarGeneraLaTemporalDe24HorasSoloParaElAdministradorYConservaLaClaveActual() = runBlocking {
         val auth = AuthRepository(local)
-        val antes = local.usuario("recepcion@belmontespa.cl")
-        for (correo in listOf(antes.correo, "ireyes@belmontespa.cl", "ausente@test.cl")) {
-            assertEquals(Resultado.Exito(Unit), auth.recuperarPassword(correo))
-        }
-        assertEquals(antes, local.usuario(antes.correo))
+        val solicitante = local.usuario("crios@andesconsult.cl")
+        entrar(Rol.SOLICITANTE)
+        assertTrue((auth.recuperarPassword(solicitante.correo) as Resultado.Fallo).error is ErrorApp.SinPermiso)
+        assertEquals(solicitante, local.usuario(solicitante.correo))
+        entrar(Rol.ADMINISTRADOR)
+        val temporal = (auth.recuperarPassword("  CRIOS@andesconsult.cl ") as Resultado.Exito).valor
+        assertEquals(solicitante.correo, temporal.correo); assertEquals(12, temporal.password.length)
+        val guardado = local.usuario(solicitante.correo)
+        assertEquals(solicitante.passwordSha256, guardado.passwordSha256)
+        assertEquals(Hashes.password(temporal.password), guardado.passwordTemporalSha256)
+        assertEquals(reloj.millis() + java.time.Duration.ofHours(24).toMillis(), guardado.passwordTemporalExpira)
+        assertTrue((auth.iniciarSesion(solicitante.correo, temporal.password) as Resultado.Exito).valor is EstadoSesion.Temporal)
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ireyes@belmontespa.cl"))
+        assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ausente@test.cl"))
         assertTrue((auth.recuperarPassword("sin-correo") as Resultado.Fallo).error is ErrorApp.Validacion)
     }
     @Test fun pagoPendientePermiteConfirmarRechazarOAnularSinReembolso() = runBlocking {

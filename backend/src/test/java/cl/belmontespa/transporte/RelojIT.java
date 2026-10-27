@@ -74,17 +74,16 @@ class RelojIT extends IntegrationTest {
 	}
 
 	@Test
-	@DisplayName("la contraseña temporal vence a los 30 minutos contados en hora de Chile")
+	@DisplayName("la contraseña temporal vence a las 24 horas contadas en hora de Chile")
 	void vencimientoDeLaTemporal() {
 		Cuenta solicitante = api.solicitante();
-		Api.exigir(api.post("/auth/recuperar-password", null, """
-				{"correo":"%s"}""".formatted(solicitante.correo())), "recuperar contraseña", 204);
+		Api.exigir(api.recuperarPassword(api.admin(), solicitante.correo()), "recuperar contraseña", 200);
 
 		LocalDateTime vence = jdbc.queryForObject(
 				"SELECT password_temporal_expira FROM usuario WHERE correo = ?", LocalDateTime.class,
 				solicitante.correo());
 
 		assertThat(vence).isNotNull();
-		assertCerca(vence, ahoraEnChile().plusMinutes(30), "vencimiento de la temporal");
+		assertCerca(vence, ahoraEnChile().plusHours(24), "vencimiento de la temporal");
 	}
 }

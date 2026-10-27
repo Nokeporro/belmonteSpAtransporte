@@ -61,7 +61,6 @@ fun DestinoPantalla(
         ) {
             LoginScreen(
                 onCrearCuenta = { onNavegar(PantallaDemo.REGISTRO, "") },
-                onRecuperarPassword = { onNavegar(PantallaDemo.RECUPERAR, "") },
                 onAbordarViaje = { onNavegar(PantallaDemo.ABORDAR, "") },
                 correoInicial = referencia.takeIf { it.contains('@') }.orEmpty(),
                 mostrarSesionExpirada = pantalla == PantallaDemo.SESION_EXPIRADA,
@@ -93,7 +92,7 @@ fun DestinoPantalla(
         PantallaDemo.ASIGNAR -> AsignarScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
         PantallaDemo.CANCELAR_VIAJE -> CancelarViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
         PantallaDemo.REGISTRO -> RegistroScreen(onNavegar = onNavegar, onVolver = onVolver)
-        PantallaDemo.RECUPERAR -> RecuperarPasswordScreen(onNavegar = onNavegar, onVolver = onVolver)
+        PantallaDemo.RECUPERAR -> RecuperarPasswordScreen(onVolver = onVolver)
         PantallaDemo.CAMBIAR_PASSWORD, PantallaDemo.CAMBIO_OBLIGATORIO -> CambiarPasswordScreen(
             pantalla = pantalla, onVolver = onVolver, onCerrarSesion = onCerrarSesion,
         )

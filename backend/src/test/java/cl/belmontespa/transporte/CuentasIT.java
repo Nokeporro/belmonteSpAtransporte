@@ -27,7 +27,7 @@ class CuentasIT extends IntegrationTest {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	// Deja una temporal conocida por SQL, sin pasar por el correo.
+	// Deja una temporal conocida por SQL, sin pasar por la ruta del Administrador.
 	private void dejarTemporal(String correo, String clave, LocalDateTime vence) {
 		jdbc.update("UPDATE usuario SET password_temporal_hash = ?, password_temporal_expira = ? WHERE correo = ?",
 				passwordEncoder.encode(clave), vence, correo);
@@ -243,26 +243,34 @@ class CuentasIT extends IntegrationTest {
 	class Recuperar {
 
 		@Test
-		@DisplayName("responde 204 exista o no el correo, para no revelar cuentas")
-		void respuestaUniforme() {
+		@DisplayName("el Administrador recibe la temporal; un correo inexistente es 404 y uno mal formado, 400")
+		void respuestaDelAdministrador() {
 			Cuenta solicitante = api.solicitante();
-			String existente = "{\"correo\":\"%s\"}".formatted(solicitante.correo());
-			String fantasma = "{\"correo\":\"%s\"}".formatted(correoUnico("fantasma"));
-			assertThat(api.post("/auth/recuperar-password", null, existente).status()).isEqualTo(204);
-			assertThat(api.post("/auth/recuperar-password", null, fantasma).status()).isEqualTo(204);
-			assertThat(api.post("/auth/recuperar-password", null, "{\"correo\":\"no-es-correo\"}").status())
-					.isEqualTo(400);
+			Resp temporal = Api.exigir(api.recuperarPassword(api.admin(), solicitante.correo()), "recuperar", 200);
+			assertThat(temporal.texto("$.correo")).isEqualTo(solicitante.correo());
+			assertThat(temporal.texto("$.passwordTemporal")).hasSize(12);
+			assertThat(api.recuperarPassword(api.admin(), correoUnico("fantasma")).status()).isEqualTo(404);
+			assertThat(api.recuperarPassword(api.admin(), "no-es-correo").status()).isEqualTo(400);
 		}
 
 		@Test
-		@DisplayName("guarda una temporal para el solicitante, pero no para un conductor")
+		@DisplayName("guarda una temporal para el solicitante, pero no para un conductor (404)")
 		void soloSolicitanteYAdministrador() {
 			Cuenta solicitante = api.solicitante();
 			Cuenta conductor = api.conductor();
-			api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(solicitante.correo()));
-			api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(conductor.correo()));
+			assertThat(api.recuperarPassword(api.admin(), solicitante.correo()).status()).isEqualTo(200);
+			assertThat(api.recuperarPassword(api.admin(), conductor.correo()).status()).isEqualTo(404);
 			assertThat(temporalGuardada(solicitante.correo())).isNotNull();
 			assertThat(temporalGuardada(conductor.correo())).isNull();
+		}
+
+		@Test
+		@DisplayName("solo el Administrador la pide: sin JWT es 401 y un Solicitante, 403")
+		void soloElAdministrador() {
+			Cuenta solicitante = api.solicitante();
+			assertThat(api.recuperarPassword(null, solicitante.correo()).status()).isEqualTo(401);
+			assertThat(api.recuperarPassword(solicitante.token(), solicitante.correo()).status()).isEqualTo(403);
+			assertThat(temporalGuardada(solicitante.correo())).isNull();
 		}
 
 		@Test

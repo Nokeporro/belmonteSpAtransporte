@@ -13,7 +13,7 @@ enum class PantallaDemo(@param:StringRes val titulo: Int, val rol: Rol?) {
     LOGIN(R.string.t06_login, null),
     LOGIN_DEMO(R.string.t06_login_demo, null),
     REGISTRO(R.string.t06_registro, null),
-    RECUPERAR(R.string.t06_recuperar, null),
+    RECUPERAR(R.string.t06_recuperar, Rol.ADMINISTRADOR),
     CAMBIO_OBLIGATORIO(R.string.t06_cambio_obligatorio, null),
     SESION_EXPIRADA(R.string.t06_sesion_expirada, null),
     ABORDAR(R.string.t06_abordar, null),
@@ -57,7 +57,7 @@ enum class PantallaDemo(@param:StringRes val titulo: Int, val rol: Rol?) {
     PERFIL_CONDUCTOR(R.string.t06_perfil_conductor, Rol.CONDUCTOR);
 
     // Solo estas pantallas se pueden recorrer sin una cuenta autenticada.
-    val publica: Boolean get() = ordinal <= ABORDADO.ordinal && this != CAMBIO_OBLIGATORIO
+    val publica: Boolean get() = ordinal <= ABORDADO.ordinal && this != CAMBIO_OBLIGATORIO && this != RECUPERAR
 }
 
 // Solo identificadores: nunca se serializan formularios, documentos ni contraseñas.

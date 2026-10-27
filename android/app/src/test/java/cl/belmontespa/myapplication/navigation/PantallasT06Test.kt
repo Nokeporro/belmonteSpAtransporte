@@ -39,6 +39,13 @@ class PantallasT06Test {
         assertFalse(reemplazaDetalleAnterior(d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_ADMIN)))
         assertFalse(reemplazaDetalleAnterior(null, d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_ADMIN)))
     }
+    @Test fun recuperarLaContrasenaEsDelAdministradorYNoEsPublica() {
+        assertEquals(Rol.ADMINISTRADOR, PantallaDemo.RECUPERAR.rol)
+        assertFalse(PantallaDemo.RECUPERAR.publica)
+        assertFalse(permitePantalla(PantallaDemo.RECUPERAR, EstadoSesion.SinSesion))
+        val administrador = EstadoSesion.Autenticada(Sesion("prueba", "admin@ejemplo.cl", Rol.ADMINISTRADOR, Long.MAX_VALUE))
+        assertTrue(permitePantalla(PantallaDemo.RECUPERAR, administrador))
+    }
     @Test fun laTemporalSoloAbreElCambioObligatorio() {
         val estado = EstadoSesion.Temporal(Sesion("temporal", "cuenta@ejemplo.cl", Rol.ADMINISTRADOR, Long.MAX_VALUE))
         PantallaDemo.entries.forEach { assertEquals(it == PantallaDemo.CAMBIO_OBLIGATORIO, permitePantalla(it, estado)) }

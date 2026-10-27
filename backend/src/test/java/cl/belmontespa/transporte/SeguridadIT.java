@@ -179,8 +179,9 @@ class SeguridadIT extends IntegrationTest {
 	void endpointsPublicos() {
 		// POST /solicitantes es el autorregistro (RF01): sin token llega a la validación.
 		assertThat(api.post("/solicitantes", null, "{\"correo\":\"x\"}").status()).isEqualTo(400);
+		// Recuperar la contraseña es del Administrador (CU-13): sin token no llega a la validación.
 		assertThat(api.post("/auth/recuperar-password", null, "{\"correo\":\"nadie@test.cl\"}").status())
-				.isEqualTo(204);
+				.isEqualTo(401);
 	}
 
 	@Test

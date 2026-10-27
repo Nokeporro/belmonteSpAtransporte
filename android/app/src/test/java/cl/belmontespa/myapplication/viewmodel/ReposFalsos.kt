@@ -19,6 +19,7 @@ import cl.belmontespa.myapplication.model.NuevoMovil
 import cl.belmontespa.myapplication.model.NuevoPago
 import cl.belmontespa.myapplication.model.NuevoPasajero
 import cl.belmontespa.myapplication.model.Pago
+import cl.belmontespa.myapplication.model.PasswordTemporal
 import cl.belmontespa.myapplication.model.Region
 import cl.belmontespa.myapplication.model.RegistroSolicitante
 import cl.belmontespa.myapplication.model.Resultado
@@ -69,6 +70,7 @@ internal class ReposP1Falsos {
     var cambiosPago = 0
     var recuperaciones = 0
     var correoRecuperacion: String? = null
+    val TEMPORAL = "Abc123xyzQ98"
     var cambiosPassword = 0
     var clavesCambiadas: Pair<String, String>? = null
     var pendientesRevision = emptyList<Solicitante>()
@@ -227,9 +229,9 @@ internal class ReposP1Falsos {
             return Resultado.Exito(Solicitante(registro.nombre, registro.correo, registro.telefono, perfil.fechaRegistro,
                 registro.razonSocial, registro.rutEmpresa, estadoRegistro))
         }
-        override suspend fun recuperarPassword(correo: String): Resultado<Unit> {
+        override suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> {
             recuperaciones++; correoRecuperacion = correo; espera?.await()
-            return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
+            return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(PasswordTemporal(correo, TEMPORAL, perfil.fechaRegistro.plusHours(24)))
         }
         override suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = sinUso()
         override suspend fun cerrarSesion(): Resultado<Unit> = sinUso()

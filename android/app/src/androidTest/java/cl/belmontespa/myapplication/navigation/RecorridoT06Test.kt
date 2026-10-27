@@ -59,7 +59,7 @@ class RecorridoT06Test {
                     val (pantalla, id) = seleccion
                     when (pantalla) {
                         PantallaDemo.INICIO -> PantallaCargando(texto = compose.activity.getString(R.string.inicio_comprobando_sesion))
-                        PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> LoginContenido(LoginUiState(), pantalla == PantallaDemo.LOGIN_DEMO, {}, {}, {}, {}, {}, {})
+                        PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> LoginContenido(LoginUiState(), pantalla == PantallaDemo.LOGIN_DEMO, {}, {}, {}, {}, {})
                         else -> DestinoPantalla(pantalla, id, { _, _ -> }, {}, {})
                     }
                 }

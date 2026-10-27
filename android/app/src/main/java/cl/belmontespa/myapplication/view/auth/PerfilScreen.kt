@@ -52,6 +52,7 @@ fun PerfilScreen(
             }
             if (cuenta.rol == Rol.ADMINISTRADOR) {
                 Accion(R.string.t06_registrar_admin, { onNavegar(PantallaDemo.REGISTRAR_ADMIN, "") }, TipoBoton.SECUNDARIO)
+                Accion(R.string.accion_restablecer_password, { onNavegar(PantallaDemo.RECUPERAR, "") }, TipoBoton.SECUNDARIO)
                 Accion(R.string.t06_cuentas_pendientes, { onNavegar(PantallaDemo.CUENTAS_PENDIENTES, "") }, TipoBoton.SECUNDARIO)
             }
             if (BuildConfig.MODO_LOCAL) {

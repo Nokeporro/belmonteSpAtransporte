@@ -10,33 +10,21 @@ import cl.belmontespa.transporte.support.Api.Cuenta;
 import cl.belmontespa.transporte.support.Api.Flota;
 import cl.belmontespa.transporte.support.FcmGrabador.Envio;
 import cl.belmontespa.transporte.support.IntegrationTest;
-import jakarta.mail.internet.MimeMessage;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("Avisos externos: correo de recuperación (RF21) y push (RF12)")
+@DisplayName("Avisos externos: push (RF12) y correo")
 class NotificacionesIT extends IntegrationTest {
 
 	// `{fecha}` del README: 24-09-2026 · 14:30, escrita aquí a mano para no repetir el código que se prueba.
 	private String fechaDelViaje(String folio) {
 		LocalDateTime agenda = LocalDateTime.parse(Api.exigir(api.verViaje(folio), "consultar viaje", 200).texto("$.fhAgenda"));
 		return DateTimeFormatter.ofPattern("dd-MM-yyyy · HH:mm").format(agenda);
-	}
-
-	private int recuperar(String correo) {
-		return api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(correo)).status();
-	}
-
-	private MimeMessage esperarUnCorreo() {
-		assertThat(CORREO.waitForIncomingEmail(5000, 1)).as("llegó un correo").isTrue();
-		return CORREO.getReceivedMessages()[0];
 	}
 
 	private List<Envio> esperarEnvios(int cantidad) {
@@ -50,53 +38,33 @@ class NotificacionesIT extends IntegrationTest {
 	}
 
 	@Nested
-	@DisplayName("Contraseña temporal por correo (CU-13)")
-	class CorreoDeRecuperacion {
+	@DisplayName("Contraseña temporal (CU-13): la entrega el Administrador, no el correo del sistema")
+	class SinCorreoDeRecuperacion {
 
 		@Test
-		@DisplayName("el solicitante recibe una clave de 12 caracteres que sirve junto con la actual")
-		void recibeLaClaveYPuedeEntrar() throws Exception {
+		@DisplayName("el Administrador recibe la clave en la respuesta y no sale ningún correo")
+		void noEnviaCorreo() {
 			Cuenta ana = api.solicitante();
 
-			assertThat(recuperar(ana.correo())).isEqualTo(204);
+			var resp = Api.exigir(api.recuperarPassword(api.admin(), ana.correo()), "recuperar contraseña", 200);
 
-			MimeMessage correo = esperarUnCorreo();
-			assertThat(correo.getAllRecipients()[0].toString()).isEqualTo(ana.correo());
-			assertThat(correo.getFrom()[0].toString()).isEqualTo("no-reply@belmontespa.cl");
-			assertThat(correo.getSubject()).isEqualTo("Belmonte SpA: tu contraseña temporal");
-			String cuerpo = (String) correo.getContent();
-			assertThat(cuerpo).contains("tu contraseña actual sigue funcionando.", "vence el", "Belmonte SpA");
-			Matcher clave = Pattern.compile("tu contraseña temporal es ([A-Za-z0-9]{12}) y vence el").matcher(cuerpo);
-			assertThat(clave.find()).as("el cuerpo trae la clave temporal").isTrue();
-
-			assertThat(api.iniciarSesion(ana.correo(), clave.group(1)).status()).isEqualTo(200);
-			assertThat(api.iniciarSesion(ana.correo(), Api.CLAVE).status()).isEqualTo(200);
-			assertThat(api.iniciarSesion(ana.correo(), clave.group(1)).status()).isEqualTo(401);
-		}
-
-		@Test
-		@DisplayName("la respuesta HTTP no contiene la clave")
-		void respuestaSinClave() {
-			Cuenta ana = api.solicitante();
-			var resp = api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(ana.correo()));
-			assertThat(resp.status()).isEqualTo(204);
-			assertThat(resp.cuerpo()).isEmpty();
-		}
-
-		@Test
-		@DisplayName("un correo inexistente o un conductor no reciben nada")
-		void soloSolicitanteYAdministrador() throws Exception {
-			Cuenta conductor = api.conductor();
-			Cuenta control = api.solicitante();
-
-			assertThat(recuperar("fantasma-" + System.nanoTime() + "@test.cl")).isEqualTo(204);
-			assertThat(recuperar(conductor.correo())).isEqualTo(204);
-			assertThat(recuperar(control.correo())).isEqualTo(204);
-
-			MimeMessage unico = esperarUnCorreo();
+			assertThat(resp.texto("$.passwordTemporal")).matches("[A-Za-z0-9]{12}");
+			assertThat(api.iniciarSesion(ana.correo(), resp.texto("$.passwordTemporal")).status()).isEqualTo(200);
 			dejarPasarEnvios();
-			assertThat(CORREO.getReceivedMessages()).hasSize(1);
-			assertThat(unico.getAllRecipients()[0].toString()).isEqualTo(control.correo());
+			assertThat(CORREO.getReceivedMessages()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("un correo inexistente o un conductor no tienen temporal (404) y tampoco reciben correo")
+		void soloSolicitanteYAdministrador() {
+			Cuenta conductor = api.conductor();
+
+			assertThat(api.recuperarPassword(api.admin(), "fantasma-" + System.nanoTime() + "@test.cl").status())
+					.isEqualTo(404);
+			assertThat(api.recuperarPassword(api.admin(), conductor.correo()).status()).isEqualTo(404);
+
+			dejarPasarEnvios();
+			assertThat(CORREO.getReceivedMessages()).isEmpty();
 		}
 	}
 

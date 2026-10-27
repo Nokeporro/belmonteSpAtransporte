@@ -1,6 +1,5 @@
 package cl.belmontespa.myapplication.viewmodel.auth
 
-import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.viewmodel.ReposP1Falsos
 import cl.belmontespa.myapplication.viewmodel.aplicacionFalsa
@@ -42,23 +41,38 @@ class RecuperarPasswordViewModelTest {
         assertEquals(0, repos.recuperaciones)
     }
 
-    @Test fun normalizaElCorreoYBloqueaElDobleToque() = runTest(dispatcher) {
+    @Test fun normalizaElCorreoBloqueaElDobleToqueYMuestraLaTemporal() = runTest(dispatcher) {
         vm.escribirCorreo("  ANA@Test.CL  ")
         repos.espera = CompletableDeferred()
         vm.recuperar(); vm.recuperar(); runCurrent()
         assertEquals(1, repos.recuperaciones); assertEquals("ana@test.cl", repos.correoRecuperacion)
-        assertTrue(vm.estado.value.enviando); assertNull(vm.estado.value.aviso)
+        assertTrue(vm.estado.value.enviando); assertNull(vm.estado.value.temporal)
         repos.espera!!.complete(Unit); runCurrent()
-        assertEquals(R.string.aviso_recuperacion_enviada, vm.estado.value.aviso)
-        assertTrue(vm.estado.value.enviado); assertFalse(vm.estado.value.modificado)
+        val temporal = vm.estado.value.temporal!!
+        assertEquals("ana@test.cl", temporal.correo); assertEquals(repos.TEMPORAL, temporal.password)
+        assertFalse(vm.estado.value.enviando); assertFalse(vm.estado.value.modificado)
     }
 
-    @Test fun sinConexionConservaElCorreoYNoMuestraLaConfirmacion() = runTest(dispatcher) {
+    @Test fun cambiarElCorreoOcultaLaTemporalAnterior() = runTest(dispatcher) {
+        vm.escribirCorreo("ana@test.cl"); vm.recuperar(); runCurrent()
+        assertTrue(vm.estado.value.temporal != null)
+        vm.escribirCorreo("beto@test.cl")
+        assertNull(vm.estado.value.temporal); assertTrue(vm.estado.value.modificado)
+    }
+
+    @Test fun unaCuentaSinTemporalSeAvisaEnElCampo() = runTest(dispatcher) {
+        vm.escribirCorreo("conductor@test.cl")
+        repos.fallo = ErrorApp.NoEncontrado; vm.recuperar(); runCurrent()
+        assertEquals(setOf("correo"), (vm.estado.value.error as ErrorApp.Validacion).errores.keys)
+        assertNull(vm.estado.value.temporal)
+    }
+
+    @Test fun sinConexionConservaElCorreoYNoMuestraLaTemporal() = runTest(dispatcher) {
         vm.escribirCorreo("ana@test.cl")
         repos.fallo = ErrorApp.SinConexion; vm.recuperar(); runCurrent()
         assertEquals("ana@test.cl", vm.estado.value.correo); assertEquals(repos.fallo, vm.estado.value.error)
-        assertNull(vm.estado.value.aviso); assertFalse(vm.estado.value.enviando)
+        assertNull(vm.estado.value.temporal); assertFalse(vm.estado.value.enviando)
         repos.fallo = null; vm.recuperar(); runCurrent()
-        assertEquals(R.string.aviso_recuperacion_enviada, vm.estado.value.aviso)
+        assertEquals(repos.TEMPORAL, vm.estado.value.temporal!!.password)
     }
 }

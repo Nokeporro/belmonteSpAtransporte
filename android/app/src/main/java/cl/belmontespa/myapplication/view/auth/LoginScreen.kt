@@ -19,6 +19,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -46,7 +49,6 @@ import cl.belmontespa.myapplication.viewmodel.auth.LoginViewModel
 @Composable
 fun LoginScreen(
     onCrearCuenta: () -> Unit,
-    onRecuperarPassword: () -> Unit,
     onAbordarViaje: () -> Unit,
     viewModel: LoginViewModel = viewModel(),
     correoInicial: String = "",
@@ -65,7 +67,6 @@ fun LoginScreen(
         onPassword = viewModel::cambiarPassword,
         onIniciarSesion = viewModel::iniciarSesion,
         onCrearCuenta = onCrearCuenta,
-        onRecuperarPassword = onRecuperarPassword,
         onAbordarViaje = onAbordarViaje,
     )
 }
@@ -78,9 +79,10 @@ fun LoginContenido(
     onPassword: (String) -> Unit,
     onIniciarSesion: () -> Unit,
     onCrearCuenta: () -> Unit,
-    onRecuperarPassword: () -> Unit,
     onAbordarViaje: () -> Unit,
 ) {
+    // «Recuperar contraseña» no navega: la temporal la genera un Administrador (CU-13).
+    var pedirTemporal by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -140,8 +142,11 @@ fun LoginContenido(
             onClick = onCrearCuenta,
             tipo = TipoBoton.SECUNDARIO,
         )
-        TextButton(onClick = onRecuperarPassword, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        TextButton(onClick = { pedirTemporal = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(stringResource(R.string.login_recuperar_password))
+        }
+        if (pedirTemporal) {
+            Aviso(stringResource(R.string.aviso_pedir_temporal_admin), TonoAviso.INFORMACION)
         }
         OutlinedButton(onClick = onAbordarViaje, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Icon(
@@ -170,7 +175,6 @@ private fun LoginDemoPreview() {
             onPassword = {},
             onIniciarSesion = {},
             onCrearCuenta = {},
-            onRecuperarPassword = {},
             onAbordarViaje = {},
         )
     }

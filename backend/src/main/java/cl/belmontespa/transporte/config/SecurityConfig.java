@@ -37,7 +37,9 @@ public class SecurityConfig {
 				.addFilterAfter(new PasswordTemporalFilter(json), org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class)
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/error").permitAll()
-						.requestMatchers(POST, "/api/v1/auth/login", "/api/v1/auth/recuperar-password").permitAll()
+						.requestMatchers(POST, "/api/v1/auth/login").permitAll()
+						// CU-13/RF21: el Administrador genera la temporal de otra cuenta.
+						.requestMatchers(POST, "/api/v1/auth/recuperar-password").hasRole(ADM)
 						// Autorregistro del Solicitante (RF01): aún no tiene JWT.
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
 						// Abordaje del Pasajero (RF28): no tiene cuenta, se identifica con el QR del vehículo y su documento.

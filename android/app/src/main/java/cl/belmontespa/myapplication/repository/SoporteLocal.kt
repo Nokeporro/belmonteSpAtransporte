@@ -27,6 +27,7 @@ import cl.belmontespa.myapplication.session.SesionStore
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Reloj
 import java.time.Clock
+import java.time.Duration
 import java.time.LocalDateTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
@@ -84,6 +85,9 @@ open class SoporteLocal(
         return v
     }
 }
+
+/** Vigencia de toda contraseña temporal: la de RF21 y la inicial de un Administrador nuevo (CU-18). */
+internal val VIGENCIA_TEMPORAL: Duration = Duration.ofHours(24)
 
 internal class ReglaLocal(val error: ErrorApp) : RuntimeException()
 internal fun validar(errores: Map<String, String>) {

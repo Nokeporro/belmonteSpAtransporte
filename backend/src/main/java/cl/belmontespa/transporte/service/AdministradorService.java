@@ -22,8 +22,8 @@ public class AdministradorService
 	private final EntityManager entityManager;
 
 	public AdministradorService(AdministradorRepository administradorRepository, UsuarioService usuarioService,
-			@Value("${app.alta-temporal.horas:72}") long horasTemporal, EntityManager entityManager) {
-		if (horasTemporal < 1) throw new IllegalArgumentException("ALTA_TEMPORAL_HORAS debe ser mayor que cero.");
+			@Value("${app.password-temporal.horas:24}") long horasTemporal, EntityManager entityManager) {
+		if (horasTemporal < 1) throw new IllegalArgumentException("PASSWORD_TEMPORAL_HORAS debe ser mayor que cero.");
 		this.administradorRepository = administradorRepository;
 		this.usuarioService = usuarioService;
 		this.horasTemporal = horasTemporal;

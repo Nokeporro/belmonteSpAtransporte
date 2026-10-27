@@ -2,21 +2,17 @@ package cl.belmontespa.transporte;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.awaitility.Awaitility.await;
 
 import cl.belmontespa.transporte.config.ClockConfig;
 import cl.belmontespa.transporte.dto.request.RecuperarPasswordDTORequest;
 import cl.belmontespa.transporte.service.AuthService;
 import cl.belmontespa.transporte.support.Api;
 import cl.belmontespa.transporte.support.IntegrationTest;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,19 +27,13 @@ class HU22IT extends IntegrationTest {
     @Autowired PlatformTransactionManager transacciones;
 
     private Api.Resp recuperar(String correo) {
-        return api.post("/auth/recuperar-password", null, "{\"correo\":\"%s\"}".formatted(correo));
+        return api.recuperarPassword(api.admin(), correo);
     }
     private String columna(String correo, String columna) {
         return jdbc.queryForObject("select " + columna + " from usuario where correo = ?", String.class, correo);
     }
-    private String recibirClave(String correo) throws Exception {
-        assertThat(CORREO.waitForIncomingEmail(5000, 1)).isTrue();
-        var mensaje = CORREO.getReceivedMessages()[0];
-        assertThat(mensaje.getAllRecipients()[0].toString()).isEqualTo(correo);
-        assertThat(mensaje.getSubject()).isEqualTo("Belmonte SpA: tu contraseña temporal");
-        var matcher = Pattern.compile("tu contraseña temporal es ([A-Za-z0-9]{12}) y vence el").matcher((String) mensaje.getContent());
-        assertThat(matcher.find()).isTrue();
-        return matcher.group(1);
+    private String pedirClave(String correo) {
+        return Api.exigir(recuperar(correo), "recuperar contraseña", 200).texto("$.passwordTemporal");
     }
     private String cuerpo(String correo, String actual, String nueva) {
         return """
@@ -51,33 +41,31 @@ class HU22IT extends IntegrationTest {
                 """.formatted(correo, actual, nueva);
     }
 
-    @Test void recuperaSolicitanteYAdministradorConCorreoExactoHashYVencimiento() throws Exception {
+    @Test void recuperaSolicitanteYAdministradorConCorreoExactoHashYVencimiento() {
         String administrador = "hu22-" + System.nanoTime() + "@test.cl";
         Api.exigir(api.post("/administradores", api.admin(), """
                 {"nombre":"Administrador HU22","correo":"%s","password":"ClaveOriginal123"}
                 """.formatted(administrador)), "alta", 201);
         for (String correo : List.of(api.solicitante().correo(), administrador)) {
-            CORREO.purgeEmailFromAllMailboxes();
             String anterior = columna(correo, "password_hash");
-            var respuesta = recuperar("  " + correo.toUpperCase() + "  ");
-            assertThat(respuesta.status()).isEqualTo(204); assertThat(respuesta.cuerpo()).isEmpty();
-            String clave = recibirClave(correo), hash = columna(correo, "password_temporal_hash");
+            var respuesta = Api.exigir(recuperar("  " + correo.toUpperCase() + "  "), "recuperar contraseña", 200);
+            String clave = respuesta.texto("$.passwordTemporal"), hash = columna(correo, "password_temporal_hash");
+            assertThat(respuesta.texto("$.correo")).isEqualTo(correo);
+            assertThat(clave).matches("[A-Za-z0-9]{12}");
             assertThat(hash).startsWith("$2").isNotEqualTo(clave); assertThat(encoder.matches(clave, hash)).isTrue();
             assertThat(columna(correo, "password_hash")).isEqualTo(anterior);
             LocalDateTime vence = jdbc.queryForObject("select password_temporal_expira from usuario where correo = ?", LocalDateTime.class, correo);
-            assertThat(vence).isBetween(LocalDateTime.now(ClockConfig.ZONA).plusMinutes(29), LocalDateTime.now(ClockConfig.ZONA).plusMinutes(31));
-            String esperado = "Hola " + columna(correo, "nombre") + ": tu contraseña temporal es " + clave + " y vence el " +
-                    DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss").format(vence) + ". Úsala para iniciar sesión; la app te pedirá crear una nueva. Si no la pediste, ignora este correo: tu contraseña actual sigue funcionando.\n\nBelmonte SpA";
-            assertThat(((String) CORREO.getReceivedMessages()[0].getContent()).replace("\r\n", "\n").stripTrailing()).isEqualTo(esperado);
+            assertThat(vence).isBetween(LocalDateTime.now(ClockConfig.ZONA).plusHours(24).minusMinutes(1), LocalDateTime.now(ClockConfig.ZONA).plusHours(24).plusMinutes(1));
+            assertThat(LocalDateTime.parse(respuesta.texto("$.expira"))).isEqualTo(vence);
+            assertThat(CORREO.getReceivedMessages()).isEmpty();
             var login = Api.exigir(api.iniciarSesion(correo, clave), "temporal", 200);
             assertThat(login.<Boolean>json("$.cambioPasswordRequerido")).isTrue();
             assertThat(api.get("/viajes", login.texto("$.accessToken")).status()).isEqualTo(403);
         }
     }
 
-    @Test void segundoPedidoReemplazaLaTemporalYLoginNormalLaInvalida() throws Exception {
-        var cuenta = api.solicitante(); recuperar(cuenta.correo()); String primera = recibirClave(cuenta.correo());
-        CORREO.purgeEmailFromAllMailboxes(); recuperar(cuenta.correo()); String segunda = recibirClave(cuenta.correo());
+    @Test void segundoPedidoReemplazaLaTemporalYLoginNormalLaInvalida() {
+        var cuenta = api.solicitante(); String primera = pedirClave(cuenta.correo()); String segunda = pedirClave(cuenta.correo());
         assertThat(segunda).isNotEqualTo(primera);
         assertThat(api.iniciarSesion(cuenta.correo(), primera).status()).isEqualTo(401);
         assertThat(api.iniciarSesion(cuenta.correo(), segunda).<Boolean>json("$.cambioPasswordRequerido")).isTrue();
@@ -87,8 +75,8 @@ class HU22IT extends IntegrationTest {
         assertThat(api.iniciarSesion(cuenta.correo(), segunda).status()).isEqualTo(401);
     }
 
-    @Test void temporalVencidaNoSirveParaLoginNiCambioYElErrorNoModificaElPerfil() throws Exception {
-        var cuenta = api.solicitante(); recuperar(cuenta.correo()); String clave = recibirClave(cuenta.correo());
+    @Test void temporalVencidaNoSirveParaLoginNiCambioYElErrorNoModificaElPerfil() {
+        var cuenta = api.solicitante(); String clave = pedirClave(cuenta.correo());
         String token = Api.exigir(api.iniciarSesion(cuenta.correo(), clave), "temporal", 200).texto("$.accessToken");
         jdbc.update("update usuario set password_temporal_expira = ? where correo = ?", LocalDateTime.now(ClockConfig.ZONA).minusSeconds(1), cuenta.correo());
         assertThat(api.iniciarSesion(cuenta.correo(), clave).status()).isEqualTo(401);
@@ -99,8 +87,8 @@ class HU22IT extends IntegrationTest {
         assertThat(api.iniciarSesion(cuenta.correo(), Api.CLAVE).status()).isEqualTo(200);
     }
 
-    @Test void cambioExigeClaveActualCorreoInmutableYAnulaLaTemporal() throws Exception {
-        var cuenta = api.solicitante(); recuperar(cuenta.correo()); String clave = recibirClave(cuenta.correo());
+    @Test void cambioExigeClaveActualCorreoInmutableYAnulaLaTemporal() {
+        var cuenta = api.solicitante(); String clave = pedirClave(cuenta.correo());
         String token = Api.exigir(api.iniciarSesion(cuenta.correo(), clave), "temporal", 200).texto("$.accessToken");
         String ruta = "/usuarios/" + cuenta.correo(), original = api.get(ruta, token).cuerpo();
         assertThat(api.put(ruta, token, cuerpo(cuenta.correo(), "", "NuevaClave987")).status()).isEqualTo(400);
@@ -114,20 +102,43 @@ class HU22IT extends IntegrationTest {
         assertThat(api.iniciarSesion(cuenta.correo(), "NuevaClave987").<Boolean>json("$.cambioPasswordRequerido")).isFalse();
     }
 
-    @Test void respuestaGenericaParaConductorInexistenteYCuentasNoAprobadas() throws Exception {
+    @Test void conductorYCorreoInexistenteDanNotFoundYNoDejanTemporal() {
         var conductor = api.conductor(); String antes = columna(conductor.correo(), "password_hash");
         for (String correo : List.of(conductor.correo(), "ausente-" + System.nanoTime() + "@test.cl")) {
-            var respuesta = recuperar(correo); assertThat(respuesta.status()).isEqualTo(204); assertThat(respuesta.cuerpo()).isEmpty();
+            assertThat(recuperar(correo).status()).isEqualTo(404);
         }
-        await().pollDelay(Duration.ofMillis(400)).atMost(Duration.ofSeconds(5)).until(() -> true);
-        assertThat(CORREO.getReceivedMessages()).isEmpty();
         assertThat(columna(conductor.correo(), "password_temporal_hash")).isNull(); assertThat(columna(conductor.correo(), "password_hash")).isEqualTo(antes);
-        jdbc.update("update usuario set password_temporal_hash=?,password_temporal_expira=? where correo=?", encoder.encode("Temporal1234"), LocalDateTime.now(ClockConfig.ZONA).plusMinutes(30), conductor.correo());
+        jdbc.update("update usuario set password_temporal_hash=?,password_temporal_expira=? where correo=?", encoder.encode("Temporal1234"), LocalDateTime.now(ClockConfig.ZONA).plusHours(1), conductor.correo());
         assertThat(api.iniciarSesion(conductor.correo(), "Temporal1234").status()).isEqualTo(401);
+    }
+
+    @Test void cuentaPendienteRecibeTemporalPeroNoPuedeEntrar() {
         var pendiente = api.solicitante();
         jdbc.update("update solicitante s join usuario u on u.id_usuario=s.id_usuario set s.estado_solicitante_id=(select id from estado_solicitante where estado='PENDIENTE') where u.correo=?", pendiente.correo());
-        assertThat(recuperar(pendiente.correo()).status()).isEqualTo(204); String clave = recibirClave(pendiente.correo());
+        String clave = pedirClave(pendiente.correo());
         assertThat(api.iniciarSesion(pendiente.correo(), clave).status()).isEqualTo(403);
+    }
+
+    @Test void soloElAdministradorPuedePedirla() {
+        var cuenta = api.solicitante(); var conductor = api.conductor();
+        assertThat(api.recuperarPassword(null, cuenta.correo()).status()).isEqualTo(401);
+        assertThat(api.recuperarPassword(cuenta.token(), cuenta.correo()).status()).isEqualTo(403);
+        assertThat(api.recuperarPassword(conductor.token(), cuenta.correo()).status()).isEqualTo(403);
+        assertThat(columna(cuenta.correo(), "password_temporal_hash")).isNull();
+    }
+
+    @Test void unaSesionTemporalNoPuedePedirla() {
+        String administrador = "hu22-temporal-" + System.nanoTime() + "@test.cl";
+        Api.exigir(api.post("/administradores", api.admin(), """
+                {"nombre":"Administrador HU22","correo":"%s","password":"ClaveOriginal123"}
+                """.formatted(administrador)), "alta", 201);
+        String token = Api.exigir(api.iniciarSesion(administrador, "ClaveOriginal123"), "temporal inicial", 200).texto("$.accessToken");
+        assertThat(api.recuperarPassword(token, api.solicitante().correo()).status()).isEqualTo(403);
+    }
+
+    @Test void validaElCorreo() {
+        assertThat(recuperar("no-es-correo").status()).isEqualTo(400);
+        assertThat(api.post("/auth/recuperar-password", api.admin(), "{}").status()).isEqualTo(400);
     }
 
     @Test void dosCambiosSimultaneosNoAceptanDosVecesLaClaveAnterior() throws Exception {
@@ -141,13 +152,12 @@ class HU22IT extends IntegrationTest {
         }
     }
 
-    @Test void rollbackDeRecuperacionNoDejaTemporalNiEnviaCorreo() {
+    @Test void rollbackDeRecuperacionNoDejaTemporal() {
         var cuenta = api.solicitante();
         assertThatThrownBy(() -> new TransactionTemplate(transacciones).executeWithoutResult(tx -> {
             auth.recuperarPassword(new RecuperarPasswordDTORequest(cuenta.correo()));
             throw new IllegalStateException("Revertir");
         })).isInstanceOf(IllegalStateException.class);
-        await().pollDelay(Duration.ofMillis(400)).atMost(Duration.ofSeconds(5)).until(() -> true);
-        assertThat(CORREO.getReceivedMessages()).isEmpty(); assertThat(columna(cuenta.correo(), "password_temporal_hash")).isNull();
+        assertThat(columna(cuenta.correo(), "password_temporal_hash")).isNull();
     }
 }

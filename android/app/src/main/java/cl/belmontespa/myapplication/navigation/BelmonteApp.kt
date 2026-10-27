@@ -105,7 +105,6 @@ fun BelmonteApp(
             navigation<GrafoAcceso>(startDestination = Login) {
                 composable<Login> { LoginScreen(
                     onCrearCuenta = { navegar(PantallaDemo.REGISTRO, "") },
-                    onRecuperarPassword = { navegar(PantallaDemo.RECUPERAR, "") },
                     onAbordarViaje = { navegar(PantallaDemo.ABORDAR, "") }, correoInicial = correoRegistro,
                 ) }
             }

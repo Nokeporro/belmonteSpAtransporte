@@ -13,7 +13,6 @@ import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import cl.belmontespa.myapplication.util.Validaciones
 import java.text.Collator
-import java.time.Duration
 import java.util.Locale
 
 /**
@@ -76,7 +75,7 @@ open class CuentaRepository(private val local: SoporteLocal) {
         if (local.db.usuarioDao().obtener(correo) != null) falla(ErrorApp.Conflicto("El correo ya está registrado."))
         val u = UsuarioEntity(correo, cuenta.nombre.trim(), Validaciones.telefono(cuenta.telefono),
             "ADMINISTRADOR", true, null, null, null, null, FechaIso.texto(local.ahora()), null,
-            Hashes.password(cuenta.password), local.clock.millis() + Duration.ofHours(72).toMillis())
+            Hashes.password(cuenta.password), local.clock.millis() + VIGENCIA_TEMPORAL.toMillis())
         local.db.usuarioDao().insertar(u)
         u.cuenta()
     }

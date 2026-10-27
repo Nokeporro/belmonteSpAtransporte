@@ -6,6 +6,7 @@ import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.EstadoSolicitante
 import cl.belmontespa.myapplication.model.MotivoSinPermiso
+import cl.belmontespa.myapplication.model.PasswordTemporal
 import cl.belmontespa.myapplication.model.RegistroSolicitante
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
@@ -16,8 +17,11 @@ import cl.belmontespa.myapplication.session.SesionStore
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import cl.belmontespa.myapplication.util.Validaciones
+import java.security.SecureRandom
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -91,9 +95,22 @@ open class AuthRepository(private val local: SoporteLocal) {
             u.solicitante()
         }
 
-    /** La build demo no envía correos: "Recuperar contraseña" solo muestra su confirmación. */
-    open suspend fun recuperarPassword(correo: String): Resultado<Unit> = local.ejecutar {
+    /**
+     * CU-13: un Administrador genera la contraseña temporal de un Solicitante o de otro Administrador.
+     * Se devuelve una sola vez; la build demo no envía correos y el Administrador la entrega por el suyo.
+     */
+    open suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> = local.ejecutar {
+        local.sesion(Rol.ADMINISTRADOR)
         validar(Validaciones.recuperarPassword(correo))
+        val usuario = local.usuario(Validaciones.correo(correo))
+        if (usuario.rol == Rol.CONDUCTOR.name) falla(ErrorApp.NoEncontrado)
+        val password = passwordTemporal()
+        val expiraMillis = clock.millis() + VIGENCIA_TEMPORAL.toMillis()
+        usuarioDao.guardar(usuario.copy(
+            passwordTemporalSha256 = Hashes.password(password),
+            passwordTemporalExpira = expiraMillis,
+        ))
+        PasswordTemporal(usuario.correo, password, LocalDateTime.ofInstant(Instant.ofEpochMilli(expiraMillis), clock.zone))
     }
 
     /** La build demo no tiene push. */
@@ -105,8 +122,15 @@ open class AuthRepository(private val local: SoporteLocal) {
         return Resultado.Exito(Unit)
     }
 
+    /** 12 caracteres sin los que se confunden (0/O, 1/l/I), como la temporal del backend. */
+    private fun passwordTemporal(): String =
+        String(CharArray(LARGO_PASSWORD_TEMPORAL) { ALFABETO[random.nextInt(ALFABETO.length)] })
+
     private companion object {
         /** Igual que el JWT del backend: 8 horas. */
         val DURACION_SESION: Duration = Duration.ofHours(8)
+        const val ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
+        const val LARGO_PASSWORD_TEMPORAL = 12
+        val random = SecureRandom()
     }
 }

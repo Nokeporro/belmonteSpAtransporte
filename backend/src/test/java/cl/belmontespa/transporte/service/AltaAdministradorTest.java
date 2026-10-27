@@ -29,6 +29,6 @@ class AltaAdministradorTest {
     @Test void noPermiteArrancarConVigenciaCeroONegativa() {
         for (long horas : new long[] {0, -1})
             assertThatThrownBy(() -> new AdministradorService(mock(AdministradorRepository.class), mock(UsuarioService.class), horas,
-                    mock(EntityManager.class))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("ALTA_TEMPORAL_HORAS");
+                    mock(EntityManager.class))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("PASSWORD_TEMPORAL_HORAS");
     }
 }
