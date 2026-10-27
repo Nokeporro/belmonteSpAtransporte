@@ -1,7 +1,7 @@
 # Aplicacion de Belmonte Spa.
 ## Especificaciones del proyecto.
 
-**Ultima modificacion:** 19-10-2026
+**Ultima modificacion:** 27-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -1442,14 +1442,14 @@ código.
 
 ### Organización del código
 
-Android y backend comparten el paquete base `cl.belmontespa.transporte`, pero cada uno tiene su
-propio árbol, build y dependencias; no comparten clases. El proyecto Android vive en `android/`,
+El backend usa el paquete base `cl.belmontespa.transporte` y Android, `cl.belmontespa.myapplication`
+(también su `applicationId`); cada uno tiene su propio árbol, build y dependencias, y no comparten clases. El proyecto Android vive en `android/`,
 junto a `backend/`: `settings.gradle.kts`, `build.gradle.kts`, `gradle/libs.versions.toml`, el
 wrapper y el módulo `app` (`app/src/main/java/` con el árbol siguiente, `app/src/test` y
 `app/src/androidTest`).
 
 ```text
-cl/belmontespa/transporte/
+cl/belmontespa/myapplication/
 ├── MainActivity.kt
 ├── model/           modelos de la app, entidades Room, enums, Resultado y ErrorApp (con sus mapeadores)
 ├── dao/             interfaces @Dao de Room
@@ -1770,8 +1770,9 @@ En la build `demo` todo vive en Room y no hay estados sin conexión.
 
 ### Base de datos local
 
-`belmonte_local.db`, **Room sobre SQLite**, versión **1**. En la build `demo` guarda todos los
-datos de la app y es su fuente de verdad; en el modo remoto guarda los viajes
+`belmonte_local.db`, **Room sobre SQLite**, versión **2** (la migración 1 → 2 agrega
+`password_temporal_sha256` y `password_temporal_expira` a `usuarios`). En las builds `demo` y `debug`
+guarda todos los datos de la app y es su fuente de verdad; en el modo remoto guarda los viajes
 consultados, sus pasajeros y la cola del Conductor, y MariaDB sigue siendo la autoridad.
 
 Tipos **Kotlin** (`?` = admite `null`). Las fechas de negocio son `String` ISO 8601 en hora de
@@ -1779,7 +1780,7 @@ Chile, como en la API; los instantes técnicos son `Long` en milisegundos Unix.
 
 | Tabla | Campos | Claves |
 |---|---|---|
-| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo: Boolean`, `estado_conductor?` (Conductor), `estado_solicitante?`, `razon_social?` y `rut_empresa?` (Solicitante), `fecha_registro`, `password_sha256?` (solo build `demo`) | PK `correo` |
+| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo: Boolean`, `estado_conductor?` (Conductor), `estado_solicitante?`, `razon_social?` y `rut_empresa?` (Solicitante), `fecha_registro`, `password_sha256?`, `password_temporal_sha256?` y `password_temporal_expira?: Long` (solo builds `demo` y `debug`) | PK `correo`; migración 1 → 2 conserva las filas |
 | `moviles` | `patente`, `capacidad: Int`, `gps_serial: Long?`, `activo: Boolean`, `estado_movil`, `codigo_abordaje` | PK `patente`; UQ `codigo_abordaje` |
 | `habilitaciones` | `patente`, `correo_conductor` | PK compuesta; FK a `moviles` y `usuarios` |
 | `viajes` | Los campos de `ViajeDTOResponse` salvo `pasajeros` (con `origen_*` y `destino_*` aplanados), `folio_correlativo: Long` (parte numérica del folio, para ordenar) y `descargado_en: Long` | PK `folio` |
@@ -1798,8 +1799,8 @@ Chile, como en la API; los instantes técnicos son `Long` en milisegundos Unix.
   tablas van en `@Transaction`. Solo la capa `data` usa los DAO.
 - **Documentos:** nunca se guarda el RUT o pasaporte en claro. En la build `demo`, `dni_hash` es el
   SHA-256 en Base64url (43 caracteres) del documento normalizado según [Validaciones](#validaciones).
-- **Contraseñas:** no se guardan en Room, salvo `password_sha256` de las cuentas ficticias de la
-  build `demo`.
+- **Contraseñas:** no se guardan en Room, salvo `password_sha256` y la temporal
+  (`password_temporal_sha256`) de las cuentas ficticias de las builds `demo` y `debug`.
 - La base se excluye de las copias de seguridad. No se usa `fallbackToDestructiveMigration`: un
   cambio de esquema futuro sube la versión con su `Migration`.
 
@@ -1876,11 +1877,13 @@ del servidor están en [Abordaje](#abordaje).
 
 ### Compilación, firma y distribución
 
-- JDK 21 para Gradle; `compileSdk` y `targetSdk` 36, `minSdk` 26 (Android 8.0, RNF05); las
-  dependencias deben soportar ese mínimo.
+- JDK 21 para Gradle; `compileSdk` 37 (lo exigen las AndroidX fijadas), `targetSdk` 36 y `minSdk` 26
+  (Android 8.0, RNF05); las dependencias deben soportar ese mínimo.
 - **Tipos de build:** `debug`, `demo` y `release`. `demo` se declara con `initWith(debug)`, el
   mismo `applicationId` y la firma de debug (instalarla reemplaza a la debug), y es la única con
   `BuildConfig.MODO_LOCAL = true` ([Modo demostración sin backend](#modo-demostración-sin-backend)).
+  `BuildConfig.CON_SEMILLA` es `true` en `debug` y `demo`, que cargan `DatosDemo` y abren sin
+  backend, y `false` en `release`, que nunca lleva cuentas ficticias.
 - **URL del backend** en `BuildConfig.API_BASE_URL`, por tipo de build: debug,
   `http://10.0.2.2:8080/` (emulador estándar hacia el anfitrión); release, la propiedad Gradle `belmonte.apiBaseUrl` con la IP del
   anfitrión de la demostración, obligatoria para compilar release. La build `demo` no la usa.
@@ -1890,7 +1893,7 @@ del servidor están en [Abordaje](#abordaje).
   - `google-services.json` va en `app/`, fuera de Git; cada integrante lo descarga de la consola
     de Firebase.
   - La clave de Places va en `local.properties` (`PLACES_API_KEY`), fuera de Git, y se inyecta
-    por `BuildConfig`. Está restringida a la Places API y al paquete `cl.belmontespa.transporte`
+    por `BuildConfig`. Está restringida a la Places API y al paquete `cl.belmontespa.myapplication`
     con los SHA-1 de los certificados de debug y de release.
   - Las credenciales de servicios del backend (Firebase Admin, SMTP, `JWT_SECRET`) nunca van en
     el APK.
@@ -1920,7 +1923,8 @@ pruebas contra el backend real (`FlujosE2ETest`).
   Solicitante por aprobar o rechazado recibe los mismos avisos que con el backend. La sesión se
   guarda igual, con un `token` local sin significado (`demo-…`) y 8 horas de vigencia.
 - **Semilla (`DatosDemo`, RNF09):** se inserta en `RoomDatabase.Callback.onCreate`, en el primer
-  arranque:
+  arranque, cuando `BuildConfig.CON_SEMILLA` es `true` (`demo` y `debug`; `debug` no muestra los
+  avisos de demostración):
   - el mismo mínimo que `database/demo.sql` ([Entornos](#entornos));
   - los catálogos de pago, y las regiones Metropolitana y de Valparaíso con sus comunas, como
     constantes de `DatosDemo` (una dirección de otra región usa el selector de comuna con esas
@@ -1931,10 +1935,11 @@ pruebas contra el backend real (`FlujosE2ETest`).
   documentos ficticios de los pasajeros y el Conductor del viaje en ventana.
 - **Fechas de la semilla:** son relativas al primer arranque, así que el viaje en ventana vence 90
   minutos después: antes de cada demostración o grabación se borran los datos de la app (Ajustes
-  o `adb shell pm clear cl.belmontespa.transporte`), como se recarga `database/demo.sql`.
+  o `adb shell pm clear cl.belmontespa.myapplication`), como se recarga `database/demo.sql`.
 - **Fuera de la build `demo`:** push (no se pide el permiso de notificaciones), correos
-  ("Recuperar contraseña" genera y muestra la temporal sin enviar nada) y la cola sin conexión. Google
-  Places sigue siendo el SDK real: crear una solicitud necesita Internet y la clave de Places.
+  ("Recuperar contraseña" genera y muestra la temporal sin enviar nada) y la cola sin conexión. Sin Google
+  Places, el origen y el destino de "Nueva solicitud" se eligen de una lista de lugares ficticios
+  (`DatosDemo.lugares`); Places llega en la Etapa 2.
 - **Abordaje en la demostración:** el código de abordaje de cada vehículo se ve en su detalle con
   una cuenta de Administrador. El QR se arma fuera de la app con el contenido
   `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}` y se escanea con el lector de Google desde otro

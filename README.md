@@ -1,7 +1,7 @@
 # Aplicacion de Belmonte Spa.
 ## Especificaciones del proyecto.
 
-**Ultima modificacion:** 26-10-2026
+**Ultima modificacion:** 27-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -585,20 +585,23 @@ campo, o "Revisa los datos ingresados." si no puede.
 ### Paquetes y capas
 
 Monolito por capas en `backend/`, con paquete base `cl.belmontespa.transporte`. `{E}` son las 11
-entidades con recurso en la API, que tienen sus 6 clases cada una: `Administrador`,
-`Conductor`, `DetalleMovilConductor`, `DetalleViajePasajero`, `Empresa`, `Movil`, `Pago`,
-`Pasajero`, `Solicitante`, `Usuario` y `Viaje`. `{C}` son los 10 catálogos, que tienen solo
-`Model` y `Repository`.
+entidades con recurso en la API, que tienen sus 6 clases cada una (`Model`, `Repository`,
+`Service`, `Controller`, `DTORequest` y `DTOResponse`): `Administrador`, `Conductor`,
+`DetalleMovilConductor`, `DetalleViajePasajero`, `Empresa`, `Movil`, `Pago`, `Pasajero`,
+`Solicitante`, `Usuario` y `Viaje`. `Empresa` es de solo lectura y no tiene `DTORequest`, porque
+se crea dentro de `POST /solicitantes`. `{C}` son los 10 catálogos, que tienen solo `Model` y
+`Repository`.
 
 | Paquete | Contenido |
 |---|---|
 | `client/` | `EmailClient`, `FirebaseClient`, `FcmSender`, `FirebaseFcmSender` y `EnvioDiferido` (envía después del commit y en otro hilo). |
-| `config/` | `SecurityConfig`, `JwtProvider`, `FirebaseConfig`, `ClockConfig` (`Clock` y Jackson). |
+| `config/` | `SecurityConfig`, `JwtProvider`, `PasswordTemporalFilter` (restringe el JWT temporal), `ClavesDeRutaConfig`, `FirebaseConfig`, `ClockConfig` (`Clock` y Jackson). |
+| `validation/` | `Reglas` (regex de [Validaciones](#validaciones)), `Normalizar`, `Rut`, `Documento` y `Contrasena`. |
 | `controller/` | `CrudController` (CRUD y alcance "solo lo propio"), `AuthController`, `CatalogoController`, `AbordajeController`, `{E}Controller`; las acciones de negocio son métodos propios de `ViajeController`, `PagoController`, `ConductorController`, `MovilController` y `SolicitanteController`. |
 | `dto/request/`, `dto/response/` | `{E}DTORequest`, `{E}DTOResponse` y los DTO de [Contratos JSON](#contratos-json); ningún controlador expone un `Model`. |
 | `exception/` | `ApiExceptionHandler`. |
 | `model/`, `repository/` | `{E}`, `{C}`, `Ubicacion`, `HistorialViaje`, `DetalleMovilConductorId`, `DetalleViajePasajeroId` y sus repositorios. |
-| `service/` | `CrudService`, `AuthService`, `{E}Service`, `UbicacionService` (cotejo de comuna) y `AbordajeService`. `ViajeService` y `PagoService`: asignación, estados, cancelación, rechazo y pagos; `ConductorService` y `MovilService`: `activo` (y `MovilService` genera `codigo_abordaje` con `SecureRandom`); `SolicitanteService`: aprobación; `AdministradorService`: alta con contraseña temporal. |
+| `service/` | `CrudService`, `AuthService`, `{E}Service`, `UbicacionService` (cotejo de comuna) y `AbordajeService`. `AvisosDeViaje` arma los push de viaje, y `FiltroViajes` y `OrdenViajes` aplican los filtros y el orden de [Consultas](#consultas). `ViajeService` y `PagoService`: asignación, estados, cancelación, rechazo y pagos; `ConductorService` y `MovilService`: `activo` (y `MovilService` genera `codigo_abordaje` con `SecureRandom`); `SolicitanteService`: aprobación; `AdministradorService`: alta con contraseña temporal. |
 
 ### Persistencia y transacciones
 
@@ -670,6 +673,9 @@ conductor reemplazado) y `CUENTAS` "Cuentas por aprobar". `{fecha}` va como `24-
 | P2 a P5 | Solicitante | Pago del viaje `{folio}` | Estado: Pagado / Rechazado / Anulado / Reembolsado |
 | Cuenta pendiente (RF01) | Administradores | Cuenta por aprobar | Hay una cuenta nueva por revisar |
 
+Etapa 2: los push de V1 y de cuenta pendiente, y el formato final de V3 y V4 (`data.tipo` y la
+etiqueta en español), se completan con HU12 y HU14.
+
 **Correo.** Va en texto plano, firmado "Belmonte SpA". El sistema solo envía estos dos correos; la contraseña temporal
 no viaja por ellos: la entrega el Administrador con su propio correo.
 
@@ -718,7 +724,8 @@ View (Compose) ⇄ ViewModel ⇄ Repository (clase) ⇄ DAO (Room)
   `ErrorApp`, con sus mapeadores.
 - **View:** Composables que dibujan el estado de su ViewModel y le envían acciones. No tocan
   Retrofit, Room ni los DAO.
-- **ViewModel:** un `AndroidViewModel` por pantalla. Obtiene la base con
+- **ViewModel:** un `AndroidViewModel` por pantalla con estado ("Inicio de aplicación" y
+  "Abordaje registrado" no lo tienen; las variantes de una pantalla comparten el suyo). Obtiene la base con
   `AppDatabase.getDatabase(application)` y crea sus repositorios; los recibe también por
   constructor, con ese valor por defecto, para pasar un doble en las pruebas JVM.
 - **Repository:** una clase concreta por dominio sobre los DAO de `dao/`. En la Etapa 1 solo usa
@@ -788,7 +795,7 @@ android/app/src/main/java/cl/belmontespa/myapplication/
 └── sync/          (Etapa 2) SincronizacionWorker
 ```
 
-Cada pantalla de `view/` va con su ViewModel en la carpeta del mismo rol en `viewmodel/` (p. ej.
+Cada pantalla de `view/` con estado va con su ViewModel en la carpeta del mismo rol en `viewmodel/` (p. ej.
 `view/solicitante/NuevaSolicitudScreen.kt` y `viewmodel/solicitante/NuevaSolicitudViewModel.kt`).
 
 ### Navegación y pantallas
@@ -905,6 +912,7 @@ WCAG 2.1 AA, revisada con una pasada de TalkBack antes de cada entrega:
   con `heading()` y errores con la semántica `error` del campo.
 - Cada gesto tiene alternativa ("Actualizar" para deslizar, "Ingresar código" para el QR); cada
   campo, etiqueta visible y el teclado de su tipo.
+- Los textos exactos de TalkBack se cierran en la pasada de la Etapa 2 (T18).
 
 ### Sesión y conectividad
 
@@ -1007,7 +1015,7 @@ en ms.
   `release`, que nunca lleva cuentas ficticias. `MODO_LOCAL` (los avisos de demostración) es `true` solo en `demo`.
 - `BuildConfig.API_BASE_URL`: debug, `http://10.0.2.2:8080/`; release, la propiedad Gradle
   obligatoria `belmonte.apiBaseUrl`. `network_security_config` permite HTTP solo hacia `10.0.2.2`
-  y el anfitrión.
+  y el anfitrión (este se agrega con el APK release, T19).
 - Con Firebase y Google Places (Etapa 2), `google-services.json` (en `app/`) y `PLACES_API_KEY`
   (en `local.properties`) quedan fuera de Git; las credenciales del backend nunca van en el APK.
 - `versionCode` sube con cada APK y `versionName` sigue `MAYOR.MENOR.PARCHE`;
@@ -1049,7 +1057,7 @@ Las pruebas fijan el `Clock` y usan solo datos ficticios.
 | `RetrasoTest` | JVM | Ventana, Atrasado y Vencido en `fh_agenda` − 1 h, `fh_agenda` y + 1 h, un minuto antes y después. |
 | `FormatosTest` | JVM | Etiquetas y formatos. |
 | `CodigoAbordajeTest` | JVM | QR válido e inválido y entrada manual con o sin espacios. |
-| `ErrorMapperTest` | JVM | Cada código HTTP y fallo de red; 400 de varias líneas. |
+| `ErrorMapperTest` (Etapa 2) | JVM | Cada código HTTP y fallo de red; 400 de varias líneas. |
 | `*ViewModelTest` | JVM con dobles del Repository | Estados de pantalla, envío sin duplicados, botones según estado y abordaje con 404. |
 | `*RepositoryTest` | Instrumentada (Room en memoria) | Reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance, login local y abordaje. |
 | `DaosTest` | Instrumentada | PK, FK en cascada, `Flow` y transacciones. |
@@ -1092,7 +1100,7 @@ Simplificaciones del MVP académico; cambiar una requiere primero un PR `docs/`.
 
 | Job | Entorno | Pasos |
 |---|---|---|
-| `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` | `./gradlew test`; si falla, sube `build/reports/tests`. |
+| `backend` (Etapa 2, con T15) | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` | `./gradlew test`; si falla, sube `build/reports/tests`. |
 | `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Corre `./gradlew lintDebug testDebugUnitTest assembleDebug assembleDemo` y sube lint y APK (7 días). Con Firebase y Places (Etapa 2) escribe antes `google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`. |
 
 Fuera de CI: las instrumentadas, las E2E y el APK release (el keystore no sale de los

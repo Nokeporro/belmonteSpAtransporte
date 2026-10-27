@@ -34,9 +34,10 @@ estado del backend sale de revisar `backend/` en esta rama.
 
   Lo que queda pendiente está en [Pendiente del backend](#pendiente-del-backend-etapa-2).
 - **Android:** la app vive en `android/` y la build `demo` corre completa sobre Room, con las 46 pantallas
-  y cada una con su ViewModel. Las llamadas remotas del Repository, el push y la cola sin conexión son
-  la Etapa 2. T05 y T06 están en curso mientras el código se adapta a MVVM (Repository simple, sin
-  Hilt, `view/` y `viewmodel/`). La rama `android` es obsoleta y no se usa.
+  (MVVM con Repository simple, sin Hilt, `view/` y `viewmodel/`). Cada pantalla tiene su ViewModel,
+  salvo "Inicio de aplicación" y "Abordaje registrado", que no tienen estado propio. Las llamadas
+  remotas del Repository, el push y la cola sin conexión son la Etapa 2. La rama `android` es obsoleta
+  y no se usa.
 
 ## Resumen
 
@@ -48,7 +49,7 @@ estado del backend sale de revisar `backend/` en esta rama.
 
 **Backend:**
 - **Compilación:** compila (`./gradlew compileJava compileTestJava`).
-- **Pruebas:** hay 397 anotaciones de prueba. Las IT no se corrieron en esta revisión, porque no hubo
+- **Pruebas:** hay 399 anotaciones de prueba. Las IT no se corrieron en esta revisión, porque no hubo
   MariaDB.
 - **Rutas:** 47 de las 48 del README tienen controlador; solo falta `POST /auth/token-fcm` (HU14, Etapa 2).
   Ya no existen las 3 rutas que el README no admite (`POST /usuarios`, `PUT /solicitantes/{correo}` y
@@ -58,8 +59,9 @@ estado del backend sale de revisar `backend/` en esta rama.
 |---|---|---|
 | 48 | 47 | 1 |
 
-**Meta del 75 %:** al menos 36 de las 46 rutas de la Etapa 1. Hoy las 46 existen; lo que queda por
-confirmar es que sus IT pasen contra MariaDB. El [mapa de rutas](#rutas-y-75-) indica a qué ítem
+**Meta del 75 %:** al menos 36 de las 48 rutas del README (36 es el 75 % de 48). Hoy existen 47, todas
+las de la Etapa 1; la que falta es de la Etapa 2. Lo que queda por confirmar es que sus IT pasen contra
+MariaDB. El [mapa de rutas](#rutas-y-75-) indica a qué ítem
 pertenece cada una.
 
 ## Criterios de priorización
@@ -100,15 +102,15 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | Listo |
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | Listo |
-| 5 | T05 | `DatosDemo`, los Repository y build `demo` | B | P0 | — | — | T04 | — | En curso |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas, cada una con su ViewModel | A y B | P0 | — | — | T02, T03, T05 | — | En curso |
+| 5 | T05 | `DatosDemo`, los Repository y build `demo` | B | P0 | — | — | T04 | — | Listo |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas, cada una con su ViewModel | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Hecho | Listo |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Hecho | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Hecho | Listo |
 | 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Hecho | Listo |
-| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Hecho | Listo |
+| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Hecho; falta el push de cuenta pendiente | Listo |
 | 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | Listo |
-| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Hecho | Listo (lugares ficticios; Places en T14) |
+| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Hecho; falta el push de V1 | Listo (lugares ficticios; Places en T14) |
 | 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Hecho | Listo |
 | 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | Hecho | Listo |
 | 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | Hecho | Listo |
@@ -125,7 +127,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Hecho | Listo |
 | 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Hecho | Listo |
 | 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Hecho | Listo |
-| 30 | HU22 | Administrador: restablecer la contraseña de una cuenta | A | P3 | Media | 3 | T07 | En curso | El README cambió: la temporal la genera el Administrador y vence a las 24 h (ver [Pendiente del backend](#pendiente-del-backend-etapa-2)) |
+| 30 | HU22 | Administrador: restablecer la contraseña de una cuenta | A | P3 | Media | 3 | T07 | Hecho | Listo (la temporal la genera el Administrador y vence a las 24 h) |
 | 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Hecho | Listo |
 | 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Hecho | Listo |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
@@ -163,7 +165,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
   - `./gradlew installDemo` funcionando.
 - **T06:** las 46 pantallas de los [mockups](mockups/wireframes-belmonte.html) se recorren con datos
   de `DatosDemo`. Cada integrante hace las pantallas de sus HU, aunque aún no tengan todas las
-  reglas. Cada pantalla tiene su ViewModel en `view/<rol>/` y `viewmodel/<rol>/`. En "Nueva solicitud" el
+  reglas. Cada pantalla con estado tiene su ViewModel en `view/<rol>/` y `viewmodel/<rol>/` (no la tienen "Inicio de aplicación" ni "Abordaje registrado"). En "Nueva solicitud" el
   origen y el destino se eligen de una lista de lugares ficticios, porque Google Places llega en T14.
 - **T07 y T08:**
   - las migraciones de cuentas, flota, pagos, viajes y abordaje se aplican sobre una base existente y
@@ -226,12 +228,6 @@ Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/`.
 
 - **`POST /auth/token-fcm` (HU14):** falta. El token es único: al guardarlo se quita de cualquier otro
   usuario. `POST /auth/logout` ya existe.
-- **`POST /auth/recuperar-password` y alta de Administrador (HU22, HU28):** la ruta existe, pero el README cambió. Hoy es
-  pública, responde `204` y envía la temporal por correo con `PASSWORD_TEMPORAL_MINUTOS` (30). Debe exigir JWT de
-  Administrador, responder `200` con `PasswordTemporalDTOResponse` (la temporal una sola vez), devolver 404 para un
-  correo desconocido o de un Conductor, y no enviar correo. `PASSWORD_TEMPORAL_MINUTOS` y `ALTA_TEMPORAL_HORAS` se
-  reemplazan por `PASSWORD_TEMPORAL_HORAS` (24) para ambas temporales. En Android, la pantalla «Recuperar
-  contraseña» pasa al Perfil del Administrador («Restablecer contraseña») y el Login solo informa.
 - **Push de V3 y V4 al Solicitante (HU12):** `ViajeService` envía `data` solo con `folio` y el mensaje con el
   código ("Estado: EN_CURSO"). Debe llevar `data.tipo = VIAJE`, el título "Viaje {folio}" y la etiqueta
   ("En curso" o "Finalizado").
@@ -299,8 +295,8 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 - **Por estado:** 47 hechas y 1 falta (`POST /auth/token-fcm`). El estado sale de comparar cada ruta de la
   tabla con los `@…Mapping` de los controladores, incluidas las heredadas de `LecturaController` y
   `CrudController`; no incluye el comportamiento, que las IT aún no se corrieron.
-- **Etapa 1:** tiene 46 rutas, de las que hay que dejar al menos 36 cumpliendo el README con
-  pruebas.
+- **Etapa 1:** tiene 47 rutas (todas menos `POST /auth/token-fcm`); hay que dejar al menos 36 de las 48
+  cumpliendo el README con pruebas.
 - **Por integrante:** las HU de A tienen 42 rutas y las de B, 6. Las de B son las de reglas más
   complejas (V2, V3, V8 y el abordaje).
 
@@ -311,5 +307,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | **Plazo:** la entrega es el 28-10 y quedan el video (T11), el ensayo (T12) y la entrega (T13). | Las HU de la Etapa 1 figuran en Listo; el video (T11) lo edita el compañero. |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3. | B hace la base del backend (T07 a T10). Como el backend no se presenta ni se pregunta en la Prueba 2, B puede tomar rutas de A, previo acuerdo, sin afectar que cada uno explique su Android. |
 | **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión (sin MariaDB) y las instrumentadas de Android tampoco. | Antes de congelar `main`, levantar el compose y correr `./gradlew test`; en Android, `connectedDebugAndroidTest` en un emulador aparte (comparte el `applicationId` de la demo y borra sus datos). |
-| **Variante `debug`:** usa los Repository en modo remoto, que aún devuelven "Sin conexión"; solo `demo` funciona. | Mostrar siempre la build `demo` (`./gradlew installDemo`). El modo remoto es T14. |
+| **Variante `debug`:** carga la misma semilla que `demo` y abre sin backend, pero no muestra los avisos de demostración ni usa `MODO_LOCAL`. Los Repository solo usan Room hasta T14. | Mostrar siempre la build `demo` (`./gradlew installDemo`). El modo remoto es T14. |
+| **CI sin job `backend`:** `.github/workflows/ci.yml` solo corre `android`; el README define también `backend` con MariaDB. | Agregar el job (PR `chore/`) antes de congelar `main`, o correr `./gradlew test` en local. |
+| **ViewModels sin prueba:** `Sesion`, `Perfil`, `Notificacion`, `Conductores`, `Vehiculos`, `MisSolicitudes` y `DetalleSolicitudAdmin` no tienen `*ViewModelTest`. | Escribirlas con los dobles de `ReposFalsos` si alcanza el tiempo; cada integrante cubre las de sus pantallas. |
 | **Evaluación individual:** cada uno debe explicar y modificar su Android sin apuntes ni IA. | Cada integrante escribe el Android de sus HU (README, [Plan de trabajo](README.md#plan-de-trabajo)), y T12 ensaya la explicación y un cambio en vivo. |

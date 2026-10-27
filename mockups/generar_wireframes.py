@@ -1136,7 +1136,7 @@ GRUPOS = [
         Pantalla('Registrar vehículo', ['CU-09', 'RF16', 'HU17'], barra='Registrar vehículo', atras=True, cuerpo=[
             Campo('Patente', 'LPHT17'), Campo('Capacidad (pasajeros)', '6'),
             Campo('Serial GPS (opcional)', 'Opcional', vacio=True), Boton('Registrar vehículo'),
-            Nota('Patente única y capacidad mayor que 0. El serial GPS es un dato de flota. Nace Disponible '
+            Nota('Patente única y capacidad de 1 a 20. El serial GPS es un dato de flota. Nace Disponible '
                  'y activo.')]),
         Pantalla('Detalle de vehículo', ['CU-09', 'CU-10', 'CU-19', 'HU29'], barra='KXJR42', atras=True, cuerpo=[
             Chip('DISPONIBLE', grande=True), KV('Capacidad', '4 pasajeros'), KV('Serial GPS', '50231'),

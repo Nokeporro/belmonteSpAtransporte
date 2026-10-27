@@ -1156,9 +1156,9 @@
 <text x="575.2" y="6173.0" class="s" font-size="12" fill="#696864">Opcional</text>
 <rect x="565.2" y="6195.0" width="182.0" height="34.0" rx="8" fill="#2f6f5e" stroke="#2f6f5e" stroke-width="1"/>
 <text x="601.8" y="6216.5" class="s" font-size="12.5" fill="#ffffff" font-weight="500">Registrar vehículo</text>
-<text x="565.2" y="6250.0" class="s" font-size="10.5" fill="#696864">Patente única y capacidad mayor que</text>
-<text x="565.2" y="6265.0" class="s" font-size="10.5" fill="#696864">0. El serial GPS es un dato de flota.</text>
-<text x="565.2" y="6280.0" class="s" font-size="10.5" fill="#696864">Nace Disponible y activo.</text>
+<text x="565.2" y="6250.0" class="s" font-size="10.5" fill="#696864">Patente única y capacidad de 1 a 20.</text>
+<text x="565.2" y="6265.0" class="s" font-size="10.5" fill="#696864">El serial GPS es un dato de flota. Nace</text>
+<text x="565.2" y="6280.0" class="s" font-size="10.5" fill="#696864">Disponible y activo.</text>
 <line x1="791.5" y1="5883.0" x2="1022.0" y2="5883.0" stroke="#d8d6d0" stroke-width="1" stroke-dasharray="2,3"/>
 <text x="791.5" y="5904.0" class="m" font-size="11" fill="#2f6f5e" font-weight="600">31</text>
 <text x="817.5" y="5904.0" class="m" font-size="12.5" fill="#211f1c" font-weight="600">Detalle de vehículo</text>
