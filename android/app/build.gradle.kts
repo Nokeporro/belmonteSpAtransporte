@@ -1,17 +1,9 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
-}
-
-// Claves locales (fuera de Git): PLACES_API_KEY va a BuildConfig.
-val propiedadesLocales = Properties().apply {
-    val archivo = rootProject.file("local.properties")
-    if (archivo.exists()) archivo.inputStream().use { load(it) }
 }
 
 // URL del backend para release: -Pbelmonte.apiBaseUrl=http://<ip-del-anfitrion>:8080/
@@ -39,11 +31,6 @@ android {
 
         buildConfigField("boolean", "MODO_LOCAL", "false")
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
-        buildConfigField(
-            "String",
-            "PLACES_API_KEY",
-            "\"${propiedadesLocales.getProperty("PLACES_API_KEY", "")}\"",
-        )
     }
 
     signingConfigs {
@@ -121,7 +108,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(libs.places)
     implementation(libs.play.services.code.scanner)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

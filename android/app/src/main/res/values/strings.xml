@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Textos de la app, solo en español de Chile (README, Textos y tema). -->
 <resources>
-    <string name="error_places">No pudimos consultar Google Places. Revisa tu conexión e inténtalo de nuevo.</string>
-    <string name="error_places_configuracion">La búsqueda de direcciones no está configurada. Contacta al Administrador.</string>
-    <string name="places_buscando">Consultando la dirección…</string>
-    <string name="places_comuna_faltante">Selecciona la región y comuna de esta dirección.</string>
-    <string name="campo_region">Región</string>
-    <string name="campo_comuna">Comuna</string>
     <string name="app_name">Belmonte</string>
     <string name="marca" translatable="false">BELMONTE</string>
     <string name="marca_lema">Traslados corporativos</string>
