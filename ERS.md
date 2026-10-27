@@ -302,7 +302,7 @@ El Conductor queda fuera de CU-13 a propósito: solo el Administrador reemplaza 
 - **RNF05 Compatibilidad:** Android 8.0 (API 26) o superior. El backend expone solo contratos
   JSON REST, sin acoplarse a un cliente.
 - **RNF06 Mantenibilidad:** capas estrictas (`Controller-Service-Repository` en Spring Boot,
-  `View-ViewModel-Repository` en Android): una regla de negocio se cambia en un solo lugar.
+  `Model-View-ViewModel` en Android): una regla de negocio se cambia en un solo lugar.
 - **RNF07 Servicios externos:** tres dependencias con cuota gratuita limitada (Google Places
   API, Firebase Cloud Messaging y un proveedor de correo transaccional por SMTP, para RF21/CU-13
   y CU-17); el uso se monitorea para no exceder el nivel gratuito.
@@ -527,7 +527,7 @@ erDiagram
 | Backend | **Spring Boot 4.1**, Java 21, Gradle; API REST JSON para Android (Retrofit); `Controller` ➔ `Service` ➔ `Repository`; Spring Data JPA; Flyway. |
 | Seguridad | JWT stateless (Spring Security *resource server*, HS256). Un único `SecurityFilterChain` con `denyAll` por defecto; sin JWT solo `/api/v1/auth/login` y `/recuperar-password`, `POST /api/v1/solicitantes` (autorregistro, RF01) y `POST /api/v1/abordajes` (abordaje con QR, CU-19). |
 | Integraciones | Push con Firebase Admin SDK (FCM) desde la capa `Service`; correo con `spring-boot-starter-mail` a un SMTP configurable. Ambos después del commit, en otro hilo y sin afectar la operación ([Notificaciones externas](#notificaciones-externas)). |
-| Android | Kotlin + Jetpack Compose, MVVM con Repository ([Frontend (Android)](#frontend-android)). |
+| Android | Kotlin + Jetpack Compose, Model-View-ViewModel con un Repository simple sobre el DAO ([Frontend (Android)](#frontend-android)). |
 
 ### Servicios locales
 
@@ -1332,30 +1332,33 @@ mariadb -h127.0.0.1 -P3307 -uroot -proot_dev -e "CREATE DATABASE IF NOT EXISTS b
 
 ### Arquitectura y responsabilidades
 
-Android Studio, **Kotlin y Jetpack Compose**, Gradle con Kotlin DSL. **MVVM con Repository**, en
-un único módulo `app` organizado por responsabilidades:
+Android Studio, **Kotlin y Jetpack Compose**, Gradle con Kotlin DSL. **Model-View-ViewModel**, como
+los templates del curso, en un único módulo `app` organizado por responsabilidades:
 
 ```text
-Pantalla Compose ⇄ ViewModel ⇄ Repository (interfaz) ⇄ { implementación local: Room ; implementación remota: Retrofit + Room }
+View (Compose) ⇄ ViewModel ⇄ Repository (clase) ⇄ DAO (Room)
 ```
 
-- La **pantalla** (Composable) dibuja el estado y envía acciones al **ViewModel**; el ViewModel
-  valida las entradas, llama al **repositorio** y expone el estado; el repositorio lee y escribe
-  los datos. **Hilt** inyecta las dependencias.
-- Las pantallas no acceden a Retrofit, Room ni los DAO; los ViewModel dependen solo de las
-  interfaces de repositorio. Sin capa de casos de uso.
-- Cada repositorio tiene dos implementaciones, y `di/RepositorioModule` elige una con
-  `BuildConfig.MODO_LOCAL`:
-  - **local** (`data/local/`): aplica las reglas de [Máquinas de estado](#máquinas-de-estado) y
-    [Validaciones](#validaciones) sobre Room. Es la de la build `demo`, la de la Prueba 2
+- **Model** (`model/`): modelos de la app, entidades Room, enums con los códigos de la API,
+  `Resultado` y `ErrorApp`, con sus mapeadores.
+- **View** (`view/`): la pantalla (Composable) dibuja el estado y envía acciones al ViewModel. No
+  accede a Retrofit, Room ni los DAO.
+- **ViewModel** (`viewmodel/`): un `AndroidViewModel` por pantalla; valida las entradas, llama al
+  Repository y expone el estado. Obtiene la base con `AppDatabase.getDatabase(application)` y crea
+  sus repositorios; los recibe también por constructor, con ese valor por defecto, para pasar un
+  doble en las pruebas JVM.
+- **Repository** (`repository/`): una clase concreta por dominio sobre los DAO de `dao/`. Sin
+  inyección de dependencias, sin interfaces y sin capa de casos de uso.
+  - En la Etapa 1 solo usa Room: aplica las reglas de [Máquinas de estado](#máquinas-de-estado) y
+    [Validaciones](#validaciones). Es la de la build `demo`, la de la Prueba 2
     ([Modo demostración sin backend](#modo-demostración-sin-backend)).
-  - **remota** (`data/remote/`): llama a la API con Retrofit y guarda en Room los viajes
-    consultados. El backend es la autoridad; las validaciones de la app solo mejoran la
-    experiencia.
+  - En la Etapa 2 el mismo Repository llama también a la API con Retrofit cuando
+    `BuildConfig.MODO_LOCAL` es falso y guarda en Room los viajes consultados. El backend es la
+    autoridad; las validaciones de la app solo mejoran la experiencia.
 
 #### Contratos internos de Android
 
-| Repositorio | Operaciones |
+| Repository | Operaciones |
 |---|---|
 | `AuthRepository` | `observarSesion`, `iniciarSesion`, `registrarSolicitante`, `recuperarPassword`, `actualizarTokenFcm`, `cerrarSesion` |
 | `CuentaRepository` | `obtenerPerfil`, `actualizarCuentaPropia`, `cambiarPassword`, `listarSolicitantesPendientes`, `aprobarSolicitante`, `rechazarSolicitante`, `registrarAdministrador` |
@@ -1368,12 +1371,12 @@ Pantalla Compose ⇄ ViewModel ⇄ Repository (interfaz) ⇄ { implementación l
 - Las lecturas de viajes son `Flow` desde Room; las demás operaciones son funciones `suspend`
   que devuelven `Resultado<T>`. La cuenta se toma de la sesión, nunca de un campo de pantalla.
 - `Resultado<T>`: `Exito(valor)`, `Fallo(error: ErrorApp)` y `Encolado` (solo "Iniciar viaje" y
-  "Finalizar viaje" sin conexión, en la implementación remota).
+  "Finalizar viaje" sin conexión, en la Etapa 2).
 - `ErrorApp`: `Validacion` (errores por campo), `SinConexion`, `SesionExpirada`, `SinPermiso`,
-  `NoEncontrado`, `Conflicto` (con el `message` del backend) e `Inesperado`. Las dos
-  implementaciones devuelven los mismos errores, así que el ViewModel no sabe cuál usa.
+  `NoEncontrado`, `Conflicto` (con el `message` del backend) e `Inesperado`. El Repository
+  devuelve los mismos errores con o sin backend, así que el ViewModel no cambia.
 - Estados y roles son enums con los códigos de la API; DTO, entidades Room y modelos de la app se
-  convierten con mapeadores en `data/mapper/`.
+  convierten con mapeadores en `model/`.
 
 **Estado de pantalla:** cada ViewModel expone un `StateFlow<...UiState>` inmutable con datos,
 carga, errores de campos, error general y `enviando`. Al enviar se bloquea la acción hasta tener
@@ -1389,7 +1392,7 @@ cambiarla) y `AUTENTICADA`.
 | Desarrollo y build | Android Studio (desarrollo, depuración, emuladores, compilación); Kotlin; Gradle Kotlin DSL y catálogo de versiones; KSP (anotaciones de Room y herramientas que lo requieran). |
 | UI y estado | Jetpack Compose; Material 3 (tema y componentes); Navigation Compose (flujos por rol); AndroidX ViewModel; Kotlin Coroutines y Flow / StateFlow. |
 | Datos | Room / SQLite (datos de la build `demo`, viajes consultados y cola de cambios pendientes); Retrofit con convertidor JSON de Kotlin Serialization (DTO); OkHttp (transporte HTTP e incorporación del JWT); WorkManager (envío de la cola sin conexión); DataStore (sesión). |
-| Integración | Hilt; Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze); Google Code Scanner (lectura del QR de abordaje con la cámara, sin permiso `CAMERA`). |
+| Integración | Firebase Cloud Messaging (recepción y token del dispositivo); Google Places SDK for Android (origen y destino con coordenadas); Intents de Android (Google Maps o Waze); Google Code Scanner (lectura del QR de abordaje con la cámara, sin permiso `CAMERA`). |
 | Pruebas | JUnit, AndroidX Test, Espresso y Compose UI Test. |
 
 **Versiones de partida.** Exactas en `android/gradle/libs.versions.toml` (sin `+` ni rangos);
@@ -1399,16 +1402,14 @@ Compose y Firebase por su BOM, que fija las versiones de sus librerías:
 |---|---|---|
 | JDK | 21 | Para Gradle, como el backend. |
 | Gradle (wrapper) | 9.8.1 | |
-| Android Gradle Plugin | 9.4.1 | Kotlin integrado: no se aplica `org.jetbrains.kotlin.android`. Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`, `com.google.dagger.hilt.android`, `com.google.gms.google-services`. |
+| Android Gradle Plugin | 9.4.1 | Kotlin integrado: no se aplica `org.jetbrains.kotlin.android`. Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`, `org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`, `com.google.gms.google-services`. |
 | Kotlin | 2.4.21 | También para los plugins `compose` y `serialization`. |
-| KSP | 2.3.12 | Room y Hilt. |
+| KSP | 2.3.12 | Room. |
 | Compose BOM | 2026.09.00 | `ui`, `material3`, `ui-tooling-preview`, `ui-test-junit4`, `ui-test-manifest`. |
 | `androidx.activity:activity-compose` | 1.13.0 | |
 | `androidx.navigation:navigation-compose` | 2.10.2 | |
 | `androidx.lifecycle` | 2.11.0 | `lifecycle-runtime-compose`, `lifecycle-viewmodel-compose`. |
 | `androidx.core:core-ktx` | 1.19.1 | |
-| Hilt (`com.google.dagger`) | 2.60.1 | `hilt-android`, `hilt-compiler`, `hilt-android-testing`. |
-| `androidx.hilt` | 1.4.0 | `hilt-navigation-compose`, `hilt-work`. |
 | Room | 2.8.5 | `room-runtime`, `room-ktx`, `room-compiler`. |
 | WorkManager | 2.12.0 | `work-runtime-ktx`, `work-testing`. |
 | DataStore | 1.2.1 | `datastore-preferences`. |
@@ -1430,7 +1431,7 @@ la última etapa, solo por correcciones de seguridad ([Proceso de desarrollo](#p
 
 La tarea de infraestructura se acepta cuando, con las versiones anteriores:
 
-- Gradle sincroniza con JDK 21 y KSP genera el código de Room y Hilt.
+- Gradle sincroniza con JDK 21 y KSP genera el código de Room.
 - Pasan `lintDebug`, `testDebugUnitTest`, `assembleDebug` y `assembleDemo`, y la app abre en
   emuladores API 26 y API 36.
 - `assembleRelease` genera el APK firmado con R8 ([Compilación, firma y distribución](#compilación-firma-y-distribución)).
@@ -1448,23 +1449,25 @@ wrapper y el módulo `app` (`app/src/main/java/` con el árbol siguiente, `app/s
 
 ```text
 cl/belmontespa/transporte/
-├── BelmonteApplication.kt, MainActivity.kt
-├── di/              módulos de Hilt (eligen los repositorios locales o remotos)
-├── model/           modelos de la app, Resultado y ErrorApp
-├── data/
-│   ├── repository/  interfaces de los repositorios
-│   ├── local/       database/, dao/, entity/, repository/ (implementaciones locales) y DatosDemo
-│   ├── remote/      api/, dto/, interceptor/, repository/ (implementaciones remotas)
-│   ├── session/     sesión en DataStore
-│   └── mapper/
-├── ui/              navigation/, components/, theme/, auth/, abordaje/, solicitante/, administrador/, conductor/
+├── MainActivity.kt
+├── model/           modelos de la app, entidades Room, enums, Resultado y ErrorApp (con sus mapeadores)
+├── dao/             interfaces @Dao de Room
+├── database/        AppDatabase (singleton con getDatabase) y DatosDemo
+├── repository/      un Repository por dominio (Etapa 2: api/, dto/ e interceptor/ de Retrofit)
+├── viewmodel/       auth/, abordaje/, solicitante/, administrador/, conductor/
+├── view/            components/, auth/, abordaje/, solicitante/, administrador/, conductor/
+├── navigation/      Routes y NavHost
+├── ui/theme/        tema
+├── session/         sesión en DataStore
+├── navegador/       Intents a Google Maps o Waze
+├── util/            formatos y validaciones
 ├── notification/
 └── sync/            Worker de la cola sin conexión
 ```
 
-Cada pantalla y su ViewModel van en la carpeta de su funcionalidad (p. ej.
-`ui/solicitante/NuevaSolicitudScreen.kt` y `NuevaSolicitudViewModel.kt`). `ui/abordaje/` reúne
-el flujo de abordaje del pasajero ([Abordaje con código QR](#abordaje-con-código-qr)).
+Cada pantalla de `view/` va con su ViewModel en la carpeta del mismo rol en `viewmodel/` (p. ej.
+`view/solicitante/NuevaSolicitudScreen.kt` y `viewmodel/solicitante/NuevaSolicitudViewModel.kt`).
+`view/abordaje/` reúne el flujo de abordaje del pasajero ([Abordaje con código QR](#abordaje-con-código-qr)).
 
 ### Navegación y pantallas
 
@@ -1679,7 +1682,7 @@ entrega ([Definición de terminado](#definición-de-terminado)).
 
 ### API y sesión
 
-Esta sección aplica a la implementación remota; la build `demo` no usa la red hacia el backend.
+Esta sección aplica al Repository en modo remoto (Etapa 2); la build `demo` no usa la red hacia el backend.
 
 - Retrofit con `converter-kotlinx-serialization` y DTO iguales a [Contratos JSON](#contratos-json).
   OkHttp con 15 segundos de conexión, lectura y escritura, sin reintentos automáticos (solo la
@@ -1714,7 +1717,7 @@ del formulario." con "Reintentar". En la build `demo` salen de `DatosDemo`.
 
 1. Si el Conductor tiene cambios pendientes, se avisa y se permite sincronizarlos o descartarlos.
 2. Con conexión se envía `POST /auth/logout`, que borra el token FCM; si falla, se sigue igual.
-3. Se borra la sesión de DataStore y, en la implementación remota, los viajes y la cola de Room.
+3. Se borra la sesión de DataStore y, en el modo remoto, los viajes y la cola de Room.
    En la build `demo` Room se conserva, porque es la base de datos de la demostración.
 4. Se abre el Login con el historial autenticado eliminado.
 
@@ -1724,7 +1727,7 @@ cuenta. Si continúas, se descartarán.").
 
 ### Persistencia y conectividad
 
-En la implementación remota:
+En el modo remoto:
 
 - La app no es offline-first: crear solicitudes y obtener información nueva requiere conexión.
 - **Refresco ("tiempo real", RF07):** las listas y detalles de viajes muestran de inmediato lo
@@ -1767,7 +1770,7 @@ En la build `demo` todo vive en Room y no hay estados sin conexión.
 ### Base de datos local
 
 `belmonte_local.db`, **Room sobre SQLite**, versión **1**. En la build `demo` guarda todos los
-datos de la app y es su fuente de verdad; en la implementación remota guarda los viajes
+datos de la app y es su fuente de verdad; en el modo remoto guarda los viajes
 consultados, sus pasajeros y la cola del Conductor, y MariaDB sigue siendo la autoridad.
 
 Tipos **Kotlin** (`?` = admite `null`). Las fechas de negocio son `String` ISO 8601 en hora de
@@ -1788,7 +1791,7 @@ Chile, como en la API; los instantes técnicos son `Long` en milisegundos Unix.
   pantalla: el Solicitante ve sus viajes (`correo_solicitante`), el Conductor los suyos
   (`correo_conductor`) del día elegido, y el Administrador, todos. Se ordenan como en
   [Consultas y alcance por rol](#consultas-y-alcance-por-rol), con `folio_correlativo` para el
-  orden numérico del folio. En la implementación remota, cada respuesta del servidor inserta o
+  orden numérico del folio. En el modo remoto, cada respuesta del servidor inserta o
   reemplaza sus viajes y pasajeros en una transacción; una consulta fallida no borra nada.
 - **DAO:** las lecturas son `Flow` y las escrituras, funciones `suspend`; las que tocan varias
   tablas van en `@Transaction`. Solo la capa `data` usa los DAO.
@@ -1826,7 +1829,7 @@ Chile, como en la API; los instantes técnicos son `Long` en milisegundos Unix.
 
 ### Abordaje con código QR
 
-Implementa CU-19/RF28 (flujo de abordaje, en `ui/abordaje/`) y el arqueo de RF29. Las reglas
+Implementa CU-19/RF28 (flujo de abordaje, en `view/abordaje/`) y el arqueo de RF29. Las reglas
 del servidor están en [Abordaje](#abordaje).
 
 - **QR del vehículo:** su contenido es el texto `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}`
@@ -1836,7 +1839,7 @@ del servidor están en [Abordaje](#abordaje).
 - **Entrada:** "Abordar viaje" se ofrece en el Login, para el pasajero sin cuenta, y en el
   Perfil del Solicitante, para quien viaja con la sesión abierta. Con sesión la petición va
   igual sin JWT: el interceptor no lo agrega a `/abordajes`. El flujo no usa la sesión ni la
-  cola; en la build `demo`, `AbordajeLocalRepository` aplica las reglas de [Abordaje](#abordaje)
+  cola; en la build `demo`, `AbordajeRepository` aplica las reglas de [Abordaje](#abordaje)
   sobre Room.
 - **Lectura con la cámara:** "Escanear código QR" abre `GmsBarcodeScanning` con
   `GmsBarcodeScannerOptions` solo para `FORMAT_QR_CODE` y con `enableAutoZoom()`. El lector corre
@@ -1901,13 +1904,12 @@ del servidor están en [Abordaje](#abordaje).
 ### Modo demostración sin backend
 
 La build `demo` muestra la app completa sin backend, como exige la Prueba 2
-(`docs/informacion_importante.md`): Hilt entrega las implementaciones locales de los
-repositorios, que leen y escriben en Room. Sirve para demostrar todas las pantallas, la
+(`docs/informacion_importante.md`): los Repository leen y escriben solo en Room. Sirve para demostrar todas las pantallas, la
 navegación, la base local y el abordaje con QR en un teléfono o emulador. No reemplaza las
 pruebas contra el backend real (`FlujosE2ETest`).
 
-- **Repositorios locales** (`data/local/repository/`): `AuthLocalRepository`,
-  `ViajeLocalRepository`, `AbordajeLocalRepository`, etc. Cada operación aplica en una
+- **Repository** (`repository/`): `AuthRepository`,
+  `ViajeRepository`, `AbordajeRepository`, etc. Cada operación aplica en una
   `@Transaction` de Room las mismas reglas que el backend: [Máquinas de estado](#máquinas-de-estado)
   (V1–V8, P1–P5 y [Abordaje](#abordaje)), [Validaciones](#validaciones) y el alcance de
   [Consultas y alcance por rol](#consultas-y-alcance-por-rol), con el `Clock` de la app. Los
@@ -1951,7 +1953,7 @@ cd android
 ./gradlew connectedDebugAndroidTest    # instrumentadas: emulador encendido, en local
 ```
 
-- **JVM** (`app/src/test`): reglas, mapeadores y ViewModel, con dobles (fakes) de los repositorios
+- **JVM** (`app/src/test`): reglas, mapeadores y ViewModel, con dobles (fakes) del Repository
   escritos a mano y `kotlinx-coroutines-test`. Corren en cada PR
   ([Integración continua](#integración-continua)).
 - **Instrumentadas** (`app/src/androidTest`): Room en memoria, navegación y Worker. Se corren en
@@ -1967,8 +1969,8 @@ cd android
 | `FormatosTest` | JVM | Etiquetas y formatos de [Textos y tema](#textos-y-tema). |
 | `CodigoAbordajeTest` | JVM | Contenido del QR válido e inválido (prefijo, patente antigua y actual, largo y caracteres del código, minúsculas) y entrada manual con o sin espacios. |
 | `ErrorMapperTest` | JVM | Cada código HTTP y fallo de red → su `ErrorApp` y su texto; 400 con varias líneas `campo: motivo`. |
-| `*ViewModelTest` | JVM con fakes | Carga, contenido, lista vacía, error y sin conexión; envío sin duplicados; botones según estado (Iniciar deshabilitado con su motivo, Asignar oculto con el viaje vencido o sin pasajeros); abordaje con 404 conservando el formulario. |
-| `*LocalRepositoryTest` | Instrumentada (Room en memoria) | Las reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance por rol, login local y abordaje (ventana, repetición con la misma hora, limpieza en V2 y V8). |
+| `*ViewModelTest` | JVM con dobles del Repository | Carga, contenido, lista vacía, error y sin conexión; envío sin duplicados; botones según estado (Iniciar deshabilitado con su motivo, Asignar oculto con el viaje vencido o sin pasajeros); abordaje con 404 conservando el formulario. |
+| `*RepositoryTest` | Instrumentada (Room en memoria) | Las reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance por rol, login local y abordaje (ventana, repetición con la misma hora, limpieza en V2 y V8). |
 | `DaosTest` | Instrumentada | PK, FK con borrado en cascada, consultas `Flow` y transacciones. |
 | `NavegacionTest` | Instrumentada | Flujo por rol, cambio obligatorio de contraseña, historial tras login y logout; abordaje desde el Login, que vuelve al Login sin crear sesión, y desde el Perfil del Solicitante, que vuelve a su inicio. |
 | `SincronizacionWorkerTest` (Etapa 2) | Instrumentada (`work-testing`) | Cada fila de la tabla de la cola: 2xx, sin red, 401, 409 ya aplicado o en conflicto, y "Descartar cambio". |
@@ -2051,7 +2053,7 @@ Una HU o tarea está terminada cuando:
 - [ ] Tiene sus pruebas según [Pruebas](#pruebas) (backend) y [Pruebas Android](#pruebas-android), y CI
   está en verde.
 - [ ] Si toca datos o UI de Android, las instrumentadas pasan en local en API 26 y API 36.
-- [ ] Su pantalla funciona en la build `demo` sobre Room, con los repositorios locales
+- [ ] Su pantalla funciona en la build `demo` sobre Room, con los Repository
   ([Modo demostración sin backend](#modo-demostración-sin-backend)).
 - [ ] Cumple [Accesibilidad](#accesibilidad) y los textos de [Textos y tema](#textos-y-tema).
 - [ ] El README y los mockups describen lo implementado (si algo cambió, el PR `docs/` ya está
@@ -2077,8 +2079,8 @@ y sus SP como etiquetas.
 
 1. Base común: proyecto `android/` con las versiones de [Tecnologías](#tecnologías), tema,
    navegación por rol, sesión en DataStore, esquema Room y `DatosDemo`, y el build type `demo`.
-2. Todas las pantallas de [Navegación y pantallas](#navegación-y-pantallas) con sus repositorios
-   locales, recorribles en la build `demo` sobre Room, incluido el abordaje con QR. Los estados
+2. Todas las pantallas de [Navegación y pantallas](#navegación-y-pantallas) con sus Repository,
+   recorribles en la build `demo` sobre Room, incluido el abordaje con QR. Los estados
    visuales de la Etapa 2 ("Sin conexión", "Cambio en conflicto") se muestran con datos de ejemplo.
 3. Backend de las HU de cada uno hasta cubrir al menos el 75 % de las rutas de [API REST](#api-rest),
    con sus pruebas.
@@ -2086,7 +2088,7 @@ y sus SP como etiquetas.
 
 **Etapa 2, Unidad 3:**
 
-1. Repositorios remotos con Retrofit y el resto del backend.
+1. Llamadas remotas en los Repository con Retrofit y el resto del backend.
 2. Push (HU12, HU13 y HU14) y la cola sin conexión con WorkManager (HU11).
 3. `database/demo.sql`, `FlujosE2ETest`, pasada con TalkBack y APK release firmado
    (`v1.0.0` en GitHub Releases).

@@ -24,18 +24,19 @@ estado del backend sale de revisar `backend/` en esta rama.
   [Historias de usuario y backlog](README.md#historias-de-usuario-y-backlog); no se copian aquí. Las
   tareas `T` llevan su "listo cuando".
 - **Una HU en la Etapa 1** se entrega con:
-  - sus pantallas sobre el repositorio local, recorribles en la [build `demo`](README.md#build-demo);
+  - sus pantallas sobre el Repository (Room), recorribles en la [build `demo`](README.md#build-demo);
   - su parte de backend con pruebas.
 
-  El repositorio remoto (Retrofit) es T14, en la Etapa 2.
+  Las llamadas remotas del Repository (Retrofit) son T14, en la Etapa 2.
 - **Estado del backend:**
   - **Hecha:** la ruta existe con su controlador y su regla, y tiene pruebas.
   - **Falta:** no existe.
 
   Lo que queda pendiente está en [Pendiente del backend](#pendiente-del-backend-etapa-2).
 - **Android:** la app vive en `android/` y la build `demo` corre completa sobre Room, con las 46 pantallas
-  y cada una con su ViewModel. Los repositorios remotos, el push y la cola sin conexión son la Etapa 2.
-  La rama `android` es obsoleta y no se usa.
+  y cada una con su ViewModel. Las llamadas remotas del Repository, el push y la cola sin conexión son
+  la Etapa 2. T05 y T06 están en curso mientras el código se adapta a MVVM (Repository simple, sin
+  Hilt, `view/` y `viewmodel/`). La rama `android` es obsoleta y no se usa.
 
 ## Resumen
 
@@ -84,7 +85,7 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 | Fecha | Hito |
 |---|---|
-| Miércoles 21-10 | T01 a T05 listos; T07 y T08 fusionados en `main`. |
+| Miércoles 21-10 | T01 a T04 listos y T05 en curso; T07 y T08 fusionados en `main`. |
 | Jueves 22-10 | T06: las 46 pantallas navegables (red de seguridad de la "UI al 100 %"). |
 | Domingo 25-10 | P1 completo, incluido el QR. |
 | Lunes 26-10 | P2 y la mayor parte de P3. |
@@ -99,8 +100,8 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 | 2 | T02 | Tema, componentes y textos | A | P0 | — | — | T01 | — | Listo |
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | Listo |
-| 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | Listo |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas, cada una con su ViewModel | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
+| 5 | T05 | `DatosDemo`, los Repository y build `demo` | B | P0 | — | — | T04 | — | En curso |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas, cada una con su ViewModel | A y B | P0 | — | — | T02, T03, T05 | — | En curso |
 | 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Hecho | Listo |
 | 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Hecho | Listo |
 | 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Hecho | Listo |
@@ -154,14 +155,15 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 - **T04:** existen las 8 tablas de [Base de datos local](README.md#base-de-datos-local), con
   sus DAO y `DaosTest`.
 - **T05:**
-  - las interfaces de los 7 repositorios;
-  - `RepositorioModule` con `MODO_LOCAL`;
+  - los 7 Repository como clases sobre los DAO, sin interfaces;
+  - `AppDatabase.getDatabase()` y los ViewModel creando sus Repository, sin Hilt, y `MODO_LOCAL` en
+    `BuildConfig`;
   - la semilla `DatosDemo`;
   - el aviso en el Login;
   - `./gradlew installDemo` funcionando.
 - **T06:** las 46 pantallas de los [mockups](mockups/wireframes-belmonte.html) se recorren con datos
   de `DatosDemo`. Cada integrante hace las pantallas de sus HU, aunque aún no tengan todas las
-  reglas. Cada pantalla tiene su ViewModel en la carpeta de su funcionalidad. En "Nueva solicitud" el
+  reglas. Cada pantalla tiene su ViewModel en `view/<rol>/` y `viewmodel/<rol>/`. En "Nueva solicitud" el
   origen y el destino se eligen de una lista de lugares ficticios, porque Google Places llega en T14.
 - **T07 y T08:**
   - las migraciones de cuentas, flota, pagos, viajes y abordaje se aplican sobre una base existente y
@@ -188,7 +190,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | — |
+| 40 | T14 | Llamadas remotas en los Repository, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | — |
 | 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 1 falta | — |
 | 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; falta el token | — |
 | 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar V3 y V4 | — |
@@ -203,14 +205,14 @@ SP de la Etapa 2: A, 8; B, 13.
 
 **Listo cuando, por tarea:**
 - **T14:**
-  - cada repositorio tiene su implementación remota, según
+  - cada Repository llama a la API en modo remoto (`MODO_LOCAL` falso), según
     [Sesión y conectividad](README.md#sesión-y-conectividad);
   - `ErrorMapper` existe con su `ErrorMapperTest`;
   - se agregan las dependencias que hoy no se usan y por eso no están declaradas: Retrofit y OkHttp,
-    WorkManager y `hilt-work`, Firebase (BoM, `firebase-messaging` y el plugin `google-services`) y
+    WorkManager, Firebase (BoM, `firebase-messaging` y el plugin `google-services`) y
     Google Places, que reemplaza la lista de lugares ficticios de "Nueva solicitud" (HU02).
 
-  Cada integrante hace los repositorios de sus funcionalidades, y A hace además `ErrorMapper` y el
+  Cada integrante hace las llamadas remotas de sus funcionalidades, y A hace además `ErrorMapper` y el
   interceptor.
 - **HU11:** incluye `SincronizacionWorkerTest`.
 - **T15:** las 48 rutas cumplen el README y todas las pruebas de [Pruebas](README.md#pruebas) pasan.
@@ -303,5 +305,5 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 | **Plazo:** la entrega es el 28-10 y quedan el video (T11), el ensayo (T12) y la entrega (T13). | Las HU de la Etapa 1 figuran en Listo; el video (T11) lo edita el compañero. |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3. | B hace la base del backend (T07 a T10). Como el backend no se presenta ni se pregunta en la Prueba 2, B puede tomar rutas de A, previo acuerdo, sin afectar que cada uno explique su Android. |
 | **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión (sin MariaDB) y las instrumentadas de Android tampoco. | Antes de congelar `main`, levantar el compose y correr `./gradlew test`; en Android, `connectedDebugAndroidTest` en un emulador aparte (comparte el `applicationId` de la demo y borra sus datos). |
-| **Variante `debug`:** usa los repositorios remotos, que aún devuelven "Sin conexión"; solo `demo` funciona. | Mostrar siempre la build `demo` (`./gradlew installDemo`). Los remotos son T14. |
+| **Variante `debug`:** usa los Repository en modo remoto, que aún devuelven "Sin conexión"; solo `demo` funciona. | Mostrar siempre la build `demo` (`./gradlew installDemo`). El modo remoto es T14. |
 | **Evaluación individual:** cada uno debe explicar y modificar su Android sin apuntes ni IA. | Cada integrante escribe el Android de sus HU (README, [Plan de trabajo](README.md#plan-de-trabajo)), y T12 ensaya la explicación y un cambio en vivo. |

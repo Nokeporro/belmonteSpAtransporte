@@ -15,7 +15,6 @@ docs/*.pdf
 
 # Archivos genericos ignorados
 targets
-src2/
 
 # Claude Code
 .claude

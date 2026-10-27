@@ -9,10 +9,10 @@ import cl.belmontespa.myapplication.model.MedioPago
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.TipoDocumento
 import cl.belmontespa.myapplication.model.TipoRecibo
-import cl.belmontespa.myapplication.ui.components.EstiloChip
-import cl.belmontespa.myapplication.ui.components.EtiquetaCalculada
-import cl.belmontespa.myapplication.ui.components.estiloChip
-import cl.belmontespa.myapplication.ui.components.etiqueta
+import cl.belmontespa.myapplication.view.components.EstiloChip
+import cl.belmontespa.myapplication.view.components.EtiquetaCalculada
+import cl.belmontespa.myapplication.view.components.estiloChip
+import cl.belmontespa.myapplication.view.components.etiqueta
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals

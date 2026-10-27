@@ -1,7 +1,7 @@
 package cl.belmontespa.myapplication.model
 
-import cl.belmontespa.myapplication.ui.components.EtiquetaCalculada
-import cl.belmontespa.myapplication.ui.components.etiquetaCalculada
+import cl.belmontespa.myapplication.view.components.EtiquetaCalculada
+import cl.belmontespa.myapplication.view.components.etiquetaCalculada
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneId

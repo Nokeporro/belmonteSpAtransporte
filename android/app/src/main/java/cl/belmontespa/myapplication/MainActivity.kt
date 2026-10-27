@@ -7,13 +7,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cl.belmontespa.myapplication.ui.navigation.BelmonteApp
-import cl.belmontespa.myapplication.ui.navigation.SesionViewModel
+import cl.belmontespa.myapplication.navigation.BelmonteApp
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
-import dagger.hilt.android.AndroidEntryPoint
+import cl.belmontespa.myapplication.viewmodel.SesionViewModel
 
 /** Única actividad: dibuja la app en Compose y decide el flujo según la sesión. */
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val sesionViewModel: SesionViewModel by viewModels()

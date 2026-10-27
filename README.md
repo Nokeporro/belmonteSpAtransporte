@@ -124,7 +124,7 @@ necesariamente a la empresa que paga (`PASAJERO` no tiene FK a `EMPRESA`).
   [Accesibilidad](#accesibilidad) WCAG 2.1 AA.
 - **RNF05 Compatibilidad:** Android 8.0 (API 26) o superior; el backend expone solo JSON REST.
 - **RNF06 Mantenibilidad:** `Controller-Service-Repository` en el backend y
-  `View-ViewModel-Repository` en Android; cada regla se cambia en un solo lugar.
+  `Model-View-ViewModel` en Android; cada regla se cambia en un solo lugar.
 - **RNF07 Servicios externos:** Google Places, FCM y un correo transaccional por SMTP, dentro de
   su cuota gratuita.
 - **RNF08 Privacidad:** nombres, teléfonos y direcciones no van a logs; solo los ven el
@@ -308,7 +308,7 @@ erDiagram
 | Backend | Spring Boot 4.1, Java 21 y Gradle (Groovy DSL); `Controller → Service → Repository` con Spring Data JPA y Flyway. |
 | Seguridad | Spring Security como resource server con JWT HS256; un `SecurityFilterChain` con `denyAll` por defecto. Sin JWT solo `POST /auth/login`, `POST /auth/recuperar-password`, `POST /solicitantes` y `POST /abordajes`. |
 | Integraciones | Firebase Admin SDK (push) y `spring-boot-starter-mail` ([Notificaciones](#notificaciones)). |
-| Android | Kotlin y Jetpack Compose, MVVM con Repository ([Android](#android)). |
+| Android | Kotlin y Jetpack Compose, Model-View-ViewModel con un Repository simple sobre el DAO ([Android](#android)). |
 
 `database/docker-compose.yaml` levanta `mariadb` (`belmonte-mariadb`, puerto `3307`) y `mailpit`
 (`belmonte-mailpit`, SMTP `1025` y web <http://localhost:8025>), ambos solo en `127.0.0.1`:
@@ -705,24 +705,31 @@ compose, porque los triggers aplican parte de las reglas:
 ### Arquitectura de la app
 
 ```text
-Pantalla Compose ⇄ ViewModel ⇄ Repository (interfaz) ⇄ local (Room) | remota (Retrofit + caché en Room)
+View (Compose) ⇄ ViewModel ⇄ Repository (clase) ⇄ DAO (Room)
 ```
 
-- Un módulo `app` en `android/` (Gradle Kotlin DSL) con Hilt. Las pantallas no tocan Retrofit,
-  Room ni DAO, y los ViewModel dependen solo de interfaces de repositorio. Sin casos de uso.
-- `di/RepositorioModule` elige con `BuildConfig.MODO_LOCAL` entre la implementación **local**
-  (`data/local/repository/`, que aplica [Máquinas de estado](#máquinas-de-estado) y
-  [Validaciones](#validaciones) sobre Room; la de la [Build demo](#build-demo)) y la **remota**
-  (`data/remote/repository/`, donde el backend es la autoridad).
+- Un módulo `app` en `android/` (Gradle Kotlin DSL), Model-View-ViewModel como los templates del
+  curso: sin inyección de dependencias, sin interfaces de repositorio y sin casos de uso.
+- **Model:** modelos de la app, entidades Room, enums con los códigos de la API, `Resultado` y
+  `ErrorApp`, con sus mapeadores.
+- **View:** Composables que dibujan el estado de su ViewModel y le envían acciones. No tocan
+  Retrofit, Room ni los DAO.
+- **ViewModel:** un `AndroidViewModel` por pantalla. Obtiene la base con
+  `AppDatabase.getDatabase(application)` y crea sus repositorios; los recibe también por
+  constructor, con ese valor por defecto, para pasar un doble en las pruebas JVM.
+- **Repository:** una clase concreta por dominio sobre los DAO de `dao/`. En la Etapa 1 solo usa
+  Room: aplica [Máquinas de estado](#máquinas-de-estado) y [Validaciones](#validaciones) con
+  `@Transaction` (la [Build demo](#build-demo)). En la Etapa 2 el mismo Repository llama también a
+  Retrofit cuando `BuildConfig.MODO_LOCAL` es falso, y entonces el backend es la autoridad.
 - Las lecturas de viajes son `Flow` desde Room; lo demás es `suspend` y devuelve `Resultado<T>`:
   `Exito`, `Fallo(ErrorApp)` o `Encolado` (solo Iniciar o Finalizar sin conexión).
 - `ErrorApp` es uno de `Validacion` (por campo), `SinConexion`, `SesionExpirada`, `SinPermiso`,
-  `NoEncontrado`, `Conflicto` (con el `message`) o `Inesperado`, igual en ambas implementaciones.
+  `NoEncontrado`, `Conflicto` (con el `message`) o `Inesperado`, igual con o sin backend.
 - Cada ViewModel expone un `StateFlow<…UiState>` inmutable (datos, carga, errores por campo, error
   general y `enviando`); avisos y navegación se consumen una vez. La sesión es `SIN_SESION`,
-  `TEMPORAL` o `AUTENTICADA`. Enums con los códigos de la API; mapeadores en `data/mapper/`.
+  `TEMPORAL` o `AUTENTICADA`.
 
-| Repositorio | Operaciones |
+| Repository | Operaciones |
 |---|---|
 | `AuthRepository` | `observarSesion`, `iniciarSesion`, `registrarSolicitante`, `recuperarPassword`, `actualizarTokenFcm`, `cerrarSesion` |
 | `CuentaRepository` | `obtenerPerfil`, `actualizarCuentaPropia`, `cambiarPassword`, `listarSolicitantesPendientes`, `aprobarSolicitante`, `rechazarSolicitante`, `registrarAdministrador` |
@@ -735,8 +742,8 @@ Pantalla Compose ⇄ ViewModel ⇄ Repository (interfaz) ⇄ local (Room) | remo
 ### Tecnologías y código
 
 Versiones exactas en `android/gradle/libs.versions.toml` (Compose por su BOM); se actualizan solo
-con un PR `chore/`. Las marcadas «Etapa 2» se agregan al catálogo y al módulo con los repositorios
-remotos (T14): mientras no tengan un `import`, no se declaran.
+con un PR `chore/`. Las marcadas «Etapa 2» se agregan al catálogo y al módulo con las llamadas
+remotas de los Repository (T14): mientras no tengan un `import`, no se declaran.
 
 | Componente | Versión |
 |---|---|
@@ -744,37 +751,41 @@ remotos (T14): mientras no tengan un `import`, no se declaran.
 | Kotlin / KSP | 2.4.21 / 2.3.12 |
 | Compose BOM | 2026.09.00 (`ui`, `material3`, `ui-tooling-preview`, `ui-test-junit4`, `ui-test-manifest`) |
 | `androidx.activity:activity-compose` / `androidx.navigation:navigation-compose` / `androidx.lifecycle` / `androidx.core:core-ktx` | 1.13.0 / 2.10.2 / 2.11.0 / 1.19.1 |
-| Hilt (`com.google.dagger`) / `androidx.hilt` | 2.60.1 / 1.4.0 (`hilt-navigation-compose`; `hilt-work` en la Etapa 2) |
 | Room / DataStore | 2.8.5 / 1.2.1 (`datastore-preferences`) |
 | WorkManager (Etapa 2: cola y sincronización) | 2.12.0 |
-| Retrofit / OkHttp (Etapa 2: repositorios remotos) | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
+| Retrofit / OkHttp (Etapa 2: llamadas remotas de los Repository) | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
 | `kotlinx-serialization-json` / `kotlinx-coroutines` | 1.11.0 / 1.11.0 |
 | Firebase BoM / plugin `google-services` / Places SDK (Etapa 2: push y Google Places) | 35.0.2 (`firebase-messaging`) / 4.5.0 / 6.0.2 |
 | `com.google.android.gms:play-services-code-scanner` | 16.1.0 (`GmsBarcodeScanning`, `GmsBarcodeScannerOptions`) |
 | JUnit / `androidx.test` | 4.13.2 / `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 |
 
 Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`,
-`org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`,
-`com.google.dagger.hilt.android`; `com.google.gms.google-services` llega con Firebase en la Etapa 2. La base se acepta si
+`org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`;
+`com.google.gms.google-services` llega con Firebase en la Etapa 2. La base se acepta si
 sincroniza con JDK 21, pasan `lintDebug`, `testDebugUnitTest`, `assembleDebug` y `assembleDemo`,
 abre en API 26 y 36 y `assembleRelease` firma con R8.
 
 ```text
 android/app/src/main/java/cl/belmontespa/myapplication/
-├── BelmonteApplication.kt, MainActivity.kt
-├── di/            RepositorioModule y demás módulos de Hilt
-├── model/         modelos de la app, Resultado y ErrorApp
-├── data/          repository/ (interfaces), local/ (database, dao, entity, repository, DatosDemo),
-│                  navegacion/, session/, mapper/
-│                  (Etapa 2: remote/ con api, dto, interceptor y repository)
-├── ui/            navigation/, components/, theme/, auth/, abordaje/, solicitante/, administrador/, conductor/
+├── MainActivity.kt
+├── model/         modelos de la app, entidades Room, enums, Resultado y ErrorApp (con sus mapeadores)
+├── dao/           interfaces @Dao de Room
+├── database/      AppDatabase (singleton con getDatabase) y DatosDemo
+├── repository/    un Repository por dominio
+│                  (Etapa 2: api/, dto/ e interceptor/ de Retrofit)
+├── viewmodel/     auth/, abordaje/, solicitante/, administrador/, conductor/
+├── view/          components/, auth/, abordaje/, solicitante/, administrador/, conductor/
+├── navigation/    Routes y NavHost
+├── ui/theme/      tema
+├── session/       sesión en DataStore
+├── navegador/     Intents a Google Maps o Waze
 ├── util/          formatos y validaciones
 ├── notification/  (Etapa 2)
 └── sync/          (Etapa 2) SincronizacionWorker
 ```
 
-Cada pantalla va con su ViewModel en la carpeta de su funcionalidad (p. ej.
-`ui/solicitante/NuevaSolicitudScreen.kt` y `NuevaSolicitudViewModel.kt`).
+Cada pantalla de `view/` va con su ViewModel en la carpeta del mismo rol en `viewmodel/` (p. ej.
+`view/solicitante/NuevaSolicitudScreen.kt` y `viewmodel/solicitante/NuevaSolicitudViewModel.kt`).
 
 ### Navegación y pantallas
 
@@ -969,7 +980,7 @@ en ms.
 - **QR:** contiene `BELMONTE-ABORDAJE:{patente}:{codigoAbordaje}` (p. ej.
   `BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6`). "Detalle de vehículo" muestra la patente y el
   código en grupos de 4; la app no genera ni imprime el QR.
-- **Lectura (`ui/abordaje/`):** desde el Login o el Perfil del Solicitante, sin JWT, sin cola y
+- **Lectura (`view/abordaje/`):** desde el Login o el Perfil del Solicitante, sin JWT, sin cola y
   sin tocar la sesión. "Escanear código QR" abre `GmsBarcodeScanning` con `GmsBarcodeScannerOptions`
   solo `FORMAT_QR_CODE` y `enableAutoZoom()`: el lector corre en Google Play services, así que la
   app no pide `CAMERA`. Cancelar vuelve sin aviso; si no se puede abrir, avisa y deja "Ingresar
@@ -999,8 +1010,8 @@ en ms.
 ### Build `demo`
 
 App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
-- Los repositorios locales (`AuthLocalRepository`, `ViajeLocalRepository`,
-  `AbordajeLocalRepository`, etc.) aplican en una `@Transaction` V1–V8, P1–P5, el
+- Los Repository (`AuthRepository`, `ViajeRepository`,
+  `AbordajeRepository`, etc.) aplican en una `@Transaction` V1–V8, P1–P5, el
   [Abordaje](#abordaje), las [Validaciones](#validaciones) y el alcance por rol, con el `Clock`
   de la app, y devuelven el mismo `ErrorApp` (p. ej. `Conflicto("El viaje está vencido")`).
 - El login local compara el SHA-256 con `usuarios.password_sha256`; la sesión se guarda igual,
@@ -1020,7 +1031,7 @@ App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
 
 ### Pruebas Android
 
-`./gradlew testDebugUnitTest` (JVM, con fakes escritos a mano y `kotlinx-coroutines-test`; en CI)
+`./gradlew testDebugUnitTest` (JVM, con dobles del Repository escritos a mano y `kotlinx-coroutines-test`; en CI)
 y `./gradlew connectedDebugAndroidTest` (instrumentadas, en emuladores API 26 y 36, en local).
 Las pruebas fijan el `Clock` y usan solo datos ficticios.
 
@@ -1031,8 +1042,8 @@ Las pruebas fijan el `Clock` y usan solo datos ficticios.
 | `FormatosTest` | JVM | Etiquetas y formatos. |
 | `CodigoAbordajeTest` | JVM | QR válido e inválido y entrada manual con o sin espacios. |
 | `ErrorMapperTest` | JVM | Cada código HTTP y fallo de red; 400 de varias líneas. |
-| `*ViewModelTest` | JVM con fakes | Estados de pantalla, envío sin duplicados, botones según estado y abordaje con 404. |
-| `*LocalRepositoryTest` | Instrumentada (Room en memoria) | Reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance, login local y abordaje. |
+| `*ViewModelTest` | JVM con dobles del Repository | Estados de pantalla, envío sin duplicados, botones según estado y abordaje con 404. |
+| `*RepositoryTest` | Instrumentada (Room en memoria) | Reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance, login local y abordaje. |
 | `DaosTest` | Instrumentada | PK, FK en cascada, `Flow` y transacciones. |
 | `NavegacionTest` | Instrumentada | Flujos por rol, cambio obligatorio de contraseña, historial y abordaje desde el Login y el Perfil. |
 | `SincronizacionWorkerTest` (Etapa 2) | Instrumentada (`work-testing`) | Cada fila de la tabla de la cola y "Descartar cambio". |
@@ -1104,7 +1115,7 @@ curso, En revisión, Terminado), con prioridad y SP como etiquetas.
   todas las pantallas sobre Room, cada una con su ViewModel, incluido el abordaje con QR (los estados
   de la Etapa 2, con datos de ejemplo) y el origen y el destino desde lugares ficticios; al menos el 75 % de las rutas del backend con sus pruebas; video de hasta
   7 minutos sin audio.
-- **Etapa 2, Unidad 3:** repositorios remotos (Retrofit y OkHttp) y resto del backend; Google Places
+- **Etapa 2, Unidad 3:** llamadas remotas en los Repository (Retrofit y OkHttp) y resto del backend; Google Places
   (HU02); push con Firebase (HU12, HU13, HU14) y cola con WorkManager (HU11); `database/demo.sql`, `FlujosE2ETest`, pasada con TalkBack y APK release `v1.0.0` en
   GitHub Releases.
 - Lo que no se termina pasa a la etapa siguiente; si no alcanza, se recortan primero las HU de

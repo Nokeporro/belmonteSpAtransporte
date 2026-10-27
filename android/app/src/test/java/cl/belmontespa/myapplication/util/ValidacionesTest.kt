@@ -1,6 +1,10 @@
 package cl.belmontespa.myapplication.util
 
-import cl.belmontespa.myapplication.model.*
+import cl.belmontespa.myapplication.model.NuevaSolicitud
+import cl.belmontespa.myapplication.model.NuevoPasajero
+import cl.belmontespa.myapplication.model.RegistroSolicitante
+import cl.belmontespa.myapplication.model.TipoDocumento
+import cl.belmontespa.myapplication.model.Ubicacion
 import java.time.LocalDateTime
 import org.junit.Assert.*
 import org.junit.Test

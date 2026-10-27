@@ -934,7 +934,7 @@ GRUPOS = [
             Campo('Correo electrónico', 'ireyes@belmontespa.cl'), Campo('Contraseña', '••••••••'),
             Boton('Iniciar sesión'), Boton('Crear cuenta solicitante', 'fantasma'),
             Boton('Recuperar contraseña', 'fantasma'), Boton('Abordar viaje', 'fantasma', icono='qr'),
-            Nota('Build demo: los repositorios locales usan los datos de ejemplo guardados en Room; ninguna '
+            Nota('Build demo: los Repository usan los datos de ejemplo guardados en Room; ninguna '
                  'petición sale al backend.', centro=True)]),
         Pantalla('Registro de solicitante', ['RF01', 'HU01'], barra='Crear cuenta solicitante', atras=True, cuerpo=[
             Campo('Nombre de contacto', 'Constanza Ríos'),
