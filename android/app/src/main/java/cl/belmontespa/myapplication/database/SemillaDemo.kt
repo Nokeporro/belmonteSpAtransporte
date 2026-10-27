@@ -18,7 +18,7 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
 /**
- * Carga [DatosDemo] al crear la base, solo en la build demo. Inserta con SQL directo dentro de
+ * Carga [DatosDemo] al crear la base, en las builds debug y demo. Inserta con SQL directo dentro de
  * `onCreate`, en la misma transacción que crea las tablas, así los datos ya están cuando la app
  * hace su primera consulta (p. ej. el login).
  */

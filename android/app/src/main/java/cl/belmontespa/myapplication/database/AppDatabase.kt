@@ -60,8 +60,8 @@ abstract class AppDatabase : RoomDatabase() {
         private var instancia: AppDatabase? = null
 
         /**
-         * La base única de la app. `DatosDemo` solo se carga en la build demo; en la remota, Room guarda lo que llega
-         * del backend.
+         * La base única de la app. `DatosDemo` se carga en las builds debug y demo; en release, Room guarda lo que
+         * llega del backend.
          */
         fun getDatabase(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
@@ -71,7 +71,7 @@ abstract class AppDatabase : RoomDatabase() {
         private fun crear(context: Context): AppDatabase {
             val constructor = Room.databaseBuilder(context, AppDatabase::class.java, NOMBRE)
                 .addMigrations(MIGRACION_1_2)
-            if (BuildConfig.MODO_LOCAL) constructor.addCallback(SemillaDemo())
+            if (BuildConfig.CON_SEMILLA) constructor.addCallback(SemillaDemo())
             return constructor.build()
         }
 

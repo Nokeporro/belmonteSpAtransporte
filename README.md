@@ -319,7 +319,7 @@ La API lee `DB_URL`, `DB_USER` y `DB_PASSWORD` del entorno, y Flyway migra al in
 |---|---|---|---|---|
 | Desarrollo | Compose local y `./gradlew bootRun` | Mailpit | Opcional | Debug contra `10.0.2.2` |
 | Demostración | Compose y backend en un computador anfitrión con IP fija, en una red controlada (solo el `8080` abierto), con `.env.demo` | Proveedor transaccional | Firebase | Release contra la IP del anfitrión |
-| Sin backend | Ninguno: Room con `DatosDemo` ([Build demo](#build-demo)) | — | — | Build `demo` |
+| Sin backend | Ninguno: Room con `DatosDemo` ([Build demo](#build-demo)) | — | — | Builds `demo` y `debug` |
 
 - **`database/demo.sql`** (no es migración; se recarga antes de cada demostración y de `FlujosE2ETest`):
   vacía las tablas de negocio y carga 2 Administradores, 4 Conductores y 4 vehículos (1 inactivo
@@ -945,13 +945,13 @@ recibe 409 y queda en conflicto.
 
 ### Base de datos local
 
-`belmonte_local.db`, Room versión 2: fuente de verdad en la build `demo`; en la remota, solo los
-viajes consultados y la cola. Fechas de negocio como `String` ISO; instantes técnicos como `Long`
+`belmonte_local.db`, Room versión 2: fuente de verdad en las builds `demo` y `debug`, que
+arrancan con `DatosDemo`; en `release`, solo los viajes consultados y la cola. Fechas de negocio como `String` ISO; instantes técnicos como `Long`
 en ms.
 
 | Tabla | Campos | Claves |
 |---|---|---|
-| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?`, `password_temporal_sha256?`, `password_temporal_expira?` (credenciales ficticias solo `demo`) | PK `correo`; migración 1 → 2 conserva las filas |
+| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?`, `password_temporal_sha256?`, `password_temporal_expira?` (credenciales ficticias solo en `demo` y `debug`) | PK `correo`; migración 1 → 2 conserva las filas |
 | `moviles` | `patente`, `capacidad`, `gps_serial?`, `activo`, `estado_movil`, `codigo_abordaje` | PK `patente`; UQ `codigo_abordaje` |
 | `habilitaciones` | `patente`, `correo_conductor` | PK compuesta; FK a `moviles` y `usuarios` |
 | `viajes` | Los de `ViajeDTOResponse` salvo `pasajeros` (`origen_*` y `destino_*` aplanados), `folio_correlativo`, `descargado_en` | PK `folio` |
@@ -964,7 +964,7 @@ en ms.
   (`folio_correlativo` para el folio). Cada respuesta reemplaza sus viajes en una transacción;
   una consulta fallida no borra nada. DAO con lecturas `Flow`, escrituras `suspend` y
   `@Transaction` cuando tocan varias tablas.
-- El documento nunca se guarda en claro: en `demo`, `dni_hash` es el SHA-256 en Base64url del
+- El documento nunca se guarda en claro: en `demo` y `debug`, `dni_hash` es el SHA-256 en Base64url del
   documento normalizado. La base queda fuera de los respaldos y no usa
   `fallbackToDestructiveMigration`.
 
@@ -1003,6 +1003,8 @@ en ms.
 - `compileSdk` 37 (lo exigen las AndroidX fijadas), `targetSdk` 36 y `minSdk` 26. Builds `debug`; `demo` (`initWith(debug)`, mismo
   `applicationId`, `MODO_LOCAL = true`); y `release` (R8, keystore `belmonte-release.jks` fuera
   del repositorio, con sus claves en `~/.gradle/gradle.properties`).
+- `BuildConfig.CON_SEMILLA`: `true` en `debug` y `demo`, que cargan `DatosDemo` y abren sin backend; `false` en
+  `release`, que nunca lleva cuentas ficticias. `MODO_LOCAL` (los avisos de demostración) es `true` solo en `demo`.
 - `BuildConfig.API_BASE_URL`: debug, `http://10.0.2.2:8080/`; release, la propiedad Gradle
   obligatoria `belmonte.apiBaseUrl`. `network_security_config` permite HTTP solo hacia `10.0.2.2`
   y el anfitrión.
@@ -1020,12 +1022,14 @@ App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
   de la app, y devuelven el mismo `ErrorApp` (p. ej. `Conflicto("El viaje está vencido")`).
 - El login local compara el SHA-256 con `usuarios.password_sha256`; la sesión se guarda igual,
   con un `token` `demo-…` de 8 horas.
-- `DatosDemo` (RNF09) se inserta en `RoomDatabase.Callback.onCreate`: el mismo mínimo que
+- `DatosDemo` (RNF09) se inserta en `RoomDatabase.Callback.onCreate` cuando `CON_SEMILLA` es `true`
+  (`demo` y `debug`; `debug` no muestra los avisos de demostración): el mismo mínimo que
   `database/demo.sql`, los catálogos de pago, las regiones Metropolitana y de Valparaíso con sus
   comunas y un `codigo_abordaje` fijo por vehículo. Su comentario inicial lista las cuentas, la
   contraseña común, los documentos ficticios y el Conductor del viaje en ventana.
 - Las fechas son relativas al primer arranque: antes de cada demostración,
-  `adb shell pm clear cl.belmontespa.myapplication`.
+  `adb shell pm clear cl.belmontespa.myapplication`. La semilla se carga solo al crear la base, así que
+  una instalación anterior con la base vacía también necesita ese `pm clear`.
 - Sin push, sin correo ("Recuperar contraseña" genera y muestra la temporal, sin enviarla) y sin cola. Sin Google Places, el
   origen y el destino de "Nueva solicitud" se eligen de una lista de lugares ficticios
   (`DatosDemo.lugares`); Places llega en la Etapa 2. El QR se ve como Administrador y se escanea

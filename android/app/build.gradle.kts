@@ -29,6 +29,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("boolean", "MODO_LOCAL", "false")
+        buildConfigField("boolean", "CON_SEMILLA", "false")
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
     }
 
@@ -44,6 +45,10 @@ android {
     }
 
     buildTypes {
+        // Debug y demo arrancan con DatosDemo, así que la app abre sin backend; release nunca la lleva.
+        debug {
+            buildConfigField("boolean", "CON_SEMILLA", "true")
+        }
         release {
             optimization {
                 enable = true
