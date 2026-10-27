@@ -1,26 +1,30 @@
 package cl.belmontespa.myapplication.navigation
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.*
-import androidx.navigation.toRoute
-import cl.belmontespa.myapplication.R
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.Rol
-import cl.belmontespa.myapplication.view.auth.LoginScreen
-import cl.belmontespa.myapplication.view.components.Aviso
-import cl.belmontespa.myapplication.view.components.BotonAncho
-import cl.belmontespa.myapplication.view.components.PantallaCargando
-import cl.belmontespa.myapplication.view.components.TonoAviso
 
-/** Un flujo por rol y rutas de T06 que solo transportan identificadores. */
+/**
+ * La app: la barra inferior del rol y el NavHost (NavGrafos.kt). Aquí vive lo que decide a dónde ir cuando cambia la
+ * sesión (login, sesión vencida, cambio de contraseña obligatorio) y cómo se arma el historial al navegar.
+ */
 @Composable
 fun BelmonteApp(
     estadoSesion: EstadoSesion?,
@@ -31,63 +35,33 @@ fun BelmonteApp(
     val destinoActual = entrada?.destination
     val items = (estadoSesion as? EstadoSesion.Autenticada)?.sesion?.rol?.let(::itemsBarra).orEmpty()
     val mostrarBarra = items.any { destinoActual?.esRuta(it.ruta) == true }
+    val rol = (estadoSesion as? EstadoSesion.Autenticada)?.sesion?.rol
     var previa by remember { mutableStateOf<EstadoSesion?>(null) }
     var cierreManual by remember { mutableStateOf(false) }
-    var correoRegistro by remember { mutableStateOf("") }
     val cerrar: () -> Unit = { cierreManual = true; onCerrarSesion() }
     val volver: () -> Unit = { navController.popBackStack() }
+    val navegar: (PantallaDemo, String) -> Unit = { pantalla, id -> navController.irA(pantalla, id, rol) }
 
-    val navegar: (PantallaDemo, String) -> Unit = { pantalla, id ->
-        val destino: Any = when (pantalla) {
-            PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> {
-                correoRegistro = id
-                (estadoSesion as? EstadoSesion.Autenticada)?.sesion?.rol?.let(::grafoDe) ?: GrafoAcceso
-            }
-            PantallaDemo.MIS_SOLICITUDES -> MisSolicitudes
-            PantallaDemo.SOLICITUDES -> Solicitudes
-            PantallaDemo.MIS_VIAJES -> MisViajes
-            else -> DestinoDemo(pantalla, id)
-        }
-        val rutaActual = navController.currentBackStackEntry?.takeIf { it.destination.hasRoute(DestinoDemo::class) }?.toRoute<DestinoDemo>()
-        val anterior = navController.previousBackStackEntry?.takeIf { it.destination.hasRoute(DestinoDemo::class) }?.toRoute<DestinoDemo>()
-        if (reemplazaDetalleAnterior(rutaActual, anterior, destino)) {
-            // Todas las DestinoDemo comparten id: se saca el formulario y luego el detalle de abajo, que queda reemplazado.
-            navController.popBackStack()
-            navController.navigate(destino) { navController.currentDestination?.id?.let { popUpTo(it) { inclusive = true } } }
-        } else navController.navigate(destino) {
-            launchSingleTop = destino !is DestinoDemo || rutaActual == destino
-            // Un envío confirmado elimina el formulario del historial.
-            if (rutaActual?.pantalla in formulariosConSalida && pantalla in detallesTrasGuardar) {
-                navController.currentDestination?.id?.let { popUpTo(it) { inclusive = true } }
-            }
-            if (pantalla in listOf(PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO)) popUpTo(navController.graph.id) { inclusive = true }
-            if (pantalla == PantallaDemo.MIS_SOLICITUDES) popUpTo(MisSolicitudes) { inclusive = true }
-            if (pantalla == PantallaDemo.MIS_VIAJES) popUpTo(MisViajes) { inclusive = true }
-        }
-    }
     LaunchedEffect(estadoSesion) {
         val anterior = previa
         previa = estadoSesion
-        val destino: Any = when (estadoSesion) {
-            null -> return@LaunchedEffect
-            EstadoSesion.SinSesion -> if ((anterior is EstadoSesion.Autenticada || anterior is EstadoSesion.Temporal) && !cierreManual) DestinoDemo(PantallaDemo.SESION_EXPIRADA) else GrafoAcceso
-            is EstadoSesion.Temporal -> DestinoDemo(PantallaDemo.CAMBIO_OBLIGATORIO)
-            is EstadoSesion.Autenticada -> grafoDe(estadoSesion.sesion.rol)
-        }
+        val estado = estadoSesion ?: return@LaunchedEffect
+        val destino = destinoPorSesion(anterior, estado, cierreManual)
         cierreManual = false
-        val actual = navController.currentBackStackEntry?.takeIf { it.destination.hasRoute(DestinoDemo::class) }?.toRoute<DestinoDemo>()
+        val actual = navController.currentBackStackEntry.destino()
         // Una rotación conserva el detalle o formulario autorizado que ya estaba abierto.
-        val cambioDeCuenta = anterior is EstadoSesion.Autenticada && estadoSesion is EstadoSesion.Autenticada && anterior.sesion.correo != estadoSesion.sesion.correo
-        val entrando = estadoSesion is EstadoSesion.Autenticada && (anterior == EstadoSesion.SinSesion || anterior is EstadoSesion.Temporal)
-        val conservar = !entrando && !cambioDeCuenta && actual != null && permitePantalla(actual.pantalla, estadoSesion) &&
-            !(estadoSesion == EstadoSesion.SinSesion && (anterior is EstadoSesion.Autenticada || anterior is EstadoSesion.Temporal)) &&
-            !(estadoSesion is EstadoSesion.Autenticada && actual.pantalla == PantallaDemo.CAMBIO_OBLIGATORIO)
-        val necesitaNavegar = if (destino is DestinoDemo) actual != destino else debeNavegar(navController.currentDestination, destino)
-        if (!conservar && necesitaNavegar) {
+        if (conservarPantalla(anterior, estado, actual)) return@LaunchedEffect
+        val grafo = grafoDeSesion(destino, estado)
+        val yaEstaAhi = if (grafo != null) navController.currentDestination?.esRuta(grafo) == true else actual == destino
+        if (!yaEstaAhi) {
             // No se restaura el historial de otra cuenta tras cerrar o perder la sesión.
-            navController.navigate(destino) { popUpTo(navController.graph.id) { inclusive = true }; launchSingleTop = true }
+            navController.navigate(grafo ?: destino.ruta()) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
+
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom),
         bottomBar = {
@@ -95,47 +69,101 @@ fun BelmonteApp(
                 navController.navigate(item.ruta) {
                     popUpTo(items.first().ruta)
                     launchSingleTop = true
-
                 }
             }
         },
     ) { padding ->
-        NavHost(navController, startDestination = Inicio, modifier = Modifier.padding(padding)) {
-            composable<Inicio> { PantallaCargando(texto = stringResource(R.string.inicio_comprobando_sesion), modifier = Modifier.statusBarsPadding()) }
-            navigation<GrafoAcceso>(startDestination = Login) {
-                composable<Login> { LoginScreen(
-                    onCrearCuenta = { navegar(PantallaDemo.REGISTRO, "") },
-                    onAbordarViaje = { navegar(PantallaDemo.ABORDAR, "") }, correoInicial = correoRegistro,
-                ) }
-            }
-            navigation<GrafoSolicitante>(startDestination = MisSolicitudes) {
-                composable<MisSolicitudes> { DestinoPantalla(PantallaDemo.MIS_SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilSolicitante> { DestinoPantalla(PantallaDemo.PERFIL_SOLICITANTE, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-            }
-            navigation<GrafoAdministrador>(startDestination = Solicitudes) {
-                composable<Solicitudes> { DestinoPantalla(PantallaDemo.SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<Conductores> { DestinoPantalla(PantallaDemo.CONDUCTORES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<Vehiculos> { DestinoPantalla(PantallaDemo.VEHICULOS, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilAdministrador> { DestinoPantalla(PantallaDemo.PERFIL_ADMIN, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-            }
-            navigation<GrafoConductor>(startDestination = MisViajes) {
-                composable<MisViajes> { DestinoPantalla(PantallaDemo.MIS_VIAJES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilConductor> { DestinoPantalla(PantallaDemo.PERFIL_CONDUCTOR, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-            }
-            composable<DestinoDemo> { entradaDemo ->
-                val ruta = entradaDemo.toRoute<DestinoDemo>()
-                if (permitePantalla(ruta.pantalla, estadoSesion)) {
-                    DestinoPantalla(ruta.pantalla, ruta.id, navegar, volver, cerrar)
-                } else Column(Modifier.padding(24.dp)) {
-                    Aviso(stringResource(R.string.error_sin_permiso), TonoAviso.PELIGRO)
-                    BotonAncho(stringResource(R.string.accion_volver), volver)
-                }
+        val acciones = AccionesNav(estadoSesion, navegar, volver, cerrar)
+        NavHost(navController, startDestination = PantallaDemo.INICIO.ruta, modifier = Modifier.padding(padding)) {
+            pantallaInicio()
+            grafoAcceso(acciones)
+            grafoSolicitante(acciones)
+            grafoAdministrador(acciones)
+            grafoConductor(acciones)
+        }
+    }
+}
+
+// ---- Navegar entre pantallas ----
+
+/** Pantallas raíz: no se apilan sobre otras (el inicio, el Login y las de la barra inferior). */
+private val pantallasRaiz = setOf(
+    PantallaDemo.INICIO, PantallaDemo.LOGIN,
+    PantallaDemo.MIS_SOLICITUDES, PantallaDemo.PERFIL_SOLICITANTE,
+    PantallaDemo.SOLICITUDES, PantallaDemo.CONDUCTORES, PantallaDemo.VEHICULOS, PantallaDemo.PERFIL_ADMIN,
+    PantallaDemo.MIS_VIAJES, PantallaDemo.PERFIL_CONDUCTOR,
+)
+private val formulariosConSalida = setOf(
+    PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION,
+    PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_CONDUCTOR,
+    PantallaDemo.REGISTRAR_VEHICULO, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_ABORDAJE,
+)
+private val detallesDeViaje = setOf(
+    PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS,
+    PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN,
+)
+private val detallesTrasGuardar = setOf(
+    PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VIAJE,
+    PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.DETALLE_PAGO,
+    PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.ABORDADO,
+)
+
+/** La pantalla en la que está una entrada del historial; `null` si es una raíz (inicio, Login o barra inferior). */
+internal fun NavBackStackEntry?.destino(): Destino? {
+    val pantalla = PantallaDemo.deRuta(this?.destination?.route) ?: return null
+    if (pantalla in pantallasRaiz) return null
+    return Destino(pantalla, this?.arguments?.getString(PantallaDemo.ARGUMENTO_ID).orEmpty())
+}
+
+/** Lleva a `pantalla` armando el historial que describe el README (Comunes: volver, guardar y salir). */
+private fun NavHostController.irA(pantalla: PantallaDemo, id: String, rol: Rol?) {
+    when (pantalla) {
+        // «Volver al inicio»: el Login (con el correo recién registrado) o el inicio del rol, sin historial.
+        PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> navigate(rutaDeInicio(id, rol)) {
+            launchSingleTop = true
+            popUpTo(graph.id) { inclusive = true }
+        }
+        PantallaDemo.SOLICITUDES -> navigate(pantalla.ruta) { launchSingleTop = true }
+        PantallaDemo.MIS_SOLICITUDES, PantallaDemo.MIS_VIAJES -> navigate(pantalla.ruta) {
+            launchSingleTop = true
+            popUpTo(pantalla.ruta) { inclusive = true }
+        }
+        else -> apilar(Destino(pantalla, id))
+    }
+}
+
+private fun rutaDeInicio(correo: String, rol: Rol?): String =
+    if (rol != null) Rutas.grafoDe(rol) else Destino(PantallaDemo.LOGIN, correo).ruta()
+
+private fun NavHostController.apilar(destino: Destino) {
+    val actual = currentBackStackEntry.destino()
+    val anterior = previousBackStackEntry.destino()
+    if (reemplazaDetalleAnterior(actual, anterior, destino)) {
+        // Se saca el formulario y luego el detalle de abajo, que queda reemplazado por el nuevo.
+        popBackStack()
+        navigate(destino.ruta()) { currentDestination?.id?.let { popUpTo(it) { inclusive = true } } }
+    } else {
+        navigate(destino.ruta()) {
+            launchSingleTop = actual == destino
+            // Un envío confirmado elimina el formulario del historial.
+            if (actual?.pantalla in formulariosConSalida && destino.pantalla in detallesTrasGuardar) {
+                currentDestination?.id?.let { popUpTo(it) { inclusive = true } }
             }
         }
     }
 }
 
-// Protección local de rutas. Las operaciones vuelven a validar el alcance en el repositorio.
+/**
+ * Un formulario guardado que vuelve al detalle del viaje del que salió (Asignar, Cancelar viaje, Agregar pasajero) lo
+ * reemplaza en vez de apilar otro igual: así «atrás» vuelve a la lista y no al mismo viaje.
+ */
+internal fun reemplazaDetalleAnterior(formulario: Destino?, anterior: Destino?, destino: Destino): Boolean =
+    formulario?.pantalla in formulariosConSalida && destino.pantalla in detallesDeViaje &&
+        anterior != null && anterior.pantalla in detallesDeViaje && anterior.id == destino.id
+
+// ---- Reaccionar a la sesión ----
+
+/** Protección local de rutas. Las operaciones vuelven a validar el alcance en el repositorio. */
 internal fun permitePantalla(pantalla: PantallaDemo, estado: EstadoSesion?): Boolean = when (estado) {
     is EstadoSesion.Autenticada -> (pantalla.rol == null || pantalla.rol == estado.sesion.rol) &&
         !(estado.sesion.rol == Rol.CONDUCTOR && pantalla in listOf(PantallaDemo.CAMBIAR_PASSWORD, PantallaDemo.DETALLE_PAGO))
@@ -143,14 +171,46 @@ internal fun permitePantalla(pantalla: PantallaDemo, estado: EstadoSesion?): Boo
     EstadoSesion.SinSesion -> pantalla.publica
     null -> false
 }
+
 /**
- * Un formulario guardado que vuelve al detalle del viaje del que salió (Asignar, Cancelar viaje, Agregar pasajero) lo
- * reemplaza en vez de apilar otro igual: así «atrás» vuelve a la lista y no al mismo viaje.
+ * A dónde ir cuando cambia la sesión: el inicio del rol al entrar, el cambio obligatorio con una contraseña temporal,
+ * «Sesión expirada» si la sesión se perdió sola y el Login si el usuario cerró sesión.
  */
-internal fun reemplazaDetalleAnterior(formulario: DestinoDemo?, anterior: DestinoDemo?, destino: Any): Boolean =
-    formulario?.pantalla in formulariosConSalida && destino is DestinoDemo && destino.pantalla in detallesDeViaje &&
-        anterior != null && anterior.pantalla in detallesDeViaje && anterior.id == destino.id
-private fun debeNavegar(actual: NavDestination?, destino: Any): Boolean = actual == null || !actual.esRuta(destino)
-private val formulariosConSalida = setOf(PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.AGREGAR_PASAJERO, PantallaDemo.CONFIRMAR_CANCELACION, PantallaDemo.CANCELAR_VIAJE, PantallaDemo.ASIGNAR, PantallaDemo.REGISTRAR_CONDUCTOR, PantallaDemo.REGISTRAR_VEHICULO, PantallaDemo.REGISTRAR_PAGO, PantallaDemo.CONFIRMAR_ABORDAJE)
-private val detallesDeViaje = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN)
-private val detallesTrasGuardar = setOf(PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VIAJE, PantallaDemo.DETALLE_CONDUCTOR, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.DETALLE_PAGO, PantallaDemo.SOLICITUD_CANCELADA, PantallaDemo.ABORDADO)
+internal fun destinoPorSesion(anterior: EstadoSesion?, estado: EstadoSesion, cierreManual: Boolean): Destino = when (estado) {
+    EstadoSesion.SinSesion -> {
+        val teniaSesion = anterior is EstadoSesion.Autenticada || anterior is EstadoSesion.Temporal
+        Destino(if (teniaSesion && !cierreManual) PantallaDemo.SESION_EXPIRADA else PantallaDemo.LOGIN)
+    }
+    is EstadoSesion.Temporal -> Destino(PantallaDemo.CAMBIO_OBLIGATORIO)
+    is EstadoSesion.Autenticada -> Destino(inicioDe(estado.sesion.rol))
+}
+
+/** La primera pantalla de la barra inferior de cada rol. */
+internal fun inicioDe(rol: Rol): PantallaDemo = when (rol) {
+    Rol.SOLICITANTE -> PantallaDemo.MIS_SOLICITUDES
+    Rol.ADMINISTRADOR -> PantallaDemo.SOLICITUDES
+    Rol.CONDUCTOR -> PantallaDemo.MIS_VIAJES
+}
+
+/** El grafo al que pertenece el destino de la sesión (acceso o el del rol); `null` si es una pantalla suelta. */
+internal fun grafoDeSesion(destino: Destino, estado: EstadoSesion): String? = when {
+    destino.pantalla == PantallaDemo.LOGIN -> Rutas.GRAFO_ACCESO
+    estado is EstadoSesion.Autenticada -> Rutas.grafoDe(estado.sesion.rol)
+    else -> null
+}
+
+/**
+ * Verdadero si, al cambiar la sesión, se deja la pantalla que ya está abierta (p. ej. tras una rotación) en vez de
+ * volver al inicio: no al entrar, ni al cambiar de cuenta, ni al perder la sesión, y solo si la sesión la permite.
+ */
+internal fun conservarPantalla(anterior: EstadoSesion?, estado: EstadoSesion, actual: Destino?): Boolean {
+    val cambioDeCuenta = anterior is EstadoSesion.Autenticada && estado is EstadoSesion.Autenticada &&
+        anterior.sesion.correo != estado.sesion.correo
+    val entrando = estado is EstadoSesion.Autenticada &&
+        (anterior == EstadoSesion.SinSesion || anterior is EstadoSesion.Temporal)
+    val saliendo = estado == EstadoSesion.SinSesion &&
+        (anterior is EstadoSesion.Autenticada || anterior is EstadoSesion.Temporal)
+    return actual != null && !entrando && !cambioDeCuenta && !saliendo &&
+        permitePantalla(actual.pantalla, estado) &&
+        !(estado is EstadoSesion.Autenticada && actual.pantalla == PantallaDemo.CAMBIO_OBLIGATORIO)
+}

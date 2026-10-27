@@ -23,8 +23,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Sesión guardada en Preferences DataStore (`sesion.preferences_pb`): `token`, `correo`, `rol`,
@@ -35,91 +33,74 @@ class SesionStore(
     private val dataStore: DataStore<Preferences>,
     private val clock: Clock,
 ) {
+    // La sesión de una contraseña temporal: vive solo en memoria y manda sobre la guardada.
     private val temporal = MutableStateFlow<Sesion?>(null)
 
-    // Evita que dos operaciones de sesión escriban al mismo tiempo.
-    private val cambios = Mutex()
-
-    /** Una sesión vencida cuenta como sin sesión: la app abre el Login. */
+    /**
+     * El estado de la sesión, en dos pasos:
+     * 1. `combine` junta lo guardado en DataStore con la sesión temporal (si hay una, esa manda).
+     * 2. `flatMapLatest` emite ese estado y, cuando la sesión vence, `SinSesion`. Si la sesión cambia antes, descarta
+     *    la espera anterior y arranca la de la nueva.
+     * Una sesión vencida cuenta como sin sesión: la app abre el Login.
+     */
     @OptIn(ExperimentalCoroutinesApi::class)
     val estado: Flow<EstadoSesion> =
         combine(dataStore.data, temporal) { preferencias, sesionTemporal ->
-            sesionTemporal to leer(preferencias)
-        }.flatMapLatest { (sesionTemporal, guardada) ->
-            // Una nueva sesión cancela la espera de vencimiento de la anterior.
-            flow {
-                val sesion = sesionTemporal ?: guardada
+            if (sesionTemporal != null) EstadoSesion.Temporal(sesionTemporal)
+            else leer(preferencias)?.let { EstadoSesion.Autenticada(it) }
+        }.flatMapLatest { vigente -> hastaQueVenza(vigente) }.distinctUntilChanged()
 
-                if (sesion != null) {
-                    var restante = sesion.expiraEn - clock.millis()
-
-                    if (restante > 0) {
-                        emit(
-                            if (sesionTemporal != null) {
-                                EstadoSesion.Temporal(sesion)
-                            } else {
-                                EstadoSesion.Autenticada(sesion)
-                            }
-                        )
-
-                        while (restante > 0) {
-                            // Revisa también cambios en el reloj del dispositivo.
-                            // Esta espera es local: no consulta al backend.
-                            delay(minOf(restante, 30_000L))
-                            restante = sesion.expiraEn - clock.millis()
-                        }
-                    }
-                }
-
-                emit(EstadoSesion.SinSesion)
-            }
-        }.distinctUntilChanged()
+    // Emite el estado mientras la sesión no haya vencido y, al vencer, SinSesion. La espera es local: no consulta al backend.
+    private fun hastaQueVenza(vigente: EstadoSesion?): Flow<EstadoSesion> = flow {
+        val sesion = when (vigente) {
+            is EstadoSesion.Temporal -> vigente.sesion
+            is EstadoSesion.Autenticada -> vigente.sesion
+            else -> null
+        }
+        val restante = if (sesion == null) 0L else sesion.expiraEn - clock.millis()
+        if (vigente != null && restante > 0) {
+            emit(vigente)
+            delay(restante)
+        }
+        emit(EstadoSesion.SinSesion)
+    }
 
     /** Correo de la última cuenta que entró, para detectar un cambio de cuenta. */
     val ultimaCuenta: Flow<String?> =
         dataStore.data.map { it[ULTIMA_CUENTA] }.distinctUntilChanged()
 
     suspend fun guardar(sesion: Sesion) {
-        cambios.withLock {
-            // Primero confirma la escritura; luego retira la sesión temporal.
-            dataStore.edit {
-                it[TOKEN] = sesion.token
-                it[CORREO] = sesion.correo
-                it[ROL] = sesion.rol.name
-                it[EXPIRA_EN] = sesion.expiraEn
-                it[ULTIMA_CUENTA] = sesion.correo
-            }
-            temporal.value = null
+        // Primero confirma la escritura; luego retira la sesión temporal.
+        dataStore.edit {
+            it[TOKEN] = sesion.token
+            it[CORREO] = sesion.correo
+            it[ROL] = sesion.rol.name
+            it[EXPIRA_EN] = sesion.expiraEn
+            it[ULTIMA_CUENTA] = sesion.correo
         }
+        temporal.value = null
     }
 
     /** Elimina la sesión persistida anterior antes de aceptar una temporal. */
     suspend fun guardarTemporal(sesion: Sesion) {
-        cambios.withLock {
-            dataStore.edit {
-                it.remove(TOKEN)
-                it.remove(CORREO)
-                it.remove(ROL)
-                it.remove(EXPIRA_EN)
-            }
-
-            // No se escribe el token ni la cuenta temporal en DataStore.
-            temporal.value = sesion
-        }
+        borrarGuardada()
+        // No se escribe el token ni la cuenta temporal en DataStore.
+        temporal.value = sesion
     }
 
     /** Cierre de sesión local: borra la sesión y conserva `ultimaCuenta`. */
     suspend fun borrar() {
-        cambios.withLock {
-            dataStore.edit {
-                it.remove(TOKEN)
-                it.remove(CORREO)
-                it.remove(ROL)
-                it.remove(EXPIRA_EN)
-            }
+        borrarGuardada()
+        // ultimaCuenta permanece para las reglas de cambio de cuenta.
+        temporal.value = null
+    }
 
-            // ultimaCuenta permanece para las reglas de cambio de cuenta.
-            temporal.value = null
+    private suspend fun borrarGuardada() {
+        dataStore.edit {
+            it.remove(TOKEN)
+            it.remove(CORREO)
+            it.remove(ROL)
+            it.remove(EXPIRA_EN)
         }
     }
 

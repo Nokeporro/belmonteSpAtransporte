@@ -24,14 +24,14 @@ class PantallasT06Test {
         assertFalse(permitePantalla(PantallaDemo.DETALLE_PAGO, sesion))
     }
     @Test fun guardarDesdeElDetalleDelMismoViajeLoReemplaza() {
-        fun d(p: PantallaDemo, id: String = "TR-1051") = DestinoDemo(p, id)
+        fun d(p: PantallaDemo, id: String = "TR-1051") = Destino(p, id)
         assertTrue(reemplazaDetalleAnterior(d(PantallaDemo.ASIGNAR), d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_ADMIN)))
         assertTrue(reemplazaDetalleAnterior(d(PantallaDemo.CANCELAR_VIAJE), d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_ADMIN)))
         assertTrue(reemplazaDetalleAnterior(d(PantallaDemo.AGREGAR_PASAJERO), d(PantallaDemo.DETALLE_SOLICITUD), d(PantallaDemo.DETALLE_SOLICITUD)))
         assertTrue(reemplazaDetalleAnterior(d(PantallaDemo.AGREGAR_PASAJERO), d(PantallaDemo.SOLICITUD_SIN_PASAJEROS), d(PantallaDemo.DETALLE_SOLICITUD)))
     }
     @Test fun otrosDestinosOtroViajeOSinFormularioApilanComoAntes() {
-        fun d(p: PantallaDemo, id: String = "TR-1051") = DestinoDemo(p, id)
+        fun d(p: PantallaDemo, id: String = "TR-1051") = Destino(p, id)
         assertFalse(reemplazaDetalleAnterior(d(PantallaDemo.ASIGNAR), d(PantallaDemo.DETALLE_ADMIN, "TR-1053"), d(PantallaDemo.DETALLE_ADMIN)))
         assertFalse(reemplazaDetalleAnterior(d(PantallaDemo.REGISTRAR_PAGO), d(PantallaDemo.DETALLE_ADMIN), d(PantallaDemo.DETALLE_PAGO, "hash")))
         assertFalse(reemplazaDetalleAnterior(d(PantallaDemo.CONFIRMAR_CANCELACION), d(PantallaDemo.DETALLE_SOLICITUD), d(PantallaDemo.SOLICITUD_CANCELADA)))

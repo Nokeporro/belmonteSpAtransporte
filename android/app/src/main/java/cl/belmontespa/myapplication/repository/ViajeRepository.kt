@@ -9,6 +9,7 @@ import cl.belmontespa.myapplication.model.NuevaSolicitud
 import cl.belmontespa.myapplication.model.NuevoPasajero
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
+import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.aModelo
 import cl.belmontespa.myapplication.session.SesionStore
@@ -35,80 +36,54 @@ open class ViajeRepository(private val local: SoporteLocal) {
     private val clock: Clock get() = local.clock
     private val operaciones = OperacionesViajeLocal(local)
 
+    // `flatMapLatest` hace que la lista siga a la sesión: si cambia la cuenta, deja la consulta de la anterior y
+    // empieza la de la nueva. Sin sesión autenticada no se entregan viajes de la demo.
     @OptIn(ExperimentalCoroutinesApi::class)
     open fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> =
         sesionStore.estado.flatMapLatest { estado ->
             val sesion = (estado as? EstadoSesion.Autenticada)?.sesion
-
-            // Sin sesión autenticada no se entregan viajes de la demo.
-            if (sesion == null) {
-                return@flatMapLatest flowOf(emptyList<Viaje>())
-            }
-
-            val consulta = if (
-                sesion.rol == Rol.CONDUCTOR &&
-                filtro.estado == null
-            ) {
-                // Sin filtros, el Conductor recibe la agenda de hoy,
-                // incluyendo un viaje anterior que todavía siga en curso.
-                viajeDao.observarAgendaConductor(
-                    correo = sesion.correo,
-                    fecha = (filtro.fecha ?: LocalDate.now(clock)).toString(),
-                    incluirEnCursoAnterior = filtro.fecha == null || filtro.fecha == LocalDate.now(clock),
-                )
-            } else {
-                // El filtro de cuenta se aplica en la consulta de Room.
-                viajeDao.observarLista(
-                    correoSolicitante = sesion.correo.takeIf {
-                        sesion.rol == Rol.SOLICITANTE
-                    },
-                    correoConductor = sesion.correo.takeIf {
-                        sesion.rol == Rol.CONDUCTOR
-                    },
-                    estado = filtro.estado?.name,
-                    fecha = filtro.fecha?.toString(),
-                    ascendente = filtro.estado in setOf(
-                        EstadoViaje.PENDIENTE,
-                        EstadoViaje.ASIGNADO,
-                        EstadoViaje.EN_CURSO,
-                    ),
-                )
-            }
-
-            consulta.map { filas ->
-                filas.map { it.aModelo().paraRol(sesion.rol) }
-            }
+            if (sesion == null) flowOf(emptyList()) else listaPara(sesion, filtro)
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     open fun observarViaje(folio: String): Flow<Viaje?> =
         sesionStore.estado.flatMapLatest { estado ->
             val sesion = (estado as? EstadoSesion.Autenticada)?.sesion
+            if (sesion == null) flowOf(null) else detallePara(sesion, folio)
+        }
 
-            if (sesion == null) {
-                return@flatMapLatest flowOf<Viaje?>(null)
+    // Los viajes de la sesión que cumplen el filtro; el filtro de cuenta se aplica en la consulta de Room.
+    private fun listaPara(sesion: Sesion, filtro: FiltroViajes): Flow<List<Viaje>> {
+        val esAgendaDelConductor = sesion.rol == Rol.CONDUCTOR && filtro.estado == null
+        val consulta = if (esAgendaDelConductor) {
+            // Sin filtros, el Conductor recibe la agenda de hoy, incluyendo un viaje anterior que siga en curso.
+            val hoy = LocalDate.now(clock)
+            viajeDao.observarAgendaConductor(
+                correo = sesion.correo,
+                fecha = (filtro.fecha ?: hoy).toString(),
+                incluirEnCursoAnterior = filtro.fecha == null || filtro.fecha == hoy,
+            )
+        } else {
+            viajeDao.observarLista(
+                correoSolicitante = sesion.correo.takeIf { sesion.rol == Rol.SOLICITANTE },
+                correoConductor = sesion.correo.takeIf { sesion.rol == Rol.CONDUCTOR },
+                estado = filtro.estado?.name,
+                fecha = filtro.fecha?.toString(),
+                ascendente = filtro.estado in setOf(EstadoViaje.PENDIENTE, EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO),
+            )
+        }
+        return consulta.map { filas -> filas.map { it.aModelo().paraRol(sesion.rol) } }
+    }
+
+    // El viaje, solo si está dentro del alcance de la sesión; si no, `null` (se ve igual que uno que no existe).
+    private fun detallePara(sesion: Sesion, folio: String): Flow<Viaje?> =
+        viajeDao.observar(folio).map { relacion ->
+            val enAlcance = relacion != null && when (sesion.rol) {
+                Rol.SOLICITANTE -> relacion.viaje.correoSolicitante == sesion.correo
+                Rol.CONDUCTOR -> relacion.viaje.correoConductor == sesion.correo
+                Rol.ADMINISTRADOR -> true
             }
-
-            viajeDao.observar(folio).map { relacion ->
-                // Comprueba el alcance antes de convertir y entregar el detalle.
-                val permitido = relacion?.let {
-                    when (sesion.rol) {
-                        Rol.SOLICITANTE ->
-                            it.viaje.correoSolicitante == sesion.correo
-
-                        Rol.CONDUCTOR ->
-                            it.viaje.correoConductor == sesion.correo
-
-                        Rol.ADMINISTRADOR -> true
-                    }
-                } ?: false
-
-                if (permitido) {
-                    relacion.aModelo().paraRol(sesion.rol)
-                } else {
-                    null
-                }
-            }
+            if (enAlcance) relacion?.aModelo()?.paraRol(sesion.rol) else null
         }
 
     // El README excluye la información de pago de los viajes del Conductor.

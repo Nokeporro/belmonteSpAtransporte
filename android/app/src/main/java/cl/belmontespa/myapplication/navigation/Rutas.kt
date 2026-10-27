@@ -1,49 +1,20 @@
 package cl.belmontespa.myapplication.navigation
 
-import kotlinx.serialization.Serializable
+import cl.belmontespa.myapplication.model.Rol
 
-// Destinos de Navigation Compose: un flujo de acceso y uno por rol (README, Navegación y pantallas).
-// Los grafos agrupan los destinos de cada flujo; las rutas solo llevan identificadores, nunca datos
-// personales ni contraseñas.
+// Rutas de Navigation Compose, como `Routes` del template del curso. Hay un flujo de acceso y uno por rol
+// (README, Navegación y pantallas); la ruta de cada pantalla está en PantallaDemo.
+// Las rutas solo llevan identificadores, nunca datos personales ni contraseñas.
+object Rutas {
+    const val GRAFO_ACCESO = "grafo_acceso"
+    const val GRAFO_SOLICITANTE = "grafo_solicitante"
+    const val GRAFO_ADMINISTRADOR = "grafo_administrador"
+    const val GRAFO_CONDUCTOR = "grafo_conductor"
 
-@Serializable
-data object Inicio
-
-@Serializable
-data object GrafoAcceso
-
-@Serializable
-data object Login
-
-@Serializable
-data object GrafoSolicitante
-
-@Serializable
-data object MisSolicitudes
-
-@Serializable
-data object PerfilSolicitante
-
-@Serializable
-data object GrafoAdministrador
-
-@Serializable
-data object Solicitudes
-
-@Serializable
-data object Conductores
-
-@Serializable
-data object Vehiculos
-
-@Serializable
-data object PerfilAdministrador
-
-@Serializable
-data object GrafoConductor
-
-@Serializable
-data object MisViajes
-
-@Serializable
-data object PerfilConductor
+    /** Grafo de navegación del rol que entrega el login. */
+    fun grafoDe(rol: Rol): String = when (rol) {
+        Rol.SOLICITANTE -> GRAFO_SOLICITANTE
+        Rol.ADMINISTRADOR -> GRAFO_ADMINISTRADOR
+        Rol.CONDUCTOR -> GRAFO_CONDUCTOR
+    }
+}

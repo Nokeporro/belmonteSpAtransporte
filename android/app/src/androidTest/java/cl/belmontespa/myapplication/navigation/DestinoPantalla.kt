@@ -41,8 +41,9 @@ import cl.belmontespa.myapplication.view.solicitante.NuevaSolicitudScreen
 import cl.belmontespa.myapplication.view.solicitante.SolicitudCanceladaScreen
 
 /**
- * Elige la pantalla de cada variante del catálogo [PantallaDemo]. Una variante comparte pantalla con otra cuando solo
- * cambia un aviso (p. ej. «Antes de la ventana» es el detalle del Conductor con Iniciar deshabilitado).
+ * Ayuda de las pruebas instrumentadas: dibuja una pantalla del catálogo [PantallaDemo] sin el NavHost, con una
+ * navegación falsa. La app real las conecta en NavGrafos.kt (una ruta por pantalla); aquí se repite la elección de la
+ * pantalla para probar cada una por separado. Una variante comparte pantalla con otra cuando solo cambia un aviso.
  * `raiz` es verdadero en las pantallas de la barra inferior, que no tienen flecha para volver.
  */
 @Composable
