@@ -48,11 +48,11 @@ class AbordarScreenTest {
     fun ofreceEscanearEIngresarElCodigoSinAbrirElLectorAlEntrar() {
         mostrar()
 
-        compose.onNodeWithTag("t06_contenido").assertExists()
+        compose.onNodeWithTag("pantalla_contenido").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_indicacion)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_escanear)).assertIsEnabled()
         compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled()
-        compose.onNodeWithTag("t06_aviso_abordaje").assertDoesNotExist()
+        compose.onNodeWithTag("pantalla_aviso_abordaje").assertDoesNotExist()
         assertEquals(emptyList<String>(), llamadas)
     }
 
@@ -81,7 +81,7 @@ class AbordarScreenTest {
     fun unQrAjenoDiceQueNoEsDeUnVehiculoBelmonte() {
         mostrar(AbordarUiState(aviso = AvisoAbordar.QR_AJENO))
 
-        compose.onNodeWithTag("t06_aviso_abordaje").assertExists()
+        compose.onNodeWithTag("pantalla_aviso_abordaje").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_qr_ajeno)).assertExists()
     }
 
@@ -89,7 +89,7 @@ class AbordarScreenTest {
     fun conElLectorNoDisponibleAvisaYDejaEscanearOIngresarElCodigo() {
         mostrar(AbordarUiState(aviso = AvisoAbordar.LECTOR_NO_DISPONIBLE))
 
-        compose.onNodeWithTag("t06_aviso_abordaje").assertExists()
+        compose.onNodeWithTag("pantalla_aviso_abordaje").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_lector_no_disponible)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_escanear)).assertIsEnabled()
         compose.onNodeWithText(texto(R.string.abordaje_ingresar_codigo)).assertIsEnabled().performClick()

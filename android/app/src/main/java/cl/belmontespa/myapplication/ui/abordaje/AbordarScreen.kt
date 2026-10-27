@@ -103,7 +103,7 @@ fun AbordarContenido(
         BarraSuperior(titulo = stringResource(pantalla.titulo), onVolver = onVolver)
         Column(
             modifier = Modifier
-                .testTag("t06_contenido")
+                .testTag("pantalla_contenido")
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -115,9 +115,9 @@ fun AbordarContenido(
                 style = MaterialTheme.typography.bodyLarge,
             )
             when (estado.aviso) {
-                AvisoAbordar.QR_AJENO -> Aviso(stringResource(R.string.abordaje_qr_ajeno), TonoAviso.AVISO, Modifier.testTag("t06_aviso_abordaje"))
+                AvisoAbordar.QR_AJENO -> Aviso(stringResource(R.string.abordaje_qr_ajeno), TonoAviso.AVISO, Modifier.testTag("pantalla_aviso_abordaje"))
                 AvisoAbordar.LECTOR_NO_DISPONIBLE ->
-                    Aviso(stringResource(R.string.abordaje_lector_no_disponible), TonoAviso.AVISO, Modifier.testTag("t06_aviso_abordaje"))
+                    Aviso(stringResource(R.string.abordaje_lector_no_disponible), TonoAviso.AVISO, Modifier.testTag("pantalla_aviso_abordaje"))
                 null -> Unit
             }
             BotonAncho(stringResource(R.string.abordaje_escanear), onEscanear, alto56 = true)

@@ -14,7 +14,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.util.Formatos
 import dagger.hilt.android.testing.*
@@ -41,7 +41,7 @@ class HU17ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                     BelmonteTheme {
                         key(ruta) {
-                            PantallaT06(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id },
+                            DestinoPantalla(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id },
                                 onVolver = { ruta = PantallaDemo.VEHICULOS to "" }, onCerrarSesion = {})
                         }
                     }
@@ -80,7 +80,7 @@ class HU17ScreenTest {
         campo(R.string.campo_capacidad).performScrollTo().performTextInput("21")
         campo(R.string.campo_gps).performScrollTo().performTextInput("0")
         guardar()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         campo(R.string.campo_capacidad).performScrollTo().assertTextContains("21")
         assertNull(runBlocking { local.db.movilDao().obtener("ABC123") })
         campo(R.string.campo_patente).performScrollTo().performTextReplacement("kx-jr42")
@@ -89,7 +89,7 @@ class HU17ScreenTest {
         val original = runBlocking { local.db.movilDao().obtener("KXJR42") }
         guardar()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("La patente ya está registrada.").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         campo(R.string.campo_patente).performScrollTo().assertTextContains("kx-jr42")
         assertEquals(original, runBlocking { local.db.movilDao().obtener("KXJR42") })
         campo(R.string.campo_patente).performScrollTo().performTextReplacement("ZXCV18")

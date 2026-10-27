@@ -43,10 +43,12 @@ import cl.belmontespa.myapplication.model.Inicio
 import cl.belmontespa.myapplication.ui.administrador.CAMPO_MOTIVO
 import cl.belmontespa.myapplication.ui.components.ArqueoDeAbordaje
 import cl.belmontespa.myapplication.ui.components.Aviso
+import cl.belmontespa.myapplication.ui.components.BannerSinConexion
 import cl.belmontespa.myapplication.ui.components.BarraSuperior
 import cl.belmontespa.myapplication.ui.components.BotonAncho
 import cl.belmontespa.myapplication.ui.components.CampoTexto
 import cl.belmontespa.myapplication.ui.components.EstadoChip
+import cl.belmontespa.myapplication.ui.components.EstiloChip
 import cl.belmontespa.myapplication.ui.components.PantallaCargando
 import cl.belmontespa.myapplication.ui.components.PantallaError
 import cl.belmontespa.myapplication.ui.components.TipoBoton
@@ -70,6 +72,7 @@ fun DetalleViajeScreen(
     onNavegar: (PantallaDemo, String) -> Unit,
     onVolver: () -> Unit,
     abrirNavegacion: Boolean = false,
+    escenario: EscenarioDemo? = null,
     viewModel: DetalleViajeViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
@@ -96,8 +99,16 @@ fun DetalleViajeScreen(
         onDescartarRechazo = viewModel::descartarRechazo,
         onElegirApp = viewModel::elegir,
         onCerrarOpciones = viewModel::cerrarOpciones,
+        escenario = escenario,
+        onDescartarCambio = { onNavegar(PantallaDemo.DETALLE_VIAJE, folio) },
     )
 }
+
+/**
+ * Escenarios de la build `demo` que se ven sobre el detalle del Conductor (README, Sesión y conectividad); en la
+ * remota los produce la cola sin conexión.
+ */
+enum class EscenarioDemo { SIN_CONEXION, CONFLICTO }
 
 @Composable
 fun DetalleViajeContenido(
@@ -116,6 +127,8 @@ fun DetalleViajeContenido(
     onDescartarRechazo: () -> Unit,
     onElegirApp: (AppNavegacion) -> Unit,
     onCerrarOpciones: () -> Unit,
+    escenario: EscenarioDemo? = null,
+    onDescartarCambio: () -> Unit = {},
 ) {
     val viaje = estado.viaje
     val error = estado.error
@@ -125,12 +138,12 @@ fun DetalleViajeContenido(
             // Tras rechazar, el viaje deja de ser suyo: se espera la navegación en vez de mostrar «no encontrado».
             estado.cargando || estado.rechazado -> PantallaCargando()
             // Sin viaje no hay nada que mostrar: el error ocupa la pantalla.
-            viaje == null -> Box(Modifier.testTag("t06_error")) {
+            viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onActualizar)
             }
             else -> Column(
                 modifier = Modifier
-                    .testTag("t06_contenido")
+                    .testTag("pantalla_contenido")
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
@@ -138,12 +151,13 @@ fun DetalleViajeContenido(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (error != null) {
-                    Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                    Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                     // Un 409 ya recargó el viaje: reintentar solo tiene sentido si falló la lectura.
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onActualizar, tipo = TipoBoton.SECUNDARIO)
                     }
                 }
+                Escenario(escenario, onActualizar, onDescartarCambio)
                 Datos(estado)
                 estado.arqueo?.let { ArqueoDeAbordaje(it, viaje.pasajeros) }
                 if (estado.conControles) {
@@ -182,6 +196,25 @@ fun DetalleViajeContenido(
             },
             dismissButton = { TextButton(onClick = onDescartarRechazo) { Text(stringResource(R.string.accion_cancelar)) } },
         )
+    }
+}
+
+/** Los avisos del escenario «Sin conexión» o «Cambio en conflicto», sobre el detalle. */
+@Composable
+private fun Escenario(escenario: EscenarioDemo?, onActualizar: () -> Unit, onDescartarCambio: () -> Unit) {
+    when (escenario) {
+        EscenarioDemo.SIN_CONEXION -> {
+            BannerSinConexion()
+            EstadoChip(stringResource(R.string.etiqueta_pendiente_sincronizar), EstiloChip.AVISO)
+            Aviso(stringResource(R.string.aviso_sincronizacion_demo), TonoAviso.INFORMACION)
+        }
+        EscenarioDemo.CONFLICTO -> {
+            Aviso(stringResource(R.string.aviso_escenario_conflicto), TonoAviso.INFORMACION)
+            BotonAncho(stringResource(R.string.accion_descartar_cambio), onDescartarCambio, tipo = TipoBoton.SECUNDARIO)
+            Aviso(stringResource(R.string.aviso_cambio_conflicto), TonoAviso.PELIGRO)
+            BotonAncho(stringResource(R.string.accion_actualizar), onActualizar, tipo = TipoBoton.SECUNDARIO)
+        }
+        null -> Unit
     }
 }
 
@@ -240,7 +273,7 @@ private fun Controles(
     BotonAncho(stringResource(navegar), onNavegar, tipo = TipoBoton.SECUNDARIO, alto56 = true)
     // Etiqueta propia: no es un fallo de la pantalla, así que no lleva `t06_error`.
     if (estado.sinAppDeNavegacion) {
-        Aviso(stringResource(R.string.error_sin_app_navegacion), TonoAviso.AVISO, Modifier.testTag("t06_aviso_navegacion"))
+        Aviso(stringResource(R.string.error_sin_app_navegacion), TonoAviso.AVISO, Modifier.testTag("pantalla_aviso_navegacion"))
     }
     if (viaje.estado == EstadoViaje.ASIGNADO) {
         BotonAncho(
@@ -254,7 +287,7 @@ private fun Controles(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HojaAbrirCon(apps: List<AppNavegacion>, onElegir: (AppNavegacion) -> Unit, onCerrar: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onCerrar, modifier = Modifier.testTag("t06_hoja_navegacion")) {
+    ModalBottomSheet(onDismissRequest = onCerrar, modifier = Modifier.testTag("pantalla_hoja_navegacion")) {
         Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Text(
                 stringResource(R.string.navegacion_abrir_con),

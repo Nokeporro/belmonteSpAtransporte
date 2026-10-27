@@ -78,19 +78,19 @@ fun ConfirmarInicioContenido(
             // Tras iniciar se espera la navegación al detalle en vez de mostrar el botón otra vez.
             estado.cargando || estado.iniciado -> PantallaCargando()
             // Sin viaje no hay nada que confirmar: el error ocupa la pantalla.
-            viaje == null -> Box(Modifier.testTag("t06_error")) {
+            viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onActualizar)
             }
             else -> Column(
                 modifier = Modifier
-                    .testTag("t06_contenido")
+                    .testTag("pantalla_contenido")
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (error != null) Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                if (error != null) Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                 Text(
                     stringResource(R.string.confirmar_inicio_titulo, viaje.folio),
                     style = MaterialTheme.typography.headlineSmall,

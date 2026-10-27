@@ -18,7 +18,7 @@ import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.BelmonteApp
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -47,7 +47,7 @@ class HU28ScreenTest {
         compose.activity.runOnUiThread { compose.activity.setContent {
             var ruta by remember { mutableStateOf(PantallaDemo.PERFIL_ADMIN) }
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
-                BelmonteTheme { key(ruta) { PantallaT06(ruta, onNavegar = { p, _ -> ruta = p },
+                BelmonteTheme { key(ruta) { DestinoPantalla(ruta, onNavegar = { p, _ -> ruta = p },
                     onVolver = { ruta = PantallaDemo.PERFIL_ADMIN }, onCerrarSesion = {}) } }
             }
         } }
@@ -94,7 +94,7 @@ class HU28ScreenTest {
         campo(R.string.campo_nombre).performTextInput("A"); campo(R.string.campo_correo).performTextInput("invalido")
         campo(R.string.admin_password_inicial).performScrollTo().performTextInput("abcdefgh")
         accion(R.string.accion_guardar).performScrollTo().performClick()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         val original = runBlocking { local.usuario("recepcion@belmontespa.cl") }
         formulario(original.correo); accion(R.string.accion_guardar).performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithText("El correo ya está registrado.").fetchSemanticsNodes().isNotEmpty() }

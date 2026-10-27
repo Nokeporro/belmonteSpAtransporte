@@ -1,0 +1,38 @@
+package cl.belmontespa.myapplication.ui.solicitante
+
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.EstadoPago
+import cl.belmontespa.myapplication.model.Pago
+import cl.belmontespa.myapplication.model.Viaje
+import cl.belmontespa.myapplication.ui.components.Aviso
+import cl.belmontespa.myapplication.ui.components.Dato
+import cl.belmontespa.myapplication.ui.components.EstadoChip
+import cl.belmontespa.myapplication.ui.components.TonoAviso
+import cl.belmontespa.myapplication.ui.components.estiloChip
+import cl.belmontespa.myapplication.ui.components.etiqueta
+import cl.belmontespa.myapplication.util.Formatos
+
+/**
+ * El efecto de la cancelación sobre el pago. Con `confirmando` (antes de confirmar) dice qué se reembolsará o anulará;
+ * sin él (ya cancelada) muestra lo que quedó guardado.
+ */
+@Composable
+internal fun PagoDeCancelacion(viaje: Viaje, pago: Pago?, confirmando: Boolean) {
+    if (pago == null) {
+        if (viaje.hashPago == null) Text(stringResource(R.string.aviso_sin_pago))
+        return
+    }
+    EstadoChip(stringResource(pago.estado.etiqueta), pago.estado.estiloChip)
+    when {
+        confirmando && pago.estado == EstadoPago.PAGADO -> Aviso(
+            stringResource(R.string.cancelacion_reembolso_previsto, Formatos.monto(pago.monto / 2)), TonoAviso.INFORMACION,
+        )
+        confirmando && pago.estado == EstadoPago.PENDIENTE -> Text(stringResource(R.string.cancelacion_anula_pago))
+        !confirmando && pago.estado == EstadoPago.REEMBOLSADO ->
+            pago.montoReembolsado?.let { Dato(R.string.campo_reembolso, Formatos.monto(it)) }
+        !confirmando && pago.estado == EstadoPago.ANULADO -> Text(stringResource(R.string.cancelacion_pago_anulado))
+    }
+}

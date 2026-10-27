@@ -46,12 +46,12 @@ class ConfirmarAbordajeScreenTest {
     fun muestraElVehiculoYPideElTipoYElDocumento() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo))
 
-        compose.onNodeWithTag("t06_contenido").assertExists()
+        compose.onNodeWithTag("pantalla_contenido").assertExists()
         compose.onNodeWithText("KXJR42").assertExists()
         compose.onNodeWithText(texto(R.string.tipo_documento_rut)).assertExists()
         compose.onNodeWithText(texto(R.string.tipo_documento_pasaporte)).assertExists()
         compose.onNodeWithText(texto(R.string.campo_documento)).assertExists()
-        compose.onNodeWithTag("t06_error").assertDoesNotExist()
+        compose.onNodeWithTag("pantalla_error").assertDoesNotExist()
     }
 
     @Test
@@ -84,14 +84,14 @@ class ConfirmarAbordajeScreenTest {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo, documento = "15.234.567-0", documentoInvalido = true))
 
         compose.onNodeWithText(texto(R.string.abordaje_documento_invalido)).assertExists()
-        compose.onNodeWithTag("t06_error").assertDoesNotExist()
+        compose.onNodeWithTag("pantalla_error").assertDoesNotExist()
     }
 
     @Test
     fun elViajeNoEncontradoUsaElTextoDelAbordajeYConservaElFormulario() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo, documento = "15.234.567-4", error = ErrorApp.NoEncontrado))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_no_encontrado)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsEnabled()
     }
@@ -100,7 +100,7 @@ class ConfirmarAbordajeScreenTest {
     fun sinConexionMuestraSuTextoYSePuedeReintentar() {
         mostrar(ConfirmarAbordajeUiState(codigo = codigo, documento = "15.234.567-4", error = ErrorApp.SinConexion))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.error_sin_conexion)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertIsEnabled()
     }
@@ -116,7 +116,7 @@ class ConfirmarAbordajeScreenTest {
     fun unaRutaSinCodigoValidoNoOfreceElFormulario() {
         mostrar(ConfirmarAbordajeUiState(codigo = null))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_qr_ajeno)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_confirmar)).assertDoesNotExist()
         compose.onNodeWithText(texto(R.string.accion_volver)).performClick()

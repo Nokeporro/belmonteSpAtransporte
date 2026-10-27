@@ -15,7 +15,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Formatos
@@ -52,14 +52,14 @@ class HU16ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                     BelmonteTheme {
                         key(ruta) {
-                            PantallaT06(ruta, folio, onNavegar = { p, _ -> ruta = p },
+                            DestinoPantalla(ruta, folio, onNavegar = { p, _ -> ruta = p },
                                 onVolver = { ruta = PantallaDemo.DETALLE_SOLICITUD }, onCerrarSesion = {})
                         }
                     }
                 }
             }
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
     }
     private fun esperarTexto(texto: String) {
         compose.waitUntil(15_000) { compose.onAllNodesWithText(texto).fetchSemanticsNodes().isNotEmpty() }

@@ -14,7 +14,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -43,7 +43,7 @@ class HU19ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                     BelmonteTheme {
                         key(ruta) {
-                            PantallaT06(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id },
+                            DestinoPantalla(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id },
                                 onVolver = { ruta = PantallaDemo.DETALLE_ADMIN to "TR-1919" }, onCerrarSesion = {})
                         }
                     }
@@ -86,7 +86,7 @@ class HU19ScreenTest {
     @Test fun erroresAl200PorCientoConservanElMontoYPermitenCorregir() {
         abrir(2f)
         monto().performScrollTo().performTextInput("0"); registrar()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         assertNull(runBlocking { local.db.pagoDao().obtenerDelViaje("TR-1919") })
         monto().performScrollTo().assertTextContains("0")
         elegir(R.string.campo_banco, "BancoEstado")

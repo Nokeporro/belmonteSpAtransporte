@@ -14,7 +14,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -39,7 +39,7 @@ class HU26ScreenTest {
     private fun abrir(pantalla: PantallaDemo, id: String, escala: Float = 1f) {
         compose.activity.runOnUiThread { compose.activity.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
-                BelmonteTheme { PantallaT06(pantalla, id, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {}) }
+                BelmonteTheme { DestinoPantalla(pantalla, id, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {}) }
             }
         } }
         esperar(R.string.flota_activo_ayuda)
@@ -66,11 +66,11 @@ class HU26ScreenTest {
     @Test fun viajeAsignadoMuestraConflictoYPermiteRecargarSinAfirmarExito() {
         val correo = "ireyes@belmontespa.cl"; abrir(PantallaDemo.DETALLE_CONDUCTOR, correo)
         accion(R.string.accion_desactivar).performScrollTo().performClick(); confirmar()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
         assertTrue(runBlocking { local.usuario(correo).activo })
         compose.onAllNodesWithText(texto(R.string.flota_activo_guardado)).assertCountEquals(0)
         accion(R.string.accion_reintentar).performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isEmpty() }
         esperar(R.string.accion_desactivar)
         accion(R.string.accion_desactivar).performScrollTo().assertIsEnabled()
     }

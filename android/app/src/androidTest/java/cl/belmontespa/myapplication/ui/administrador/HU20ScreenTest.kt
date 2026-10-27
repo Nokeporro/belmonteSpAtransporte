@@ -15,7 +15,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -46,7 +46,7 @@ class HU20ScreenTest {
         compose.activity.runOnUiThread {
             compose.activity.setContent {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
-                    BelmonteTheme { PantallaT06(PantallaDemo.DETALLE_PAGO, hash, { _, _ -> }, {}, {}) }
+                    BelmonteTheme { DestinoPantalla(PantallaDemo.DETALLE_PAGO, hash, { _, _ -> }, {}, {}) }
                 }
             }
         }
@@ -97,7 +97,7 @@ class HU20ScreenTest {
         abrir(); accion(R.string.accion_anular).performScrollTo().performClick()
         runBlocking { local.db.pagoDao().guardar(local.db.pagoDao().obtener(hash)!!.copy(estadoPago = "RECHAZADO")) }
         confirmar()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
         accion(R.string.accion_anular).assertIsNotEnabled()
         accion(R.string.accion_reintentar).performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodes(hasText(texto(R.string.accion_anular)) and hasClickAction()).fetchSemanticsNodes().isEmpty() }

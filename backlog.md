@@ -1,11 +1,11 @@
 # Backlog priorizado
 
-**Proyecto:** Aplicación de Belmonte SpA · **Fecha:** 20-10-2026 · **Entrega de la Prueba 2:** miércoles
+**Proyecto:** Aplicación de Belmonte SpA · **Fecha:** 26-10-2026 · **Entrega de la Prueba 2:** miércoles
 28-10-2026 antes de las 19:00.
 
 Fuente: [README.md](README.md) (la especificación; si este backlog difiere, gana el README) y
 [docs/informacion_importante.md](docs/informacion_importante.md) (requisitos de la Prueba 2). El
-estado del backend sale de revisar `backend/` en esta rama, que es igual a `main` y a `backend`.
+estado del backend sale de revisar `backend/` en esta rama.
 
 ## Cómo leer este backlog
 
@@ -29,12 +29,13 @@ estado del backend sale de revisar `backend/` en esta rama, que es igual a `main
 
   El repositorio remoto (Retrofit) es T14, en la Etapa 2.
 - **Estado del backend:**
-  - **Hecha:** cumple el README.
-  - **Ajustar:** existe pero difiere del README.
+  - **Hecha:** la ruta existe con su controlador y su regla, y tiene pruebas.
   - **Falta:** no existe.
 
-  El detalle de cada caso está en [Brechas del backend](#brechas-del-backend).
-- **Android:** no hay código. No existe `android/`, y la rama `android` es obsoleta y no se usa.
+  Lo que queda pendiente está en [Pendiente del backend](#pendiente-del-backend-etapa-2).
+- **Android:** la app vive en `android/` y la build `demo` corre completa sobre Room, con las 46 pantallas
+  y cada una con su ViewModel. Los repositorios remotos, el push y la cola sin conexión son la Etapa 2.
+  La rama `android` es obsoleta y no se usa.
 
 ## Resumen
 
@@ -46,18 +47,18 @@ estado del backend sale de revisar `backend/` en esta rama, que es igual a `main
 
 **Backend:**
 - **Compilación:** compila (`./gradlew compileJava compileTestJava`).
-- **Pruebas:** las IT no se corrieron, porque no hubo acceso a Docker.
-- **Base existente:** está hecho para una versión anterior de la especificación (sin abordaje QR, aprobación de cuentas, `activo`, rechazo del Conductor ni reembolsos).
+- **Pruebas:** hay 397 anotaciones de prueba. Las IT no se corrieron en esta revisión, porque no hubo
+  MariaDB.
+- **Rutas:** 47 de las 48 del README tienen controlador; solo falta `POST /auth/token-fcm` (HU14, Etapa 2).
+  Ya no existen las 3 rutas que el README no admite (`POST /usuarios`, `PUT /solicitantes/{correo}` y
+  `POST /empresas`).
 
-| Rutas del README | Hechas | Ajustar | Faltan |
-|---|---|---|---|
-| 48 | 7 | 32 | 9 |
+| Rutas del README | Hechas | Faltan |
+|---|---|---|
+| 48 | 47 | 1 |
 
-Además, existen 3 rutas que el README no admite: `POST /usuarios`, `PUT /solicitantes/{correo}` y
-`POST /empresas`.
-
-**Meta del 75 %:** al menos 36 de las 48 rutas deben cumplir el README y tener sus pruebas. Hoy hay
-7, así que en la Etapa 1 faltan al menos 29. El [mapa de rutas](#rutas-y-75-) indica a qué ítem
+**Meta del 75 %:** al menos 36 de las 46 rutas de la Etapa 1. Hoy las 46 existen; lo que queda por
+confirmar es que sus IT pasen contra MariaDB. El [mapa de rutas](#rutas-y-75-) indica a qué ítem
 pertenece cada una.
 
 ## Criterios de priorización
@@ -92,18 +93,6 @@ aunque falten reglas. El backend se completa en el orden de este backlog hasta p
 
 ## Etapa 1: Prueba 2
 
-**Actualización del 22-10-2026 — P1 de A:**
-
-- [x] HU01: registro y login del Solicitante.
-- [x] HU06: login del Conductor.
-- [x] HU02: nueva solicitud con Google Places y pasajeros.
-- [x] HU03: historial y estado de las solicitudes propias.
-
-Estas cuatro historias quedan **Listo** respecto de su implementación. Pasaron 204 pruebas del
-backend, 60 pruebas JVM Android y 32 instrumentadas en API 36, además de lint y la compilación demo.
-El cierre de entrega aún requiere Places con clave real, API 26, TalkBack, CI, aprobación y fusión
-en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la tabla.
-
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | T01 | Proyecto `android/`, versiones y CI | B | P0 | — | — | — | — | Listo |
@@ -111,37 +100,37 @@ en `main`; véase [P1 de A](docs/P1_A.md). Los avances de B se conservan en la t
 | 3 | T03 | Navegación por rol y sesión | A | P0 | — | — | T01 | — | Listo |
 | 4 | T04 | Room v1 y DAO | B | P0 | — | — | T01 | — | Listo |
 | 5 | T05 | `DatosDemo`, `RepositorioModule` y build `demo` | B | P0 | — | — | T04 | — | Listo |
-| 6 | T06 | Esqueleto navegable de las 46 pantallas | A y B | P0 | — | — | T02, T03, T05 | — | listo |
-| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Falta | Listo |
-| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Falta | Listo |
-| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Ajustar | Listo |
-| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Ajustar | Listo |
-| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Implementado | Listo |
+| 6 | T06 | Esqueleto navegable de las 46 pantallas, cada una con su ViewModel | A y B | P0 | — | — | T02, T03, T05 | — | Listo |
+| 7 | T07 | Backend: migración de cuentas, flota y pagos | B | P0 | — | — | — | Hecho | Listo |
+| 8 | T08 | Backend: migración de viajes y abordaje | B | P0 | — | — | T07 | Hecho | Listo |
+| 9 | T09 | Backend: validaciones, errores y rutas que sobran | B | P0 | — | — | — | Hecho | Listo |
+| 10 | T10 | Hora de Chile y orden de listas (backend y app) | B | P0 | — | — | T05 | Hecho | Listo |
+| 11 | HU01 | Solicitante: registro y login | A | P1 | Alta | 3 | T03, T07 | Hecho | Listo |
 | 12 | HU06 | Conductor: login con credenciales del Administrador | A | P1 | Alta | 2 | HU01 | En HU01 | Listo |
-| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Implementado | Listo |
-| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Alcance y filtros propios | Listo |
-| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | 1 ajustar | Listo |
-| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | 1 ajustar | Listo |
+| 13 | HU02 | Solicitante: nueva solicitud con Google Places | A | P1 | Alta | 5 | T05, T09 | Hecho | Listo (lugares ficticios; Places en T14) |
+| 14 | HU03 | Solicitante: historial y estado | A | P1 | Media | 3 | HU02 | Hecho | Listo |
+| 15 | HU04 | Administrador: pendientes | B | P1 | Alta | 3 | T05, T10 | Hecho | Listo |
+| 16 | HU05 | Administrador: asignar | B | P1 | Alta | 5 | HU04, T08 | Hecho | Listo |
 | 17 | HU07 | Conductor: viajes del día en tiempo real | B | P1 | Alta | 3 | T05, T10 | En HU04 | Listo |
-| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | 1 ajustar | Listo |
-| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | 1 ajustar | Listo |
+| 18 | HU08 | Conductor: detalle del viaje | B | P1 | Alta | 3 | HU07 | Hecho | Listo |
+| 19 | HU09 | Conductor: En Curso y Finalizado | B | P1 | Alta | 3 | HU08, T10 | Hecho | Listo |
 | 20 | HU10 | Conductor: ruta en Google Maps o Waze | B | P1 | Alta | 3 | HU08 | Sin backend | Listo |
-| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | 1 falta | Listo |
+| 21 | HU29 | Pasajero: abordar con el código QR | B | P1 | Alta | 5 | T05, T08 | Hecho | Listo |
 | 22 | HU30 | Conductor: arqueo de abordaje | B | P1 | Alta | 3 | HU29, HU08 | En HU08 | Listo |
-| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Implementado | Listo |
-| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Implementado | Listo |
+| 23 | HU15 | Administrador: alta de Conductor | A | P2 | Alta | 3 | T07 | Hecho | Listo |
+| 24 | HU16 | Solicitante: cancelar | A | P2 | Alta | 3 | HU03, T07 | Hecho | Listo |
 | 25 | HU24 | Administrador: cancelar un viaje | B | P2 | Alta | 3 | HU08, HU16 | En HU16 | Listo |
-| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Implementado | Listo |
-| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Implementado | Listo |
-| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Implementado | Listo |
-| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Implementado | Listo |
-| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Implementado | Listo |
-| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Implementado | Listo |
-| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Implementado | Listo |
+| 26 | HU17 | Administrador: alta de vehículo | A | P3 | Media | 3 | T07, T08 | Hecho | Listo |
+| 27 | HU18 | Administrador: habilitaciones | A | P3 | Media | 2 | HU15, HU17 | Hecho | Listo |
+| 28 | HU19 | Administrador: registrar pago | A | P3 | Media | 5 | T07 | Hecho | Listo |
+| 29 | HU20 | Administrador: estado del pago | A | P3 | Media | 3 | HU19 | Hecho | Listo |
+| 30 | HU22 | Solicitante/Administrador: recuperar contraseña | A | P3 | Media | 3 | T07 | Hecho | Listo |
+| 31 | HU27 | Administrador: aprobar solicitantes | A | P3 | Media | 3 | HU01 | Hecho | Listo |
+| 32 | HU26 | Administrador: dar de baja | A | P3 | Media | 3 | HU15, HU17 | Hecho | Listo |
 | 33 | HU23 | Administrador: reasignar | B | P3 | Media | 3 | HU05 | En HU05 | Listo |
-| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | 1 falta | Listo |
+| 34 | HU25 | Conductor: rechazar una asignación | B | P3 | Media | 2 | HU08, T08 | Hecho | Listo |
 | 35 | HU21 | Solicitante: estado de pago | A | P4 | Baja | 2 | HU19 | En HU19 | Listo |
-| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | Implementado | Listo |
+| 36 | HU28 | Administrador: registrar otro Administrador | A | P4 | Baja | 2 | HU22 | Hecho | Listo |
 | 37 | T11 | Video de hasta 7 minutos sin audio | A y B | Cierre | — | — | T06, P1 | — | — |
 | 38 | T12 | Ensayo de la evaluación | A y B | Cierre | — | — | T11 | — | — |
 | 39 | T13 | Entrega del 28-10 | A y B | Cierre | — | — | T11 | — | — |
@@ -172,15 +161,15 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
   - `./gradlew installDemo` funcionando.
 - **T06:** las 46 pantallas de los [mockups](mockups/wireframes-belmonte.html) se recorren con datos
   de `DatosDemo`. Cada integrante hace las pantallas de sus HU, aunque aún no tengan todas las
-  reglas.
+  reglas. Cada pantalla tiene su ViewModel en la carpeta de su funcionalidad. En "Nueva solicitud" el
+  origen y el destino se eligen de una lista de lugares ficticios, porque Google Places llega en T14.
 - **T07 y T08:**
-  - las migraciones de [T07](#t07-migración-de-cuentas-flota-y-pagos) y
-    [T08](#t08-migración-de-viajes-y-abordaje) se aplican sobre una base existente y sobre una vacía;
+  - las migraciones de cuentas, flota, pagos, viajes y abordaje se aplican sobre una base existente y
+    sobre una vacía;
   - las entidades JPA validan (`ddl-auto=validate`);
   - existe `MigracionesIT`.
-- **T09 y T10:** se cumplen las listas de [T09](#t09-validaciones-errores-y-rutas-que-sobran) y
-  [T10](#t10-hora-de-chile-y-orden), con sus pruebas. En la app incluye `ValidacionesTest`
-  (parte de T09) y `RetrasoTest` (T10).
+- **T09 y T10:** validaciones, errores, hora de Chile y orden de las listas, con sus pruebas. En la app
+  incluye `ValidacionesTest` (parte de T09) y `RetrasoTest` (T10).
 - **T11:** el video muestra:
   - navegación y diseño;
   - Room: crear, cambiar y ver persistir;
@@ -200,9 +189,9 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
 | 40 | T14 | Repositorios remotos, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | — |
-| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 2 faltan | — |
-| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Ajustar push | — |
-| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar push | — |
+| 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 1 falta | — |
+| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; falta el token | — |
+| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar V3 y V4 | — |
 | 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | — |
 | 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes | — |
 | 46 | T16 | `database/demo.sql` | B | E2 | — | — | T15 | — | — |
@@ -216,7 +205,10 @@ SP de la Etapa 2: A, 8; B, 13.
 - **T14:**
   - cada repositorio tiene su implementación remota, según
     [Sesión y conectividad](README.md#sesión-y-conectividad);
-  - `ErrorMapper` existe con su `ErrorMapperTest`.
+  - `ErrorMapper` existe con su `ErrorMapperTest`;
+  - se agregan las dependencias que hoy no se usan y por eso no están declaradas: Retrofit y OkHttp,
+    WorkManager y `hilt-work`, Firebase (BoM, `firebase-messaging` y el plugin `google-services`) y
+    Google Places, que reemplaza la lista de lugares ficticios de "Nueva solicitud" (HU02).
 
   Cada integrante hace los repositorios de sus funcionalidades, y A hace además `ErrorMapper` y el
   interceptor.
@@ -225,345 +217,20 @@ SP de la Etapa 2: A, 8; B, 13.
 - **T16:** el contenido es el de [Stack y entornos](README.md#stack-y-entornos).
 - **T19:** según [Compilación y distribución](README.md#compilación-y-distribución).
 
-## Brechas del backend
+## Pendiente del backend (Etapa 2)
 
-Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/` y a
-`backend/src/main/resources/db/migration/`. Las reglas están en el README:
-- [Máquinas de estado](README.md#máquinas-de-estado);
-- [Validaciones](README.md#validaciones);
-- [Contratos JSON](README.md#contratos-json).
+Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/`. Las reglas están en el README
+([Notificaciones](README.md#notificaciones) y [Autenticación](README.md#autenticación)).
 
-Las pruebas IT existentes prueban el comportamiento anterior. Por ejemplo, `ViajeIT.ocupados`
-espera que asignar deje al conductor Ocupado, y `PagoIT.anulaSegunEstado` espera que cancelar
-anule cualquier pago. Por eso, cada ítem ajusta sus pruebas junto con el código.
-
-### T07 Migración de cuentas, flota y pagos
-
-- **`usuario`:**
-  - agregar `password_temporal_hash`; hoy la temporal se escribe sobre `password_hash`, según el
-    comentario de `V1__esquema.sql`;
-  - `token_fcm` pasa a ser UNIQUE.
-- **Solicitante:** crear `ESTADO_SOLICITANTE` (`PENDIENTE`, `APROBADO`, `RECHAZADO`) y
-  `solicitante.estado_solicitante_id`. Los Solicitantes existentes quedan `APROBADO`.
-- **`activo`:** agregar `conductor.activo` y `movil.activo`, con valor por defecto verdadero.
-- **`pago`:**
-  - `fecha_pago` admite NULL;
-  - nueva columna `monto_reembolsado`;
-  - `ESTADO_PAGO` suma `REEMBOLSADO`;
-  - `bu_pago` admite `PAGADO → REEMBOLSADO`.
-- **`viaje`:** `pago_id` pasa a ser UNIQUE.
-- **`estado_movil`:** quitar `MANTENCION`, que el README no tiene.
-- **Administrador inicial:** su contraseña de desarrollo pasa a `password_temporal_hash`, y
-  `password_hash` queda inutilizable (`V3__datos_iniciales.sql`).
-- **Entidades:** actualizar `Usuario`, `Solicitante`, `Conductor`, `Movil` y `Pago`.
-
-### T08 Migración de viajes y abordaje
-
-- **`viaje.motivo`:** nueva columna `VARCHAR(200)`.
-- **`folio`:** debe ser `TR-` + un correlativo desde 1001, generado por trigger. Hoy es `VJ` + UUID,
-  tanto en `bi_viaje` como en `model/Viaje.java` (`@PrePersist`); el `@PrePersist` se quita.
-- **`bu_viaje`:** admitir V8 (`ASIGNADO → PENDIENTE`).
-- **`au_viaje`:** auditar solo `estado`, `conductor`, `movil`, `cantidad_pasajeros`, `pago` y
-  `motivo`. Hoy también audita `fh_*`, `origen`, `destino` y `numero_vuelo`.
-- **`detalle_viaje_pasajero.fh_abordaje`:** nueva columna `DATETIME NULL`.
-- **`movil.codigo_abordaje`:** se llena con `HEX(RANDOM_BYTES(8))` y después pasa a `NOT NULL` y
-  UNIQUE.
-- **`MigracionesIT`:** nueva. Cubre la cadena completa sobre una base vacía.
-
-### T09 Validaciones, errores y rutas que sobran
-
-- **Normalización antes de validar:** correo en minúsculas, teléfono como `+56…`, patente,
-  RUT (sin puntos, con guion y `K` mayúscula) y número de vuelo. Hoy no se normaliza nada.
-- **Reglas de la tabla de Validaciones que faltan o difieren:**
-  - patente `^([A-Z]{2}[0-9]{4}|[A-Z]{4}[0-9]{2})$`; hoy `^[A-Z]{2}[A-Z0-9]{2}[0-9]{2}$`;
-  - `password` de 8 a 72 caracteres, con una letra y un dígito; hoy de 8 a 100 sin más reglas;
-  - `nombre` y `razonSocial` con al menos 2 caracteres;
-  - dígito verificador del RUT;
-  - `capacidad` hasta 20 y `gpsSerial` mayor que 0;
-  - formato de `numeroVuelo`, `folio`, `hash` y `dniHash`.
-- **400 de validación:** las líneas `campo: motivo` se unen con `\n`; hoy con `; `
-  (`exception/ApiExceptionHandler.java`).
-- **Rutas que sobran:** quitar `POST /usuarios`, `PUT /solicitantes/{correo}` (y
-  `SolicitanteService.reemplazar`) y `POST /empresas` (y `EmpresaDTORequest`), en sus controladores y
-  en `config/SecurityConfig.java`.
-- **`SecurityConfig`:** quitar al Conductor de `PUT /usuarios/*` y agregar las rutas nuevas de
-  cada ítem.
-- **JWT:** `JWT_EXPIRATION_SECONDS` pasa a 28800 por defecto; hoy es 3600 en
-  `application.properties`.
-- **Opcional:** quitar `application-dev.properties`. Usa H2, que no está en las dependencias.
-
-### T10 Hora de Chile y orden
-
-- **`config/ClockConfig.java`:** bean `Clock` en `America/Santiago`.
-- **"Ahora":** reemplazar `LocalDateTime.now()` y `LocalDate.now()` en `ViajeService`,
-  `ViajeController.fecha`, `AuthService` y `PagoService`.
-- **Orden fijo de las listas:** hoy `CrudService.listar` usa `findAll()` sin orden.
-  - viajes según su estado;
-  - cuentas y pasajeros por `nombre`;
-  - `empresas` por `razonSocial`;
-  - `moviles` por `patente`;
-  - habilitaciones por `patente` y `nombreConductor`;
-  - `pagos` por `folio` descendente.
-
-  El `folio` se ordena por su número.
-- **App:** cálculo de la ventana de inicio, Atrasado y Vencido con un `Clock` inyectado.
-
-### HU01 y HU06
-
-- **`AuthService.login`:**
-  - responde `cambioPasswordRequerido` y emite un JWT con `temporal: true` cuando se entra con la
-    temporal;
-  - responde 401 a un Conductor inactivo;
-  - responde 403 a un Solicitante no aprobado.
-- **`SecurityConfig`:** con el JWT temporal, permite solo `GET` y `PUT /usuarios/{correo}` propios y
-  `POST /auth/logout`.
-- **`POST /solicitantes`:** la cuenta queda `PENDIENTE` si la empresa ya existía y `APROBADO` si es
-  nueva.
-- **DTO:**
-  - `LoginDTOResponse` suma `cambioPasswordRequerido`;
-  - `SolicitanteDTOResponse` suma `estadoSolicitante`.
-
-### HU02
-
-- **`POST /pasajeros`:**
-  - suma `tipoDocumento`: `RUT` con dígito verificador, o `PASAPORTE` de 5 a 20 caracteres;
-  - con un documento ya registrado responde `200` con `nombre` `null`; hoy responde `201` con el
-    nombre guardado.
-- **`POST /viajes`:**
-  - `fhAgenda` de 2 horas a 90 días, truncada al minuto; hoy solo `@Future`;
-  - origen distinto del destino;
-  - solo un Solicitante aprobado;
-  - push a los Administradores, que se completa en la Etapa 2.
-- **Cotejo de comuna:** se normaliza y se busca por nombre, y el error es `origen.comuna: No existe
-  en el catálogo.` Hoy `UbicacionService` exige el nombre exacto de la comuna y de la región.
-- **`POST /pasajeros-viaje`:** un par existente responde `200`; hoy `201`.
-- **`GET /catalogos`:** falta; hay que crear `CatalogoController` y `CatalogosDTOResponse`.
-- **`GET /pasajeros`:** se ordena por `nombre` (T10).
-
-### HU04, HU07 y HU08
-
-- **`GET /viajes`:**
-  - `estado` y `fecha` combinables para los tres roles; hoy el Solicitante ignora los filtros y el
-    Administrador solo acepta `estado`;
-  - un filtro mal formado responde 400;
-  - la agenda del Conductor suma su `EN_CURSO` de un día anterior.
-- **`ViajeDTOResponse`:**
-  - suma `nombreSolicitante`, `telefonoSolicitante`, `razonSocial`, `motivo` y `pasajeros[].fhAbordaje`;
-  - `hashPago` y `estadoPago` van en `null` para el Conductor.
-
-### HU05 y HU23
-
-- **V2 no cambia el estado del conductor ni del vehículo.** Hoy `ViajeService.asignar` los marca
-  Ocupado y En uso, y `liberar` los devuelve a Disponible.
-- **Validaciones que faltan:**
-  - viaje no vencido;
-  - al menos un pasajero;
-  - conductor y vehículo activos;
-  - sin otro viaje `ASIGNADO` o `EN_CURSO` a menos de 2 horas.
-
-  Al reasignar se valida solo lo que cambia.
-- **Cambio de vehículo:** vuelve `fh_abordaje` a NULL.
-- **Push:** al conductor reemplazado, con `data.tipo` `AGENDA`.
-
-- **Reasignar (HU23) es la misma V2, hecha en HU05.** Lo que cerró HU23:
-  - [x] Los avisos de V2 salen de `AvisosDeViaje` según el README: «Viaje {folio} para {fecha}» con la fecha como `24-09-2026 · 14:30`, y `data.tipo` `VIAJE` al nuevo conductor y al Solicitante (el del reemplazado sigue en `AGENDA`).
-  - [x] Pruebas: 5 unitarias nuevas del backend (84) y 4 de `AsignarViewModelTest` (333 JVM Android); lint y APK debug y demo correctos.
-  - [x] Escritas y compiladas, sin ejecutar (sin MariaDB ni AVD): `NotificacionesIT` con los tres avisos exactos, ocho pruebas de Room de reasignar (conductor, vehículo, ambos, agenda de cada conductor y los rechazos sin cambios) y `HU23ScreenTest`.
-
-### HU09
-
-- **V3:** ventana de ± 1 hora, y el conductor y el vehículo sin otro viaje `EN_CURSO`. V3 marca
-  Ocupado y En uso, y V4 los libera. Hoy no hay ventana.
-
-### HU29 y HU30
-
-- **`POST /abordajes`:** falta, y es público. Hay que crear `AbordajeController`, `AbordajeService`,
-  `AbordajeDTORequest` y `AbordajeDTOResponse`, y declarar la ruta pública en `SecurityConfig`.
-  - **Candidatos:** viajes `ASIGNADO` dentro de la ventana de V3, o `EN_CURSO`.
-  - **Errores:** el mismo 404 en todos los casos.
-  - **Repetición:** repetir devuelve la misma hora.
-  - **Pruebas:** `AbordajeIT`.
-- **Arqueo:** `fhAbordaje` va en el viaje (ver HU08).
-- **Android, lector:** Google Code Scanner (`play-services-code-scanner` 16.1.0), sin permiso `CAMERA`. Si
-  no se puede abrir, avisa y deja «Ingresar código». Requiere Google Play services; el abordaje por
-  QR no se probó en un teléfono ni en un emulador.
-
-### HU15
-
-- [x] **`ConductorDTOResponse`:** incluye `activo`, `viajesAsignados` y `folioEnCurso`.
-- [x] **`PUT /conductores/{correo}`:** el `correo` del cuerpo debe coincidir con el de la ruta (400).
-- [x] Android: alta y edición validadas, normalización, correo único entre roles, recarga de la lista
-  y limpieza de contraseña tras guardar. El nuevo conductor puede iniciar sesión y asignarse con
-  un vehículo habilitado.
-- [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y APK demo.
-
-Implementación **Listo**. Quedan API 26, TalkBack, CI y revisión/fusión para cerrar la entrega.
-HU16, HU17, HU18, HU19, HU20, HU22, HU27 y HU26 también están implementadas; todas las tareas P3 de A están listas.
-HU21 y HU28 de P4 también están implementadas; el siguiente ítem es T11, el video de cierre compartido.
-
-### HU16 y HU24
-
-- **V5 (Solicitante), implementado en HU16:**
-  - [x] Solo la solicitud propia `PENDIENTE` o `ASIGNADO`, hasta agenda + 1 hora inclusive.
-  - [x] Un pago `PAGADO` pasa a `REEMBOLSADO` por el 50 %, redondeado hacia abajo, incluso si resulta cero.
-  - [x] Un pago `PENDIENTE` pasa a `ANULADO`; los pagos terminales conservan su estado y monto.
-  - [x] Conserva `fh_fin`, los estados de conductor y vehículo y los datos del historial.
-  - [x] Serializa cancelaciones del mismo viaje y avisa después de confirmar la transacción.
-  - [x] Android muestra el efecto sobre el pago antes de confirmar y el resultado persistido.
-  - [x] Backend: 256 pruebas aprobadas. Android: 148 JVM, lint y compilación demo correctos.
-  - [x] API 36: 34 pruebas aprobadas de Room, interfaz y recorrido de las 46 pantallas, con formularios al 200 % de texto.
-
-  API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
-
-- **V7 (Administrador), implementado en HU24, en la misma ruta:**
-  - [x] `CancelarViajeDTORequest` con `motivo` (de 5 a 200 caracteres, recortado) y `montoReembolso`, obligatorio solo con el viaje vencido y el pago `PAGADO` (de 0 al total; si no, se ignora).
-  - [x] Reembolso del 100 %, o del monto fijado si el viaje está vencido; con 0 el pago sigue `PAGADO`; un pago `PENDIENTE` queda `ANULADO` y los terminales no cambian.
-  - [x] `SecurityConfig` permite al Administrador; el Conductor sigue en 403.
-  - [x] Push al conductor y al Solicitante, y del cambio del pago.
-  - [x] Android: «Cancelar viaje» con su pantalla y su ViewModel (monto precargado con el total, errores por campo, doble toque), y el pago y su resultado en el detalle del Administrador.
-  - [x] Pruebas: 12 unitarias nuevas del backend y 329 JVM Android; lint, APK debug y demo correctos. Las IT del backend (`ViajeIT`, `PagoIT`, `NotificacionesIT`) y las pruebas instrumentadas están escritas y compilan, pero no se ejecutaron (sin MariaDB ni AVD).
-
-### HU17
-
-- [x] `MovilDTOResponse` incluye `activo` y `codigoAbordaje` en alta, detalle y lista, solo para el Administrador.
-- [x] `MovilService` genera `codigo_abordaje` con `SecureRandom`; cada vehículo nace activo y disponible.
-- [x] Android: patente normalizada y única, capacidad 1..20, GPS opcional positivo, errores por campo y control del doble envío.
-- [x] Detalle con GPS y código de abordaje en grupos de 4; el generador de QR y «Imprimir» se quitaron (el QR se arma fuera de la app); recarga de lista al volver del alta.
-- [x] 14 pruebas backend de HU17 y flota y 153 pruebas JVM Android aprobadas.
-- [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
-
-API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
-
-### HU18
-
-- [x] Filtros `?patente=` y `?correo=` combinables, normalizados y validados.
-- [x] `DetalleMovilConductorDTOResponse` incluye `capacidad`, `estadoMovil`, `activoMovil`, `estadoConductor` y `activoConductor`.
-- [x] Un par nuevo responde `201`; uno existente, `200`, también con altas simultáneas, sin duplicar.
-- [x] Las nuevas relaciones exigen ambos activos; las existentes se conservan y muestran sus estados actuales.
-- [x] Android: acceso contextual desde conductor o vehículo, filtros independientes y recarga del detalle al volver.
-- [x] 21 pruebas backend de HU18 y regresión de flota aprobadas.
-- [x] Android: 159 pruebas JVM y 39 instrumentadas en API 36 (Room e interfaz, con texto al 200 %); lint sin errores y APK demo compilado.
-
-API 26, TalkBack, CI y revisión/fusión quedan pendientes para cerrar la entrega.
-
-### HU19
-
-- [x] Alta de pago solo por el Administrador, en un viaje no cancelado y sin otro pago; queda `PENDIENTE`.
-- [x] Banco, medio y recibo desde catálogos; monto entero positivo y empresa tomada del Solicitante del viaje.
-- [x] Hash de 32 hexadecimales en minúsculas; `folio` y `montoReembolsado` presentes en las respuestas.
-- [x] `fechaPago` nula al registrar y al rechazar; se fija al confirmar `PAGADO` con el Clock de Chile.
-- [x] Bloqueo del viaje durante el alta para evitar duplicados, pagos huérfanos y carreras con la cancelación.
-- [x] Android: errores por campo, datos conservados, doble envío bloqueado y detalle del pago persistido.
-- [x] 48 pruebas backend de pagos, fechas, orden y reembolsos; 340 JVM Android; lint sin errores y APK demo compilado.
-- [x] API 36: 70 pruebas de Room e interfaz aprobadas, con formulario al 200 % de texto.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU20
-
-- [x] P2: `PENDIENTE → PAGADO / RECHAZADO / ANULADO`; P3: `PAGADO → ANULADO`; estados terminales rechazados con 409.
-- [x] Solo el Administrador cambia estados; P4 y P5 siguen siendo automáticas en V5 y V7.
-- [x] `fechaPago` se fija al confirmar, se conserva al anular y coincide entre respuesta y persistencia.
-- [x] V6 cancela un viaje pendiente o asignado, incluso vencido, sin reembolso; no cancela uno en curso o finalizado ni altera la flota o las fechas.
-- [x] Pago y viaje cambian en la misma transacción; bloqueos en orden viaje/pago evitan estados antiguos y bloqueos cruzados.
-- [x] Avisos de pago y cancelación después del commit; un rollback no persiste cambios ni envía push.
-- [x] Android: confirmación, doble envío bloqueado, acciones según estado, resultado guardado y recarga ante conflictos.
-- [x] 357 pruebas backend y 350 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU21 (P4)
-
-- [x] Resumen del pago en el detalle de la solicitud propia: los cinco estados, monto y reembolso cuando corresponde.
-- [x] Enlace al detalle solo si hay pago; folio, banco, medio, recibo y fecha en una vista de solo lectura para el Solicitante.
-- [x] Sin pago se indica explícitamente; una consulta fallida muestra reintento sin ocultar el viaje ni afirmar que no tiene pago.
-- [x] Recarga al volver a primer plano o desde el detalle del pago; una respuesta atrasada no reemplaza datos de una emisión más reciente del viaje.
-- [x] Solo pagos de los viajes propios, también entre Solicitantes de la misma empresa; Conductor sin acceso y cambios reservados al Administrador.
-- [x] Demo sobre Room; la conexión remota corresponde a T14.
-- [x] 52 pruebas backend de pagos y permisos y 374 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 100 pruebas de Room, HU21 y regresión de HU16 aprobadas, incluida consulta con texto al 200 %, reintento y recarga al volver.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU22
-
-- [x] Solo Solicitante y Administrador reciben temporal de 12 caracteres; HTTP 204 genérico para correos elegibles, inexistentes o de Conductor.
-- [x] Temporal BCrypt separada de la actual, con vencimiento; un nuevo pedido la reemplaza, y login normal o cambio de clave la invalidan.
-- [x] Correo con nombre, vencimiento y texto del README; envío posterior al commit y rollback sin correo ni temporal persistida.
-- [x] `PUT /usuarios/{correo}` exige `passwordActual` normal o temporal vigente al cambiar la contraseña; conserva el correo y no modifica el perfil si falla.
-- [x] Recuperación, login y edición propia serializadas por cuenta para evitar cambios sobre credenciales antiguas.
-- [x] Android: validación por campo, doble envío bloqueado, errores conservando datos y limpieza de contraseñas al guardar; el cambio obligatorio solo termina después de persistir.
-- [x] Demo con confirmación genérica y aviso explícito de simulación sin correo; credencial temporal ficticia soportada en Room 2 con migración que conserva datos. La conexión remota corresponde a T14.
-- [x] 76 pruebas backend de HU22 y regresión de cuentas, seguridad y correo; 356 JVM Android; lint sin errores y APK demo compilado.
-- [x] API 36: 88 pruebas de Room, migración e interfaz aprobadas, incluido cambio obligatorio con texto al 200 %.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU25
-
-- **V8 (Conductor), `POST /viajes/{folio}/rechazar`:**
-  - [x] `RechazarViajeDTORequest` con `motivo` (de 5 a 200 caracteres, recortado) y `SecurityConfig` solo para el Conductor.
-  - [x] `ViajeService.rechazar`, con el viaje bloqueado: 404 si no existe, 403 si no es el conductor del viaje (también un `PENDIENTE`, que ya no tiene conductor) y 409 si no está `ASIGNADO`; el vencido sí se rechaza.
-  - [x] Vuelve a `PENDIENTE` sin conductor, vehículo ni `fh_asignacion`, con el motivo guardado y las marcas de abordaje en Por abordar; el pago y el estado de la flota no cambian. `bu_viaje` ya admitía la transición (T08).
-  - [x] Push a todos los Administradores con token («Viaje rechazado») y al Solicitante («Viaje sin conductor»), con `data.tipo` `VIAJE`; los textos están en `AvisosDeViaje`.
-  - [x] V2 limpia el `motivo` al asignar o reasignar, como ya hacía la demo: sin eso, un viaje asignado de nuevo mostraría el motivo del rechazo anterior.
-- **Android:**
-  - [x] El diálogo «Rechazar» valida el motivo (de 5 a 200 caracteres) al confirmar y muestra el error bajo el campo; un 400 con `motivo` vuelve al diálogo y los demás fallos lo cierran y conservan lo escrito. Sin conexión no se encola (`ViajeRemoteRepository` responde Sin conexión hasta T14).
-  - [x] La demo separa el motivo del estado: `Validacion` para el motivo, `SinPermiso` para el viaje ajeno o sin conductor y `Conflicto` si ya no está `ASIGNADO`.
-- **Pruebas:**
-  - [x] 2 unitarias nuevas del backend (86) y 4 netas en `DetalleViajeViewModelTest` (337 JVM Android); lint sin hallazgos nuevos (36) y APK debug y demo correctos.
-  - [x] Escritas y compiladas, sin ejecutar (sin MariaDB ni AVD): `ViajeRechazarIT` (13), el push en `NotificacionesIT`, la ruta en `SeguridadIT`, 7 pruebas de Room de rechazar y `HU25ScreenTest` (3, una con texto al 200 %).
-
-### HU26
-
-- [x] `POST /conductores/{correo}/activo` y `POST /moviles/{patente}/activo`, con `ActivoDTORequest` validado y acceso exclusivo del Administrador.
-- [x] Desactivar responde 409 con viajes `ASIGNADO` o `EN_CURSO`; los viajes finalizados o cancelados no bloquean. Reactivar sin condiciones y repetir el mismo valor responde 200 sin cambios.
-- [x] Asignación, habilitación y baja comparten bloqueos de flota; no se confirma una asignación sobre un recurso desactivado durante la operación.
-- [x] Conductor inactivo sin login (401 genérico); flota inactiva sin nuevas asignaciones. Reactivar restaura ambas operaciones.
-- [x] Se conservan datos, disponibilidad, historial, habilitaciones y código QR al desactivar y reactivar.
-- [x] Android: confirmación con identidad, doble envío bloqueado, estado confirmado sin perder la edición y errores con opción de recargar. La demo persiste en Room; conexión remota en T14.
-- [x] 381 pruebas backend y 368 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 95 pruebas de Room e interfaz aprobadas, incluida confirmación con texto al 200 %, conservación del QR y recarga tras conflictos.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU27
-
-- [x] `POST /solicitantes/{correo}/aprobar` y `.../rechazar`, solo Administrador; 409 si ya fue revisada y 404 si no existe un Solicitante con ese correo.
-- [x] `GET /solicitantes?estado=PENDIENTE`, `APROBADO` o `RECHAZADO`, orden por nombre y correo; filtro mal formado en 400 y parámetros desconocidos ignorados.
-- [x] Una sola decisión por cuenta, serializada con otras revisiones y el login; sin correos duplicados ante envíos simultáneos.
-- [x] Correos de aprobación y rechazo según README, después del commit; rollback sin cambio de estado ni correo.
-- [x] Aprobación habilita el acceso; rechazo impide entrar; empresa original, contraseña y perfil conservados.
-- [x] Android: confirmación, doble envío bloqueado, fila retirada solo al confirmar, errores conservando la lista y recarga tras conflictos.
-- [x] Contador de cuentas actualizado al volver a Solicitudes sin cambiar su filtro; demo local sin correo, con aviso explícito. Conexión remota en T14.
-- [x] 374 pruebas backend y 364 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 92 pruebas de Room e interfaz aprobadas, incluida aprobación con texto al 200 % y recarga del contador al volver.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU28
-
-- [x] Alta exclusiva del Administrador autenticado; validación por campo, normalización y correo único entre todos los roles (409 si ya existe).
-- [x] Contraseña inicial solo en `password_temporal_hash` BCrypt; sin contraseña permanente hasta completar el cambio obligatorio.
-- [x] Vencimiento configurable con `ALTA_TEMPORAL_HORAS` (72 por defecto y mayor que cero), basado en el Clock de Chile; inicial vencida en 401 genérico.
-- [x] Login inicial con JWT temporal y rutas restringidas; cambiar la contraseña crea la permanente y anula la inicial.
-- [x] Listado ordenado por nombre y correo; alta y consultas con la misma fecha de registro, sin contraseñas ni hashes en las respuestas.
-- [x] Alta atómica de usuario y rol, sin sobrescribir cuentas ante duplicados o peticiones simultáneas; rollback sin usuario huérfano.
-- [x] Android: acceso desde Perfil, aviso de contraseña inicial temporal, validación, doble envío bloqueado, datos conservados ante errores y contraseña limpiada al guardar; sesión del creador conservada.
-- [x] Demo persistida en Room con temporal ficticia de 72 horas; conexión remota en T14.
-- [x] 392 pruebas backend y 378 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 103 pruebas de Room, HU28 y regresión de HU22 aprobadas, incluidos el alta y el cambio obligatorio con texto al 200 %.
-
-API 26, TalkBack y CI quedan pendientes para cerrar la entrega.
-
-### HU14, HU13 y HU12 (Etapa 2)
-
-- **`POST /auth/logout`:** falta.
-- **`POST /auth/token-fcm`:** falta. El token es único: al guardarlo se quita de cualquier otro
-  usuario.
-- **Push:** debe llevar `data.tipo` (`VIAJE`, `AGENDA` o `CUENTAS`) y los textos del README. Hoy
-  `data` solo trae `folio`, y el mensaje usa el código ("Estado: EN_CURSO").
+- **`POST /auth/token-fcm` (HU14):** falta. El token es único: al guardarlo se quita de cualquier otro
+  usuario. `POST /auth/logout` ya existe.
+- **Push de V3 y V4 al Solicitante (HU12):** `ViajeService` envía `data` solo con `folio` y el mensaje con el
+  código ("Estado: EN_CURSO"). Debe llevar `data.tipo = VIAJE`, el título "Viaje {folio}" y la etiqueta
+  ("En curso" o "Finalizado").
+- **Push de V1 y de cuenta pendiente (HU02 y HU01):** no se envían. Faltan "Nueva solicitud" (V1) y "Cuenta por
+  aprobar" (con `data.tipo = CUENTAS`), ambos a los Administradores con token.
+- **Ya llevan `data.tipo`:** los push de asignación y reasignación (`AvisosDeViaje`, con `VIAJE` y `AGENDA`),
+  de rechazo (V8), de cancelación y de pago.
 
 ## Rutas y 75 %
 
@@ -571,57 +238,59 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 
 | Ruta | Estado | Ítem |
 |---|---|---|
-| `POST /auth/login` | Ajustar | HU01 |
-| `POST /auth/logout` | Falta | HU14 (E2) |
+| `POST /auth/login` | Hecha | HU01 |
+| `POST /auth/logout` | Hecha | HU14 |
 | `POST /auth/token-fcm` | Falta | HU14 (E2) |
-| `POST /auth/recuperar-password` | Implementado | HU22 |
-| `GET /catalogos` | Falta | HU02 |
+| `POST /auth/recuperar-password` | Hecha | HU22 |
+| `GET /catalogos` | Hecha | HU02 |
 | `GET /usuarios` | Hecha | HU22 |
 | `GET /usuarios/{correo}` | Hecha | HU22 |
-| `PUT /usuarios/{correo}` | Implementado | HU22 |
-| `GET /administradores` | Implementado | HU28 |
-| `GET /administradores/{correo}` | Implementado | HU28 |
-| `POST /administradores` | Implementado | HU28 |
-| `GET /conductores` | Ajustar | HU15 |
-| `GET /conductores/{correo}` | Ajustar | HU15 |
-| `POST /conductores` | Ajustar | HU15 |
-| `PUT /conductores/{correo}` | Ajustar | HU15 |
-| `POST /conductores/{correo}/activo` | Implementado | HU26 |
-| `GET /solicitantes` | Implementado | HU27 |
-| `GET /solicitantes/{correo}` | Ajustar | HU01 |
-| `POST /solicitantes` | Ajustar | HU01 |
-| `POST /solicitantes/{correo}/aprobar` | Implementado | HU27 |
-| `POST /solicitantes/{correo}/rechazar` | Implementado | HU27 |
-| `GET /empresas` | Implementado | HU27 |
+| `PUT /usuarios/{correo}` | Hecha | HU22 |
+| `GET /administradores` | Hecha | HU28 |
+| `GET /administradores/{correo}` | Hecha | HU28 |
+| `POST /administradores` | Hecha | HU28 |
+| `GET /conductores` | Hecha | HU15 |
+| `GET /conductores/{correo}` | Hecha | HU15 |
+| `POST /conductores` | Hecha | HU15 |
+| `PUT /conductores/{correo}` | Hecha | HU15 |
+| `POST /conductores/{correo}/activo` | Hecha | HU26 |
+| `GET /solicitantes` | Hecha | HU27 |
+| `GET /solicitantes/{correo}` | Hecha | HU01 |
+| `POST /solicitantes` | Hecha | HU01 |
+| `POST /solicitantes/{correo}/aprobar` | Hecha | HU27 |
+| `POST /solicitantes/{correo}/rechazar` | Hecha | HU27 |
+| `GET /empresas` | Hecha | HU27 |
 | `GET /empresas/{rut}` | Hecha | HU27 |
-| `GET /moviles` | Implementado | HU17 |
-| `GET /moviles/{patente}` | Implementado | HU17 |
-| `POST /moviles` | Implementado | HU17 |
-| `POST /moviles/{patente}/activo` | Implementado | HU26 |
-| `GET /habilitaciones-movil-conductor` | Implementado | HU18 |
-| `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Implementado | HU18 |
-| `POST /habilitaciones-movil-conductor` | Implementado | HU18 |
-| `GET /pagos` | Implementado | HU19 |
-| `GET /pagos/{hash}` | Implementado | HU19 |
-| `POST /pagos` | Implementado | HU19 |
-| `POST /pagos/{hash}/estado` | Implementado | HU20 |
-| `GET /pasajeros` | Ajustar (orden) | HU02 |
+| `GET /moviles` | Hecha | HU17 |
+| `GET /moviles/{patente}` | Hecha | HU17 |
+| `POST /moviles` | Hecha | HU17 |
+| `POST /moviles/{patente}/activo` | Hecha | HU26 |
+| `GET /habilitaciones-movil-conductor` | Hecha | HU18 |
+| `GET /habilitaciones-movil-conductor/{patente}/{correo}` | Hecha | HU18 |
+| `POST /habilitaciones-movil-conductor` | Hecha | HU18 |
+| `GET /pagos` | Hecha | HU19 |
+| `GET /pagos/{hash}` | Hecha | HU19 |
+| `POST /pagos` | Hecha | HU19 |
+| `POST /pagos/{hash}/estado` | Hecha | HU20 |
+| `GET /pasajeros` | Hecha | HU02 |
 | `GET /pasajeros/{dni_hash}` | Hecha | HU02 |
-| `POST /pasajeros` | Ajustar | HU02 |
+| `POST /pasajeros` | Hecha | HU02 |
 | `GET /pasajeros-viaje` | Hecha | HU02 |
 | `GET /pasajeros-viaje/{folio}/{dni_hash}` | Hecha | HU02 |
-| `POST /pasajeros-viaje` | Ajustar | HU02 |
-| `GET /viajes` | Ajustar | HU04 |
-| `GET /viajes/{folio}` | Ajustar | HU08 |
-| `POST /viajes` | Ajustar | HU02 |
-| `POST /viajes/{folio}/asignar` | Ajustar | HU05 |
-| `POST /viajes/{folio}/estado` | Ajustar | HU09 |
-| `POST /viajes/{folio}/cancelar` | Ajustar | HU16 (V5) y HU24 (V7) |
-| `POST /viajes/{folio}/rechazar` | Falta | HU25 |
-| `POST /abordajes` | Falta | HU29 |
+| `POST /pasajeros-viaje` | Hecha | HU02 |
+| `GET /viajes` | Hecha | HU04 |
+| `GET /viajes/{folio}` | Hecha | HU08 |
+| `POST /viajes` | Hecha | HU02 |
+| `POST /viajes/{folio}/asignar` | Hecha | HU05 |
+| `POST /viajes/{folio}/estado` | Hecha | HU09 |
+| `POST /viajes/{folio}/cancelar` | Hecha | HU16 (V5) y HU24 (V7) |
+| `POST /viajes/{folio}/rechazar` | Hecha | HU25 |
+| `POST /abordajes` | Hecha | HU29 |
 
 **Totales:**
-- **Por estado:** 7 hechas, 32 por ajustar y 9 faltan.
+- **Por estado:** 47 hechas y 1 falta (`POST /auth/token-fcm`). El estado sale de comparar cada ruta de la
+  tabla con los `@…Mapping` de los controladores, incluidas las heredadas de `LecturaController` y
+  `CrudController`; no incluye el comportamiento, que las IT aún no se corrieron.
 - **Etapa 1:** tiene 46 rutas, de las que hay que dejar al menos 36 cumpliendo el README con
   pruebas.
 - **Por integrante:** las HU de A tienen 42 rutas y las de B, 6. Las de B son las de reglas más
@@ -631,8 +300,8 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 
 | Riesgo | Mitigación |
 |---|---|
-| **Plazo:** 8 días para 81 SP, la base común y el 75 % del backend. | Seguir los hitos: T06 deja la UI navegable el 22-10 aunque falten reglas. La línea de corte recorta P4 y luego P3. |
+| **Plazo:** la entrega es el 28-10 y quedan el video (T11), el ensayo (T12) y la entrega (T13). | Las HU de la Etapa 1 figuran en Listo; el video (T11) lo edita el compañero. |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3. | B hace la base del backend (T07 a T10). Como el backend no se presenta ni se pregunta en la Prueba 2, B puede tomar rutas de A, previo acuerdo, sin afectar que cada uno explique su Android. |
-| **Especificación más reciente que el código:** el backend es anterior al README, y sus pruebas esperan el comportamiento viejo. | Cada ítem ajusta código y pruebas juntos. Primero T07 y T08, porque casi todo depende del modelo nuevo. |
-| **Pruebas sin verificar:** las IT no se corrieron en esta revisión. | Antes de empezar, levantar el compose y correr `./gradlew test` para saber qué pruebas fallan hoy. |
+| **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión (sin MariaDB) y las instrumentadas de Android tampoco. | Antes de congelar `main`, levantar el compose y correr `./gradlew test`; en Android, `connectedDebugAndroidTest` en un emulador aparte (comparte el `applicationId` de la demo y borra sus datos). |
+| **Variante `debug`:** usa los repositorios remotos, que aún devuelven "Sin conexión"; solo `demo` funciona. | Mostrar siempre la build `demo` (`./gradlew installDemo`). Los remotos son T14. |
 | **Evaluación individual:** cada uno debe explicar y modificar su Android sin apuntes ni IA. | Cada integrante escribe el Android de sus HU (README, [Plan de trabajo](README.md#plan-de-trabajo)), y T12 ensaya la explicación y un cambio en vivo. |

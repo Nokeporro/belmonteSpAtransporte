@@ -48,7 +48,7 @@ fun AbordadoContenido(
         BarraSuperior(titulo = stringResource(PantallaDemo.ABORDAR.titulo), onVolver = onVolver)
         Column(
             modifier = Modifier
-                .testTag("t06_contenido")
+                .testTag("pantalla_contenido")
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())

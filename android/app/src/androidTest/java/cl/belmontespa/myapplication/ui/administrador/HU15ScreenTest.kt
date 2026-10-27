@@ -16,7 +16,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -42,13 +42,13 @@ class HU15ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                     BelmonteTheme {
                         key(ruta) {
-                            PantallaT06(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id }, onVolver = { ruta = PantallaDemo.CONDUCTORES to "" }, onCerrarSesion = {})
+                            DestinoPantalla(ruta.first, ruta.second, onNavegar = { p, id -> ruta = p to id }, onVolver = { ruta = PantallaDemo.CONDUCTORES to "" }, onCerrarSesion = {})
                         }
                     }
                 }
             }
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
     }
     private fun campo(etiqueta: Int) = compose.onNode(hasText(compose.activity.getString(etiqueta)) and hasSetTextAction())
     private fun guardar() = compose.onNodeWithText(compose.activity.getString(R.string.accion_guardar)).performScrollTo().performClick()
@@ -83,7 +83,7 @@ class HU15ScreenTest {
         campo(R.string.campo_correo).performScrollTo().performTextInput("invalido")
         campo(R.string.campo_password).performScrollTo().performTextInput("abcdefgh")
         guardar()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         campo(R.string.campo_correo).performScrollTo().assertTextContains("invalido")
         compose.onNodeWithText(compose.activity.getString(R.string.accion_guardar)).performScrollTo().assertIsDisplayed()
         assertNull(runBlocking { local.db.usuarioDao().obtener("invalido") })

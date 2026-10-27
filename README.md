@@ -1,7 +1,7 @@
 # Aplicacion de Belmonte Spa.
 ## Especificaciones del proyecto.
 
-**Ultima modificacion:** 20-10-2026
+**Ultima modificacion:** 26-10-2026
 
 ## Integrantes:
 * Daniel Muñoz
@@ -171,152 +171,7 @@ necesariamente a la empresa que paga (`PASAJERO` no tiene FK a `EMPRESA`).
 
 Total: 102 SP.
 
-### Avance de implementación: P1 de A
-
-Actualizado el 22-10-2026. Implementación lista en Android sobre la build `demo` y en el backend:
-
-- [x] **HU01:** registro y login del Solicitante.
-- [x] **HU06:** login del Conductor con credenciales del Administrador.
-- [x] **HU02:** nueva solicitud con Google Places y pasajeros.
-- [x] **HU03:** historial y estado de las solicitudes propias.
-- [x] Verificación local: 204 pruebas del backend, 60 pruebas JVM Android y 32 instrumentadas en API 36 aprobadas; lint sin errores y APK demo compilado.
-
-Pendiente para cerrar la entrega según la definición de terminado:
-
-- [ ] Validar Google Places con una clave real configurada.
-- [ ] Ejecutar las pruebas instrumentadas en API 26.
-- [ ] Completar la pasada de accesibilidad con TalkBack.
-- [ ] Confirmar CI en verde, aprobación del otro integrante y fusión en `main`.
-
-Seguimiento en [backlog.md](backlog.md) y detalle de implementación y pruebas en
-[docs/P1_A.md](docs/P1_A.md). HU04 y HU05 del integrante B también figuran listas en el backlog;
-las demás historias de P1 de B siguen pendientes.
-
-### Avance de implementación: HU15 de A
-
-- [x] Alta de conductores con correo único, datos normalizados y contraseña definitiva.
-- [x] Lista y detalle con estado, viajes asignados y folio en curso; edición sin cambiar el correo.
-- [x] Conservación o reemplazo de contraseña por el Administrador y asignación con vehículo habilitado.
-- [x] Pruebas del backend, JVM Android, Room e interfaz en API 36; lint y compilación demo.
-- [ ] Instrumentadas en API 26, pasada manual de TalkBack, CI y revisión para integrar en `main`.
-
-HU16 se detalla a continuación.
-
-### Avance de implementación: HU16 de A
-
-- [x] Cancelación de solicitudes propias `PENDIENTE` o `ASIGNADO`, hasta agenda + 1 hora inclusive.
-- [x] Pago pendiente anulado; pago realizado reembolsado al 50 %, redondeado hacia abajo; pagos terminales conservados.
-- [x] Historial, asignación y fechas conservados; conductor y vehículo mantienen su estado.
-- [x] Confirmación con el efecto sobre el pago, resultado persistido, control de doble envío y avisos posteriores al commit.
-- [x] Verificación local: 256 pruebas backend y 148 JVM Android aprobadas; lint y compilación demo correctos.
-- [x] API 36: 34 pruebas aprobadas de Room, interfaz y recorrido de las 46 pantallas, con formularios al 200 % de texto.
-- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
-
-### Avance de implementación: HU17 de A
-
-- [x] Registro con patente normalizada y única, capacidad de 1 a 20 y serial GPS positivo opcional.
-- [x] Vehículo nuevo activo y disponible; detalle y lista conservan los datos guardados.
-- [x] Código de abordaje aleatorio de 16 hexadecimales, persistido y consultable solo por el Administrador.
-- [x] Formulario con errores por campo, conservación de datos ante conflictos y bloqueo del doble envío.
-- [x] Verificación local: 14 pruebas backend de HU17 y flota, y 153 pruebas JVM Android aprobadas.
-- [x] API 36: 34 pruebas aprobadas de Room e interfaz, con formulario al 200 % de texto; lint sin errores y APK demo compilado.
-- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
-
-### Avance de implementación: HU18 de A
-
-- [x] Habilitaciones M:N entre conductores y vehículos, con filtros por patente y correo combinables y normalizados.
-- [x] Alta entre activos con `201`; repetir devuelve `200` sin duplicar, incluso ante peticiones simultáneas. Las relaciones existentes se conservan al desactivar.
-- [x] Respuestas con capacidad, estado y activo de ambos; acceso reservado al Administrador, sin eliminación de relaciones.
-- [x] Android: acceso desde conductor o vehículo, selección inicial, filtros independientes del alta y detalle actualizado al volver.
-- [x] Backend: 21 pruebas de HU18 y regresión de flota aprobadas.
-- [x] Android: 159 pruebas JVM y 39 instrumentadas en API 36 (Room e interfaz, con texto al 200 %); lint sin errores y APK demo compilado.
-- [ ] Instrumentadas en API 26, TalkBack, CI y revisión para integrar en `main`.
-
-### Avance de implementación: HU19 de A
-
-- [x] Alta de un único pago pendiente por viaje no cancelado, con empresa derivada del Solicitante y datos de los catálogos.
-- [x] Hash de 32 hexadecimales y folio en alta, detalle y lista; fecha nula hasta confirmar el pago.
-- [x] Altas simultáneas y cancelaciones serializadas por viaje, sin pagos duplicados ni huérfanos.
-- [x] Android: validación por campo, catálogos, doble envío y conservación del formulario ante errores.
-- [x] Verificación local: 48 pruebas backend y 340 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 70 pruebas de Room e interfaz aprobadas, con formulario al 200 % de texto.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-### Avance de implementación: HU20 de A
-
-- [x] P2 y P3 manuales solo por el Administrador; estados terminales sin cambios y fecha fijada al confirmar el pago.
-- [x] Anular cancela únicamente viajes pendientes o asignados, sin reembolso y conservando asignación, fechas y flota.
-- [x] Pago y viaje se confirman juntos; cambios simultáneos serializados con asignación, inicio y cancelación.
-- [x] Push al Solicitante por cada cambio de pago y a los participantes al cancelar; solo después del commit.
-- [x] Android: confirmación del efecto, protección contra doble envío, respuesta persistida y recarga tras conflictos.
-- [x] Verificación local: 357 pruebas backend y 350 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 83 pruebas de Room e interfaz aprobadas, incluida la confirmación con texto al 200 %.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-### Avance de implementación: HU21 de A
-
-- [x] Estado, monto y reembolso del pago visibles en el detalle de la solicitud propia, con los cinco estados del contrato.
-- [x] Acceso al detalle del pago con folio, banco, medio, recibo y fecha; consulta de solo lectura para el Solicitante.
-- [x] Sin pago se indica explícitamente; los errores de consulta conservan el viaje y permiten reintentar.
-- [x] Recarga al volver al detalle o a primer plano; consultas anteriores canceladas al cambiar el viaje observado.
-- [x] Acceso limitado al dueño del viaje, incluso entre cuentas de la misma empresa; Conductor sin acceso a pagos.
-- [x] Demo persistida en Room. La conexión remota sigue en T14.
-- [x] Verificación local: 52 pruebas backend de pagos y permisos y 374 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 100 pruebas de Room, HU21 y regresión de HU16 aprobadas, incluida consulta con texto al 200 %, reintento y recarga al volver.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-### Avance de implementación: HU22 de A
-
-- [x] Recuperación solo para Solicitante y Administrador, con respuesta genérica y temporal BCrypt de 12 caracteres que conserva la contraseña actual.
-- [x] Correo con nombre, vencimiento y texto del contrato; envío después del commit, sin contraseña en respuesta HTTP ni logs.
-- [x] Otro pedido reemplaza la temporal; login normal o cambio de contraseña la invalidan; vencida no sirve para entrar ni cambiar la clave.
-- [x] Cambio propio con contraseña actual o temporal vigente, correo inmutable y validación antes de modificar el perfil; operaciones serializadas por cuenta.
-- [x] Android: validación por campo, doble envío bloqueado, errores conservando datos, limpieza de contraseñas al guardar y sesión temporal restringida hasta confirmar el cambio.
-- [x] Room 2 con migración desde la versión 1, sin borrar datos; la demo simula la recuperación y avisa que no envía correos. La conexión con la API sigue en T14.
-- [x] Verificación local: 76 pruebas backend de HU22 y regresión de cuentas, seguridad y correo; 356 JVM Android; lint sin errores y APK demo compilado.
-- [x] API 36: 88 pruebas de Room, migración e interfaz aprobadas, incluido cambio obligatorio con texto al 200 %.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-### Avance de implementación: HU27 de A
-
-- [x] Lista de solicitantes filtrable por estado, ordenada por nombre y correo; revisión exclusiva del Administrador.
-- [x] Aprobar o rechazar solo desde `PENDIENTE`; una cuenta revisada responde 409 y dos revisiones simultáneas no duplican la decisión ni el correo.
-- [x] Correos de aprobación y rechazo con el texto del contrato, enviados después del commit; un rollback conserva la cuenta pendiente y no envía correo.
-- [x] Aprobación habilita el login; rechazo mantiene el acceso bloqueado. Empresa, contraseña y datos del perfil conservados.
-- [x] Android: confirmación con identidad y empresa, doble envío bloqueado, resultado visible y recarga tras conflictos.
-- [x] Contador actualizado al volver a Solicitudes, conservando el filtro de viajes; la demo guarda la decisión localmente y avisa que no envía correo. Conexión remota en T14.
-- [x] Verificación local: 374 pruebas backend y 364 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 92 pruebas de Room e interfaz aprobadas, incluida aprobación con texto al 200 % y recarga del contador al volver.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-### Avance de implementación: HU26 de A
-
-- [x] Desactivar y reactivar conductores y vehículos, solo Administrador, con cuerpo validado e idempotencia.
-- [x] Baja bloqueada con 409 ante viajes asignados o en curso; reactivación sin condiciones. Finalizados y cancelados no bloquean.
-- [x] Bloqueos compartidos con asignación y habilitación para resolver operaciones simultáneas sin asignar flota inactiva.
-- [x] Conductor inactivo sin login (401 genérico); los recursos inactivos no admiten nuevas asignaciones.
-- [x] Datos, estados de disponibilidad, habilitaciones, historial y QR conservados.
-- [x] Android: confirmación, protección contra doble envío, respuesta persistida sin perder la edición y errores con recarga. La demo usa Room; conexión remota en T14.
-- [x] Verificación local: 381 pruebas backend y 368 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 95 pruebas de Room e interfaz aprobadas, incluida confirmación con texto al 200 %, conservación del QR y recarga tras conflictos.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-Con HU26 quedan implementadas todas las tareas P3 de A.
-
-### Avance de implementación: HU28 de A
-
-- [x] Alta de otros Administradores con datos normalizados, contraseña obligatoria validada y correo único entre todos los roles.
-- [x] Inicial guardada solo como temporal BCrypt, con vencimiento a `ALTA_TEMPORAL_HORAS` (72 por defecto); no sirve como contraseña permanente.
-- [x] Login inicial restringido al cambio obligatorio; después de cambiar, la inicial deja de servir y el login normal habilita el rol.
-- [x] Listado ordenado por nombre y correo, fecha de registro persistida en la respuesta y ausencia de credenciales en las consultas.
-- [x] Alta atómica y protegida ante duplicados y peticiones simultáneas; rollback sin cuentas incompletas.
-- [x] Android: formulario desde Perfil con aviso de temporal, validación, control de doble envío y errores conservando datos; contraseña limpiada al confirmar y sesión del creador conservada.
-- [x] Demo sobre Room con temporal ficticia de 72 horas; conexión remota en T14.
-- [x] Verificación local: 392 pruebas backend y 378 JVM Android aprobadas; lint sin errores y APK demo compilado.
-- [x] API 36: 103 pruebas de Room, HU28 y regresión de HU22 aprobadas, incluidos el alta y el cambio obligatorio con texto al 200 %.
-- [ ] Instrumentadas en API 26, TalkBack y CI.
-
-Con HU21 y HU28 quedan implementadas las historias P4 de A.
+El estado de cada historia (hecha, en curso o pendiente) se lleva en [backlog.md](backlog.md).
 
 ## Máquinas de estado
 
@@ -879,8 +734,9 @@ Pantalla Compose ⇄ ViewModel ⇄ Repository (interfaz) ⇄ local (Room) | remo
 
 ### Tecnologías y código
 
-Versiones exactas en `android/gradle/libs.versions.toml` (Compose y Firebase por su BOM); se
-actualizan solo con un PR `chore/`.
+Versiones exactas en `android/gradle/libs.versions.toml` (Compose por su BOM); se actualizan solo
+con un PR `chore/`. Las marcadas «Etapa 2» se agregan al catálogo y al módulo con los repositorios
+remotos (T14): mientras no tengan un `import`, no se declaran.
 
 | Componente | Versión |
 |---|---|
@@ -888,17 +744,18 @@ actualizan solo con un PR `chore/`.
 | Kotlin / KSP | 2.4.21 / 2.3.12 |
 | Compose BOM | 2026.09.00 (`ui`, `material3`, `ui-tooling-preview`, `ui-test-junit4`, `ui-test-manifest`) |
 | `androidx.activity:activity-compose` / `androidx.navigation:navigation-compose` / `androidx.lifecycle` / `androidx.core:core-ktx` | 1.13.0 / 2.10.2 / 2.11.0 / 1.19.1 |
-| Hilt (`com.google.dagger`) / `androidx.hilt` | 2.60.1 / 1.4.0 (`hilt-navigation-compose`, `hilt-work`) |
-| Room / WorkManager / DataStore | 2.8.5 / 2.12.0 / 1.2.1 (`datastore-preferences`) |
-| Retrofit / OkHttp | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
+| Hilt (`com.google.dagger`) / `androidx.hilt` | 2.60.1 / 1.4.0 (`hilt-navigation-compose`; `hilt-work` en la Etapa 2) |
+| Room / DataStore | 2.8.5 / 1.2.1 (`datastore-preferences`) |
+| WorkManager (Etapa 2: cola y sincronización) | 2.12.0 |
+| Retrofit / OkHttp (Etapa 2: repositorios remotos) | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
 | `kotlinx-serialization-json` / `kotlinx-coroutines` | 1.11.0 / 1.11.0 |
-| Firebase BoM / plugin `google-services` / Places SDK | 35.0.2 (`firebase-messaging`) / 4.5.0 / 6.0.2 |
+| Firebase BoM / plugin `google-services` / Places SDK (Etapa 2: push y Google Places) | 35.0.2 (`firebase-messaging`) / 4.5.0 / 6.0.2 |
 | `com.google.android.gms:play-services-code-scanner` | 16.1.0 (`GmsBarcodeScanning`, `GmsBarcodeScannerOptions`) |
 | JUnit / `androidx.test` | 4.13.2 / `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 |
 
 Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`,
 `org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`,
-`com.google.dagger.hilt.android` y `com.google.gms.google-services`. La base se acepta si
+`com.google.dagger.hilt.android`; `com.google.gms.google-services` llega con Firebase en la Etapa 2. La base se acepta si
 sincroniza con JDK 21, pasan `lintDebug`, `testDebugUnitTest`, `assembleDebug` y `assembleDemo`,
 abre en API 26 y 36 y `assembleRelease` firma con R8.
 
@@ -908,10 +765,12 @@ android/app/src/main/java/cl/belmontespa/myapplication/
 ├── di/            RepositorioModule y demás módulos de Hilt
 ├── model/         modelos de la app, Resultado y ErrorApp
 ├── data/          repository/ (interfaces), local/ (database, dao, entity, repository, DatosDemo),
-│                  remote/ (api, dto, interceptor, repository), session/, mapper/
+│                  navegacion/, session/, mapper/
+│                  (Etapa 2: remote/ con api, dto, interceptor y repository)
 ├── ui/            navigation/, components/, theme/, auth/, abordaje/, solicitante/, administrador/, conductor/
-├── notification/
-└── sync/          SincronizacionWorker
+├── util/          formatos y validaciones
+├── notification/  (Etapa 2)
+└── sync/          (Etapa 2) SincronizacionWorker
 ```
 
 Cada pantalla va con su ViewModel en la carpeta de su funcionalidad (p. ej.
@@ -934,7 +793,7 @@ Conductor, "Mis viajes · Perfil".
 | — | Recuperar contraseña | Correo; confirmación genérica. | `POST /auth/recuperar-password` |
 | — | Abordar viaje, Escanear código QR, Confirmar abordaje, Abordaje registrado | [Abordaje con código QR](#abordaje-con-código-qr). | `POST /abordajes` |
 | Solicitante | Mis solicitudes | Folio, pasajeros, fecha, origen → destino y estado; "Nueva solicitud". | `GET /viajes` |
-| Solicitante | Nueva solicitud | Fecha y hora, origen y destino con Places, pasajeros (agregar, editar y quitar antes de enviar) y vuelo. | [Flujo de una solicitud](#flujo-de-una-solicitud) |
+| Solicitante | Nueva solicitud | Fecha y hora, origen y destino con Places (en la Etapa 1, de una lista de lugares ficticios), pasajeros (agregar, editar y quitar antes de enviar) y vuelo. | [Flujo de una solicitud](#flujo-de-una-solicitud) |
 | Solicitante | Detalle de solicitud, Solicitud sin pasajeros, Agregar pasajero, Confirmar cancelación, Solicitud cancelada | Viaje, pasajeros, conductor, vehículo y pago. "Agregar pasajero" (hoja inferior) en `PENDIENTE`/`ASIGNADO`; "Cancelar solicitud", con confirmación, si además no está vencido. | `GET /viajes/{folio}`, `GET /pagos/{hash}`, `POST /pasajeros`, `POST /pasajeros-viaje`, `POST /viajes/{folio}/cancelar` |
 | Solicitante | Perfil, Cambiar contraseña | Datos y empresa, "Abordar viaje" y cerrar sesión. Contraseña actual, nueva y confirmación (igual para el Administrador). | `GET /solicitantes/{correo}`, `PUT /usuarios/{correo}` |
 | Administrador | Solicitudes | Filtro inicial "Pendientes" y por estado; enlace a "Cuentas por aprobar" con su cantidad; en las pendientes, "Asignar" abre directo la asignación. | `GET /viajes?estado=…`, `GET /solicitantes?estado=PENDIENTE` |
@@ -1126,14 +985,14 @@ en ms.
 
 ### Compilación y distribución
 
-- `compileSdk` y `targetSdk` 36, `minSdk` 26. Builds `debug`; `demo` (`initWith(debug)`, mismo
+- `compileSdk` 37 (lo exigen las AndroidX fijadas), `targetSdk` 36 y `minSdk` 26. Builds `debug`; `demo` (`initWith(debug)`, mismo
   `applicationId`, `MODO_LOCAL = true`); y `release` (R8, keystore `belmonte-release.jks` fuera
   del repositorio, con sus claves en `~/.gradle/gradle.properties`).
 - `BuildConfig.API_BASE_URL`: debug, `http://10.0.2.2:8080/`; release, la propiedad Gradle
   obligatoria `belmonte.apiBaseUrl`. `network_security_config` permite HTTP solo hacia `10.0.2.2`
   y el anfitrión.
-- `google-services.json` (en `app/`) y `PLACES_API_KEY` (en `local.properties`) quedan fuera de
-  Git; las credenciales del backend nunca van en el APK.
+- Con Firebase y Google Places (Etapa 2), `google-services.json` (en `app/`) y `PLACES_API_KEY`
+  (en `local.properties`) quedan fuera de Git; las credenciales del backend nunca van en el APK.
 - `versionCode` sube con cada APK y `versionName` sigue `MAYOR.MENOR.PARCHE`;
   `belmonte-<versionName>.apk` y su SHA-256 se publican en GitHub Releases (RNF10).
 
@@ -1151,10 +1010,12 @@ App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
   comunas y un `codigo_abordaje` fijo por vehículo. Su comentario inicial lista las cuentas, la
   contraseña común, los documentos ficticios y el Conductor del viaje en ventana.
 - Las fechas son relativas al primer arranque: antes de cada demostración,
-  `adb shell pm clear cl.belmontespa.transporte`.
-- Sin push, sin correo ("Recuperar contraseña" solo confirma) y sin cola; Places sigue siendo el
-  SDK real y necesita Internet. El QR se ve como Administrador y se escanea desde otro teléfono,
-  una impresión o "Ingresar código"; el arqueo se ve como el Conductor en el teléfono que escaneó.
+  `adb shell pm clear cl.belmontespa.myapplication`.
+- Sin push, sin correo ("Recuperar contraseña" solo confirma) y sin cola. Sin Google Places, el
+  origen y el destino de "Nueva solicitud" se eligen de una lista de lugares ficticios
+  (`DatosDemo.lugares`); Places llega en la Etapa 2. El QR se ve como Administrador y se escanea
+  desde otro teléfono, una impresión o "Ingresar código"; el arqueo se ve como el Conductor en el
+  teléfono que escaneó.
 - `./gradlew assembleDemo` y `./gradlew installDemo`.
 
 ### Pruebas Android
@@ -1213,7 +1074,7 @@ Simplificaciones del MVP académico; cambiar una requiere primero un PR `docs/`.
 | Job | Entorno | Pasos |
 |---|---|---|
 | `backend` | `ubuntu-latest`, Temurin 21 con caché de Gradle; servicio `mariadb:11.4` en `3307:3306` con `MARIADB_DATABASE=belmonte_test`, `MARIADB_USER=belmonte`, `MARIADB_PASSWORD=belmonte_dev`, `MARIADB_ROOT_PASSWORD=root_dev` | `./gradlew test`; si falla, sube `build/reports/tests`. |
-| `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Escribe `google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`; corre `./gradlew lintDebug testDebugUnitTest assembleDebug assembleDemo` y sube lint y APK (7 días). |
+| `android` | `ubuntu-latest`, Temurin 21 con caché de Gradle | Corre `./gradlew lintDebug testDebugUnitTest assembleDebug assembleDemo` y sube lint y APK (7 días). Con Firebase y Places (Etapa 2) escribe antes `google-services.json` desde el secreto `GOOGLE_SERVICES_JSON` (Base64) y `PLACES_API_KEY` en `local.properties`. |
 
 Fuera de CI: las instrumentadas, las E2E y el APK release (el keystore no sale de los
 computadores de los integrantes).
@@ -1240,11 +1101,11 @@ Quién es A y quién B se acuerda al empezar. Un issue por HU en GitHub Projects
 curso, En revisión, Terminado), con prioridad y SP como etiquetas.
 
 - **Etapa 1, Prueba 2 (entrega el 28-10-2026 antes de las 19:00):** base común y build `demo`;
-  todas las pantallas sobre Room, incluido el abordaje con QR (los estados de la Etapa 2, con
-  datos de ejemplo); al menos el 75 % de las rutas del backend con sus pruebas; video de hasta
+  todas las pantallas sobre Room, cada una con su ViewModel, incluido el abordaje con QR (los estados
+  de la Etapa 2, con datos de ejemplo) y el origen y el destino desde lugares ficticios; al menos el 75 % de las rutas del backend con sus pruebas; video de hasta
   7 minutos sin audio.
-- **Etapa 2, Unidad 3:** repositorios remotos y resto del backend; push (HU12, HU13, HU14) y cola
-  (HU11); `database/demo.sql`, `FlujosE2ETest`, pasada con TalkBack y APK release `v1.0.0` en
+- **Etapa 2, Unidad 3:** repositorios remotos (Retrofit y OkHttp) y resto del backend; Google Places
+  (HU02); push con Firebase (HU12, HU13, HU14) y cola con WorkManager (HU11); `database/demo.sql`, `FlujosE2ETest`, pasada con TalkBack y APK release `v1.0.0` en
   GitHub Releases.
 - Lo que no se termina pasa a la etapa siguiente; si no alcanza, se recortan primero las HU de
   prioridad Baja. La IA puede apoyar el desarrollo, pero en la Prueba 2 no se permiten apuntes ni

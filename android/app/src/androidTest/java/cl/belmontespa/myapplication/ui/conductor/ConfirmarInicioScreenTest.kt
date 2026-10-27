@@ -71,8 +71,8 @@ class ConfirmarInicioScreenTest {
 
         compose.onNodeWithText("¿Iniciar el viaje TR-1042?").assertExists()
         compose.onNodeWithText("Pasará a En curso. Quedarás Ocupado y el vehículo KXJR42 En uso hasta finalizarlo.").assertExists()
-        compose.onNodeWithTag("t06_contenido").assertExists()
-        compose.onNodeWithTag("t06_error").assertDoesNotExist()
+        compose.onNodeWithTag("pantalla_contenido").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertDoesNotExist()
     }
 
     @Test
@@ -140,14 +140,14 @@ class ConfirmarInicioScreenTest {
         mostrar(estado(error = ErrorApp.Conflicto("El conductor ya tiene un viaje en curso")))
 
         compose.onNodeWithText("El conductor ya tiene un viaje en curso").assertExists()
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
     }
 
     @Test
     fun unViajeNoEncontradoOfreceReintentar() {
         mostrar(estado(viaje = null, error = ErrorApp.NoEncontrado))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(textos.getString(R.string.accion_reintentar)).performClick()
 
         assertEquals(listOf("actualizar"), llamadas)

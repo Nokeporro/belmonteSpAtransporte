@@ -15,7 +15,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -49,7 +49,7 @@ class HU18ScreenTest {
                 CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                     BelmonteTheme {
                         key(ruta) {
-                            PantallaT06(ruta.first, ruta.second, onNavegar = { p, clave -> ruta = p to clave },
+                            DestinoPantalla(ruta.first, ruta.second, onNavegar = { p, clave -> ruta = p to clave },
                                 onVolver = { ruta = pantalla to id }, onCerrarSesion = {})
                         }
                     }

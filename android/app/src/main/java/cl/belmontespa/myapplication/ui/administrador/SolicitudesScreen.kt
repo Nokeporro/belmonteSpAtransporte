@@ -90,11 +90,11 @@ fun SolicitudesContenido(
         when {
             estado.cargando -> PantallaCargando()
             // Sin nada que mostrar, el error ocupa la pantalla; con filas, avisa sobre la lista.
-            error != null && estado.filas.isEmpty() -> Box(Modifier.testTag("t06_error")) {
+            error != null && estado.filas.isEmpty() -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = error.texto(), onReintentar = onActualizar)
             }
             else -> LazyColumn(
-                modifier = Modifier.testTag("t06_contenido").fillMaxSize(),
+                modifier = Modifier.testTag("pantalla_contenido").fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -109,7 +109,7 @@ fun SolicitudesContenido(
                 if (error != null) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                            Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                             BotonAncho(stringResource(R.string.accion_reintentar), onActualizar, tipo = TipoBoton.SECUNDARIO)
                         }
                     }

@@ -71,7 +71,7 @@ fun ConfirmarAbordajeContenido(
         BarraSuperior(titulo = stringResource(PantallaDemo.CONFIRMAR_ABORDAJE.titulo), onVolver = onVolver)
         Column(
             modifier = Modifier
-                .testTag("t06_contenido")
+                .testTag("pantalla_contenido")
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
@@ -81,13 +81,13 @@ fun ConfirmarAbordajeContenido(
             val codigo = estado.codigo
             if (codigo == null) {
                 // Una ruta que no es de un código válido no puede confirmarse.
-                Aviso(stringResource(R.string.abordaje_qr_ajeno), TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                Aviso(stringResource(R.string.abordaje_qr_ajeno), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                 BotonAncho(stringResource(R.string.accion_volver), onVolver, alto56 = true)
                 return@Column
             }
             estado.error?.let { error ->
                 val texto = if (error == ErrorApp.NoEncontrado) stringResource(R.string.abordaje_no_encontrado) else error.texto()
-                Aviso(texto, TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                Aviso(texto, TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
             }
             Column {
                 Text(stringResource(R.string.campo_vehiculo), style = EstilosMono.etiqueta)

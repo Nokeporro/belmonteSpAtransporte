@@ -33,7 +33,7 @@ class AbordadoScreenTest {
     fun diceLaHoraDelAbordajeYDespideAlPasajero() {
         mostrar(LocalDateTime.of(2026, 10, 28, 14, 5, 9))
 
-        compose.onNodeWithTag("t06_contenido").assertExists()
+        compose.onNodeWithTag("pantalla_contenido").assertExists()
         compose.onNodeWithText(textos.getString(R.string.abordaje_registrado, "14:05")).assertExists()
     }
 

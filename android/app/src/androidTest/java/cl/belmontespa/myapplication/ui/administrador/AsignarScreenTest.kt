@@ -172,9 +172,9 @@ class AsignarScreenTest {
     fun unConflictoMuestraElMensajeDelServidorSinOfrecerReintentar() {
         mostrar(base().copy(error = ErrorApp.Conflicto("El móvil ya tiene un viaje a menos de 2 horas")))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText("El móvil ya tiene un viaje a menos de 2 horas").assertExists()
-        compose.onAllNodesWithTag("t06_contenido").assertCountEquals(1)
+        compose.onAllNodesWithTag("pantalla_contenido").assertCountEquals(1)
         compose.onNodeWithText(textos.getString(R.string.accion_reintentar)).assertDoesNotExist()
     }
 

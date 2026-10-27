@@ -14,7 +14,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -43,7 +43,7 @@ class HU27ScreenTest {
             var ruta by remember { mutableStateOf(PantallaDemo.SOLICITUDES) }
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                 BelmonteTheme { key(ruta) {
-                    PantallaT06(ruta, onNavegar = { p, _ -> ruta = p }, onVolver = { ruta = PantallaDemo.SOLICITUDES }, onCerrarSesion = {})
+                    DestinoPantalla(ruta, onNavegar = { p, _ -> ruta = p }, onVolver = { ruta = PantallaDemo.SOLICITUDES }, onCerrarSesion = {})
                 } }
             }
         } }
@@ -84,11 +84,11 @@ class HU27ScreenTest {
         abrir(); abrirCuentas(); accion(R.string.accion_aprobar).performScrollTo().performClick()
         runBlocking { local.db.usuarioDao().guardar(local.usuario(correo).copy(estadoSolicitante = "RECHAZADO")) }
         confirmar()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
         esperar(R.string.vacio_cuentas_por_aprobar)
         compose.onAllNodesWithText(texto(R.string.cuenta_revision_aprobada)).assertCountEquals(0)
         accion(R.string.accion_reintentar).performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isEmpty() }
         assertEquals("RECHAZADO", runBlocking { local.usuario(correo).estadoSolicitante })
     }
 }

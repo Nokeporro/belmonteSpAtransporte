@@ -15,7 +15,7 @@ import cl.belmontespa.myapplication.data.session.SesionStore
 import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Formatos
@@ -52,7 +52,7 @@ class HU21ScreenTest {
             var referencia by remember { mutableStateOf(folio) }
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, escala)) {
                 BelmonteTheme { key(ruta) {
-                    PantallaT06(ruta, referencia, onNavegar = { p, id -> ruta = p; referencia = id },
+                    DestinoPantalla(ruta, referencia, onNavegar = { p, id -> ruta = p; referencia = id },
                         onVolver = { ruta = PantallaDemo.DETALLE_SOLICITUD; referencia = folio }, onCerrarSesion = {})
                 } }
             }

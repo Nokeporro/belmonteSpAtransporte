@@ -241,15 +241,15 @@ class DetalleViajeScreenTest {
         mostrar(estado(sinAppDeNavegacion = true))
 
         compose.onNodeWithText(texto(R.string.error_sin_app_navegacion)).assertExists()
-        compose.onNodeWithTag("t06_aviso_navegacion").assertExists()
-        compose.onAllNodesWithTag("t06_error").assertCountEquals(0)
+        compose.onNodeWithTag("pantalla_aviso_navegacion").assertExists()
+        compose.onAllNodesWithTag("pantalla_error").assertCountEquals(0)
     }
 
     @Test
     fun elAvisoDeNavegacionNoApareceSiNoHaceFalta() {
         mostrar(estado())
 
-        compose.onNodeWithTag("t06_aviso_navegacion").assertDoesNotExist()
+        compose.onNodeWithTag("pantalla_aviso_navegacion").assertDoesNotExist()
     }
 
     @Test
@@ -298,9 +298,9 @@ class DetalleViajeScreenTest {
     fun unConflictoSeMuestraSobreElDetalleSinOfrecerReintentar() {
         mostrar(estado(error = ErrorApp.Conflicto("El viaje cambió de estado. Actualiza el detalle.")))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText("El viaje cambió de estado. Actualiza el detalle.").assertExists()
-        compose.onNodeWithTag("t06_contenido").assertExists()
+        compose.onNodeWithTag("pantalla_contenido").assertExists()
         compose.onNodeWithText(texto(R.string.accion_reintentar)).assertDoesNotExist()
     }
 
@@ -309,7 +309,7 @@ class DetalleViajeScreenTest {
         val avisos = Avisos()
         mostrar(estado(viaje = null, error = ErrorApp.NoEncontrado), avisos)
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.error_no_encontrado)).assertExists()
         compose.onNodeWithText(texto(R.string.accion_reintentar)).performClick()
 

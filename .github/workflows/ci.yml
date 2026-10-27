@@ -24,17 +24,6 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      - name: Escribir credenciales
-        env:
-          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-          PLACES_API_KEY: ${{ secrets.PLACES_API_KEY }}
-        run: |
-          # Sin el secreto (por ejemplo, en un PR desde un fork) la app compila sin Firebase.
-          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > app/google-services.json
-          fi
-          echo "PLACES_API_KEY=$PLACES_API_KEY" >> local.properties
-
       - name: Lint, pruebas y APK
         run: ./gradlew lintDebug testDebugUnitTest assembleDebug assembleDemo
 

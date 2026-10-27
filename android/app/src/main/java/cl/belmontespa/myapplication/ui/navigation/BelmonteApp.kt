@@ -16,7 +16,6 @@ import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.ui.auth.LoginScreen
 import cl.belmontespa.myapplication.ui.components.*
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
 
 /** Un flujo por rol y rutas de T06 que solo transportan identificadores. */
 @Composable
@@ -108,23 +107,23 @@ fun BelmonteApp(
                 ) }
             }
             navigation<GrafoSolicitante>(startDestination = MisSolicitudes) {
-                composable<MisSolicitudes> { PantallaT06(PantallaDemo.MIS_SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilSolicitante> { PantallaT06(PantallaDemo.PERFIL_SOLICITANTE, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<MisSolicitudes> { DestinoPantalla(PantallaDemo.MIS_SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<PerfilSolicitante> { DestinoPantalla(PantallaDemo.PERFIL_SOLICITANTE, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
             }
             navigation<GrafoAdministrador>(startDestination = Solicitudes) {
-                composable<Solicitudes> { PantallaT06(PantallaDemo.SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<Conductores> { PantallaT06(PantallaDemo.CONDUCTORES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<Vehiculos> { PantallaT06(PantallaDemo.VEHICULOS, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilAdministrador> { PantallaT06(PantallaDemo.PERFIL_ADMIN, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<Solicitudes> { DestinoPantalla(PantallaDemo.SOLICITUDES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<Conductores> { DestinoPantalla(PantallaDemo.CONDUCTORES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<Vehiculos> { DestinoPantalla(PantallaDemo.VEHICULOS, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<PerfilAdministrador> { DestinoPantalla(PantallaDemo.PERFIL_ADMIN, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
             }
             navigation<GrafoConductor>(startDestination = MisViajes) {
-                composable<MisViajes> { PantallaT06(PantallaDemo.MIS_VIAJES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
-                composable<PerfilConductor> { PantallaT06(PantallaDemo.PERFIL_CONDUCTOR, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<MisViajes> { DestinoPantalla(PantallaDemo.MIS_VIAJES, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
+                composable<PerfilConductor> { DestinoPantalla(PantallaDemo.PERFIL_CONDUCTOR, onNavegar = navegar, onVolver = volver, onCerrarSesion = cerrar, raiz = true) }
             }
             composable<DestinoDemo> { entradaDemo ->
                 val ruta = entradaDemo.toRoute<DestinoDemo>()
                 if (permitePantalla(ruta.pantalla, estadoSesion)) {
-                    PantallaT06(ruta.pantalla, ruta.id, navegar, volver, cerrar)
+                    DestinoPantalla(ruta.pantalla, ruta.id, navegar, volver, cerrar)
                 } else Column(Modifier.padding(24.dp)) {
                     Aviso(stringResource(R.string.error_sin_permiso), TonoAviso.PELIGRO)
                     BotonAncho(stringResource(R.string.accion_volver), volver)

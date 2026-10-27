@@ -18,7 +18,7 @@ import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.navigation.AuthFalso
 import cl.belmontespa.myapplication.ui.navigation.BelmonteApp
 import cl.belmontespa.myapplication.ui.navigation.PantallaDemo
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import javax.inject.Inject
@@ -43,7 +43,7 @@ class HU22ScreenTest {
     private fun abrirRecuperacion() {
         compose.activity.runOnUiThread { compose.activity.setContent { BelmonteTheme {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
-                PantallaT06(PantallaDemo.RECUPERAR, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {})
+                DestinoPantalla(PantallaDemo.RECUPERAR, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {})
             }
         } } }
         esperar(R.string.campo_correo)
@@ -68,7 +68,7 @@ class HU22ScreenTest {
         abrirRecuperacion()
         campo(R.string.campo_correo).performTextInput("invalido")
         accion(R.string.login_recuperar_password).performScrollTo().performClick()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         for (valor in listOf(correo, "desconocido@test.cl")) {
             campo(R.string.campo_correo).performScrollTo().performTextReplacement(valor)
             accion(R.string.login_recuperar_password).performScrollTo().performClick(); esperar(R.string.aviso_recuperacion_enviada)
@@ -79,7 +79,7 @@ class HU22ScreenTest {
     @Test fun cambioConTemporalAl200PorCientoValidaCamposYAbreElInicioSoloAlGuardar() {
         abrirCambio(2f)
         accion(R.string.accion_guardar).performScrollTo().performClick()
-        compose.onNodeWithTag("t06_error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("pantalla_error").performScrollTo().assertIsDisplayed()
         assertTrue(runBlocking { sesiones.estado.first() } is EstadoSesion.Temporal)
         campo(R.string.campo_password_actual).performScrollTo().performTextInput("Temporal1234")
         campo(R.string.campo_password_nueva).performScrollTo().performTextInput("NuevaClave123")
@@ -97,7 +97,7 @@ class HU22ScreenTest {
         campo(R.string.campo_password_nueva).performTextInput("NuevaClave123")
         campo(R.string.campo_confirmacion).performScrollTo().performTextInput("NuevaClave123")
         accion(R.string.accion_guardar).performScrollTo().performClick()
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
         campo(R.string.campo_password_nueva).assertTextContains("NuevaClave123")
         assertTrue(runBlocking { sesiones.estado.first() } is EstadoSesion.Temporal)
         assertEquals(Hashes.password("Normal1234"), runBlocking { local.usuario(correo).passwordSha256 })

@@ -18,7 +18,7 @@ import cl.belmontespa.myapplication.model.*
 import cl.belmontespa.myapplication.ui.auth.LoginContenido
 import cl.belmontespa.myapplication.ui.auth.LoginUiState
 import cl.belmontespa.myapplication.ui.components.PantallaCargando
-import cl.belmontespa.myapplication.ui.pantallas.PantallaT06
+import cl.belmontespa.myapplication.ui.navigation.DestinoPantalla
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import dagger.hilt.android.testing.*
 import java.io.File
@@ -60,7 +60,7 @@ class RecorridoT06Test {
                     when (pantalla) {
                         PantallaDemo.INICIO -> PantallaCargando(texto = compose.activity.getString(R.string.inicio_comprobando_sesion))
                         PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO -> LoginContenido(LoginUiState(), pantalla == PantallaDemo.LOGIN_DEMO, {}, {}, {}, {}, {}, {})
-                        else -> PantallaT06(pantalla, id, { _, _ -> }, {}, {})
+                        else -> DestinoPantalla(pantalla, id, { _, _ -> }, {}, {})
                     }
                 }
             }
@@ -85,8 +85,8 @@ class RecorridoT06Test {
             }
             compose.runOnIdle { seleccion = pantalla to id }
             if (pantalla.ordinal > 2) {
-                compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
-                compose.onAllNodesWithTag("t06_error").assertCountEquals(0)
+                compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
+                compose.onAllNodesWithTag("pantalla_error").assertCountEquals(0)
             } else compose.waitForIdle()
             // Capturas de ejemplos para revisar el resultado fuera del emulador.
             if (pantalla in listOf(PantallaDemo.LOGIN_DEMO, PantallaDemo.MIS_SOLICITUDES, PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.PERFIL_CONDUCTOR)) {
@@ -103,13 +103,13 @@ class RecorridoT06Test {
             compose.activity.setContent {
                 val densidad = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(densidad.density, 2f)) {
-                    BelmonteTheme { PantallaT06(PantallaDemo.NUEVA_SOLICITUD, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {}) }
+                    BelmonteTheme { DestinoPantalla(PantallaDemo.NUEVA_SOLICITUD, onNavegar = { _, _ -> }, onVolver = {}, onCerrarSesion = {}) }
                 }
             }
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(compose.activity.getString(R.string.accion_guardar)).performScrollTo().assertIsDisplayed()
-        compose.onAllNodesWithTag("t06_error").assertCountEquals(0)
+        compose.onAllNodesWithTag("pantalla_error").assertCountEquals(0)
     }
 
     @Test fun unaCuentaSinHistorialPuedeCrearSuPrimeraSolicitudDesdeLaInterfaz() {
@@ -125,18 +125,17 @@ class RecorridoT06Test {
         var destino: Pair<PantallaDemo, String>? = null
         compose.activity.runOnUiThread {
             compose.activity.setContent {
-                val vm = androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel<cl.belmontespa.myapplication.ui.solicitante.SolicitanteViewModel>(key = PantallaDemo.NUEVA_SOLICITUD.name)
-                androidx.compose.runtime.LaunchedEffect(vm) {
-                    vm.estado.first { !it.cargando && it.catalogos != null }
-                    // Simula el resultado del SDK; la prueba no consulta Google ni necesita una clave.
-                    vm.seleccionarLugar("origen", cl.belmontespa.myapplication.model.Ubicacion("Aeropuerto Arturo Merino Benítez", "Pudahuel", "Metropolitana de Santiago", -33.3928, -70.7858))
-                    vm.seleccionarLugar("destino", cl.belmontespa.myapplication.model.Ubicacion("Av. Apoquindo 5400", "Las Condes", "Metropolitana de Santiago", -33.4086, -70.5718))
-                }
-                BelmonteTheme { PantallaT06(PantallaDemo.NUEVA_SOLICITUD,
+                BelmonteTheme { DestinoPantalla(PantallaDemo.NUEVA_SOLICITUD,
                     onNavegar = { p, id -> destino = p to id }, onVolver = {}, onCerrarSesion = {}) }
             }
         }
-        compose.waitUntil(15_000) { compose.onAllNodesWithTag("t06_contenido").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
+        // Sin Google Places, el origen y el destino se eligen de la lista de lugares ficticios.
+        val (origen, destinoLugar) = cl.belmontespa.myapplication.data.local.DatosDemo.lugares.take(2)
+        compose.onNodeWithText(compose.activity.getString(R.string.campo_origen)).performScrollTo().performClick()
+        compose.onNodeWithText("${origen.direccion} · ${origen.comuna}").performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.campo_destino)).performScrollTo().performClick()
+        compose.onNodeWithText("${destinoLugar.direccion} · ${destinoLugar.comuna}").performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.campo_nombre)).performScrollTo().performTextInput("Invitado")
         compose.onNodeWithText(compose.activity.getString(R.string.campo_tipo_documento)).performScrollTo().performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.tipo_documento_pasaporte)).performClick()
@@ -144,8 +143,8 @@ class RecorridoT06Test {
         compose.onNodeWithText(compose.activity.getString(R.string.accion_agregar_pasajero)).performScrollTo().performClick()
         compose.onNodeWithText(compose.activity.getString(R.string.accion_quitar)).assertExists()
         compose.onNodeWithText(compose.activity.getString(R.string.accion_guardar)).performScrollTo().assertIsEnabled().performClick()
-        compose.waitUntil(15_000) { destino != null || compose.onAllNodesWithTag("t06_error").fetchSemanticsNodes().isNotEmpty() }
-        compose.onAllNodesWithTag("t06_error").assertCountEquals(0)
+        compose.waitUntil(15_000) { destino != null || compose.onAllNodesWithTag("pantalla_error").fetchSemanticsNodes().isNotEmpty() }
+        compose.onAllNodesWithTag("pantalla_error").assertCountEquals(0)
         assertEquals(PantallaDemo.DETALLE_SOLICITUD, destino!!.first)
         runBlocking {
             val guardado = viajes.observarViaje(requireNotNull(destino).second).first()!!

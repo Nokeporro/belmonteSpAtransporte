@@ -54,65 +54,6 @@ fun PantallaT06(
     onCerrarSesion: () -> Unit,
     raiz: Boolean = false,
 ) {
-    // La variante de sesión vencida es el Login con su aviso, como muestran los mockups.
-    if (pantalla in listOf(PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO, PantallaDemo.SESION_EXPIRADA)) {
-        Box(Modifier.fillMaxSize().testTag("t06_contenido")) {
-            cl.belmontespa.myapplication.ui.auth.LoginScreen(
-                onCrearCuenta = { onNavegar(PantallaDemo.REGISTRO, "") },
-                onRecuperarPassword = { onNavegar(PantallaDemo.RECUPERAR, "") },
-                onAbordarViaje = { onNavegar(PantallaDemo.ABORDAR, "") },
-                correoInicial = referencia.takeIf { it.contains('@') }.orEmpty(),
-                mostrarSesionExpirada = pantalla == PantallaDemo.SESION_EXPIRADA,
-                modoDemoForzado = if (pantalla == PantallaDemo.LOGIN_DEMO) true else null,
-            )
-        }
-        return
-    }
-    // «Solicitudes» del Administrador tiene su propia pantalla y su ViewModel (HU04).
-    if (pantalla == PantallaDemo.SOLICITUDES) {
-        SolicitudesScreen(onNavegar = onNavegar)
-        return
-    }
-    // «Mis viajes» del Conductor tiene su pantalla y su ViewModel (HU07).
-    if (pantalla == PantallaDemo.MIS_VIAJES) {
-        MisViajesScreen(onNavegar = onNavegar)
-        return
-    }
-    // El detalle del viaje del Conductor también (HU08); «Antes de la ventana» es la misma pantalla y
-    // «Abrir navegación» (HU10) es la misma con la hoja «Abrir con» encima.
-    if (pantalla == PantallaDemo.DETALLE_VIAJE || pantalla == PantallaDemo.ANTES_VENTANA || pantalla == PantallaDemo.NAVEGAR) {
-        DetalleViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver, abrirNavegacion = pantalla == PantallaDemo.NAVEGAR)
-        return
-    }
-    // «Confirmar inicio» del Conductor también (HU09): al iniciar vuelve al detalle.
-    if (pantalla == PantallaDemo.CONFIRMAR_INICIO) {
-        ConfirmarInicioScreen(folio = referencia, onVolver = onVolver)
-        return
-    }
-    // El abordaje del Pasajero (HU29): sin sesión y con una pantalla y un ViewModel por paso. «Escanear código QR» es el
-    // lector de Google Code Scanner: la variante del catálogo es la misma pantalla de «Abordar viaje».
-    if (pantalla == PantallaDemo.ABORDAR || pantalla == PantallaDemo.ESCANEAR) {
-        AbordarScreen(pantalla = pantalla, onNavegar = onNavegar, onVolver = onVolver)
-        return
-    }
-    if (pantalla == PantallaDemo.CONFIRMAR_ABORDAJE) {
-        ConfirmarAbordajeScreen(argumento = referencia, onNavegar = onNavegar, onVolver = onVolver)
-        return
-    }
-    if (pantalla == PantallaDemo.ABORDADO) {
-        AbordadoScreen(hora = referencia, onNavegar = onNavegar, onVolver = onVolver)
-        return
-    }
-    // «Asignar conductor y vehículo» también tiene su pantalla y su ViewModel (HU05, HU23).
-    if (pantalla == PantallaDemo.ASIGNAR) {
-        AsignarScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
-        return
-    }
-    // «Cancelar viaje» del Administrador también (HU24, V7).
-    if (pantalla == PantallaDemo.CANCELAR_VIAJE) {
-        CancelarViajeScreen(folio = referencia, onNavegar = onNavegar, onVolver = onVolver)
-        return
-    }
     val vm: PantallaBaseViewModel = when {
         pantalla.rol == Rol.SOLICITANTE -> hiltViewModel<SolicitanteViewModel>(key = pantalla.name + referencia)
         pantalla.rol == Rol.ADMINISTRADOR -> hiltViewModel<AdministracionViewModel>(key = pantalla.name + referencia)
@@ -143,11 +84,11 @@ fun PantallaT06(
         if (estado.cargando) {
             PantallaCargando(modifier = Modifier.weight(1f))
         } else {
-            Column(Modifier.testTag("t06_contenido").weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.testTag("pantalla_contenido").weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 estado.error?.let { error ->
                     // Fuera del Login un 401 es una sesión terminada, no credenciales inválidas.
                     val texto = if (error is ErrorApp.Validacion) error.errores.values.joinToString("\n") else error.texto()
-                    Aviso(texto, TonoAviso.PELIGRO, modifier = Modifier.testTag("t06_error"))
+                    Aviso(texto, TonoAviso.PELIGRO, modifier = Modifier.testTag("pantalla_error"))
                     // Recargar no corrige un formulario; tras un 409 sí es la forma de leer el estado vigente.
                     if (error !is ErrorApp.Validacion) {
                         BotonAncho(stringResource(R.string.accion_reintentar), vm::actualizar, tipo = TipoBoton.SECUNDARIO)

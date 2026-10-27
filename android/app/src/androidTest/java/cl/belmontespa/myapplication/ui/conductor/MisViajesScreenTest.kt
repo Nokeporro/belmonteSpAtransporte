@@ -165,7 +165,7 @@ class MisViajesScreenTest {
         var reintentos = 0
         mostrar(estado(error = ErrorApp.SinConexion), onActualizar = { reintentos++ })
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(textos.getString(R.string.error_sin_conexion)).assertExists()
         compose.onNodeWithText(textos.getString(R.string.accion_reintentar)).performClick()
 

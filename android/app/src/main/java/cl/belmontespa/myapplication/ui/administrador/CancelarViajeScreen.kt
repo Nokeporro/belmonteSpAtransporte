@@ -111,12 +111,12 @@ fun CancelarViajeContenido(
         when {
             estado.cargando -> PantallaCargando()
             // Sin viaje no hay nada que cancelar: el error ocupa la pantalla.
-            viaje == null -> Box(Modifier.testTag("t06_error")) {
+            viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onReintentar)
             }
             else -> Column(
                 modifier = Modifier
-                    .testTag("t06_contenido")
+                    .testTag("pantalla_contenido")
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
@@ -124,7 +124,7 @@ fun CancelarViajeContenido(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (error != null) {
-                    Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("t06_error"))
+                    Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                     // Un 409 ya recargó los datos: reintentar solo tiene sentido si falló una lectura.
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onReintentar, tipo = TipoBoton.SECUNDARIO)

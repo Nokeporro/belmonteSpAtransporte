@@ -203,7 +203,7 @@ class CancelarViajeScreenTest {
     fun unConflictoSeMuestraSinOfrecerReintentar() {
         mostrar(estado().copy(error = ErrorApp.Conflicto("El viaje está EN_CURSO")))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText("El viaje está EN_CURSO").assertExists()
         compose.onNodeWithText(texto(R.string.accion_reintentar)).assertDoesNotExist()
     }
@@ -223,11 +223,11 @@ class CancelarViajeScreenTest {
     fun unViajeQueNoSeEncuentraOfreceReintentar() {
         val avisos = mostrar(CancelarViajeUiState(cargando = false, error = ErrorApp.NoEncontrado))
 
-        compose.onNodeWithTag("t06_error").assertExists()
+        compose.onNodeWithTag("pantalla_error").assertExists()
         compose.onNodeWithText(texto(R.string.error_no_encontrado)).assertExists()
         compose.onNodeWithText(texto(R.string.accion_reintentar)).performClick()
 
         assertEquals(1, avisos.reintentos)
-        compose.onAllNodesWithTag("t06_contenido").assertCountEquals(0)
+        compose.onAllNodesWithTag("pantalla_contenido").assertCountEquals(0)
     }
 }
