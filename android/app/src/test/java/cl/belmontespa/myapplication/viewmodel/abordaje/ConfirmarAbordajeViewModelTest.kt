@@ -35,13 +35,13 @@ class ConfirmarAbordajeViewModelTest {
     @After
     fun soltarHilo() = Dispatchers.resetMain()
 
-    private fun crear(argumento: String = "KXJR42:7F3A9C21B04E58D6") = ConfirmarAbordajeViewModel(aplicacionFalsa(), repositorio).also { it.cargar(argumento) }
+    private fun crear(argumento: String = "KXJR42") = ConfirmarAbordajeViewModel(aplicacionFalsa(), repositorio).also { it.cargar(argumento) }
 
     @Test
     fun cargaElVehiculoDeLaRutaConRutComoTipoInicial() {
         val estado = crear().estado.value
 
-        assertEquals(CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6"), estado.codigo)
+        assertEquals(CodigoAbordaje("KXJR42"), estado.codigo)
         assertEquals(TipoDocumento.RUT, estado.tipoDocumento)
         assertEquals("", estado.documento)
         assertFalse(estado.puedeConfirmar)
@@ -63,7 +63,7 @@ class ConfirmarAbordajeViewModelTest {
         val vm = crear()
         vm.escribirDocumento("15.234.567-4")
 
-        vm.cargar("KXJR42:7F3A9C21B04E58D6")
+        vm.cargar("KXJR42")
 
         assertEquals("15.234.567-4", vm.estado.value.documento)
     }
@@ -73,7 +73,7 @@ class ConfirmarAbordajeViewModelTest {
         val vm = crear()
         vm.escribirDocumento("15.234.567-4")
 
-        vm.cargar("GZRW90:9D04C6E2A1F7B853")
+        vm.cargar("GZRW90")
 
         assertEquals("", vm.estado.value.documento)
         assertEquals("GZRW90", vm.estado.value.codigo?.patente)
@@ -111,7 +111,7 @@ class ConfirmarAbordajeViewModelTest {
 
         vm.confirmar()
 
-        assertEquals(listOf(Triple(CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6"), TipoDocumento.PASAPORTE, "P4471023")), repositorio.llamadas)
+        assertEquals(listOf(Triple(CodigoAbordaje("KXJR42"), TipoDocumento.PASAPORTE, "P4471023")), repositorio.llamadas)
     }
 
     @Test

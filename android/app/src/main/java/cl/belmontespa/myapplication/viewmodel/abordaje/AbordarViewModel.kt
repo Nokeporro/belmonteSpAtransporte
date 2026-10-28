@@ -13,26 +13,25 @@ enum class AvisoAbordar {
     /** El QR no es de un vehículo Belmonte. */
     QR_AJENO,
 
-    /** El lector de Google no se pudo abrir: solo queda «Ingresar código». */
+    /** El lector de Google no se pudo abrir: solo queda «Ingresar patente». */
     LECTOR_NO_DISPONIBLE,
 }
 
 data class AbordarUiState(
     val aviso: AvisoAbordar? = null,
-    /** Diálogo «Ingresar código» abierto. */
+    /** Diálogo «Ingresar patente» abierto. */
     val ingresando: Boolean = false,
     val patente: String = "",
-    val codigo: String = "",
-    /** La patente o el código escritos no tienen la forma de los de un vehículo. */
+    /** La patente escrita no tiene la forma de la de un vehículo. */
     val ingresoInvalido: Boolean = false,
-    /** Código listo para confirmar: la pantalla navega a «Confirmar abordaje» y lo consume. */
+    /** Vehículo listo para confirmar: la pantalla navega a «Confirmar abordaje» y lo consume. */
     val listo: CodigoAbordaje? = null,
 ) {
-    val puedeContinuar: Boolean get() = patente.isNotBlank() && codigo.isNotBlank()
+    val puedeContinuar: Boolean get() = patente.isNotBlank()
 }
 
 /**
- * «Abordar viaje» (HU29): el Pasajero llega con el QR de la puerta, o escribiendo la patente y el código, y sigue a
+ * «Abordar viaje» (HU29): el Pasajero llega con el QR de la puerta, o escribiendo la patente, y sigue a
  * «Confirmar abordaje». No usa la sesión ni el repositorio: solo produce un [CodigoAbordaje].
  */
 class AbordarViewModel @JvmOverloads constructor(
@@ -70,15 +69,11 @@ class AbordarViewModel @JvmOverloads constructor(
         _estado.update { it.copy(patente = texto, ingresoInvalido = false) }
     }
 
-    fun escribirCodigo(texto: String) {
-        _estado.update { it.copy(codigo = texto, ingresoInvalido = false) }
-    }
-
     /** Conserva lo escrito: si «Confirmar abordaje» no encuentra el viaje, al volver se puede corregir. */
     fun continuarIngreso() {
         val actual = _estado.value
         if (!actual.puedeContinuar) return
-        val codigo = CodigoAbordaje.manual(actual.patente, actual.codigo)
+        val codigo = CodigoAbordaje.manual(actual.patente)
         _estado.update {
             if (codigo != null) it.copy(ingresando = false, ingresoInvalido = false, aviso = null, listo = codigo)
             else it.copy(ingresoInvalido = true)

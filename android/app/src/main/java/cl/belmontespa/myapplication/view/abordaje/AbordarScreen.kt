@@ -70,7 +70,6 @@ fun AbordarScreen(
         onIngresar = viewModel::abrirIngreso,
         onVolver = onVolver,
         onPatente = viewModel::escribirPatente,
-        onCodigo = viewModel::escribirCodigo,
         onContinuar = viewModel::continuarIngreso,
         onCerrarIngreso = viewModel::cerrarIngreso,
     )
@@ -78,7 +77,7 @@ fun AbordarScreen(
 
 // El lector corre en Google Play services: la app no pide `CAMERA`. Cancelar con atrás llega como `null` (vuelve sin
 // aviso) y un QR sin texto como "" (cae en «QR ajeno»); cualquier fallo (sin Play services, módulo sin descargar o
-// permiso negado en la pantalla de Google) deja «Ingresar código» como salida.
+// permiso negado en la pantalla de Google) deja «Ingresar patente» como salida.
 private fun Context.escanearQr(alLeer: (String?) -> Unit, alFallar: () -> Unit) {
     val opciones = GmsBarcodeScannerOptions.Builder()
         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -98,7 +97,6 @@ fun AbordarContenido(
     onIngresar: () -> Unit,
     onVolver: () -> Unit,
     onPatente: (String) -> Unit,
-    onCodigo: (String) -> Unit,
     onContinuar: () -> Unit,
     onCerrarIngreso: () -> Unit,
 ) {
@@ -133,21 +131,13 @@ fun AbordarContenido(
             onDismissRequest = onCerrarIngreso,
             title = { Text(stringResource(R.string.abordaje_ingresar_codigo)) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CampoTexto(
-                        valor = estado.patente,
-                        onCambio = onPatente,
-                        etiqueta = stringResource(R.string.campo_patente),
-                        modifier = Modifier.fillMaxWidth(),
-                        error = if (estado.ingresoInvalido) stringResource(R.string.abordaje_codigo_invalido) else null,
-                    )
-                    CampoTexto(
-                        valor = estado.codigo,
-                        onCambio = onCodigo,
-                        etiqueta = stringResource(R.string.campo_codigo),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
+                CampoTexto(
+                    valor = estado.patente,
+                    onCambio = onPatente,
+                    etiqueta = stringResource(R.string.campo_patente),
+                    modifier = Modifier.fillMaxWidth(),
+                    error = if (estado.ingresoInvalido) stringResource(R.string.abordaje_codigo_invalido) else null,
+                )
             },
             confirmButton = {
                 TextButton(onClick = onContinuar, enabled = estado.puedeContinuar) { Text(stringResource(R.string.accion_continuar)) }
