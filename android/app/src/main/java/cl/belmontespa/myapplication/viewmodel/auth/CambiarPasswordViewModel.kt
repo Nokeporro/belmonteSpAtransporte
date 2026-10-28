@@ -23,7 +23,6 @@ data class CambiarPasswordUiState(
     val passwordActual: String = "",
     val passwordNueva: String = "",
     val confirmacion: String = "",
-    /** La cuenta de la sesión; el Conductor no cambia su contraseña (la reemplaza el Administrador). */
     val cuenta: Cuenta? = null,
     val cargando: Boolean = true,
     val enviando: Boolean = false,
@@ -32,10 +31,6 @@ data class CambiarPasswordUiState(
     val aviso: Int? = null,
 )
 
-/**
- * «Cambiar contraseña» y «Cambio obligatorio de contraseña» (HU22): la misma pantalla; la segunda se abre con la
- * contraseña temporal y no se puede saltar.
- */
 class CambiarPasswordViewModel @JvmOverloads constructor(
     application: Application,
     private val cuentas: CuentaRepository = CuentaRepository(application),
@@ -46,7 +41,6 @@ class CambiarPasswordViewModel @JvmOverloads constructor(
 
     private var cargada = false
 
-    /** Idempotente: la pantalla lo llama en cada composición. */
     fun cargar() {
         if (cargada) return
         cargada = true
@@ -80,7 +74,6 @@ class CambiarPasswordViewModel @JvmOverloads constructor(
                 if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
                 if (datos.cuenta?.rol == Rol.CONDUCTOR) throw FalloPantalla(ErrorApp.SinPermiso())
                 cuentas.cambiarPassword(datos.passwordActual, datos.passwordNueva).valor()
-                // Las contraseñas no sobreviven a un envío exitoso.
                 _estado.update {
                     it.copy(passwordActual = "", passwordNueva = "", confirmacion = "", aviso = R.string.aviso_password_guardada)
                 }

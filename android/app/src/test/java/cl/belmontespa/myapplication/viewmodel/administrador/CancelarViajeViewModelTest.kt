@@ -39,7 +39,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** «Cancelar viaje» del Administrador (HU24, V7): qué se pide, qué se valida y qué se envía. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CancelarViajeViewModelTest {
 
@@ -62,7 +61,6 @@ class CancelarViajeViewModelTest {
         TipoRecibo.FACTURA, ahora.minusDays(2), null,
     )
 
-    /** Un viaje con pago; por omisión está vencido (más de una hora de atraso). */
     private fun escenario(
         minutosDeAtraso: Long = 120,
         estado: EstadoViaje = EstadoViaje.PENDIENTE,
@@ -98,7 +96,6 @@ class CancelarViajeViewModelTest {
         assertFalse(vm.estado.value.pideReembolso)
         vm.confirmar()
 
-        // El monto precargado no se envía: el backend reembolsa el total sin preguntar.
         assertEquals(listOf(Cancelacion("TR-1038", "Conductor sin disponibilidad", null)), viajes.cancelaciones)
         assertTrue(vm.estado.value.cancelado)
     }
@@ -226,7 +223,6 @@ class CancelarViajeViewModelTest {
         assertEquals(1, viajes.cancelaciones.size)
         assertTrue(vm.estado.value.enviando)
         assertFalse(vm.estado.value.puedeConfirmar)
-        // Mientras envía no se puede cambiar lo que se está enviando.
         vm.escribirMotivo("Otro motivo distinto")
         assertEquals("Nadie lo atendió", vm.estado.value.motivo)
 
@@ -266,7 +262,6 @@ class CancelarViajeViewModelTest {
         viajes.respuesta = { Resultado.Fallo(ErrorApp.Conflicto("El viaje está EN_CURSO")) }
 
         vm.confirmar()
-        // La lectura trae el estado real del viaje.
         viajes.viaje.value = viajes.viaje.value!!.copy(estado = EstadoViaje.EN_CURSO)
 
         assertEquals(ErrorApp.Conflicto("El viaje está EN_CURSO"), vm.estado.value.error)
@@ -297,17 +292,14 @@ class CancelarViajeViewModelTest {
         assertFalse(vm.estado.value.pideReembolso)
         vm.escribirMotivo("Nadie lo atendió")
 
-        // Pasan 31 minutos con la pantalla abierta: el viaje ya está vencido al confirmar.
         reloj.ahora = ahora.plusMinutes(31)
         vm.confirmar()
 
-        // El monto no estaba a la vista: se muestra, precargado con el total, y no se envía nada.
         assertTrue(vm.estado.value.pideReembolso)
         assertEquals("52000", vm.estado.value.reembolso)
         assertEquals(MONTO_POR_CONFIRMAR, vm.estado.value.errores[CAMPO_REEMBOLSO])
         assertTrue(viajes.cancelaciones.isEmpty())
 
-        // Con el campo ya visible, «Confirmar» envía lo que decidió el Administrador.
         vm.escribirReembolso("26000")
         vm.confirmar()
         assertEquals(26_000, viajes.cancelaciones.single().monto)
@@ -405,14 +397,12 @@ class CancelarViajeViewModelTest {
 
 private data class Cancelacion(val folio: String, val motivo: String?, val monto: Int?)
 
-/** Un reloj que avanza cuando la prueba quiere, en la hora de Chile. */
 private class RelojMutable(var ahora: LocalDateTime, private val zona: ZoneId) : Clock() {
     override fun getZone(): ZoneId = zona
     override fun withZone(zone: ZoneId): Clock = RelojMutable(ahora, zone)
     override fun instant(): Instant = ahora.atZone(zona).toInstant()
 }
 
-/** Un solo viaje observable; guarda lo que le cancelan y responde con lo que la prueba diga. */
 private class ViajeCancelableFalso : ViajeRepository(soporteVacio()) {
     val viaje = MutableStateFlow<Viaje?>(null)
     val cancelaciones = mutableListOf<Cancelacion>()

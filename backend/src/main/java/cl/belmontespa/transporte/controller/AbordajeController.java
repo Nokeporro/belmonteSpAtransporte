@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Ruta pública (README, "Autenticación"): el Pasajero no tiene cuenta. Solo POST.
 @RestController
 @RequestMapping("/api/v1/abordajes")
 public class AbordajeController {
@@ -20,7 +19,6 @@ public class AbordajeController {
 		this.abordajeService = abordajeService;
 	}
 
-	// CU-19: responde 200 con la marca guardada.
 	@PostMapping
 	public AbordajeDTOResponse registrar(@Valid @RequestBody AbordajeDTORequest request) {
 		return abordajeService.registrar(request);

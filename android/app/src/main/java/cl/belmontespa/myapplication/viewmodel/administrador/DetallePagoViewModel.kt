@@ -34,10 +34,6 @@ data class DetallePagoUiState(
     val esAdministrador: Boolean get() = cuenta?.rol == Rol.ADMINISTRADOR
 }
 
-/**
- * «Detalle de pago» (HU19 a HU21). El Administrador marca el pago como pagado, rechazado o anulado (P2 y P3) y el
- * Solicitante solo lo consulta. El resultado se muestra solo con la respuesta guardada.
- */
 class DetallePagoViewModel @JvmOverloads constructor(
     application: Application,
     private val pagos: PagoRepository = PagoRepository(application),
@@ -50,7 +46,6 @@ class DetallePagoViewModel @JvmOverloads constructor(
     private var hash: String? = null
     private var consulta: Job? = null
 
-    /** Lee la cuenta y el pago; [forzar] vuelve a leerlos aunque sea el mismo pago. */
     fun cargar(hash: String, forzar: Boolean = false) {
         if (hash == this.hash && !forzar) return
         this.hash = hash
@@ -71,7 +66,6 @@ class DetallePagoViewModel @JvmOverloads constructor(
         hash?.let { cargar(it, forzar = true) }
     }
 
-    /** Al volver a primer plano se lee de nuevo el pago, que pudo cambiar. */
     fun alVolverAPrimerPlano() {
         if (!_estado.value.cargando) reintentar()
     }
@@ -89,7 +83,6 @@ class DetallePagoViewModel @JvmOverloads constructor(
                     throw FalloPantalla(ErrorApp.Conflicto("El cambio de pago no está permitido. Actualiza su información."))
                 }
                 val guardado = pagos.cambiarEstadoPago(hash, nuevo).valor()
-                // La respuesta confirmada evita ofrecer de nuevo las acciones del estado anterior.
                 _estado.update { it.copy(pago = guardado, aviso = R.string.pago_estado_guardado) }
             }
             _estado.update { it.copy(enviando = false, error = error) }

@@ -9,9 +9,6 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-// Filtros de GET /viajes (README, "Consultas"): `estado` y `fecha` (AAAA-MM-DD), combinables. Un
-// valor en blanco cuenta como ausente, uno mal formado es un 400 con una línea `campo: motivo` por
-// filtro, y los parámetros que no son filtros se ignoran.
 public record FiltroViajes(String estado, LocalDate fecha) {
 
 	static final Set<String> ESTADOS = Set.of("PENDIENTE", "ASIGNADO", "EN_CURSO", "FINALIZADO", "CANCELADO");

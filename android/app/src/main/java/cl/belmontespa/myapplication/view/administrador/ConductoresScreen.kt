@@ -19,7 +19,6 @@ import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.administrador.ConductoresViewModel
 
-/** «Conductores»: raíz de la barra inferior del Administrador. */
 @Composable
 fun ConductoresScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

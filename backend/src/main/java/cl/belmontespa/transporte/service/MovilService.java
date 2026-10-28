@@ -53,7 +53,6 @@ public class MovilService extends CrudService<Movil, String, MovilDTORequest, Mo
 		return movilRepository.findByPatente(patente);
 	}
 
-	// CU-09: el vehículo queda Disponible y con el código del QR de abordaje.
 	@Override
 	protected Movil nuevaEntidad(MovilDTORequest request) {
 		if (movilRepository.findByPatente(request.patente()).isPresent()) {
@@ -95,7 +94,6 @@ public class MovilService extends CrudService<Movil, String, MovilDTORequest, Mo
 		return aResponse(movil);
 	}
 
-	// 8 bytes de SecureRandom como 16 hexadecimales en mayúsculas.
 	private String codigoAbordaje() {
 		byte[] bytes = new byte[BYTES_CODIGO_ABORDAJE];
 		random.nextBytes(bytes);

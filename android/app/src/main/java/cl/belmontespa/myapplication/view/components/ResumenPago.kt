@@ -6,7 +6,6 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.Pago
 import cl.belmontespa.myapplication.util.Formatos
 
-/** El pago de un viaje: su estado, el monto y, si lo hubo, lo reembolsado. */
 @Composable
 fun ResumenPago(pago: Pago) {
     Bloque(stringResource(R.string.campo_pago)) {

@@ -11,7 +11,6 @@ import cl.belmontespa.myapplication.navigation.BelmonteApp
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.viewmodel.SesionViewModel
 
-/** Única actividad: dibuja la app en Compose y decide el flujo según la sesión. */
 class MainActivity : ComponentActivity() {
 
     private val sesionViewModel: SesionViewModel by viewModels()

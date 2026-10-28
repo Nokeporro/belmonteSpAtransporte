@@ -1,5 +1,4 @@
 <resources>
-    <!-- Tema de la ventana; los colores y la tipografía los aplica BelmonteTheme en Compose. -->
     <style name="Theme.Belmonte" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/fondo_claro</item>
     </style>

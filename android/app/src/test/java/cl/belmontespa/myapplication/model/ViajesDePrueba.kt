@@ -2,7 +2,6 @@ package cl.belmontespa.myapplication.model
 
 import java.time.LocalDateTime
 
-/** Viaje ficticio para las pruebas JVM; cada prueba cambia solo lo que le importa. */
 internal fun viajeDePrueba(
     fhAgenda: LocalDateTime,
     folio: String = "TR-1051",
@@ -40,6 +39,5 @@ internal fun viajeDePrueba(
     )
 }
 
-/** Pasajero ficticio; sin hora de abordaje está Por abordar. */
 internal fun pasajeroDePrueba(nombre: String, fhAbordaje: LocalDateTime? = null) =
     PasajeroViaje(dniHash = "hash-$nombre", nombre = nombre, fhAbordaje = fhAbordaje)

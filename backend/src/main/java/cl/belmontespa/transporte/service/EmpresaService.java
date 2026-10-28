@@ -8,7 +8,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
-// Solo lectura por la API: las empresas nacen con el registro del Solicitante (RF01).
 @Service
 public class EmpresaService extends CrudService<Empresa, String, Void, EmpresaDTOResponse> {
 
@@ -38,7 +37,6 @@ public class EmpresaService extends CrudService<Empresa, String, Void, EmpresaDT
 		return EmpresaDTOResponse.from(empresa);
 	}
 
-	// RF01: el registro del Solicitante reutiliza la empresa si el RUT ya existe.
 	boolean existe(String rut) {
 		return empresaRepository.findByRut(rut).isPresent();
 	}

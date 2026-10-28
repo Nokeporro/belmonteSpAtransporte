@@ -11,6 +11,5 @@ public interface DetalleViajePasajeroRepository
 
 	Optional<DetalleViajePasajero> findByViajeFolioAndPasajeroDniHash(String folio, String dniHash);
 
-	// Pasajeros de un viaje, para ViajeDTOResponse.
 	List<DetalleViajePasajero> findByIdViaje(Long idViaje);
 }

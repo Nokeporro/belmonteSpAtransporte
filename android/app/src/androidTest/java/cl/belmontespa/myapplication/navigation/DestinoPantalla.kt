@@ -40,12 +40,6 @@ import cl.belmontespa.myapplication.view.solicitante.MisSolicitudesScreen
 import cl.belmontespa.myapplication.view.solicitante.NuevaSolicitudScreen
 import cl.belmontespa.myapplication.view.solicitante.SolicitudCanceladaScreen
 
-/**
- * Ayuda de las pruebas instrumentadas: dibuja una pantalla del catálogo [PantallaDemo] sin el NavHost, con una
- * navegación falsa. La app real las conecta en NavGrafos.kt (una ruta por pantalla); aquí se repite la elección de la
- * pantalla para probar cada una por separado. Una variante comparte pantalla con otra cuando solo cambia un aviso.
- * `raiz` es verdadero en las pantallas de la barra inferior, que no tienen flecha para volver.
- */
 @Composable
 fun DestinoPantalla(
     pantalla: PantallaDemo,
@@ -56,7 +50,6 @@ fun DestinoPantalla(
     raiz: Boolean = false,
 ) {
     when (pantalla) {
-        // La variante de sesión vencida es el Login con su aviso, como muestran los mockups.
         PantallaDemo.LOGIN, PantallaDemo.LOGIN_DEMO, PantallaDemo.SESION_EXPIRADA -> Box(
             Modifier.fillMaxSize().testTag("pantalla_contenido"),
         ) {
@@ -70,19 +63,16 @@ fun DestinoPantalla(
         }
         PantallaDemo.SOLICITUDES -> SolicitudesScreen(onNavegar = onNavegar)
         PantallaDemo.MIS_VIAJES -> MisViajesScreen(onNavegar = onNavegar)
-        // «Antes de la ventana» y «Abrir navegación» son este detalle, el segundo con la hoja «Abrir con» encima.
         PantallaDemo.DETALLE_VIAJE, PantallaDemo.ANTES_VENTANA, PantallaDemo.NAVEGAR -> DetalleViajeScreen(
             folio = referencia, onNavegar = onNavegar, onVolver = onVolver,
             abrirNavegacion = pantalla == PantallaDemo.NAVEGAR,
         )
-        // «Sin conexión» y «Cambio en conflicto» son este mismo detalle con los avisos del escenario.
         PantallaDemo.SIN_CONEXION, PantallaDemo.CONFLICTO -> DetalleViajeScreen(
             folio = referencia, onNavegar = onNavegar, onVolver = onVolver,
             escenario = if (pantalla == PantallaDemo.SIN_CONEXION) EscenarioDemo.SIN_CONEXION else EscenarioDemo.CONFLICTO,
         )
         PantallaDemo.INICIO -> InicioScreen()
         PantallaDemo.CONFIRMAR_INICIO -> ConfirmarInicioScreen(folio = referencia, onVolver = onVolver)
-        // «Escanear código QR» es el lector de Google Code Scanner: la misma pantalla de «Abordar viaje».
         PantallaDemo.ABORDAR, PantallaDemo.ESCANEAR -> AbordarScreen(
             pantalla = pantalla, onNavegar = onNavegar, onVolver = onVolver,
         )
@@ -104,7 +94,6 @@ fun DestinoPantalla(
         PantallaDemo.NOTIFICACION -> NotificacionScreen(onNavegar = onNavegar, onVolver = onVolver)
         PantallaDemo.MIS_SOLICITUDES -> MisSolicitudesScreen(onNavegar = onNavegar)
         PantallaDemo.NUEVA_SOLICITUD -> NuevaSolicitudScreen(onNavegar = onNavegar, onVolver = onVolver)
-        // «Solicitud sin pasajeros» es el mismo detalle, con el aviso de que faltan pasajeros.
         PantallaDemo.DETALLE_SOLICITUD, PantallaDemo.SOLICITUD_SIN_PASAJEROS -> DetalleSolicitudScreen(
             pantalla = pantalla, folio = referencia, onNavegar = onNavegar, onVolver = onVolver,
         )
@@ -116,7 +105,6 @@ fun DestinoPantalla(
             folio = referencia, onNavegar = onNavegar, onVolver = onVolver,
         )
         PantallaDemo.CUENTAS_PENDIENTES -> CuentasPendientesScreen(onVolver = onVolver)
-        // «Solicitud sin pasajeros» es el mismo detalle, con el aviso de que faltan pasajeros.
         PantallaDemo.DETALLE_ADMIN, PantallaDemo.SIN_PASAJEROS_ADMIN -> DetalleSolicitudAdminScreen(
             pantalla = pantalla, folio = referencia, onNavegar = onNavegar, onVolver = onVolver,
         )

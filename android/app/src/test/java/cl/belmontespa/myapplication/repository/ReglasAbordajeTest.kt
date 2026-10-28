@@ -7,7 +7,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Candidatos del abordaje (README, Abordaje): `EN_CURSO`, o `ASIGNADO` dentro de `fhAgenda ± 1 h`, y el más cercano gana. */
 class ReglasAbordajeTest {
 
     private val agenda = LocalDateTime.of(2026, 10, 28, 14, 30)

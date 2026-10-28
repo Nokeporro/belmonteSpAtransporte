@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PasajeroDao {
-    /** Un documento ya registrado no se duplica ni cambia su nombre: devuelve -1 en ese caso. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertar(pasajero: PasajeroEntity): Long
 

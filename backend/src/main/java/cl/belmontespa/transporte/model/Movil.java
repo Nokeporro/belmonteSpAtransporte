@@ -20,7 +20,6 @@ public class Movil {
 	@Column(name = "patente", length = 6, nullable = false, unique = true)
 	private String patente;
 
-	// Opcional (RF16).
 	@Column(name = "gps_serial")
 	private Integer gpsSerial;
 
@@ -31,11 +30,9 @@ public class Movil {
 	@Column(name = "capacidad", nullable = false)
 	private Integer capacidad;
 
-	// Nace activo; un inactivo no se asigna (RF25).
 	@Column(name = "activo", nullable = false)
 	private boolean activo = true;
 
-	// 16 hexadecimales en mayúsculas del QR de abordaje; solo lo ve el Administrador.
 	@Column(name = "codigo_abordaje", length = 16, nullable = false, unique = true)
 	private String codigoAbordaje;
 

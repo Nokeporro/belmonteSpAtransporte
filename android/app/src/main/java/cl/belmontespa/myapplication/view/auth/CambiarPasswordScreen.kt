@@ -17,10 +17,6 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.viewmodel.auth.CambiarPasswordViewModel
 
-/**
- * «Cambiar contraseña», o «Cambio obligatorio de contraseña» si `pantalla` es [PantallaDemo.CAMBIO_OBLIGATORIO]:
- * esa variante avisa que hay que cambiarla y ofrece cerrar sesión.
- */
 @Composable
 fun CambiarPasswordScreen(
     pantalla: PantallaDemo,

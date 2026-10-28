@@ -66,11 +66,6 @@ import cl.belmontespa.myapplication.viewmodel.administrador.CAMPO_MOTIVO
 import cl.belmontespa.myapplication.viewmodel.conductor.DetalleViajeUiState
 import cl.belmontespa.myapplication.viewmodel.conductor.DetalleViajeViewModel
 
-/**
- * Detalle del viaje del Conductor (HU08). «Antes de la ventana» no es otra pantalla: es este detalle con
- * Iniciar deshabilitado y la hora desde la que se habilita. «Abrir navegación» (HU10) tampoco: es este detalle con
- * la hoja «Abrir con» encima; `abrirNavegacion` la muestra de entrada (sin abrir ninguna aplicación por su cuenta).
- */
 @Composable
 fun DetalleViajeScreen(
     folio: String,
@@ -82,11 +77,9 @@ fun DetalleViajeScreen(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     LaunchedEffect(folio) { viewModel.cargar(folio) }
-    // La hoja necesita el viaje (de él sale el punto de la ruta): se espera a que cargue.
     val cargado = estado.viaje != null
     LaunchedEffect(abrirNavegacion, cargado) { if (abrirNavegacion && cargado) viewModel.mostrarOpciones() }
     LaunchedEffect(estado.rechazado) { if (estado.rechazado) onNavegar(PantallaDemo.MIS_VIAJES, "") }
-    // README (Retraso): la ventana de inicio y el retraso se recalculan al volver a primer plano.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
     DetalleViajeContenido(
         folio = folio,
@@ -109,10 +102,6 @@ fun DetalleViajeScreen(
     )
 }
 
-/**
- * Escenarios de la build `demo` que se ven sobre el detalle del Conductor (README, Sesión y conectividad); en la
- * remota los produce la cola sin conexión.
- */
 enum class EscenarioDemo { SIN_CONEXION, CONFLICTO }
 
 @Composable
@@ -140,9 +129,7 @@ fun DetalleViajeContenido(
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         BarraSuperior(titulo = stringResource(R.string.detalle_viaje_titulo, folio), onVolver = onVolver)
         when {
-            // Tras rechazar, el viaje deja de ser suyo: se espera la navegación en vez de mostrar «no encontrado».
             estado.cargando || estado.rechazado -> PantallaCargando()
-            // Sin viaje no hay nada que mostrar: el error ocupa la pantalla.
             viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onActualizar)
             }
@@ -157,7 +144,6 @@ fun DetalleViajeContenido(
             ) {
                 if (error != null) {
                     Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
-                    // Un 409 ya recargó el viaje: reintentar solo tiene sentido si falló la lectura.
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onActualizar, tipo = TipoBoton.SECUNDARIO)
                     }
@@ -204,7 +190,6 @@ fun DetalleViajeContenido(
     }
 }
 
-/** Los avisos del escenario «Sin conexión» o «Cambio en conflicto», sobre el detalle. */
 @Composable
 private fun Escenario(escenario: EscenarioDemo?, onActualizar: () -> Unit, onDescartarCambio: () -> Unit) {
     when (escenario) {
@@ -249,7 +234,6 @@ private fun Dato(etiqueta: String, valor: String, mono: Boolean = false) {
     }
 }
 
-/** Iniciar y Finalizar van juntos; solo el aplicable está habilitado. Los demás botones, solo si aplican. */
 @Composable
 private fun Controles(
     estado: DetalleViajeUiState,
@@ -276,7 +260,6 @@ private fun Controles(
     }
     val navegar = if (viaje.estado == EstadoViaje.EN_CURSO) R.string.accion_navegar_destino else R.string.accion_navegar_origen
     BotonAncho(stringResource(navegar), onNavegar, tipo = TipoBoton.SECUNDARIO, alto56 = true)
-    // Etiqueta propia: no es un fallo de la pantalla, así que no lleva `t06_error`.
     if (estado.sinAppDeNavegacion) {
         Aviso(stringResource(R.string.error_sin_app_navegacion), TonoAviso.AVISO, Modifier.testTag("pantalla_aviso_navegacion"))
     }
@@ -288,7 +271,6 @@ private fun Controles(
     }
 }
 
-/** Hoja «Abrir con» (mockup «Abrir navegación»): solo las aplicaciones instaladas, cada una con área táctil de 56 dp. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HojaAbrirCon(apps: List<AppNavegacion>, onElegir: (AppNavegacion) -> Unit, onCerrar: () -> Unit) {

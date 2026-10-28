@@ -16,10 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * RF28/CU-19 (README, Abordaje): el Pasajero marca su abordaje con la patente y el código del QR de la puerta y su
- * documento, sin cuenta. V1 no deja agendar a menos de 2 h, por eso cada test acerca la agenda del viaje con JDBC.
- */
 @DisplayName("Abordaje con código QR (HU29)")
 class AbordajeIT extends IntegrationTest {
 
@@ -36,7 +32,6 @@ class AbordajeIT extends IntegrationTest {
 		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
 
-	/** Un viaje ASIGNADO a la flota, con ese pasajero, cuya agenda queda a {@code minutos} de ahora. */
 	private String viajeA(Cuenta solicitante, Flota flota, String rut, long minutos) {
 		String folio = api.viaje(solicitante, LocalDateTime.now().plusDays(3 + Math.abs(rut.hashCode() % 20)));
 		api.agregarPasajeroOk(solicitante, folio, api.pasajeroConRut(solicitante, rut));
@@ -54,7 +49,6 @@ class AbordajeIT extends IntegrationTest {
 		assertThat(resp.texto("$.message")).isEqualTo(NO_ENCONTRADO);
 	}
 
-	/** La marca de ese pasajero en el detalle del viaje que ve {@code token}; {@code null} si sigue Por abordar. */
 	private String marca(String folio, String token, String dniHash) {
 		Resp viaje = Api.exigir(api.get("/viajes/" + folio, token), "ver viaje " + folio, 200);
 		List<Object> marcas = viaje.json("$.pasajeros[?(@.dniHash=='" + dniHash + "')].fhAbordaje");

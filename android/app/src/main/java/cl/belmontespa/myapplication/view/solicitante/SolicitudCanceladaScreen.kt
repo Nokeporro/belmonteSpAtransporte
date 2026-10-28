@@ -17,7 +17,6 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.viewmodel.solicitante.SolicitudCanceladaViewModel
 
-/** «Solicitud cancelada»: confirma la cancelación y vuelve a «Mis solicitudes». */
 @Composable
 fun SolicitudCanceladaScreen(
     folio: String,

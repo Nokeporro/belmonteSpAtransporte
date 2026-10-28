@@ -11,7 +11,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 
-// Sin PUT (README, "CRUD REST").
 @Service
 public class AdministradorService
 		extends CrudService<Administrador, String, AdministradorDTORequest, AdministradorDTOResponse> {
@@ -50,7 +49,6 @@ public class AdministradorService
 		Administrador administrador = new Administrador();
 		administrador.setUsuario(usuarioService.nuevoConTemporal(
 				request.nombre(), request.correo(), request.telefono(), request.password(), horasTemporal));
-		// fecha_registro la genera MariaDB; el alta devuelve la misma fecha que las consultas.
 		entityManager.refresh(administrador.getUsuario());
 		return administrador;
 	}

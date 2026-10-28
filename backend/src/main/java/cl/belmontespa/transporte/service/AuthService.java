@@ -50,7 +50,6 @@ public class AuthService {
 		this.horasPasswordTemporal = horasPasswordTemporal;
 	}
 
-	// CU-14: cualquier fallo da el mismo 401, sin indicar qué falló.
 	@Transactional
 	public LoginDTOResponse login(LoginDTORequest request) {
 		Usuario usuario = usuarioRepository.bloquearPorCorreo(request.correo())
@@ -81,14 +80,11 @@ public class AuthService {
 				jwtProvider.getExpirationSeconds(), usuario.getCorreo(), rol, temporal);
 	}
 
-	// Cerrar sesión conserva las contraseñas y retira el token del dispositivo.
 	@Transactional
 	public void logout(String correo) {
 		usuarioRepository.findByCorreoIgnoreCase(correo).ifPresent(u -> u.setTokenFcm(null));
 	}
 
-	// CU-13/RF21: lo llama un Administrador; solo Solicitante y Administrador tienen temporal.
-	// La devuelve una sola vez: el Administrador la entrega por su correo y el sistema no envía ninguno.
 	@Transactional
 	public PasswordTemporalDTOResponse recuperarPassword(RecuperarPasswordDTORequest request) {
 		Usuario usuario = usuarioRepository.bloquearPorCorreo(request.correo())
@@ -101,7 +97,6 @@ public class AuthService {
 		return new PasswordTemporalDTOResponse(usuario.getCorreo(), passwordTemporal, usuario.getPasswordTemporalExpira());
 	}
 
-	// Sirve la contraseña normal o, mientras no venza, la temporal (RF21): ninguna reemplaza a la otra.
 	private boolean contrasenaValida(String password, Usuario usuario) {
 		if (passwordEncoder.matches(password, usuario.getPasswordHash())) {
 			return true;
@@ -112,7 +107,6 @@ public class AuthService {
 				&& passwordEncoder.matches(password, usuario.getPasswordTemporalHash());
 	}
 
-	// Rol único por USUARIO_ROL_ACTIVO.
 	private String rol(Long idUsuario) {
 		if (administradorRepository.existsById(idUsuario)) {
 			return "ADMINISTRADOR";

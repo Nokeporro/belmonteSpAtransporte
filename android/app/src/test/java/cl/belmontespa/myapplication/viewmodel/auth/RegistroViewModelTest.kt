@@ -54,7 +54,6 @@ class RegistroViewModelTest {
         assertEquals(R.string.aviso_registro_pendiente, vm.estado.value.aviso)
         assertTrue(vm.estado.value.registrado); assertFalse(vm.estado.value.enviando)
         assertFalse(vm.estado.value.modificado)
-        // El teléfono vacío viaja como ausente.
         assertNull(repos.registro!!.telefono)
     }
 

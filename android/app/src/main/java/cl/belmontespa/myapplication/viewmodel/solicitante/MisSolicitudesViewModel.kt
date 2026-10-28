@@ -18,13 +18,11 @@ import kotlinx.coroutines.launch
 
 data class MisSolicitudesUiState(
     val viajes: List<Viaje> = emptyList(),
-    /** Filtro por estado; `null` muestra todas. */
     val estado: EstadoViaje? = null,
     val cargando: Boolean = true,
     val error: ErrorApp? = null,
 )
 
-/** «Mis solicitudes» (HU03): el historial del Solicitante, observado desde Room, con filtro por estado. */
 class MisSolicitudesViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -35,7 +33,6 @@ class MisSolicitudesViewModel @JvmOverloads constructor(
 
     private var observacion: Job? = null
 
-    /** Idempotente: la pantalla lo llama en cada composición. */
     fun cargar() {
         if (observacion == null) observar()
     }
@@ -45,7 +42,6 @@ class MisSolicitudesViewModel @JvmOverloads constructor(
         observar()
     }
 
-    /** «Actualizar» y «Reintentar»: vuelve a leer la lista con el filtro vigente. */
     fun actualizar() = observar()
 
     private fun observar() {

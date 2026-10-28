@@ -1,4 +1,3 @@
-# Versiones exactas de README.md (Android > Tecnologías y código). Se cambian solo con un PR chore/.
 [versions]
 agp = "9.4.1"
 kotlin = "2.4.21"

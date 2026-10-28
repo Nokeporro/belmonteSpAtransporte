@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Habilitación vehículo↔conductor (M:N).
 @Getter
 @Setter
 @NoArgsConstructor

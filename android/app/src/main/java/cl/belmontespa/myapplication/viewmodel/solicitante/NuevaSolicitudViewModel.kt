@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Claves de los campos, con el nombre del contrato que usan los errores de validación (400). */
 internal const val CAMPO_ORIGEN = "origen"
 internal const val CAMPO_DESTINO = "destino"
 internal const val CAMPO_PASAJERO_NOMBRE = "pasajeroNombre"
@@ -36,31 +35,23 @@ internal const val CAMPO_DOCUMENTO = "documento"
 data class NuevaSolicitudUiState(
     val fecha: LocalDate,
     val hora: LocalTime,
-    /** Dirección del lugar elegido como origen o destino; vacía si aún no se eligió. */
     val origen: String = "",
     val destino: String = "",
     val vuelo: String = "",
-    /** El pasajero que se está escribiendo; «Agregar pasajero» lo pasa a [pasajeros]. */
     val pasajeroNombre: String = "",
     val tipoDocumento: TipoDocumento = TipoDocumento.RUT,
     val documento: String = "",
     val pasajeros: List<NuevoPasajero> = emptyList(),
-    /** Lugares entre los que se elige. */
     val lugares: List<Ubicacion> = emptyList(),
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
     val aviso: Int? = null,
-    /** Folio de la solicitud guardada: la pantalla navega a su detalle y lo consume. */
     val creada: String? = null,
 ) {
     val puedeGuardar: Boolean get() = pasajeros.isNotEmpty() && origen.isNotBlank() && destino.isNotBlank()
 }
 
-/**
- * «Nueva solicitud» (HU02): fecha y hora, origen y destino, vuelo opcional y al menos un pasajero. Mientras Google
- * Places no esté integrado (Etapa 2), el origen y el destino se eligen entre [lugares], todos ficticios.
- */
 class NuevaSolicitudViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -71,7 +62,6 @@ class NuevaSolicitudViewModel @JvmOverloads constructor(
     private val _estado = MutableStateFlow(inicial())
     val estado: StateFlow<NuevaSolicitudUiState> = _estado.asStateFlow()
 
-    // Propone una hora tres horas más tarde, dentro de la ventana de 2 horas a 90 días de la regla V1.
     private fun inicial(): NuevaSolicitudUiState {
         val propuesta = LocalDateTime.now(clock).plusHours(3).withSecond(0).withNano(0)
         return NuevaSolicitudUiState(propuesta.toLocalDate(), propuesta.toLocalTime(), lugares = lugares)
@@ -115,7 +105,6 @@ class NuevaSolicitudViewModel @JvmOverloads constructor(
     fun quitarPasajero(indice: Int) =
         _estado.update { it.copy(pasajeros = it.pasajeros.filterIndexed { i, _ -> i != indice }, modificado = true) }
 
-    /** Devuelve el pasajero a los campos para corregirlo y lo quita de la lista. */
     fun editarPasajero(indice: Int) {
         val pasajero = _estado.value.pasajeros.getOrNull(indice) ?: return
         _estado.update {

@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** HU16/RF15: V5, P4 y P5 sobre la API real, incluyendo el límite horario exacto. */
 @Import(HU16IT.RelojConfig.class)
 class HU16IT extends IntegrationTest {
     @TestConfiguration
@@ -96,7 +95,6 @@ class HU16IT extends IntegrationTest {
         for (String estado : List.of("RECHAZADO", "ANULADO", "REEMBOLSADO")) {
             String folio = api.viaje(solicitante);
             String hash = pago(folio, 20_000, estado.equals("REEMBOLSADO"));
-            // Prepara estados terminales sin ejecutar V6 ni cancelar antes este viaje.
             jdbc.update("UPDATE pago SET estado_pago_id = (SELECT id FROM estado_pago WHERE estado = ?), monto_reembolsado = ? WHERE hash = ?",
                     estado, estado.equals("REEMBOLSADO") ? 7_000 : null, hash);
             Resp antes = api.get("/pagos/" + hash, solicitante.token());
@@ -151,7 +149,6 @@ class HU16IT extends IntegrationTest {
         String folio = api.viajeAsignado(solicitante, flota);
         assertThat(api.cancelar(folio, api.solicitante().token()).status()).isEqualTo(403);
         assertThat(api.cancelar(folio, flota.conductor().token()).status()).isEqualTo(403);
-        // El Administrador cancela con motivo (V7, HU24): sin cuerpo no hay motivo.
         assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(400);
         assertThat(api.cancelar(folio, null).status()).isEqualTo(401);
         assertThat(api.cancelar("TR-99999999", solicitante.token()).status()).isEqualTo(404);

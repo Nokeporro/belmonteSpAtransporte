@@ -8,7 +8,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// razonSocial y rutEmpresa crean o reutilizan la fila de EMPRESA (RF01).
 public record SolicitanteDTORequest(
 		@NotBlank @Size(min = 2, max = 120) String nombre,
 		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correo,

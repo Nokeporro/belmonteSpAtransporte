@@ -24,10 +24,6 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.TonoAviso
 import java.time.LocalDateTime
 
-/**
- * «Abordaje registrado» (HU29). La hora viene en la ruta (ISO): repetir el escaneo responde la misma, así que esta pantalla
- * no guarda nada. «Volver al inicio» abre el Login, o «Mis solicitudes» si se entró con sesión (lo decide `onNavegar`).
- */
 @Composable
 fun AbordadoScreen(
     hora: String,

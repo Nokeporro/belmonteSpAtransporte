@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class ViajeDao {
-    /** Inserta o actualiza en su lugar: no borra la fila, así que no dispara la cascada. */
     @Upsert
     abstract suspend fun guardar(viaje: ViajeEntity)
 
@@ -28,7 +27,6 @@ abstract class ViajeDao {
     @Query("DELETE FROM viajes WHERE folio = :folio")
     abstract suspend fun borrar(folio: String)
 
-    /** Reemplaza un viaje y sus pasajeros en una sola transacción: o queda todo o nada. */
     @Transaction
     open suspend fun guardarConPasajeros(
         viaje: ViajeEntity,
@@ -48,11 +46,6 @@ abstract class ViajeDao {
     @Query("SELECT * FROM viajes WHERE folio = :folio")
     abstract fun observar(folio: String): Flow<ViajeConPasajeros?>
 
-    /**
-     * Lista con los filtros que vengan (null = sin ese filtro). Orden de la API: con `ascendente`
-     * (estados PENDIENTE, ASIGNADO o EN_CURSO) lo próximo primero; si no, lo reciente primero. El
-     * empate se desata por el número del folio, en el mismo sentido.
-     */
     @Transaction
     @Query(
         """
@@ -76,11 +69,6 @@ abstract class ViajeDao {
         ascendente: Boolean,
     ): Flow<List<ViajeConPasajeros>>
 
-    /**
-     * Agenda del Conductor para `fecha` (AAAA-MM-DD): sus viajes ASIGNADO, EN_CURSO y FINALIZADO de
-     * ese día, por hora. Con `incluirEnCursoAnterior` (la agenda de hoy) suma su viaje EN_CURSO de
-     * una fecha anterior, para que pueda finalizarlo.
-     */
     @Transaction
     @Query(
         """

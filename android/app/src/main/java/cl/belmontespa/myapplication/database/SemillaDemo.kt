@@ -17,11 +17,6 @@ import java.time.Clock
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 
-/**
- * Carga [DatosDemo] al crear la base, en las builds debug y demo. Inserta con SQL directo dentro de
- * `onCreate`, en la misma transacción que crea las tablas, así los datos ya están cuando la app
- * hace su primera consulta (p. ej. el login).
- */
 class SemillaDemo(private val clock: Clock = Reloj.santiago) : RoomDatabase.Callback() {
 
     override fun onCreate(db: SupportSQLiteDatabase) {

@@ -15,7 +15,6 @@ import cl.belmontespa.myapplication.view.components.CampoFormulario
 import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 import cl.belmontespa.myapplication.viewmodel.administrador.RegistrarConductorViewModel
 
-/** «Registrar conductor»: al guardar abre el detalle del conductor creado. */
 @Composable
 fun RegistrarConductorScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

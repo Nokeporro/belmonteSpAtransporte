@@ -22,11 +22,9 @@ data class RecuperarPasswordUiState(
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** La temporal generada: se muestra una sola vez, hasta que el Administrador cambie el correo o salga. */
     val temporal: PasswordTemporal? = null,
 )
 
-/** «Recuperar contraseña» (HU22): el Administrador genera la temporal de un Solicitante o Administrador. */
 class RecuperarPasswordViewModel @JvmOverloads constructor(
     application: Application,
     private val auth: AuthRepository = AuthRepository(application),
@@ -55,7 +53,6 @@ class RecuperarPasswordViewModel @JvmOverloads constructor(
         }
     }
 
-    /** Un Conductor o un correo desconocido no tienen temporal (404): se avisa en el campo. */
     private fun ErrorApp?.deCorreo(): ErrorApp? =
         if (this == ErrorApp.NoEncontrado) ErrorApp.Validacion(mapOf("correo" to SIN_CUENTA)) else this
 

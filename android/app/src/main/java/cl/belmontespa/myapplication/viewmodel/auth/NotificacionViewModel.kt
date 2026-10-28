@@ -25,10 +25,6 @@ data class NotificacionUiState(
     val error: ErrorApp? = null,
 )
 
-/**
- * «Notificación push» y los escenarios de la build `demo`: lista los viajes de la sesión como si fueran avisos
- * y, al Conductor, ofrece los escenarios «Sin conexión» y «Cambio en conflicto». No recibe ningún push real.
- */
 class NotificacionViewModel @JvmOverloads constructor(
     application: Application,
     private val cuentas: CuentaRepository = CuentaRepository(application),

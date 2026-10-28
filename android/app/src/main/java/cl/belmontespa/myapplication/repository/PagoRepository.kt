@@ -12,7 +12,6 @@ import cl.belmontespa.myapplication.model.permiteCambioA
 import cl.belmontespa.myapplication.util.FechaIso
 import java.util.UUID
 
-/** Pago de un viaje (P1 a P3); P4 y P5 los aplica la cancelación del viaje. */
 open class PagoRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 

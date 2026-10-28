@@ -17,7 +17,6 @@ public class EstadoSolicitante {
 	@Column(name = "id", nullable = false)
 	private Long id;
 
-	// Pendiente, Aprobado o Rechazado.
 	@Column(name = "estado", length = 20, nullable = false, unique = true)
 	private String estado;
 

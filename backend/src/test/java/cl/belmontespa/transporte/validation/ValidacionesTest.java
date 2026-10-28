@@ -23,7 +23,6 @@ class ValidacionesTest {
 	private static final Validator VALIDADOR = Validation.byDefaultProvider().configure()
 			.messageInterpolator(new ParameterMessageInterpolator()).buildValidatorFactory().getValidator();
 
-	/** "campo: motivo" de cada violación, ordenadas. */
 	private static List<String> errores(Object dto) {
 		return VALIDADOR.validate(dto).stream()
 				.map((ConstraintViolation<Object> v) -> v.getPropertyPath() + ": " + v.getMessage())

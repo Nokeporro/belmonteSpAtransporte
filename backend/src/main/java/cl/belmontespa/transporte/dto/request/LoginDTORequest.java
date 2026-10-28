@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// tokenFcm opcional: si viene, reemplaza USUARIO.token_fcm (RF13).
 public record LoginDTORequest(
 		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correo,
 		@NotBlank String password,

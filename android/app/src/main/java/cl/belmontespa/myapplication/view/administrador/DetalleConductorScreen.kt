@@ -21,7 +21,6 @@ import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.administrador.DetalleConductorViewModel
 
-/** «Detalle de conductor»: sus datos, la edición, sus vehículos habilitados y desactivar o reactivar. */
 @Composable
 fun DetalleConductorScreen(
     correo: String,
@@ -30,7 +29,6 @@ fun DetalleConductorScreen(
     viewModel: DetalleConductorViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // Al volver del alta o de editar, el detalle debe leer los datos guardados.
     LaunchedEffect(correo) { viewModel.cargar(correo, forzar = true) }
     ContenedorPantalla(
         titulo = stringResource(PantallaDemo.DETALLE_CONDUCTOR.titulo),

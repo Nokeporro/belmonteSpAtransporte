@@ -7,7 +7,6 @@ import com.google.firebase.messaging.MessagingErrorCode;
 import com.google.firebase.messaging.Notification;
 import java.util.Map;
 
-/** Envoltorio mínimo sobre el SDK de Firebase Admin; la lógica vive en {@link FirebaseClient}. */
 public class FirebaseFcmSender implements FcmSender {
 
 	private final FirebaseMessaging messaging;
@@ -16,8 +15,6 @@ public class FirebaseFcmSender implements FcmSender {
 		this.messaging = messaging;
 	}
 
-	// USUARIO.token_fcm guarda el token de registro FCM que informa la app (RF13), que es lo que
-	// recibe setToken; el SDK ofrece setFid (ID de instalación) y marca setToken como obsoleto.
 	@Override
 	@SuppressWarnings("deprecation")
 	public void enviar(String tokenFcm, String titulo, String mensaje, Map<String, String> datos) {

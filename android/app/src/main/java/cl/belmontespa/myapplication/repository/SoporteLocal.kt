@@ -32,7 +32,6 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
-// Infraestructura compartida de los repositorios demo; no se accede a Room desde la UI.
 open class SoporteLocal(
     val db: AppDatabase,
     val sesiones: SesionStore,
@@ -41,7 +40,6 @@ open class SoporteLocal(
     fun ahora(): LocalDateTime = LocalDateTime.now(clock)
 
     companion object {
-        /** La base y la sesión únicas de la app, con el reloj de Chile. */
         fun de(application: Application): SoporteLocal =
             SoporteLocal(AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago)
     }
@@ -56,10 +54,6 @@ open class SoporteLocal(
         return Resultado.Exito(sesion)
     }
 
-    /**
-     * Corre [bloque] en una transacción de Room. Si devuelve un fallo, deshace lo que ya haya escrito: sale de la
-     * transacción con [Deshacer], que se atrapa aquí mismo y entrega ese fallo.
-     */
     suspend fun <T> ejecutar(bloque: suspend () -> Resultado<T>): Resultado<T> = try {
         db.withTransaction {
             when (val resultado = bloque()) {
@@ -80,7 +74,6 @@ open class SoporteLocal(
     suspend fun buscarViaje(folio: String): ViajeEntity? = db.viajeDao().obtener(folio)
     suspend fun buscarUsuario(correo: String): UsuarioEntity? = db.usuarioDao().obtener(correo)
 
-    /** El conductor con ese correo; `null` si no existe o la cuenta es de otro rol. */
     suspend fun conductor(correo: String): Conductor? =
         buscarUsuario(correo)?.takeIf { it.rol == Rol.CONDUCTOR.name }?.let { conductorDe(it) }
 
@@ -91,7 +84,6 @@ open class SoporteLocal(
             agenda.firstOrNull { it.estado == "EN_CURSO" }?.folio)
     }
 
-    /** El viaje, solo si está dentro del alcance de la sesión (el Solicitante los suyos, el Conductor los asignados). */
     suspend fun alcance(folio: String): Resultado<ViajeEntity> {
         val sesion = sesion().obtener { return it }
         val viaje = buscarViaje(folio) ?: return noEncontrado
@@ -101,22 +93,15 @@ open class SoporteLocal(
     }
 }
 
-/** Sale de la transacción de [SoporteLocal.ejecutar] para deshacerla; lleva el fallo que se devuelve. */
 private class Deshacer(val resultado: Resultado<Nothing>) : RuntimeException()
 
-/** Vigencia de toda contraseña temporal: la de RF21 y la inicial de un Administrador nuevo (CU-18). */
 internal val VIGENCIA_TEMPORAL: Duration = Duration.ofHours(24)
 
-// Los fallos que una operación devuelve con `return@ejecutar`.
 internal fun conflicto(mensaje: String) = Resultado.Fallo(ErrorApp.Conflicto(mensaje))
 internal fun invalido(errores: Map<String, String>) = Resultado.Fallo(ErrorApp.Validacion(errores))
 internal fun sinPermiso() = Resultado.Fallo(ErrorApp.SinPermiso())
 internal val noEncontrado = Resultado.Fallo(ErrorApp.NoEncontrado)
 
-/**
- * El valor de un resultado exitoso; si no lo es, ejecuta [salir] con el fallo, que corta la operación:
- * `val sesion = local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }`.
- */
 internal inline fun <T> Resultado<T>.obtener(salir: (Resultado<Nothing>) -> Nothing): T = when (this) {
     is Resultado.Exito -> valor
     is Resultado.Fallo -> salir(this)

@@ -30,7 +30,6 @@ data class DetalleConductorUiState(
     val cuenta: Cuenta? = null,
     val nombre: String = "",
     val telefono: String = "",
-    /** Contraseña nueva; vacía conserva la actual. */
     val password: String = "",
     val cargando: Boolean = true,
     val enviando: Boolean = false,
@@ -39,7 +38,6 @@ data class DetalleConductorUiState(
     val aviso: Int? = null,
 )
 
-/** «Detalle de conductor» (HU15, HU26): edita nombre, teléfono y contraseña, y lo desactiva o reactiva. */
 class DetalleConductorViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -52,7 +50,6 @@ class DetalleConductorViewModel @JvmOverloads constructor(
     private var correo: String? = null
     private var consulta: Job? = null
 
-    /** Vuelve a leer al volver del alta o de editar; lo que el Administrador ya escribió no se pisa. */
     fun cargar(correo: String, forzar: Boolean = false) {
         if (correo == this.correo && !forzar) return
         this.correo = correo
@@ -114,7 +111,6 @@ class DetalleConductorViewModel @JvmOverloads constructor(
         }
     }
 
-    /** Desactiva o reactiva (HU26); solo el Administrador, y el estado mostrado es el de la respuesta guardada. */
     fun cambiarActivo() {
         if (_estado.value.enviando) return
         _estado.update { it.copy(enviando = true, error = null, aviso = null) }

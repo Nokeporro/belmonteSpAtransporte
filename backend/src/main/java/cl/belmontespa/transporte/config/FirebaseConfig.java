@@ -15,8 +15,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// Push por FCM (RF12): solo existe si FIREBASE_CREDENTIALS_FILE apunta al JSON de la cuenta
-// de servicio. Si se indica pero no se puede leer, la app no arranca.
 @Configuration
 public class FirebaseConfig {
 

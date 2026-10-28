@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- HTTP solo hacia el anfitrión del emulador; cualquier otro destino exige HTTPS.
-     El host de la demostración se agrega con el APK release (T19). -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">

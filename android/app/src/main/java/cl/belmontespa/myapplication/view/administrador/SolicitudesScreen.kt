@@ -54,18 +54,12 @@ import cl.belmontespa.myapplication.viewmodel.administrador.SolicitudFila
 import cl.belmontespa.myapplication.viewmodel.administrador.SolicitudesUiState
 import cl.belmontespa.myapplication.viewmodel.administrador.SolicitudesViewModel
 
-/**
- * «Solicitudes» del Administrador (HU04): los viajes de todos los Solicitantes, con el filtro inicial
- * «Pendientes». En las pendientes que no están vencidas y tienen pasajeros, «Asignar» abre directo la
- * asignación.
- */
 @Composable
 fun SolicitudesScreen(
     onNavegar: (PantallaDemo, String) -> Unit,
     viewModel: SolicitudesViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // README (Retraso): «Atrasado» y «Vencido» se recalculan al volver a primer plano.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
     SolicitudesContenido(
         estado = estado,
@@ -94,7 +88,6 @@ fun SolicitudesContenido(
         val error = estado.error
         when {
             estado.cargando -> PantallaCargando()
-            // Sin nada que mostrar, el error ocupa la pantalla; con filas, avisa sobre la lista.
             error != null && estado.filas.isEmpty() -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = error.texto(), onReintentar = onActualizar)
             }
@@ -125,7 +118,6 @@ fun SolicitudesContenido(
                 items(estado.filas, key = { it.viaje.folio }) { fila ->
                     FilaSolicitud(fila, onVerDetalle = { onVerDetalle(fila.viaje) }, onAsignar = { onAsignar(fila.viaje) })
                 }
-                // Alternativa al gesto de deslizar para actualizar.
                 item { BotonAncho(stringResource(R.string.accion_actualizar), onActualizar, tipo = TipoBoton.SECUNDARIO) }
             }
         }
@@ -186,7 +178,6 @@ private fun FilaSolicitud(fila: SolicitudFila, onVerDetalle: () -> Unit, onAsign
     }
 }
 
-// Los filtros usan las etiquetas de estado; «Pendientes» y «Todas» llevan el plural de los mockups.
 @get:StringRes
 private val FiltroSolicitudes.etiqueta: Int
     get() = when (this) {

@@ -20,7 +20,6 @@ data class PerfilUiState(
     val error: ErrorApp? = null,
 )
 
-/** «Perfil» de los tres roles: los datos de la cuenta de la sesión; los enlaces cambian según el rol. */
 class PerfilViewModel @JvmOverloads constructor(
     application: Application,
     private val cuentas: CuentaRepository = CuentaRepository(application),
@@ -29,7 +28,6 @@ class PerfilViewModel @JvmOverloads constructor(
     private val _estado = MutableStateFlow(PerfilUiState())
     val estado: StateFlow<PerfilUiState> = _estado.asStateFlow()
 
-    /** Idempotente; «Reintentar» pasa [forzar]. */
     fun cargar(forzar: Boolean = false) {
         if (!forzar && _estado.value.cuenta != null) return
         _estado.update { it.copy(cargando = true, error = null) }

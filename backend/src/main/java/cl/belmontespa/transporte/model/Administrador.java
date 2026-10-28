@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Extensión 1:1 de USUARIO, sin atributos propios. Se crea solo por migración Flyway.
 @Getter
 @Setter
 @NoArgsConstructor

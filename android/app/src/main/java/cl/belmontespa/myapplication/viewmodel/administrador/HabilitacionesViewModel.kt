@@ -24,24 +24,17 @@ data class HabilitacionesUiState(
     val conductores: List<Conductor> = emptyList(),
     val moviles: List<Movil> = emptyList(),
     val habilitaciones: List<Habilitacion> = emptyList(),
-    /** Filtros de la lista, por patente y por correo del conductor; vacío es «todos». Independientes del alta. */
     val filtroVehiculo: String = "",
     val filtroConductor: String = "",
-    /** Lo elegido para habilitar. */
     val vehiculo: String = "",
     val conductor: String = "",
     val cargando: Boolean = true,
     val enviando: Boolean = false,
-    /** Hay una selección sin guardar; los filtros no cuentan. */
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
     val aviso: Int? = null,
 )
 
-/**
- * «Gestionar habilitaciones» (HU18): qué conductor puede manejar qué vehículo. Se abre desde un conductor o desde un
- * vehículo con ese lado ya elegido y filtrado; solo agrega relaciones entre activos y nunca las duplica.
- */
 class HabilitacionesViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -53,10 +46,6 @@ class HabilitacionesViewModel @JvmOverloads constructor(
     private var origen: String? = null
     private var consulta: Job? = null
 
-    /**
-     * [referencia] es `vehiculo:{patente}`, `conductor:{correo}` o vacía. Solo la primera lectura la aplica a los
-     * filtros y a la selección; [forzar] vuelve a leer las listas sin perder lo que el Administrador ya eligió.
-     */
     fun cargar(referencia: String, forzar: Boolean = false) {
         if (referencia == origen && !forzar) return
         val primera = origen == null
@@ -95,7 +84,6 @@ class HabilitacionesViewModel @JvmOverloads constructor(
         origen?.let { cargar(it, forzar = true) }
     }
 
-    /** Cambiar un filtro vuelve a leer solo la lista; no toca la selección de alta ni la marca de cambios. */
     fun filtrarPorVehiculo(patente: String) {
         _estado.update { it.copy(filtroVehiculo = patente) }
         releer()

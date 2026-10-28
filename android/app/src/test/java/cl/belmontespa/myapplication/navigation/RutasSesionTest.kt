@@ -15,7 +15,6 @@ class RutasSesionTest {
     private fun autenticada(rol: Rol, correo: String = "usuario@belmontespa.cl") =
         EstadoSesion.Autenticada(sesion(rol, correo))
 
-    // ---- Una ruta por pantalla ----
 
     @Test
     fun cadaPantallaTieneSuPropiaRuta() {
@@ -55,7 +54,6 @@ class RutasSesionTest {
         Rol.entries.forEach { assertEquals(inicioDe(it).ruta, itemsBarra(it).first().ruta) }
     }
 
-    // ---- A dónde ir cuando cambia la sesión ----
 
     @Test
     fun alEntrarVaAlInicioDeSuRol() {
@@ -95,7 +93,6 @@ class RutasSesionTest {
         assertNull(grafoDeSesion(Destino(PantallaDemo.CAMBIO_OBLIGATORIO), EstadoSesion.Temporal(sesion(Rol.SOLICITANTE))))
     }
 
-    // ---- Conservar la pantalla abierta (p. ej. tras una rotación) ----
 
     @Test
     fun unaRotacionConservaElDetalleAutorizado() {

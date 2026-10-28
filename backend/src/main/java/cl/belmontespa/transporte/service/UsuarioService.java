@@ -66,14 +66,12 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 		return UsuarioDTOResponse.from(usuario);
 	}
 
-	// Usuario guardado y listo para extenderse con un rol (Administrador, Conductor, Solicitante).
 	Usuario nuevo(String nombre, String correo, String telefono, String password) {
 		Usuario usuario = prepararAlta(nombre, correo, telefono, password);
 		usuario.setPasswordHash(passwordEncoder.encode(password));
 		return usuarioRepository.saveAndFlush(usuario);
 	}
 
-	// CU-18: no existe una contraseña permanente hasta completar el cambio obligatorio.
 	Usuario nuevoConTemporal(String nombre, String correo, String telefono, String password, long horas) {
 		Usuario usuario = prepararAlta(nombre, correo, telefono, password);
 		usuario.setPasswordHash("*");
@@ -96,7 +94,6 @@ public class UsuarioService extends CrudService<Usuario, String, UsuarioDTOReque
 		return usuario;
 	}
 
-	// PUT: password vacía conserva la actual; una nueva anula la contraseña temporal (RF21).
 	void reemplazarDatos(Usuario usuario, String nombre, String correo, String telefono, String password) {
 		if (!usuario.getCorreo().equalsIgnoreCase(correo) && usuarioRepository.existsByCorreoIgnoreCase(correo)) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");

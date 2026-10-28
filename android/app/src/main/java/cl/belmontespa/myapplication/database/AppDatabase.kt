@@ -25,11 +25,6 @@ import cl.belmontespa.myapplication.model.UsuarioEntity
 import cl.belmontespa.myapplication.model.ViajeEntity
 import cl.belmontespa.myapplication.model.ViajePasajeroEntity
 
-/**
- * `belmonte_local.db`, versión 2. En la build demo es la fuente de verdad; en la remota guarda solo
- * los viajes consultados y la cola. Un cambio de esquema sube la versión con su Migration (el esquema
- * exportado queda en app/schemas/), nunca con fallbackToDestructiveMigration.
- */
 @Database(
     entities = [
         UsuarioEntity::class,
@@ -59,10 +54,6 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instancia: AppDatabase? = null
 
-        /**
-         * La base única de la app. `DatosDemo` se carga en las builds debug y demo; en release, Room guarda lo que
-         * llega del backend.
-         */
         fun getDatabase(context: Context): AppDatabase =
             instancia ?: synchronized(this) {
                 instancia ?: crear(context.applicationContext).also { instancia = it }
@@ -75,7 +66,6 @@ abstract class AppDatabase : RoomDatabase() {
             return constructor.build()
         }
 
-        /** Solo para pruebas: cambia la base de la app por una en memoria (o `null` para volver a la real). */
         @VisibleForTesting
         fun reemplazarParaPruebas(db: AppDatabase?) {
             instancia = db

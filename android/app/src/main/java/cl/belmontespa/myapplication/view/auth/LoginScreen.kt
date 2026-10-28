@@ -56,7 +56,6 @@ fun LoginScreen(
     modoDemoForzado: Boolean? = null,
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // El correo confirmado vuelve al Login sin transportar la contraseña.
     LaunchedEffect(correoInicial) {
         if (correoInicial.isNotBlank()) viewModel.cambiarCorreo(correoInicial)
     }
@@ -81,7 +80,6 @@ fun LoginContenido(
     onCrearCuenta: () -> Unit,
     onAbordarViaje: () -> Unit,
 ) {
-    // «Recuperar contraseña» no navega: la temporal la genera un Administrador (CU-13).
     var pedirTemporal by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier

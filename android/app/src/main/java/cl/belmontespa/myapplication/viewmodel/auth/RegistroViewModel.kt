@@ -25,17 +25,14 @@ data class RegistroUiState(
     val razonSocial: String = "",
     val rutEmpresa: String = "",
     val enviando: Boolean = false,
-    /** Hay datos escritos que se perderían al salir. */
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** Cuenta aprobada o por aprobar, según la empresa ya existiera. */
     val aviso: Int? = null,
 ) {
     val registrado: Boolean
         get() = aviso == R.string.aviso_registro_aprobado || aviso == R.string.aviso_registro_pendiente
 }
 
-/** «Crear cuenta solicitante» (RF01): el autorregistro, sin sesión. Las reglas las aplica el repositorio. */
 class RegistroViewModel @JvmOverloads constructor(
     application: Application,
     private val auth: AuthRepository = AuthRepository(application),

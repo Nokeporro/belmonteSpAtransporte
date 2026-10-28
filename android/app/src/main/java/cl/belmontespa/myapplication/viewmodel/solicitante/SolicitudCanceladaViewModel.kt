@@ -23,7 +23,6 @@ data class SolicitudCanceladaUiState(
     val error: ErrorApp? = null,
 )
 
-/** «Solicitud cancelada» (HU16): el viaje cancelado y lo que pasó con su pago, leídos de lo guardado. */
 class SolicitudCanceladaViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -36,7 +35,6 @@ class SolicitudCanceladaViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var consulta: Job? = null
 
-    /** Idempotente con el mismo folio; [forzar] vuelve a leerlo. */
     fun cargar(folio: String, forzar: Boolean = false) {
         if (folio == this.folio && !forzar) return
         this.folio = folio

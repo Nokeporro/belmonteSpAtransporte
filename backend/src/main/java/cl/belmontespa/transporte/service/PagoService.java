@@ -77,7 +77,6 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return pagoRepository.findByHash(hash);
 	}
 
-	// CU-11/RF18: nace Pendiente, lo paga la empresa del Solicitante y queda asociado al viaje.
 	@Override
 	protected Pago nuevaEntidad(PagoDTORequest request) {
 		Viaje viaje = viajeRepository.bloquearPorFolio(request.folio())
@@ -117,16 +116,12 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return PagoDTOResponse.from(pago, request.folio());
 	}
 
-	// CU-12/RF19: P2/P3 y V6 se confirman juntos. El bloqueo precede a la lectura del pago
-	// para que dos cambios o una cancelación concurrentes no usen un estado anterior.
 	@Transactional
 	public PagoDTOResponse cambiarEstado(String hash, CambiarEstadoPagoDTORequest request) {
 		String claveViaje = viajeRepository.folioPorHashPago(hash)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		Viaje viaje = viajeRepository.bloquearPorFolio(claveViaje)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-		// Orden único: VIAJE, luego PAGO. La lectura bloqueante ve el último estado confirmado
-		// aunque la búsqueda del folio haya abierto una instantánea REPEATABLE_READ anterior.
 		Pago pago = pagoRepository.bloquearPorHash(hash)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 		String actual = pago.getEstadoPago().getEstado();
@@ -162,15 +157,12 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return PagoDTOResponse.from(pago, folio);
 	}
 
-	// Todos los pagos, por folio descendente. El pago no guarda su folio: es el del viaje que lo
-	// referencia (viaje.pago_id), por eso la lista parte de los viajes.
 	@Override
 	@Transactional(readOnly = true)
 	public List<PagoDTOResponse> listar() {
 		return pagosPorFolioDescendente(viajeRepository.findByPagoIsNotNull());
 	}
 
-	// RF20: pagos de los viajes del Solicitante, por folio descendente.
 	@Transactional(readOnly = true)
 	public List<PagoDTOResponse> listarDeSolicitante(String correo) {
 		Solicitante solicitante = solicitanteService.buscarOFallar(correo);
@@ -185,7 +177,6 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 				.toList();
 	}
 
-	// V5/P4/P5: el reembolso del 50 % usa pesos enteros y se redondea hacia abajo.
 	void cancelarPorSolicitante(Pago pago) {
 		String actual = pago.getEstadoPago().getEstado();
 		if (PENDIENTE.equals(actual)) {
@@ -196,8 +187,6 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		}
 	}
 
-	// V7: el Administrador reembolsa el 100 %; con el viaje vencido y el pago PAGADO fija él el monto, de
-	// 0 al total. En cualquier otro caso el `montoReembolso` se ignora.
 	int reembolsoDelAdministrador(Pago pago, boolean vencido, Integer fijado) {
 		if (!PAGADO.equals(pago.getEstadoPago().getEstado()) || !vencido) {
 			return pago.getMonto();
@@ -212,7 +201,6 @@ public class PagoService extends CrudService<Pago, String, PagoDTORequest, PagoD
 		return fijado;
 	}
 
-	// V7/P4/P5: un reembolso de 0 deja el pago PAGADO, sin monto reembolsado.
 	void cancelarPorAdministrador(Pago pago, int reembolso) {
 		String actual = pago.getEstadoPago().getEstado();
 		if (PENDIENTE.equals(actual)) {

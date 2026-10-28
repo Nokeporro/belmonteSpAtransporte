@@ -27,22 +27,18 @@ public class Usuario {
 	@Column(name = "telefono", length = 20)
 	private String telefono;
 
-	// Nunca texto plano (RNF01).
 	@Column(name = "password_hash", length = 200, nullable = false)
 	private String passwordHash;
 
-	// Temporal de RF21 o CU-18; no reemplaza a password_hash: sirve hasta password_temporal_expira.
 	@Column(name = "password_temporal_hash", length = 200)
 	private String passwordTemporalHash;
 
 	@Column(name = "password_temporal_expira")
 	private LocalDateTime passwordTemporalExpira;
 
-	// DEFAULT CURRENT_TIMESTAMP de la base de datos.
 	@Column(name = "fecha_registro", nullable = false, insertable = false, updatable = false)
 	private LocalDateTime fechaRegistro;
 
-	// Se reemplaza en cada login (RF13) y es único: se le quita a cualquier otro usuario.
 	@Column(name = "token_fcm", length = 255, unique = true)
 	private String tokenFcm;
 

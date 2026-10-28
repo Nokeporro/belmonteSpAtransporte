@@ -19,7 +19,6 @@ import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.view.components.rememberAhora
 import cl.belmontespa.myapplication.viewmodel.solicitante.ConfirmarCancelacionViewModel
 
-/** «Confirmar cancelación»: dice qué pasa con el pago y, al confirmar, abre «Solicitud cancelada». */
 @Composable
 fun ConfirmarCancelacionScreen(
     folio: String,

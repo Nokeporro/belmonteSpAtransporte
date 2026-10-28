@@ -75,7 +75,6 @@ class SeguridadIT extends IntegrationTest {
 		assertThat(api.get("/moviles", conductor.token()).status()).isEqualTo(403);
 		assertThat(api.get("/moviles", solicitante.token()).status()).isEqualTo(403);
 		assertThat(api.post("/viajes/NOEXISTE/asignar", solicitante.token(), "{}").status()).isEqualTo(403);
-		// V8 es solo del conductor: ni el Administrador ni el Solicitante, y antes de validar el cuerpo.
 		assertThat(api.post("/viajes/NOEXISTE/rechazar", solicitante.token(), "{}").status()).isEqualTo(403);
 		assertThat(api.post("/viajes/NOEXISTE/rechazar", api.admin(), "{}").status()).isEqualTo(403);
 		assertThat(api.post("/usuarios", solicitante.token(), "{}").status()).isEqualTo(403);
@@ -120,7 +119,6 @@ class SeguridadIT extends IntegrationTest {
 	@Test
 	@DisplayName("un usuario sin rol no puede iniciar sesión")
 	void usuarioSinRolNoInicia() {
-		// Ninguna ruta crea usuarios sin rol (no hay POST /usuarios): se inserta por SQL.
 		String correo = "sinrol-" + System.nanoTime() + "@test.cl";
 		jdbc.update("INSERT INTO usuario (nombre, correo, password_hash) VALUES (?, ?, ?)",
 				"Sin rol", correo, passwordEncoder.encode(Api.CLAVE));
@@ -177,9 +175,7 @@ class SeguridadIT extends IntegrationTest {
 	@Test
 	@DisplayName("los endpoints públicos no piden token")
 	void endpointsPublicos() {
-		// POST /solicitantes es el autorregistro (RF01): sin token llega a la validación.
 		assertThat(api.post("/solicitantes", null, "{\"correo\":\"x\"}").status()).isEqualTo(400);
-		// Recuperar la contraseña es del Administrador (CU-13): sin token no llega a la validación.
 		assertThat(api.post("/auth/recuperar-password", null, "{\"correo\":\"nadie@test.cl\"}").status())
 				.isEqualTo(401);
 	}

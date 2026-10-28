@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-/** {@link FcmSender} de pruebas: en vez de llamar a Firebase, guarda lo que se enviaría. */
 public class FcmGrabador implements FcmSender {
 
 	public record Envio(String token, String titulo, String mensaje, Map<String, String> datos) {

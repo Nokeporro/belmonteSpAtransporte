@@ -17,7 +17,6 @@ import cl.belmontespa.myapplication.view.components.Dato
 import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.viewmodel.auth.PerfilViewModel
 
-/** «Perfil» del Solicitante, del Administrador y del Conductor; `onVolver` es `null` en la barra inferior. */
 @Composable
 fun PerfilScreen(
     pantalla: PantallaDemo,

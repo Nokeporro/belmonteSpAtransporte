@@ -6,6 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ComunaRepository extends JpaRepository<Comuna, Long> {
 
-	// UNIQUE (nombre, id_region): el nombre solo no identifica la comuna.
 	Optional<Comuna> findByNombreAndRegionNombre(String nombre, String nombreRegion);
 }

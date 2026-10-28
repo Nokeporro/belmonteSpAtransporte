@@ -40,7 +40,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** Detalle del viaje del Conductor (HU08): datos, arqueo, ventana de inicio y controles de estado. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class DetalleViajeViewModelTest {
 
@@ -256,7 +255,6 @@ class DetalleViajeViewModelTest {
         assertEquals(Inicio.ANTES_DE_LA_VENTANA, vm.estado.value.inicio)
 
         reloj.ahora = reloj.ahora.plusMinutes(40)
-        // Sin volver a primer plano, la pantalla conserva lo último que calculó.
         assertEquals(Inicio.ANTES_DE_LA_VENTANA, vm.estado.value.inicio)
         vm.alVolverAPrimerPlano()
 
@@ -568,7 +566,6 @@ class DetalleViajeViewModelTest {
         assertNull(vm.estado.value.error)
         assertEquals("TR-1042", vm.estado.value.viaje?.folio)
     }
-    // --- Navegar (HU10) ---
 
     private val origen = Ubicacion("Aeropuerto A. Merino Benítez", "Pudahuel", "Metropolitana de Santiago", -33.393, -70.786)
     private val destino = Ubicacion("Av. Apoquindo 5400", "Las Condes", "Metropolitana de Santiago", -33.41, -70.57)
@@ -780,7 +777,6 @@ class DetalleViajeViewModelTest {
     }
 }
 
-/** Un solo viaje observable; guarda los cambios de estado y rechazos que le piden y responde con lo que la prueba diga. */
 private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
     val viaje = MutableStateFlow<Viaje?>(null)
     val refrescados = mutableListOf<String>()

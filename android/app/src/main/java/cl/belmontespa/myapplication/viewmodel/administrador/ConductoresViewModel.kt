@@ -20,7 +20,6 @@ data class ConductoresUiState(
     val error: ErrorApp? = null,
 )
 
-/** «Conductores» (HU15): la lista con el estado y los viajes asignados de cada uno. */
 class ConductoresViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -29,7 +28,6 @@ class ConductoresViewModel @JvmOverloads constructor(
     private val _estado = MutableStateFlow(ConductoresUiState())
     val estado: StateFlow<ConductoresUiState> = _estado.asStateFlow()
 
-    /** Se llama al abrir y al volver del alta o de editar, para leer lo guardado. */
     fun cargar() {
         _estado.update { it.copy(cargando = true, error = null) }
         viewModelScope.launch {

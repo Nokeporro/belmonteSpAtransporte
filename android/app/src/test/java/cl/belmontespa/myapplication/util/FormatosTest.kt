@@ -18,7 +18,6 @@ import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Etiquetas y formatos de README (Textos y tema). */
 class FormatosTest {
 
     @Test
@@ -60,7 +59,6 @@ class FormatosTest {
     @Test
     fun telefonoNormalizadoEnGrupos() {
         assertEquals("+56 9 5555 0101", Formatos.telefono("+56955550101"))
-        // Uno que no está normalizado se muestra tal cual, sin inventar dígitos.
         assertEquals("955550101", Formatos.telefono("955550101"))
     }
 

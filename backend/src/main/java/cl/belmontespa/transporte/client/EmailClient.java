@@ -12,12 +12,6 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
-/**
- * Revisión de cuentas (CU-17/RF26) por SMTP. El servidor se configura con
- * SPRING_MAIL_HOST, SPRING_MAIL_PORT, SPRING_MAIL_USERNAME y SPRING_MAIL_PASSWORD; sin
- * SPRING_MAIL_HOST solo se registra que no se envió. La contraseña temporal no viaja por aquí: la entrega el
- * Administrador (CU-13/RF21).
- */
 @Slf4j
 @Component
 public class EmailClient {

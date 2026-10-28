@@ -16,10 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * Las migraciones sobre una base vacía y sobre una que ya tiene datos. Comparte {@code belmonte_test}
- * con el resto de las IT, así que cada prueba la deja limpia y migrada al terminar.
- */
 @DisplayName("Migraciones: la cadena completa, V4 y V5 sobre una base con datos")
 class MigracionesIT extends IntegrationTest {
 
@@ -54,7 +50,6 @@ class MigracionesIT extends IntegrationTest {
 				columna));
 	}
 
-	// UNIQUE sobre esa sola columna.
 	private boolean esUnica(String tabla, String columna) {
 		return jdbc.queryForObject("""
 				SELECT COUNT(*) FROM (
@@ -97,7 +92,6 @@ class MigracionesIT extends IntegrationTest {
 		assertThat(valores("SELECT estado FROM estado_pago")).contains("REEMBOLSADO");
 		assertThat(valores("SELECT nombre FROM estado_movil")).containsExactlyInAnyOrder("DISPONIBLE", "EN_USO");
 
-		// La contraseña de desarrollo de V3 queda como temporal del Administrador.
 		assertThat(valores("SELECT password_hash FROM usuario WHERE correo = 'admin@belmontespa.cl'"))
 				.containsExactly("*");
 		assertThat(valores("SELECT password_temporal_hash FROM usuario WHERE correo = 'admin@belmontespa.cl'"))
@@ -196,7 +190,6 @@ class MigracionesIT extends IntegrationTest {
 		hastaV3.clean();
 		hastaV3.migrate();
 
-		// Datos como los dejó V3: sin estado de solicitante, activo ni contraseña temporal aparte.
 		jdbc.update("INSERT INTO empresa (razon_social, rut) VALUES ('Empresa vieja', '76.111.111-1')");
 		long empresa = jdbc.queryForObject("SELECT id_empresa FROM empresa", Long.class);
 		long ana = usuario("ana@mig.cl", "hash-ana", null, false);
@@ -221,7 +214,6 @@ class MigracionesIT extends IntegrationTest {
 				        (SELECT MIN(id) FROM banco), ?, (SELECT MIN(id) FROM medio_pago),
 				        (SELECT MIN(id) FROM tipo_recibo), '2026-10-01 10:00:00')""", empresa);
 
-		// Viajes como los dejó V3: el folio era VJ más un UUID.
 		ubicacion("Av. Vieja 1");
 		viaje("VJAAAAAAAAAAAAAAAAAA");
 		viaje("VJBBBBBBBBBBBBBBBBBB");
@@ -229,12 +221,10 @@ class MigracionesIT extends IntegrationTest {
 		flyway.migrate();
 		assertThat(flyway.info().pending()).isEmpty();
 
-		// Solicitantes existentes: aprobados.
 		assertThat(valores("""
 				SELECT e.estado FROM solicitante s JOIN estado_solicitante e ON e.id = s.estado_solicitante_id"""))
 				.hasSize(3).containsOnly("APROBADO");
 
-		// La temporal pendiente pasa a su columna; la contraseña normal no se toca.
 		assertThat(valores("SELECT password_hash FROM usuario WHERE correo = 'ana@mig.cl'"))
 				.containsExactly("hash-ana");
 		assertThat(valores("SELECT password_temporal_hash FROM usuario WHERE correo = 'ana@mig.cl'"))
@@ -245,7 +235,6 @@ class MigracionesIT extends IntegrationTest {
 		assertThat(valores("SELECT password_hash FROM usuario WHERE correo = 'admin@belmontespa.cl'"))
 				.containsExactly("*");
 
-		// Un token compartido no lo conserva nadie; uno propio sigue y ahora es único.
 		assertThat(valores("SELECT token_fcm FROM usuario WHERE correo IN ('cami@mig.cl', 'dani@mig.cl')"))
 				.containsOnlyNulls();
 		assertThat(valores("SELECT token_fcm FROM usuario WHERE correo = 'eli@mig.cl'"))
@@ -253,7 +242,6 @@ class MigracionesIT extends IntegrationTest {
 		assertThatThrownBy(() -> jdbc.update("UPDATE usuario SET token_fcm = 'fcm-unico' WHERE correo = 'ana@mig.cl'"))
 				.isInstanceOf(DataIntegrityViolationException.class);
 
-		// MANTENCION desaparece: ese vehículo queda Disponible pero inactivo.
 		assertThat(valores("SELECT nombre FROM estado_movil")).containsExactlyInAnyOrder("DISPONIBLE", "EN_USO");
 		assertThat(valores("""
 				SELECT CONCAT(e.nombre, '/', m.activo) FROM movil m
@@ -265,21 +253,17 @@ class MigracionesIT extends IntegrationTest {
 				.containsExactly("EN_USO/1");
 		assertThat(valores("SELECT CAST(activo AS CHAR) FROM conductor")).hasSize(2).containsOnly("1");
 
-		// El pago existente conserva sus datos.
 		assertThat(valores("SELECT CAST(fecha_pago AS CHAR) FROM pago WHERE hash = 'pago-viejo'"))
 				.containsExactly("2026-10-01 10:00:00");
 		assertThat(valores("SELECT monto_reembolsado FROM pago WHERE hash = 'pago-viejo'")).containsOnlyNulls();
 
-		// Los folios existentes pasan a TR- en orden de creación y la secuencia sigue desde ahí.
 		assertThat(valores("SELECT folio FROM viaje ORDER BY id_viaje")).containsExactly("TR-1001", "TR-1002");
 		assertThat(folio(viaje("lo-ignora-la-base"))).isEqualTo("TR-1003");
 
-		// Cada vehículo existente recibe su código de abordaje: 16 hexadecimales en mayúsculas, distintos.
 		assertThat(valores("SELECT codigo_abordaje FROM movil")).hasSize(2)
 				.allMatch(codigo -> codigo.matches("[0-9A-F]{16}")).doesNotHaveDuplicates();
 	}
 
-	// Solicitante aprobado y dos ubicaciones, lo mínimo para insertar viajes en el esquema final.
 	private void escenarioDeViajes() {
 		jdbc.update("INSERT INTO empresa (razon_social, rut) VALUES ('Empresa de viajes', '76.333.333-3')");
 		long usuario = usuario("viajes@mig.cl", "hash-viajes", null, false);
@@ -297,8 +281,6 @@ class MigracionesIT extends IntegrationTest {
 				VALUES (?, (SELECT MIN(id_comuna) FROM comuna), -33.426100, -70.611000)""", direccion);
 	}
 
-	// Viaje PENDIENTE del primer solicitante, con origen y destino en la primera ubicación; devuelve su id.
-	// Desde V5 el folio lo asigna la base, así que el que se pasa solo cuenta en una base anterior.
 	private long viaje(String folio) {
 		jdbc.update("""
 				INSERT INTO viaje (folio, id_solicitante, id_origen, id_destino, id_estado, fh_agenda)
@@ -329,7 +311,6 @@ class MigracionesIT extends IntegrationTest {
 		return valores("SELECT campo_modificado FROM historial_viaje WHERE id_viaje = ?", idViaje);
 	}
 
-	// Usuario como lo guardaba V3: la temporal vigente estaba en password_hash.
 	private long usuario(String correo, String passwordHash, String tokenFcm, boolean temporalPendiente) {
 		jdbc.update("""
 				INSERT INTO usuario (nombre, correo, password_hash, token_fcm, password_temporal_expira)
@@ -344,7 +325,6 @@ class MigracionesIT extends IntegrationTest {
 				VALUES (?, 4, (SELECT id_estado_mov FROM estado_movil WHERE nombre = ?))""", patente, estado);
 	}
 
-	// Pago PENDIENTE de la empresa 'Empresa de pago'; devuelve su hash.
 	private String nuevoPago(String hash) {
 		jdbc.update("""
 				INSERT INTO pago (hash, monto, estado_pago_id, banco_id, empresa_id_empresa, medio_pago_id,

@@ -11,10 +11,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * El `Intent` de cada aplicación (README, Navegar) y cómo se reporta lo instalado. Qué aplicaciones hay en el emulador no
- * se supone: solo se comprueba lo que vale en cualquier teléfono.
- */
 @RunWith(AndroidJUnit4::class)
 class NavegadorAndroidTest {
 

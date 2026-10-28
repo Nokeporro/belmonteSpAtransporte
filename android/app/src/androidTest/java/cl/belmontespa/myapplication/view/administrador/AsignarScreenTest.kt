@@ -27,7 +27,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Asignar conductor y vehículo» (HU05) con un estado fijo: lo que se ve y lo que se avisa, sin Room ni ViewModel. */
 class AsignarScreenTest {
 
     @get:Rule

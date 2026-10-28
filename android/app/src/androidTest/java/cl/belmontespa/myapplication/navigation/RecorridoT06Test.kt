@@ -33,7 +33,6 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 
-// Renderiza todas las variantes sobre Room en memoria, sin navegar al backend.
 class RecorridoT06Test {
     @get:Rule(order = 0) val entorno = EntornoPruebas()
     @get:Rule(order = 1) val compose = createAndroidComposeRule<MainActivity>()
@@ -46,12 +45,10 @@ class RecorridoT06Test {
     @Test fun las46VariantesCarganConDatosDemoSinErrores() {
         var seleccion by mutableStateOf(PantallaDemo.REGISTRO to "")
         val pagos = runBlocking { local.db.pagoDao().observarTodos().first() }
-        // Prepara una cancelación real para verificar también la pantalla de resultado.
         runBlocking {
             sesiones.guardar(sesion(Rol.SOLICITANTE))
             assertTrue(operaciones.cancelar("TR-1051", null, null) is Resultado.Exito)
         }
-        // El código y la hora del abordaje viajan en el id de la ruta (HU29): no hay estado compartido entre las pantallas.
         val horaAbordaje = runBlocking { local.db.viajePasajeroDao().obtenerDelViaje("TR-1042").first { it.fhAbordaje != null }.fhAbordaje!! }
         compose.activity.runOnUiThread {
             compose.activity.setContent {
@@ -88,7 +85,6 @@ class RecorridoT06Test {
                 compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
                 compose.onAllNodesWithTag("pantalla_error").assertCountEquals(0)
             } else compose.waitForIdle()
-            // Capturas de ejemplos para revisar el resultado fuera del emulador.
             if (pantalla in listOf(PantallaDemo.LOGIN_DEMO, PantallaDemo.MIS_SOLICITUDES, PantallaDemo.NUEVA_SOLICITUD, PantallaDemo.DETALLE_ADMIN, PantallaDemo.DETALLE_VEHICULO, PantallaDemo.PERFIL_CONDUCTOR)) {
                 val directorio = File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "t06-capturas").apply { mkdirs() }
                 File(directorio, "${pantalla.name}.png").outputStream().use { salida -> compose.onRoot().captureToImage().asAndroidBitmap().compress(android.graphics.Bitmap.CompressFormat.PNG, 100, salida) }
@@ -130,7 +126,6 @@ class RecorridoT06Test {
             }
         }
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("pantalla_contenido").fetchSemanticsNodes().isNotEmpty() }
-        // Sin Google Places, el origen y el destino se eligen de la lista de lugares ficticios.
         val (origen, destinoLugar) = DatosDemo.lugares.take(2)
         compose.onNodeWithText(compose.activity.getString(R.string.campo_origen)).performScrollTo().performClick()
         compose.onNodeWithText("${origen.direccion} · ${origen.comuna}").performClick()

@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Immutable;
 
-// Solo lectura: lo llenan los triggers de VIAJE, nunca la aplicación.
 @Getter
 @NoArgsConstructor
 @Entity
@@ -22,11 +21,9 @@ public class HistorialViaje {
 	@JoinColumn(name = "id_viaje", nullable = false)
 	private Viaje viaje;
 
-	// Campo de VIAJE que cambió.
 	@Column(name = "campo_modificado", length = 30, nullable = false)
 	private String campoModificado;
 
-	// Valor nuevo, como texto.
 	@Column(name = "valor", length = 200, nullable = false)
 	private String valor;
 

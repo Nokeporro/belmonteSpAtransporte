@@ -21,7 +21,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Confirmar inicio» (HU09) con un estado fijo: lo que se dice y cuándo se puede iniciar, sin Room ni ViewModel. */
 class ConfirmarInicioScreenTest {
 
     @get:Rule

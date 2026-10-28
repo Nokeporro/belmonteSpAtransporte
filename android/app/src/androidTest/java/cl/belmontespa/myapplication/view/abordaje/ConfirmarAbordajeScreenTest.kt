@@ -19,7 +19,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Confirmar abordaje» (HU29) con un estado fijo: el vehículo, el documento y cada error, sin repositorio ni ViewModel. */
 class ConfirmarAbordajeScreenTest {
 
     @get:Rule
@@ -45,7 +44,6 @@ class ConfirmarAbordajeScreenTest {
 
     private fun texto(id: Int) = textos.getString(id)
 
-    // El título de la pantalla dice lo mismo que el botón: el botón es el que se puede tocar.
     private fun botonConfirmar() = hasText(texto(R.string.abordaje_confirmar)) and hasClickAction()
 
     @Test

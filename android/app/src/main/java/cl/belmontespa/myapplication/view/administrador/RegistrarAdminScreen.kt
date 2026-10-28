@@ -15,7 +15,6 @@ import cl.belmontespa.myapplication.view.components.CampoFormulario
 import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 import cl.belmontespa.myapplication.viewmodel.administrador.RegistrarAdminViewModel
 
-/** «Registrar administrador»: el alta se confirma en la misma pantalla, que conserva los datos guardados. */
 @Composable
 fun RegistrarAdminScreen(
     onVolver: () -> Unit,

@@ -20,7 +20,6 @@ import cl.belmontespa.myapplication.view.components.deCampo
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.administrador.RegistrarPagoViewModel
 
-/** «Registrar pago»: al guardar abre el detalle del pago, que nace `PENDIENTE`. */
 @Composable
 fun RegistrarPagoScreen(
     folio: String,

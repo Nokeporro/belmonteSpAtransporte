@@ -19,7 +19,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.*
 import org.junit.Assert.*
 
-/** «Reasignar» (HU23) de punta a punta sobre Room: del detalle de un viaje Asignado a «Asignar conductor y vehículo» y de vuelta. */
 class HU23ScreenTest {
     @get:Rule(order = 0) val entorno = EntornoPruebas()
     @get:Rule(order = 1) val compose = createAndroidComposeRule<MainActivity>()
@@ -52,15 +51,12 @@ class HU23ScreenTest {
         compose.onNodeWithText("Iván Reyes").performScrollTo().assertIsDisplayed()
         reasignar()
 
-        // Nada viene elegido: Iván, el conductor actual, sigue disponible para elegirse, pero Paula es la nueva.
         esperarTexto("Paula Muñoz")
         compose.onNodeWithText("Paula Muñoz").performScrollTo().performClick()
         esperarTexto("KXJR42")
         compose.onNodeWithText("KXJR42").performScrollTo().performClick()
         confirmar().assertIsEnabled().performClick()
 
-        // Vuelve al detalle del viaje: «Reasignar» solo existe ahí. Sin NavHost el detalle no se recrea al volver, así
-        // que su texto no es fiable en esta prueba: lo que se comprueba es Room.
         esperarTexto(compose.activity.getString(R.string.accion_reasignar))
         compose.onNodeWithText(compose.activity.getString(R.string.accion_confirmar_asignacion)).assertDoesNotExist()
         runBlocking {
@@ -69,7 +65,6 @@ class HU23ScreenTest {
             assertEquals("pmunoz@belmontespa.cl", viaje.correoConductor)
             assertEquals("Paula Muñoz", viaje.nombreConductor)
             assertEquals("KXJR42", viaje.patenteMovil)
-            // El mismo vehículo es el mismo QR: Constanza Ríos sigue abordada.
             assertEquals(1, local.db.viajePasajeroDao().obtenerDelViaje("TR-1042").count { it.fhAbordaje != null })
         }
     }

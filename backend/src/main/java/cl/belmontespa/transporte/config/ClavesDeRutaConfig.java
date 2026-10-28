@@ -13,10 +13,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-// README, "Orden de evaluación": una clave de ruta mal formada es un 404 y se decide antes de
-// leer el cuerpo, así que el 400 de una regla del cuerpo no la tapa. Aquí van las variables de
-// ruta con nombre propio (/{folio}/asignar, /{hash}/estado, /{folio}/{dniHash}); el GET
-// /{clave} genérico lo valida cada controller con LecturaController.validarClave.
 @Configuration
 public class ClavesDeRutaConfig implements WebMvcConfigurer {
 

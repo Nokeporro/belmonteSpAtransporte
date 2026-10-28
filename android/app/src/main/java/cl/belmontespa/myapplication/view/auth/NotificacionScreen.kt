@@ -20,7 +20,6 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.viewmodel.auth.NotificacionViewModel
 
-/** «Notificación push»: cada viaje como un aviso de «nuevo viaje» que abre el detalle que corresponde al rol. */
 @Composable
 fun NotificacionScreen(
     onNavegar: (PantallaDemo, String) -> Unit,
@@ -50,8 +49,6 @@ fun NotificacionScreen(
                 Accion(R.string.accion_ver_viaje, { onNavegar(detalle, viaje.folio) }, TipoBoton.SECUNDARIO)
             }
         }
-        // Los escenarios son explícitos y solo existen en la build demo.
-        // No se presentan como notificaciones push recibidas del servidor.
         val primero = estado.viajes.firstOrNull()
         if (BuildConfig.MODO_LOCAL && estado.cuenta?.rol == Rol.CONDUCTOR && primero != null) {
             Accion(R.string.t06_sin_conexion, { onNavegar(PantallaDemo.SIN_CONEXION, primero.folio) }, TipoBoton.SECUNDARIO)

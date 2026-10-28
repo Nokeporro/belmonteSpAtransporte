@@ -14,11 +14,6 @@ import cl.belmontespa.myapplication.util.Validaciones
 import java.text.Collator
 import java.util.Locale
 
-/**
- * Cuenta propia (la de la sesión), aprobación de Solicitantes y alta de Administradores.
- *
- * Los perfiles y formularios de T06 leen la cuenta real de la sesión demo.
- */
 open class CuentaRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
@@ -49,7 +44,6 @@ open class CuentaRepository(private val local: SoporteLocal) {
                 passwordTemporalSha256 = null, passwordTemporalExpira = null))
             Resultado.Exito(Unit)
         }
-        // Solo sale del flujo obligatorio después de persistir el cambio.
         if (resultado is Resultado.Exito) local.sesiones.guardar(s)
         return resultado
     }

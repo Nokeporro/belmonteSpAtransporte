@@ -29,14 +29,9 @@ data class ConfirmarCancelacionUiState(
     val cargando: Boolean = true,
     val enviando: Boolean = false,
     val error: ErrorApp? = null,
-    /** Verdadero cuando la cancelación quedó guardada: la pantalla navega a «Solicitud cancelada». */
     val cancelada: Boolean = false,
 )
 
-/**
- * «Confirmar cancelación» del Solicitante (HU16, V5): muestra el efecto sobre el pago antes de confirmar y, al
- * confirmar, cancela una sola vez aunque se toque dos veces.
- */
 class ConfirmarCancelacionViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -50,7 +45,6 @@ class ConfirmarCancelacionViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var consulta: Job? = null
 
-    /** Idempotente con el mismo folio; [forzar] vuelve a leerlo. */
     fun cargar(folio: String, forzar: Boolean = false) {
         if (folio == this.folio && !forzar) return
         this.folio = folio

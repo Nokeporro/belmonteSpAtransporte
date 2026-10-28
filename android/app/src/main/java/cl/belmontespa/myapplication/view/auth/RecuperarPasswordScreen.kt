@@ -25,10 +25,6 @@ import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.viewmodel.auth.RecuperarPasswordViewModel
 import kotlinx.coroutines.launch
 
-/**
- * «Recuperar contraseña» (Administrador, desde su Perfil): genera la temporal de otra cuenta y la muestra una
- * sola vez, con «Copiar», para que el Administrador la envíe por su correo.
- */
 @Composable
 fun RecuperarPasswordScreen(
     onVolver: () -> Unit,

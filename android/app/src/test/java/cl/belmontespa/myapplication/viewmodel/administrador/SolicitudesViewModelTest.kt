@@ -40,7 +40,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** «Solicitudes» del Administrador (HU04): filtro, retraso, «Asignar» directo y errores. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SolicitudesViewModelTest {
 
@@ -101,8 +100,8 @@ class SolicitudesViewModelTest {
     @Test
     fun soloLasPendientesVigentesConPasajerosOfrecenAsignar() {
         viajes.todos.value = listOf(
-            viaje("TR-1038", EstadoViaje.PENDIENTE, -180), // vencida
-            viaje("TR-1047", EstadoViaje.PENDIENTE, -30), // atrasada, aún asignable
+            viaje("TR-1038", EstadoViaje.PENDIENTE, -180),
+            viaje("TR-1047", EstadoViaje.PENDIENTE, -30),
             viaje("TR-1051", EstadoViaje.PENDIENTE, 1440),
             viaje("TR-1055", EstadoViaje.PENDIENTE, 2880, pasajeros = 0),
             viaje("TR-1042", EstadoViaje.ASIGNADO, 30),
@@ -171,7 +170,6 @@ class SolicitudesViewModelTest {
         assertTrue(vm.estado.value.filas.single().puedeAsignar)
 
         reloj.ahora = reloj.ahora.plusMinutes(40)
-        // Sin volver a primer plano, la pantalla conserva lo último que calculó.
         assertEquals(Retraso.ATRASADO, vm.estado.value.filas.single().retraso)
         vm.alVolverAPrimerPlano()
 
@@ -270,7 +268,6 @@ class SolicitudesViewModelTest {
     )
 }
 
-/** Guarda lo que le piden y devuelve los viajes de `todos` que calzan con el estado del filtro. */
 private class ViajesFalso : ViajeRepository(soporteVacio()) {
     val todos = MutableStateFlow<List<Viaje>>(emptyList())
     val observados = mutableListOf<FiltroViajes>()

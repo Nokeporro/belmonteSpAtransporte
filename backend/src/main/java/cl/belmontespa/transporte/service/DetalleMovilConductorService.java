@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-// Habilitación vehículo↔conductor (CU-10). Ruta: /habilitaciones-movil-conductor/{patente}/{correo}.
 @Service
 public class DetalleMovilConductorService extends CrudService<DetalleMovilConductor,
 		DetalleMovilConductorService.Clave, DetalleMovilConductorDTORequest, DetalleMovilConductorDTOResponse> {
@@ -85,7 +84,6 @@ public class DetalleMovilConductorService extends CrudService<DetalleMovilConduc
 		return habilitar(request).habilitacion();
 	}
 
-	// Mismo orden que V2: conductor y luego vehículo; HU26 no puede desactivarlos durante el alta.
 	@Transactional
 	public Alta habilitar(DetalleMovilConductorDTORequest request) {
 		Conductor conductor = conductorService.bloquear(request.correoConductor());

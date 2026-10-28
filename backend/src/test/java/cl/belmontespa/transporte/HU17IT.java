@@ -32,7 +32,6 @@ class HU17IT extends IntegrationTest {
     @Test
     void normalizaAltaConGpsYNoReemplazaLaPatenteDuplicada() {
         String patente = api.movil(1);
-        // Una patente libre con GPS en el máximo admitido por el contrato Integer.
         String libre = "XY" + patente.substring(2);
         var alta = Api.exigir(api.post("/moviles", api.admin(), """
                 {"patente":" xy-%s ","capacidad":20,"gpsSerial":2147483647}

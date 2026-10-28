@@ -6,9 +6,6 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-// Las 8 tablas de belmonte_local.db (README, Base de datos local). Estados, roles y catálogos se
-// guardan con su código de la API ("EN_CURSO"); las fechas de negocio como texto ISO 8601 en hora de
-// Chile ("2026-09-24T14:30:00"); los instantes técnicos como Long en milisegundos Unix.
 
 @Entity(tableName = "usuarios")
 data class UsuarioEntity(
@@ -22,9 +19,7 @@ data class UsuarioEntity(
     @ColumnInfo(name = "razon_social") val razonSocial: String?,
     @ColumnInfo(name = "rut_empresa") val rutEmpresa: String?,
     @ColumnInfo(name = "fecha_registro") val fechaRegistro: String,
-    /** Solo en la build demo: SHA-256 de la contraseña ficticia. */
     @ColumnInfo(name = "password_sha256") val passwordSha256: String?,
-    /** Credencial temporal ficticia; nunca se conserva su valor en claro. */
     @ColumnInfo(name = "password_temporal_sha256") val passwordTemporalSha256: String? = null,
     @ColumnInfo(name = "password_temporal_expira") val passwordTemporalExpira: Long? = null,
 )
@@ -56,7 +51,6 @@ data class HabilitacionEntity(
     @ColumnInfo(name = "correo_conductor") val correoConductor: String,
 )
 
-/** Los campos de `ViajeDTOResponse` salvo `pasajeros`, con origen y destino aplanados. */
 @Entity(tableName = "viajes")
 data class ViajeEntity(
     @PrimaryKey val folio: String,
@@ -88,14 +82,12 @@ data class ViajeEntity(
     @ColumnInfo(name = "hash_pago") val hashPago: String?,
     @ColumnInfo(name = "estado_pago") val estadoPago: String?,
     val motivo: String?,
-    /** Parte numérica del folio (TR-1042 → 1042), para ordenar por número y no por texto. */
     @ColumnInfo(name = "folio_correlativo") val folioCorrelativo: Long,
     @ColumnInfo(name = "descargado_en") val descargadoEn: Long,
 )
 
 @Entity(tableName = "pasajeros")
 data class PasajeroEntity(
-    /** Hash del documento; el RUT o pasaporte nunca se guarda en claro. */
     @PrimaryKey @ColumnInfo(name = "dni_hash") val dniHash: String,
     val nombre: String,
 )
@@ -117,11 +109,9 @@ data class PasajeroEntity(
 data class ViajePasajeroEntity(
     val folio: String,
     @ColumnInfo(name = "dni_hash") val dniHash: String,
-    /** NULL = Por abordar; el arqueo se calcula con estas filas. */
     @ColumnInfo(name = "fh_abordaje") val fhAbordaje: String?,
 )
 
-/** Los campos de `PagoDTOResponse`. */
 @Entity(
     tableName = "pagos",
     indices = [Index(value = ["folio"], unique = true)],
@@ -140,7 +130,6 @@ data class PagoEntity(
     @ColumnInfo(name = "monto_reembolsado") val montoReembolsado: Int?,
 )
 
-/** Cola sin conexión del Conductor: "Iniciar viaje" y "Finalizar viaje" por enviar (HU11). */
 @Entity(
     tableName = "operaciones_pendientes",
     foreignKeys = [ForeignKey(entity = ViajeEntity::class, parentColumns = ["folio"], childColumns = ["folio"])],

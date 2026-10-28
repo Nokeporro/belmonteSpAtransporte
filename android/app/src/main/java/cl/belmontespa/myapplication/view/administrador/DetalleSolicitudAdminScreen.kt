@@ -28,10 +28,6 @@ import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.view.components.rememberAhora
 import cl.belmontespa.myapplication.viewmodel.administrador.DetalleSolicitudAdminViewModel
 
-/**
- * «Detalle de solicitud» del Administrador; `pantalla` distingue la variante «Solicitud sin pasajeros» (HU04), que es
- * la misma pantalla sin «Asignar» y con el aviso de que faltan pasajeros.
- */
 @Composable
 fun DetalleSolicitudAdminScreen(
     pantalla: PantallaDemo,
@@ -71,7 +67,6 @@ fun DetalleSolicitudAdminScreen(
         Dato(R.string.campo_vuelo, viaje.numeroVuelo)
         Dato(R.string.campo_conductor, viaje.nombreConductor)
         Dato(R.string.campo_patente, viaje.patenteMovil)
-        // Los pasajeros se ven como arqueo (RF29) en los estados que lo tienen; en los demás, solo sus nombres.
         val arqueo = viaje.arqueo()
         if (viaje.pasajeros.isEmpty()) {
             Aviso(stringResource(R.string.aviso_faltan_pasajeros), TonoAviso.AVISO)
@@ -80,7 +75,6 @@ fun DetalleSolicitudAdminScreen(
         } else {
             Bloque(stringResource(R.string.campo_pasajeros)) { viaje.pasajeros.forEach { Text(it.nombre) } }
         }
-        // El pago del viaje, también su resultado tras cancelar (README: motivo, pago y arqueo).
         estado.pago?.let { ResumenPago(it) }
         if (editable && !vencido && viaje.cantidadPasajeros > 0) {
             val texto = if (viaje.estado == EstadoViaje.ASIGNADO) R.string.accion_reasignar else R.string.accion_asignar

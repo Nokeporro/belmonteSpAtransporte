@@ -15,7 +15,6 @@ data class NuevoMovil(
     val gpsSerial: Long?,
 )
 
-/** Habilitación vehículo↔conductor, con el estado de ambos (`DetalleMovilConductorDTOResponse`). */
 data class Habilitacion(
     val patente: String,
     val capacidad: Int,

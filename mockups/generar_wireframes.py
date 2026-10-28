@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
-"""Genera los wireframes de Belmonte SpA en HTML y SVG desde una sola descripción.
 
-Uso, desde la raíz del repositorio:
 
-    python3 mockups/generar_wireframes.py
 
-Escribe mockups/wireframes-belmonte.html y mockups/wireframes-belmonte.svg (el que muestra el
-README). Para cambiar una pantalla se edita GRUPOS, más abajo, y se vuelve a ejecutar: los dos
-archivos generados no se editan a mano. Solo usa la librería estándar.
 
-Las pantallas siguen la especificación del README ("Navegación y pantallas", "Máquinas de
-estado"). Todos los datos son ficticios (RNF09).
-"""
 from html import escape
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
-AVISOS = []  # textos que no caben en el SVG; se informan al final
+AVISOS = []
 
-# ----------------------------------------------------------------------------------- paleta
 CLARO = {
     'paper': '#f3f2ee', 'ink': '#211f1c', 'ink_soft': '#696864', 'line_strong': '#4a5560',
     'line_soft': '#d8d6d0', 'surface': '#ffffff', 'surface_tint': '#eceae3', 'accent': '#2f6f5e',
@@ -33,9 +23,8 @@ OSCURO = {
     'danger': '#e08a78', 'danger_soft': '#3a221d', 'on_danger': '#2a0f0a', 'warn': '#d9b45a',
     'warn_soft': '#352c17',
 }
-C = CLARO  # el SVG usa la paleta clara
+C = CLARO
 
-# Estado → (etiqueta, estilo). Los estilos son los mismos en HTML (clase chip-<estilo>) y SVG.
 ESTADOS = {
     'PENDIENTE': ('Pendiente', 'neutro'), 'ASIGNADO': ('Asignado', 'info'),
     'EN_CURSO': ('En curso', 'acento'), 'FINALIZADO': ('Finalizado', 'tenue'),
@@ -50,15 +39,14 @@ ESTADOS = {
     'INACTIVO': ('Inactivo', 'tenue'), 'SOL_PENDIENTE': ('Por aprobar', 'aviso'),
     'ABORDADO': ('Abordado', 'ok'), 'POR_ABORDAR': ('Por abordar', 'neutro'),
 }
-ESTILOS = {  # estilo → (texto, borde, fondo)
+ESTILOS = {
     'neutro': ('ink_soft', 'line_strong', None), 'info': ('info', 'info', 'info_soft'),
     'acento': ('on_accent', 'accent', 'accent'), 'tenue': ('ink_soft', 'line_soft', 'surface_tint'),
     'peligro': ('danger', 'danger', 'danger_soft'), 'peligro_borde': ('danger', 'danger', None),
     'ok': ('accent', 'accent', 'accent_soft'), 'aviso': ('warn', 'warn', 'warn_soft'),
 }
 
-# ----------------------------------------------------------------------------------- iconos
-ICONOS = {  # trazos en una grilla de 24 × 24
+ICONOS = {
     'atras': 'M15 18l-6-6 6-6',
     'pin': 'M12 21s-6-5.7-6-10a6 6 0 1 1 12 0c0 4.3-6 10-6 10Z M14 11a2 2 0 1 1-4 0a2 2 0 1 1 4 0',
     'select': 'M6 9l6 6 6-6',
@@ -98,7 +86,6 @@ def icono_html(nombre, tam=14):
             f'<path d="{ICONOS[nombre]}"/></svg>')
 
 
-# ----------------------------------------------------------------------------- texto en SVG
 ESTRECHAS = set("iljtfr.,:;·'|!()[]-")
 ANCHAS = set('mwMW@%')
 
@@ -125,7 +112,6 @@ def medir(texto, tam, mono=False, negrita=False, espaciado=0.0):
 
 
 def partir(texto, tam, ancho, mono=False, negrita=False, espaciado=0.0, donde=''):
-    """Ajuste de línea por palabras; avisa si una palabra sola no cabe."""
     lineas, actual = [], ''
     for palabra in texto.split(' '):
         if medir(palabra, tam, mono, negrita, espaciado) > ancho:
@@ -177,9 +163,7 @@ def h(s):
     return escape(s)
 
 
-# ------------------------------------------------------------------------------ componentes
-# Cada componente sabe su alto en el SVG (alto), dibujarse en el SVG (svg) y emitir su HTML (html).
-GAP = 11  # separación vertical entre componentes
+GAP = 11
 
 
 class Chip:
@@ -202,7 +186,6 @@ class Chip:
         texto(out, x + w / 2, y + hh / 2 + tam * 0.36, self.etiqueta.upper(), tam, C[tc], mono=True,
               ancla='middle', espaciado=0.3)
 
-    # como componente de cuerpo: centrado
     def alto(self, w):
         return self.alto_propio()
 
@@ -264,7 +247,7 @@ class Fila:
 
 
 class Boton:
-    COLORES = {  # tipo → (texto, borde, fondo)
+    COLORES = {
         'primario': ('on_accent', 'accent', 'accent'), 'secundario': ('ink', 'line_strong', None),
         'fantasma': ('accent', None, None), 'peligro': ('on_danger', 'danger', 'danger'),
         'peligro_sec': ('danger', 'danger', None),
@@ -357,7 +340,6 @@ class Nota:
 
 
 class Aviso:
-    """Recuadro de mensaje: info (genérico, confirmación), aviso (falta algo) o peligro (conflicto)."""
 
     TONOS = {'info': ('info', 'info_soft'), 'aviso': ('warn', 'warn_soft'), 'peligro': ('danger', 'danger_soft')}
 
@@ -428,7 +410,6 @@ class KV:
 
 
 class Item:
-    """Fila de lista: título, sublíneas y, a la derecha, un chip o un botón chico."""
 
     def __init__(self, titulo, *subs, derecha=None):
         self.titulo, self.subs, self.derecha = titulo, subs, derecha
@@ -472,7 +453,6 @@ class Item:
 
 
 class Opcion:
-    """Fila con radio: conductor o vehículo a elegir."""
 
     def __init__(self, titulo, chip, sub=None, elegido=False, deshabilitado=False):
         self.titulo, self.chip, self.sub = titulo, chip, sub
@@ -536,7 +516,6 @@ class Casilla:
 
 
 class Viaje:
-    """Tarjeta de la agenda del Conductor."""
     BARRA = {'PENDIENTE': 'line_strong', 'ASIGNADO': 'info', 'EN_CURSO': 'accent',
              'FINALIZADO': 'ink_soft', 'CANCELADO': 'danger'}
 
@@ -639,7 +618,6 @@ class SelectorFecha:
 
 
 class Persona:
-    """Avatar con nombre y una línea secundaria."""
 
     def __init__(self, nombre, sub):
         self.nombre, self.sub = nombre, sub
@@ -663,7 +641,6 @@ class Persona:
 
 
 class Pasajero:
-    """Pasajero en el formulario de solicitud, con editar y quitar."""
 
     def __init__(self, nombre, documento):
         self.nombre, self.documento = nombre, documento
@@ -753,7 +730,6 @@ class Notificacion:
 
 
 class Lista:
-    """Lista simple de nombres (pasajeros en un detalle)."""
 
     def __init__(self, *elementos):
         self.elementos = elementos
@@ -773,7 +749,6 @@ class Lista:
 
 
 class Camara:
-    """Visor del lector QR a pantalla completa: fondo oscuro, marco y línea de lectura; la indicación es opcional."""
 
     def __init__(self, indicacion=None):
         self.indicacion = indicacion
@@ -802,7 +777,6 @@ class Camara:
 
 
 class Dialogo:
-    """Diálogo de confirmación sobre la pantalla (overlay)."""
 
     def __init__(self, titulo, contenido, botones, apilados=False):
         self.titulo, self.contenido, self.botones = titulo, contenido, botones
@@ -847,7 +821,6 @@ class Dialogo:
 
 
 class Hoja:
-    """Hoja inferior (overlay): opciones (elegir app de navegación) o un formulario corto (cuerpo)."""
 
     def __init__(self, titulo, opciones, nota, cuerpo=None):
         self.titulo, self.opciones, self.nota, self.cuerpo = titulo, opciones, nota, cuerpo
@@ -889,7 +862,6 @@ class Hoja:
                 f'{ops}<p class="note">{h(self.nota)}</p></div>')
 
 
-# --------------------------------------------------------------------------------- pantallas
 NAV_SOL = (('Mis solicitudes', 'lista'), ('Perfil', 'usuario'))
 NAV_ADM = (('Solicitudes', 'lista'), ('Conductores', 'usuarios'), ('Vehículos', 'auto'), ('Perfil', 'usuario'))
 NAV_CON = (('Mis viajes', 'calendario'), ('Perfil', 'usuario'))
@@ -1262,14 +1234,13 @@ for rol, _, pantallas in GRUPOS:
         p.num, p.rol = n, rol
 TOTAL = n
 
-# ------------------------------------------------------------------------------------ SVG
 ANCHO = 1062
 MARGEN = 40
 COLS = 4
 COL_GAP = 20
 COL_W = (ANCHO - 2 * MARGEN - (COLS - 1) * COL_GAP) / COLS
 DEV_W = 226
-SCR_W = DEV_W - 2 * 2 - 2 * 7  # borde 2 y relleno 7 por lado
+SCR_W = DEV_W - 2 * 2 - 2 * 7
 PAD = 13
 CUERPO_W = SCR_W - 2 * PAD
 NAV_H = 48
@@ -1311,7 +1282,6 @@ def alto_meta(p):
 
 
 def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
-    # metadatos sobre el dispositivo
     linea(out, x, y, x + COL_W, y, C['line_soft'], guiones='2,3')
     texto(out, x, y + 21, f'{p.num:02d}', 11, C['accent'], mono=True, peso='600')
     tl, ml = meta_partes(p)
@@ -1319,7 +1289,6 @@ def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
         texto(out, x + 26, y + 21 + i * 16, l, 12.5, C['ink'], mono=True, peso='600')
     for i, l in enumerate(ml):
         texto(out, x + 26, y + 21 + len(tl) * 16 + i * 13, l, 9.5, C['ink_soft'], mono=True)
-    # dispositivo
     dx, dy = x + (COL_W - DEV_W) / 2, y + alto_meta_fila
     dev_h = 22 + alto_scr + 22
     rect(out, dx, dy, DEV_W, dev_h, C['paper'], C['line_strong'], rx=26, grosor=2)
@@ -1343,7 +1312,6 @@ def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
             texto(out, sx + SCR_W - 26, sy + 27, p.badge, 10, C['on_accent'], mono=True, ancla='middle')
         cy = sy + alto_barra(p)
         linea(out, sx, cy, sx + SCR_W, cy, C['line_soft'])
-    # cuerpo
     by = cy + PAD
     libre = alto_scr - alto_barra(p) - (NAV_H if p.nav else 0) - alto_cuerpo(p)
     if p.centro:
@@ -1351,7 +1319,6 @@ def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
     for c in p.cuerpo:
         c.svg(out, sx + PAD, by, CUERPO_W)
         by += c.alto(CUERPO_W) + GAP
-    # barra de navegación inferior
     if p.nav:
         ny = sy + alto_scr - NAV_H
         linea(out, sx, ny, sx + SCR_W, ny, C['line_soft'])
@@ -1364,7 +1331,6 @@ def dibujar_pantalla(out, p, x, y, alto_meta_fila, alto_scr):
             icono_svg(out, ic, cx - 8, ny + 9, 16, color)
             cabe(etiqueta, 8.5, tw - 2, 'pestaña', negrita=True)
             texto(out, cx, ny + 41, etiqueta, 8.5, color, peso='600' if i == p.activa else '500', ancla='middle')
-    # superpuesto
     if p.overlay:
         rect(out, sx, sy, SCR_W, alto_scr, C['ink'], rx=18, opacidad=0.38)
         if isinstance(p.overlay, Dialogo):
@@ -1435,13 +1401,12 @@ def generar_svg():
     alto_total = y + 46
     cabecera = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {ANCHO} {alto_total:.0f}" width="{ANCHO}" '
                 f'height="{alto_total:.0f}">\n'
-                '<!-- Generado por mockups/generar_wireframes.py; no editar a mano. -->\n'
+                '\n'
                 f'<style>.s{{font-family:{SANS}}}.m{{font-family:{MONO}}}</style>\n'
                 f'<rect x="0" y="0" width="{ANCHO}" height="{alto_total:.0f}" fill="{C["paper"]}"/>\n')
     return cabecera + '\n'.join(out) + '\n</svg>\n'
 
 
-# ------------------------------------------------------------------------------------ HTML
 def variables(paleta):
     return ''.join(f'--{k.replace("_", "-")}:{v};' for k, v in paleta.items())
 
@@ -1653,7 +1618,6 @@ def generar_html():
         for rol, det, ps in GRUPOS)
     claro, oscuro = variables(CLARO), variables(OSCURO)
     return f"""<!doctype html>
-<!-- Generado por mockups/generar_wireframes.py; no editar a mano. -->
 <html lang="es">
 <head>
 <meta charset="utf-8">

@@ -25,11 +25,9 @@ data class RegistrarConductorUiState(
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** Correo del conductor guardado: la pantalla navega a su detalle y lo consume. */
     val registrado: String? = null,
 )
 
-/** «Registrar conductor» (HU15, RF14): nombre, correo único, teléfono opcional y la contraseña inicial. */
 class RegistrarConductorViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -56,7 +54,6 @@ class RegistrarConductorViewModel @JvmOverloads constructor(
                 val errores = Validaciones.conductor(cuenta)
                 if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
                 val conductor = flota.registrarConductor(cuenta).valor()
-                // La contraseña no sobrevive al envío exitoso.
                 _estado.update { it.copy(password = "", registrado = conductor.correo) }
             }
             _estado.update { it.copy(enviando = false, modificado = error != null && it.modificado, error = error) }

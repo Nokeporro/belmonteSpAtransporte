@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
-// Autorregistro público (RF01); solo el Administrador lista y revisa cuentas pendientes (CU-17).
 @RestController
 @RequestMapping("/api/v1/solicitantes")
 public class SolicitanteController extends CrudController<SolicitanteDTORequest, SolicitanteDTOResponse> {

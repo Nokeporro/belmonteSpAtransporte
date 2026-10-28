@@ -22,7 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** «Confirmar abordaje» (HU29): documento válido, envío único, errores que conservan el formulario y documento que no queda. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConfirmarAbordajeViewModelTest {
 
@@ -220,7 +219,6 @@ private class RepositorioAbordajeFalso : AbordajeRepository(soporteVacio()) {
     val llamadas = mutableListOf<Triple<CodigoAbordaje, TipoDocumento, String>>()
     var respuesta: Resultado<LocalDateTime> = Resultado.Fallo(ErrorApp.NoEncontrado)
 
-    /** Si se pone, la llamada espera a que la prueba la complete: simula una respuesta lenta. */
     var pendiente: CompletableDeferred<Resultado<LocalDateTime>>? = null
 
     override suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> {

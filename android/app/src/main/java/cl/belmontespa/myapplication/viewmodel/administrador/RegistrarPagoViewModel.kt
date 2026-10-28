@@ -27,7 +27,6 @@ data class RegistrarPagoUiState(
     val viaje: Viaje? = null,
     val catalogos: Catalogos? = null,
     val monto: String = "",
-    /** Código SBIF del banco elegido, como texto. */
     val banco: String = "",
     val medioPago: String = "TRANSFERENCIA",
     val tipoRecibo: String = "BOLETA",
@@ -35,14 +34,11 @@ data class RegistrarPagoUiState(
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** Hash del pago guardado: la pantalla navega a su detalle y lo consume. */
     val registrado: String? = null,
 ) {
-    /** El viaje admite un pago solo si no está cancelado ni tiene ya uno. */
     val viajeAdmitePago: Boolean get() = viaje?.let { it.estado != EstadoViaje.CANCELADO && it.hashPago == null } == true
 }
 
-/** «Registrar pago» (HU19, P1): monto, banco, medio de pago y tipo de recibo de un viaje, con datos de los catálogos. */
 class RegistrarPagoViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -56,7 +52,6 @@ class RegistrarPagoViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var consulta: Job? = null
 
-    /** Idempotente con el mismo folio; [forzar] vuelve a leer los catálogos y el viaje sin perder lo escrito. */
     fun cargar(folio: String, forzar: Boolean = false) {
         if (folio == this.folio && !forzar) return
         this.folio = folio

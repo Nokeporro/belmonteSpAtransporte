@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-// El Administrador gestiona los pagos (CU-11/CU-12); el Solicitante solo lee los de sus viajes (RF20).
 @RestController
 @RequestMapping("/api/v1/pagos")
 public class PagoController extends CrudController<PagoDTORequest, PagoDTOResponse> {
@@ -52,7 +51,6 @@ public class PagoController extends CrudController<PagoDTORequest, PagoDTORespon
 		}
 	}
 
-	// CU-12: P2/P3; anular cancela un viaje Pendiente o Asignado (V6).
 	@PostMapping("/{hash}/estado")
 	public PagoDTOResponse cambiarEstado(@PathVariable String hash,
 			@Valid @RequestBody CambiarEstadoPagoDTORequest request) {

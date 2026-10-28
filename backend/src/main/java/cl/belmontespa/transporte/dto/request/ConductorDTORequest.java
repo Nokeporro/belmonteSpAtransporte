@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// Sin estado: el conductor nace disponible (CU-07).
 public record ConductorDTORequest(
 		@NotBlank @Size(min = 2, max = 120) String nombre,
 		@NotBlank @Pattern(regexp = Reglas.CORREO) @Size(max = 150, message = Reglas.MAXIMO) String correo,

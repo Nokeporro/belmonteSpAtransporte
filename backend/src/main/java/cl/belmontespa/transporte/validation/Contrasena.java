@@ -17,8 +17,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.nio.charset.StandardCharsets;
 
-// De 8 a 72 caracteres (y 72 bytes en UTF-8, el límite de BCrypt), con al menos una letra y un
-// dígito. null es válido: en un PUT significa "conservar la contraseña actual".
 @Documented
 @Constraint(validatedBy = Contrasena.Validador.class)
 @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })

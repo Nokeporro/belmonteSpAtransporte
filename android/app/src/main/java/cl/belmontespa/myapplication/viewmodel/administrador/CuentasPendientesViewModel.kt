@@ -30,7 +30,6 @@ data class CuentasPendientesUiState(
     val aviso: Int? = null,
 )
 
-/** «Cuentas por aprobar» (HU27, CU-17): el Administrador aprueba o rechaza a los Solicitantes de empresas existentes. */
 class CuentasPendientesViewModel @JvmOverloads constructor(
     application: Application,
     private val cuentas: CuentaRepository = CuentaRepository(application),
@@ -39,7 +38,6 @@ class CuentasPendientesViewModel @JvmOverloads constructor(
     private val _estado = MutableStateFlow(CuentasPendientesUiState())
     val estado: StateFlow<CuentasPendientesUiState> = _estado.asStateFlow()
 
-    /** Se llama al abrir y al volver a la pantalla, para leer lo que otro Administrador haya revisado. */
     fun cargar() {
         _estado.update { it.copy(cargando = true, error = null) }
         viewModelScope.launch {
@@ -80,7 +78,6 @@ class CuentasPendientesViewModel @JvmOverloads constructor(
                     )
                 }
             }
-            // Ante un conflicto otro Administrador ya la revisó: se lee la lista vigente, sin afirmar que se guardó.
             val vigentes = if (error is ErrorApp.Conflicto) {
                 (cuentas.listarSolicitantesPendientes() as? Resultado.Exito)?.valor
             } else null

@@ -11,7 +11,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriUtils;
 
-// El JWT temporal solo permite cambiar la contraseña propia o cerrar sesión.
 public class PasswordTemporalFilter extends OncePerRequestFilter {
     private final tools.jackson.databind.ObjectMapper json;
     public PasswordTemporalFilter(tools.jackson.databind.ObjectMapper json) { this.json = json; }

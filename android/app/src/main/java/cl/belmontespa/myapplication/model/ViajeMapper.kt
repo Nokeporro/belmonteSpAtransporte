@@ -4,11 +4,9 @@ import cl.belmontespa.myapplication.util.FechaIso
 import java.text.Collator
 import java.util.Locale
 
-// La conversión no modifica Room ni inventa datos ausentes.
 fun ViajeConPasajeros.aModelo(): Viaje {
     val fila = viaje
 
-    // Las relaciones de Room no garantizan el orden de los pasajeros.
     val orden = Collator.getInstance(Locale.forLanguageTag("es-CL")).apply {
         strength = Collator.PRIMARY
     }

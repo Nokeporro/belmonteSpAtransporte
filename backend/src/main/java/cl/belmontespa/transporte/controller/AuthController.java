@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-// Solo el login es público; el resto exige JWT (README, "Autenticación").
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
@@ -24,7 +23,6 @@ public class AuthController {
 		this.authService = authService;
 	}
 
-	// CU-14.
 	@PostMapping("/login")
 	public LoginDTOResponse login(@Valid @RequestBody LoginDTORequest request) {
 		return authService.login(request);
@@ -36,7 +34,6 @@ public class AuthController {
 		authService.logout(auth.getName());
 	}
 
-	// CU-13/RF21: solo el Administrador; devuelve la temporal una sola vez.
 	@PostMapping("/recuperar-password")
 	public PasswordTemporalDTOResponse recuperarPassword(@Valid @RequestBody RecuperarPasswordDTORequest request) {
 		return authService.recuperarPassword(request);

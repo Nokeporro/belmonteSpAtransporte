@@ -31,10 +31,6 @@ data class DetalleSolicitudUiState(
     val error: ErrorApp? = null,
 )
 
-/**
- * «Detalle de solicitud» del Solicitante, también cuando no tiene pasajeros (HU03, HU21): el viaje observado desde Room
- * y, si tiene pago, su estado. Un pago ilegible no oculta el viaje: se avisa y se permite reintentar.
- */
 class DetalleSolicitudViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -48,7 +44,6 @@ class DetalleSolicitudViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var consulta: Job? = null
 
-    /** Idempotente con el mismo folio; [forzar] vuelve a leerlo. */
     fun cargar(folio: String, forzar: Boolean = false) {
         if (folio == this.folio && !forzar) return
         this.folio = folio
@@ -58,7 +53,6 @@ class DetalleSolicitudViewModel @JvmOverloads constructor(
             val error = capturar(ErrorApp.Inesperado) {
                 _estado.update { it.copy(cargando = false) }
                 viajes.observarViaje(folio).collectLatest { viaje ->
-                    // El viaje permanece visible mientras se consulta el pago, incluso si este falla.
                     _estado.update {
                         it.copy(
                             viaje = viaje, cargando = false, pago = null, errorPago = null,
@@ -92,12 +86,10 @@ class DetalleSolicitudViewModel @JvmOverloads constructor(
         }
     }
 
-    /** «Reintentar», «Reintentar pago» y la recarga tras un 409. */
     fun reintentar() {
         folio?.let { cargar(it, forzar = true) }
     }
 
-    /** Al volver a primer plano (p. ej. desde el detalle del pago) se lee de nuevo el pago. */
     fun alVolverAPrimerPlano() {
         if (!_estado.value.cargando) reintentar()
     }

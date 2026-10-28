@@ -26,25 +26,17 @@ import kotlinx.coroutines.launch
 data class ConfirmarInicioUiState(
     val cargando: Boolean = true,
     val viaje: Viaje? = null,
-    /** Pasajeros que aún no abordaron: el aviso no impide iniciar (README, Detalle del Conductor). */
     val faltan: Int = 0,
     val inicio: Inicio = Inicio.NO_APLICA,
     val enviando: Boolean = false,
     val error: ErrorApp? = null,
-    /** Verdadero cuando el viaje quedó En curso: la pantalla vuelve al detalle. */
     val iniciado: Boolean = false,
 ) {
     val puedeIniciar: Boolean get() = inicio == Inicio.HABILITADO && !enviando && !iniciado
 
-    /** «Disponible desde las {hora}»: solo antes de la ventana. */
     val disponibleDesde: LocalDateTime? get() = viaje?.takeIf { inicio == Inicio.ANTES_DE_LA_VENTANA }?.disponibleDesde()
 }
 
-/**
- * Confirmación de «Iniciar viaje» (HU09, V3). Avisa cuántos pasajeros faltan por abordar y, al confirmar, pasa el
- * viaje a `EN_CURSO`. El viaje es un `Flow` de Room: si algo cambia mientras la pantalla está abierta (otro
- * dispositivo, el reloj, el servidor) la habilitación del botón se recalcula sola.
- */
 class ConfirmarInicioViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -57,7 +49,6 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var observacion: Job? = null
 
-    /** Idempotente: la pantalla lo llama en cada composición con el mismo folio. */
     fun cargar(folio: String) {
         if (folio == this.folio) return
         this.folio = folio
@@ -65,13 +56,11 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
         iniciar()
     }
 
-    /** «Reintentar»: vuelve a leer el viaje y a pedirlo. */
     fun actualizar() {
         _estado.update { it.copy(error = null) }
         iniciar()
     }
 
-    /** La ventana de inicio depende del reloj: se recalcula al volver a primer plano. */
     fun alVolverAPrimerPlano() {
         _estado.update { actual -> actual.viaje?.let { actual.derivado(it) } ?: actual }
     }
@@ -79,18 +68,14 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
     fun confirmar() {
         val folio = folio ?: return
         if (!_estado.value.puedeIniciar) return
-        // `enviando` se marca antes de lanzar nada: un segundo toque no encuentra el botón libre.
         _estado.update { it.copy(enviando = true, error = null) }
         viewModelScope.launch {
             when (val resultado = viajes.cambiarEstado(folio, EstadoViaje.EN_CURSO)) {
-                // Un cambio se muestra confirmado solo con la respuesta del servidor (README, Comunes).
                 is Resultado.Exito -> _estado.update { it.copy(enviando = false, iniciado = true) }
                 is Resultado.Fallo -> {
                     _estado.update { it.copy(enviando = false, error = resultado.error) }
-                    // Un 409 casi siempre es que algo cambió: se vuelve a pedir el viaje.
                     if (resultado.error is ErrorApp.Conflicto) refrescar()
                 }
-                // Sin conexión, Iniciar queda en cola (HU11 lo mostrará «Pendiente de sincronizar»).
                 Resultado.Encolado -> _estado.update { it.copy(enviando = false) }
             }
         }
@@ -104,7 +89,6 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
                 .catch { _estado.update { it.copy(cargando = false, error = ErrorApp.Inesperado) } }
                 .collect { viaje ->
                     if (viaje == null) {
-                        // Un viaje ajeno, reasignado o que no existe se ve igual (README, 403 y 404).
                         _estado.update {
                             it.copy(cargando = false, viaje = null, faltan = 0, inicio = Inicio.NO_APLICA,
                                 error = it.error ?: ErrorApp.NoEncontrado)
@@ -121,7 +105,6 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
         val folio = folio ?: return
         viewModelScope.launch {
             val resultado = viajes.refrescarViaje(folio)
-            // Un fallo del refresco se avisa, pero no borra lo ya cargado.
             if (resultado is Resultado.Fallo) _estado.update { it.copy(cargando = false, error = resultado.error) }
         }
     }
@@ -130,7 +113,6 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
         viaje = viaje,
         faltan = viaje.arqueo()?.faltan?.size ?: 0,
         inicio = viaje.ventanaDeInicio(clock),
-        // Si el viaje volvió a aparecer, el «no encontrado» anterior ya no vale.
         error = error.takeUnless { it == ErrorApp.NoEncontrado },
     )
 }

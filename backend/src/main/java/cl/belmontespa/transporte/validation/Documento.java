@@ -4,7 +4,6 @@ import java.util.Locale;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-// Compartido por el alta del pasajero y el abordaje; nunca persiste el documento.
 public final class Documento {
     private Documento() {}
 

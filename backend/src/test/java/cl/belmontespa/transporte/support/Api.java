@@ -17,11 +17,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-/**
- * Cliente de la API para los tests: cada método de preparación pasa por los endpoints reales
- * y falla con el cuerpo de la respuesta si el código HTTP no es el esperado. Los correos,
- * RUT y patentes llevan un contador, así los tests no chocan entre sí aunque compartan esquema.
- */
 public class Api {
 
 	public static final String CLAVE = "Clave12345";
@@ -40,7 +35,6 @@ public class Api {
 		this.jdbc = jdbc;
 	}
 
-	/** Respuesta HTTP con acceso por JsonPath al cuerpo. */
 	public record Resp(int status, String cuerpo) {
 
 		public <T> T json(String path) {
@@ -57,11 +51,9 @@ public class Api {
 		}
 	}
 
-	/** Cuenta ya autenticada. */
 	public record Cuenta(String correo, String token) {
 	}
 
-	// --- peticiones ---
 
 	public Resp enviar(HttpMethod metodo, String ruta, String token, String cuerpo) {
 		MockHttpServletRequestBuilder peticion = request(metodo, "/api/v1" + ruta);
@@ -91,7 +83,6 @@ public class Api {
 		return enviar(HttpMethod.PUT, ruta, token, cuerpo);
 	}
 
-	/** Falla con el cuerpo de la respuesta si el código no es uno de los esperados. */
 	public static Resp exigir(Resp resp, String que, int... esperados) {
 		assertThat(Arrays.stream(esperados).anyMatch(e -> e == resp.status()))
 				.as("%s: esperado %s, obtenido %d, cuerpo: %s", que, Arrays.toString(esperados), resp.status(),
@@ -100,7 +91,6 @@ public class Api {
 		return resp;
 	}
 
-	// --- sesión ---
 
 	public Resp iniciarSesion(String correo, String clave) {
 		return post("/auth/login", null, """
@@ -112,20 +102,17 @@ public class Api {
 				{"correo":"%s","password":"%s","tokenFcm":"%s"}""".formatted(correo, clave, tokenFcm));
 	}
 
-	/** CU-13: el Administrador (u otro token) pide la temporal de la cuenta con ese correo. */
 	public Resp recuperarPassword(String token, String correo) {
 		return post("/auth/recuperar-password", token, """
 				{"correo":"%s"}""".formatted(correo));
 	}
 
-	/** Registra el token FCM del dispositivo (RF13) al iniciar sesión y lo devuelve. */
 	public String dispositivo(Cuenta cuenta) {
 		String tokenFcm = "fcm-" + cuenta.correo();
 		exigir(iniciarSesion(cuenta.correo(), CLAVE, tokenFcm), "registrar dispositivo de " + cuenta.correo(), 200);
 		return tokenFcm;
 	}
 
-	/** Lo mismo para el Administrador inicial: V8 avisa a todos los Administradores con un token. */
 	public String dispositivoDelAdministrador() {
 		admin();
 		String tokenFcm = "fcm-" + ADMIN_CORREO;
@@ -151,7 +138,6 @@ public class Api {
 		return tokenAdmin;
 	}
 
-	// --- cuentas ---
 
 	public Cuenta solicitante() {
 		int n = CONTADOR.incrementAndGet();
@@ -182,9 +168,7 @@ public class Api {
 				.formatted(correo, CLAVE);
 	}
 
-	// --- flota ---
 
-	/** Crea un móvil con patente única y devuelve la patente. */
 	public String movil(int capacidad) {
 		String patente = nuevaPatente();
 		exigir(post("/moviles", admin(), cuerpoMovil(patente, capacidad)), "crear móvil " + patente, 201);
@@ -205,7 +189,6 @@ public class Api {
 		exigir(habilitar(patente, correoConductor), "habilitar " + correoConductor + " en " + patente, 200, 201);
 	}
 
-	/** Conductor y móvil nuevos, ya habilitados entre sí. */
 	public Flota flota(int capacidad) {
 		Cuenta conductor = conductor();
 		String patente = movil(capacidad);
@@ -220,10 +203,6 @@ public class Api {
 		return exigir(get("/conductores/" + correo, admin()), "consultar conductor", 200).texto("$.estadoConductor");
 	}
 
-	/**
-	 * Lo que lleva impreso el QR de la puerta. La API todavía no lo entrega (lo suma HU17): se lee de la base, que es
-	 * donde lo imprimiría el Administrador.
-	 */
 	public String codigoAbordaje(String patente) {
 		return jdbc.queryForObject("SELECT codigo_abordaje FROM movil WHERE patente = ?", String.class, patente);
 	}
@@ -232,30 +211,25 @@ public class Api {
 		return exigir(get("/moviles/" + patente, admin()), "consultar móvil", 200).texto("$.estadoMovil");
 	}
 
-	// --- pasajeros ---
 
 	public Resp pasajero(String token, String dni, String nombre) {
 		return post("/pasajeros", token, """
 				{"tipoDocumento":"RUT","dni":"%s","nombre":"%s"}""".formatted(dni, nombre));
 	}
 
-	/** RUT válido y único, con guion: lo que el Pasajero escribe al abordar. */
 	public String rutUnico() {
 		String cuerpo = "%d".formatted(10_000_000 + CONTADOR.incrementAndGet());
 		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 	}
 
-	/** Crea un pasajero con DNI único y devuelve su dniHash. */
 	public String pasajero(Cuenta solicitante) {
 		return pasajeroConRut(solicitante, rutUnico());
 	}
 
-	/** Crea (o reutiliza) el pasajero con ese RUT y devuelve su dniHash. */
 	public String pasajeroConRut(Cuenta solicitante, String rut) {
 		return exigir(pasajero(solicitante.token(), rut, "Pasajero"), "crear pasajero", 200, 201).texto("$.dniHash");
 	}
 
-	/** El abordaje es público: no lleva token. */
 	public Resp abordar(String patente, String codigoAbordaje, String tipoDocumento, String dni) {
 		return post("/abordajes", null, """
 				{"patente":"%s","codigoAbordaje":"%s","tipoDocumento":"%s","dni":"%s"}"""
@@ -271,7 +245,6 @@ public class Api {
 		exigir(agregarPasajero(solicitante.token(), folio, dniHash), "agregar pasajero al viaje", 200, 201);
 	}
 
-	// --- viajes ---
 
 	public String cuerpoViaje(LocalDateTime fhAgenda, String comunaOrigen) {
 		return """
@@ -286,18 +259,15 @@ public class Api {
 				"latitud":%s,"longitud":%s}""".formatted(direccion, comuna, latitud, longitud);
 	}
 
-	/** Crea un viaje PENDIENTE a tres días y devuelve su folio. */
 	public String viaje(Cuenta solicitante) {
 		return viaje(solicitante, LocalDateTime.now().plusDays(3));
 	}
 
-	/** Crea un viaje PENDIENTE para esa hora y devuelve su folio. */
 	public String viaje(Cuenta solicitante, LocalDateTime fhAgenda) {
 		return exigir(post("/viajes", solicitante.token(), cuerpoViaje(fhAgenda, "Providencia")),
 				"crear viaje", 201).texto("$.folio");
 	}
 
-	/** Agrega un pasajero nuevo al viaje: V2 no asigna un viaje sin pasajeros. */
 	public void conPasajero(Cuenta solicitante, String folio) {
 		agregarPasajeroOk(solicitante, folio, pasajero(solicitante));
 	}
@@ -328,11 +298,6 @@ public class Api {
 		exigir(cambiarEstado(folio, conductor.token(), estado), "pasar " + folio + " a " + estado, 200);
 	}
 
-	/**
-	 * V3 solo deja iniciar a ± 1 h de la agenda y V1 no deja agendar a menos de 2 h, así que la agenda se
-	 * acerca al instante actual solo durante el POST y se devuelve a su valor: los tests que dependen del
-	 * día del viaje no lo notan.
-	 */
 	public Resp cambiarEstadoEnLaVentana(String folio, String token, String estado) {
 		LocalDateTime original = jdbc.queryForObject("SELECT fh_agenda FROM viaje WHERE folio = ?",
 				LocalDateTime.class, folio);
@@ -344,7 +309,6 @@ public class Api {
 		}
 	}
 
-	/** Inicia el viaje (V3) en su ventana: {@link #cambiarEstadoEnLaVentana}. */
 	public void iniciarOk(String folio, Cuenta conductor) {
 		exigir(cambiarEstadoEnLaVentana(folio, conductor.token(), "EN_CURSO"), "iniciar " + folio, 200);
 	}
@@ -353,7 +317,6 @@ public class Api {
 		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
 
-	/** Deja el viaje vencido (pasó más de una hora de su agenda sin iniciar): V1 no deja crearlo así. */
 	public void vencer(String folio) {
 		fijarAgenda(folio, LocalDateTime.now(ClockConfig.ZONA).minusHours(1).minusMinutes(5));
 	}
@@ -362,7 +325,6 @@ public class Api {
 		return post("/viajes/" + folio + "/cancelar", token, null);
 	}
 
-	/** V7: el Administrador cancela con motivo y, si hace falta, el monto a reembolsar. */
 	public Resp cancelarComoAdmin(String folio, String motivo, Integer montoReembolso) {
 		String monto = montoReembolso == null ? "" : ",\"montoReembolso\":" + montoReembolso;
 		return post("/viajes/" + folio + "/cancelar", admin(), "{\"motivo\":\"%s\"%s}".formatted(motivo, monto));
@@ -372,7 +334,6 @@ public class Api {
 		exigir(cancelarComoAdmin(folio, motivo, montoReembolso), "cancelar " + folio + " como Administrador", 200);
 	}
 
-	/** V8: el conductor devuelve el viaje ASIGNADO a PENDIENTE con un motivo. */
 	public Resp rechazar(String folio, String token, String motivo) {
 		return post("/viajes/" + folio + "/rechazar", token, "{\"motivo\":\"%s\"}".formatted(motivo));
 	}
@@ -385,12 +346,10 @@ public class Api {
 		exigir(cancelar(folio, solicitante.token()), "cancelar " + folio, 200);
 	}
 
-	/** Viaje con un pasajero, ASIGNADO a un conductor y móvil nuevos; devuelve el folio. */
 	public String viajeAsignado(Cuenta solicitante, Flota flota) {
 		return viajeAsignado(solicitante, flota, LocalDateTime.now().plusDays(3));
 	}
 
-	/** Lo mismo para esa hora: sirve para dar varios viajes al mismo conductor sin que se solapen. */
 	public String viajeAsignado(Cuenta solicitante, Flota flota, LocalDateTime fhAgenda) {
 		String folio = viaje(solicitante, fhAgenda);
 		conPasajero(solicitante, folio);
@@ -398,7 +357,6 @@ public class Api {
 		return folio;
 	}
 
-	// --- pagos ---
 
 	public Resp pagar(String token, String folio, int codSbif, String medioPago, int monto) {
 		return post("/pagos", token, """
@@ -406,7 +364,6 @@ public class Api {
 				.formatted(folio, monto, codSbif, medioPago));
 	}
 
-	/** Registra un pago PENDIENTE por el administrador y devuelve su hash. */
 	public String pagarOk(String folio) {
 		return exigir(pagar(admin(), folio, 12, "TRANSFERENCIA", 50_000), "registrar pago de " + folio, 201)
 				.texto("$.hash");
@@ -421,9 +378,7 @@ public class Api {
 		return exigir(get("/pagos/" + hash, admin()), "consultar pago", 200).texto("$.estadoPago");
 	}
 
-	// --- datos únicos ---
 
-	/** RUT de empresa ya normalizado (sin puntos) y con dígito verificador válido. */
 	private static String rut(int n) {
 		String cuerpo = "%d%03d%03d".formatted(70 + n % 20, n / 1000 % 1000, n % 1000);
 		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);

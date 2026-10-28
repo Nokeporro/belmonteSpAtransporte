@@ -20,7 +20,6 @@ data class VehiculosUiState(
     val error: ErrorApp? = null,
 )
 
-/** «Vehículos» (HU17): la lista con la capacidad y el estado de cada uno. */
 class VehiculosViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -29,7 +28,6 @@ class VehiculosViewModel @JvmOverloads constructor(
     private val _estado = MutableStateFlow(VehiculosUiState())
     val estado: StateFlow<VehiculosUiState> = _estado.asStateFlow()
 
-    /** Se llama al abrir y al volver del alta o de editar, para leer lo guardado. */
     fun cargar() {
         _estado.update { it.copy(cargando = true, error = null) }
         viewModelScope.launch {

@@ -17,7 +17,6 @@ public class Pasajero {
 	@Column(name = "id_pasajero", nullable = false)
 	private Long idPasajero;
 
-	// Hash del RUT chileno o pasaporte extranjero.
 	@Column(name = "dni_hash", length = 50, nullable = false, unique = true)
 	private String dniHash;
 

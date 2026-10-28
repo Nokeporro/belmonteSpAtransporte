@@ -5,16 +5,12 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// URL del backend para release: -Pbelmonte.apiBaseUrl=http://<ip-del-anfitrion>:8080/
 val apiBaseUrlRelease = providers.gradleProperty("belmonte.apiBaseUrl")
 
-// Firma de release: rutas y claves en ~/.gradle/gradle.properties, nunca en el repositorio.
 val keystoreRelease = providers.gradleProperty("belmonte.keystore.archivo")
 
 android {
     namespace = "cl.belmontespa.myapplication"
-    // Las versiones fijadas de AndroidX (core 1.19.1, Compose BOM 2026.09.00…) exigen compilar
-    // contra 37; targetSdk sigue en 36 como pide el README.
     compileSdk {
         version = release(37)
     }
@@ -45,7 +41,6 @@ android {
     }
 
     buildTypes {
-        // Debug y demo arrancan con DatosDemo, así que la app abre sin backend; release nunca la lleva.
         debug {
             buildConfigField("boolean", "CON_SEMILLA", "true")
         }
@@ -56,7 +51,6 @@ android {
             buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrlRelease.getOrElse("")}\"")
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
-        // Build demo: la app completa sobre Room, sin backend (Prueba 2).
         create("demo") {
             initWith(getByName("debug"))
             buildConfigField("boolean", "MODO_LOCAL", "true")
@@ -80,7 +74,6 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
-// Compilar release sin la URL del anfitrión es un error, pero solo al pedir release.
 tasks.matching { it.name == "preReleaseBuild" }.configureEach {
     val url = apiBaseUrlRelease
     doFirst {

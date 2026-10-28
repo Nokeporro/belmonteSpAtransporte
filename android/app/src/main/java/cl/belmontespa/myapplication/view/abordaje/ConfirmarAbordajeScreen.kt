@@ -39,7 +39,6 @@ import cl.belmontespa.myapplication.view.components.texto
 import cl.belmontespa.myapplication.viewmodel.abordaje.ConfirmarAbordajeUiState
 import cl.belmontespa.myapplication.viewmodel.abordaje.ConfirmarAbordajeViewModel
 
-/** «Confirmar abordaje» (HU29): el vehículo viene en la ruta (`patente:código`); el documento solo vive en el ViewModel. */
 @Composable
 fun ConfirmarAbordajeScreen(
     argumento: String,
@@ -82,7 +81,6 @@ fun ConfirmarAbordajeContenido(
         ) {
             val codigo = estado.codigo
             if (codigo == null) {
-                // Una ruta que no es de un código válido no puede confirmarse.
                 Aviso(stringResource(R.string.abordaje_qr_ajeno), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
                 BotonAncho(stringResource(R.string.accion_volver), onVolver, alto56 = true)
                 return@Column

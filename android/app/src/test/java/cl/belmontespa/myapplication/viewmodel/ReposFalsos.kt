@@ -37,12 +37,6 @@ import java.time.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-/** Fakes manuales: una operación inesperada falla sin acceder a Room, red ni Android. */
-/**
- * Dobles manuales de los Repository: una operación inesperada falla sin acceder a Room, red ni Android.
- * El estado se comparte en este objeto; cada repositorio (`viajes`, `cuentas`, `flota`, `pagos`, `auth`,
- * `catalogos`) es una subclase que sobrescribe lo que usan los ViewModel.
- */
 internal class ReposP1Falsos {
     var espera: CompletableDeferred<Unit>? = null
     var fallo: ErrorApp? = null

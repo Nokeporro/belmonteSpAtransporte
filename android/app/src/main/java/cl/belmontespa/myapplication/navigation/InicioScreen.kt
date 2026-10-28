@@ -6,7 +6,6 @@ import androidx.compose.ui.res.stringResource
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 
-/** «Inicio de aplicación»: el instante en que se comprueba la sesión guardada; no tiene estado ni acciones. */
 @Composable
 fun InicioScreen() {
     ContenedorPantalla(

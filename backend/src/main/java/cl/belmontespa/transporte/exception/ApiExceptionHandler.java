@@ -23,8 +23,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
-// Toda respuesta de error de la API sale como ApiError. Los 401/403 del filtro de
-// seguridad (sin token, rol insuficiente por ruta) no llegan aquí.
 @Slf4j
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -36,8 +34,6 @@ public class ApiExceptionHandler {
 		return error(e.getStatusCode(), e.getReason(), request);
 	}
 
-	// Una línea "campo: motivo" por campo fallido (README, "Errores"), en orden alfabético del
-	// campo; si un campo falla varias reglas, gana "Es obligatorio." y luego el motivo menor.
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiError> validacion(MethodArgumentNotValidException e, HttpServletRequest request) {
 		Map<String, String> motivos = new TreeMap<>();
@@ -57,13 +53,11 @@ public class ApiExceptionHandler {
 		return error(HttpStatus.BAD_REQUEST, "Cuerpo inválido", request);
 	}
 
-	// @PreAuthorize en un controller: el recurso no es del usuario autenticado.
 	@ExceptionHandler(AccessDeniedException.class)
 	public ResponseEntity<ApiError> accesoDenegado(AccessDeniedException e, HttpServletRequest request) {
 		return error(HttpStatus.FORBIDDEN, null, request);
 	}
 
-	// Carrera con un UNIQUE o rechazo de un trigger (rol activo, capacidad del móvil).
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<ApiError> integridad(DataIntegrityViolationException e, HttpServletRequest request) {
 		log.warn("Violación de integridad en {}: {}", request.getRequestURI(), e.getMostSpecificCause().getMessage());
@@ -72,7 +66,6 @@ public class ApiExceptionHandler {
 
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiError> inesperado(Exception e, HttpServletRequest request) {
-		// Excepciones de Spring MVC (404 de ruta, 405, parámetro inválido) ya traen su status.
 		if (e instanceof ErrorResponse respuesta) {
 			return error(respuesta.getStatusCode(), respuesta.getBody().getDetail(), request);
 		}

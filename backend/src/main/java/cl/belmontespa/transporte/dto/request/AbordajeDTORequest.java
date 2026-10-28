@@ -6,8 +6,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-// Lo que lee el lector del QR de la puerta (patente y codigoAbordaje) más el documento del Pasajero en texto
-// plano: AbordajeService lo hashea y nunca lo guarda.
 public record AbordajeDTORequest(
 		@NotBlank @Pattern(regexp = Reglas.PATENTE) String patente,
 		@NotBlank @Pattern(regexp = Reglas.CODIGO_ABORDAJE) String codigoAbordaje,

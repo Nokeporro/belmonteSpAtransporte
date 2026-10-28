@@ -38,7 +38,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** «Asignar conductor y vehículo» (HU05, HU23): opciones, elección, envío y errores. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AsignarViewModelTest {
 
@@ -153,7 +152,6 @@ class AsignarViewModelTest {
         vm.elegirConductor("ivan@ejemplo.cl")
 
         assertEquals(listOf("ivan@ejemplo.cl"), flota.consultasDeHabilitaciones)
-        // Dos pasajeros: sin el de capacidad 1, ni el que está En uso, ni el inactivo.
         assertEquals(listOf("KXJR42", "LPHT17"), vm.estado.value.vehiculos.map { it.patente })
         assertFalse(vm.estado.value.cargandoVehiculos)
     }
@@ -196,7 +194,6 @@ class AsignarViewModelTest {
         assertEquals(listOf("ENUSO1"), vm.estado.value.vehiculos.map { it.patente })
     }
 
-    /** `TR-1051` ya asignado a Iván en `KXJR42`: el punto de partida de «Reasignar» (HU23). */
     private fun reasignando(): AsignarViewModel {
         escenarioBase()
         viajes.viaje.value = viaje(estado = EstadoViaje.ASIGNADO, correoConductor = "ivan@ejemplo.cl", patente = "KXJR42")
@@ -477,7 +474,6 @@ class AsignarViewModelTest {
     }
 }
 
-/** Un solo viaje observable; guarda lo que le piden y responde `asignar` con lo que la prueba diga. */
 private class ViajeObservadoFalso : ViajeRepository(soporteVacio()) {
     val viaje = MutableStateFlow<Viaje?>(null)
     val asignaciones = mutableListOf<Triple<String, String, String>>()
