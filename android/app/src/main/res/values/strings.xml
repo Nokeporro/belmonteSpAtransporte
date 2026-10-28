@@ -70,13 +70,13 @@
     <!-- Abordaje con código QR -->
     <string name="abordaje_indicacion">Escanea el código QR de la puerta del vehículo.</string>
     <string name="abordaje_escanear">Escanear código QR</string>
-    <string name="abordaje_ingresar_codigo">Ingresar código</string>
+    <string name="abordaje_ingresar_codigo">Ingresar patente</string>
     <string name="abordaje_lector_indicacion">Apunta al código QR de la puerta.</string>
     <string name="abordaje_qr_ajeno">Este código no es de un vehículo Belmonte.</string>
     <string name="abordaje_no_encontrado">No encontramos un viaje para tu documento en este vehículo. Consulta al conductor.</string>
-    <string name="abordaje_lector_no_disponible">No se pudo abrir el lector. Usa Ingresar código.</string>
+    <string name="abordaje_lector_no_disponible">No se pudo abrir el lector. Usa Ingresar patente.</string>
     <string name="abordaje_confirmar">Confirmar abordaje</string>
-    <string name="abordaje_codigo_invalido">Revisa la patente y el código escritos bajo el QR.</string>
+    <string name="abordaje_codigo_invalido">Revisa la patente escrita bajo el QR.</string>
     <string name="abordaje_documento_invalido">Ingresa un documento válido.</string>
     <string name="abordaje_registrado">Abordaje registrado a las %1$s. ¡Buen viaje!</string>
     <string name="abordaje_volver_inicio">Volver al inicio</string>

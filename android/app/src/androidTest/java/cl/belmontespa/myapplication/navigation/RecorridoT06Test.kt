@@ -79,7 +79,7 @@ class RecorridoT06Test {
                 PantallaDemo.SOLICITUD_SIN_PASAJEROS, PantallaDemo.SIN_PASAJEROS_ADMIN -> "TR-1055"
                 PantallaDemo.SOLICITUD_CANCELADA -> "TR-1051"
                 PantallaDemo.ANTES_VENTANA -> "TR-1049"
-                PantallaDemo.CONFIRMAR_ABORDAJE -> CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6").paraRuta()
+                PantallaDemo.CONFIRMAR_ABORDAJE -> CodigoAbordaje("KXJR42").paraRuta()
                 PantallaDemo.ABORDADO -> horaAbordaje
                 else -> "TR-1042"
             }

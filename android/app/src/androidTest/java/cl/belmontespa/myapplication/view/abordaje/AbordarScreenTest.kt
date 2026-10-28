@@ -18,7 +18,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Abordar viaje» (HU29) con un estado fijo: qué se ofrece, qué se avisa y el diálogo «Ingresar código», sin cámara ni ViewModel. */
+/** «Abordar viaje» (HU29) con un estado fijo: qué se ofrece, qué se avisa y el diálogo «Ingresar patente», sin cámara ni ViewModel. */
 class AbordarScreenTest {
 
     @get:Rule
@@ -36,7 +36,6 @@ class AbordarScreenTest {
                     onIngresar = { llamadas += "ingresar" },
                     onVolver = { llamadas += "volver" },
                     onPatente = { llamadas += "patente:$it" },
-                    onCodigo = { llamadas += "codigo:$it" },
                     onContinuar = { llamadas += "continuar" },
                     onCerrarIngreso = { llamadas += "cerrar" },
                 )
@@ -47,7 +46,7 @@ class AbordarScreenTest {
     private fun texto(id: Int) = textos.getString(id)
 
     @Test
-    fun ofreceEscanearEIngresarElCodigoSinAbrirElLectorAlEntrar() {
+    fun ofreceEscanearEIngresarLaPatenteSinAbrirElLectorAlEntrar() {
         mostrar()
 
         compose.onNodeWithTag("pantalla_contenido").assertExists()
@@ -88,7 +87,7 @@ class AbordarScreenTest {
     }
 
     @Test
-    fun conElLectorNoDisponibleAvisaYDejaEscanearOIngresarElCodigo() {
+    fun conElLectorNoDisponibleAvisaYDejaEscanearOIngresarLaPatente() {
         mostrar(AbordarUiState(aviso = AvisoAbordar.LECTOR_NO_DISPONIBLE))
 
         compose.onNodeWithTag("pantalla_aviso_abordaje").assertExists()
@@ -100,17 +99,17 @@ class AbordarScreenTest {
     }
 
     @Test
-    fun elDialogoPideLaPatenteYElCodigoYNoDejaContinuarSinLosDos() {
-        mostrar(AbordarUiState(ingresando = true, patente = "KXJR42"))
+    fun elDialogoPideSoloLaPatenteYNoDejaContinuarSinEscribirla() {
+        mostrar(AbordarUiState(ingresando = true))
 
         compose.onNodeWithText(texto(R.string.campo_patente)).assertExists()
-        compose.onNodeWithText(texto(R.string.campo_codigo)).assertExists()
+        compose.onNodeWithText(texto(R.string.campo_codigo)).assertDoesNotExist()
         compose.onNodeWithText(texto(R.string.accion_continuar)).assertIsNotEnabled()
     }
 
     @Test
-    fun conLosDosCamposEscritosSePuedeContinuarOCancelar() {
-        mostrar(AbordarUiState(ingresando = true, patente = "KXJR42", codigo = "7F3A9C21B04E58D6"))
+    fun conLaPatenteEscritaSePuedeContinuarOCancelar() {
+        mostrar(AbordarUiState(ingresando = true, patente = "KXJR42"))
 
         compose.onNodeWithText(texto(R.string.accion_continuar)).assertIsEnabled().performClick()
         compose.onNodeWithText(texto(R.string.accion_cancelar)).performClick()
@@ -120,16 +119,15 @@ class AbordarScreenTest {
 
     @Test
     fun unIngresoMalFormadoMuestraElErrorBajoLaPatente() {
-        mostrar(AbordarUiState(ingresando = true, patente = "KXJR4", codigo = "7F3A", ingresoInvalido = true))
+        mostrar(AbordarUiState(ingresando = true, patente = "KXJR4", ingresoInvalido = true))
 
         compose.onNodeWithText(texto(R.string.abordaje_codigo_invalido)).assertExists()
     }
 
     @Test
-    fun sinElDialogoAbiertoNoSeMuestranLosCamposDelIngreso() {
+    fun sinElDialogoAbiertoNoSeMuestraElCampoDelIngreso() {
         mostrar()
 
         compose.onNodeWithText(texto(R.string.campo_patente)).assertDoesNotExist()
-        compose.onNodeWithText(texto(R.string.campo_codigo)).assertDoesNotExist()
     }
 }
