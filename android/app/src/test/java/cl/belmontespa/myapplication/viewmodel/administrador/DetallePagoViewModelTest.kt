@@ -49,7 +49,7 @@ class DetallePagoViewModelTest {
         vm.cargar(hash); runCurrent(); repos.espera = CompletableDeferred()
         vm.cambiarEstado(EstadoPago.PAGADO); vm.cambiarEstado(EstadoPago.PAGADO); runCurrent()
         assertEquals(1, repos.cambiosPago); assertTrue(vm.estado.value.enviando)
-        repos.errorPago = ErrorApp.SinConexion // Una nueva lectura no debe ocultar el éxito confirmado.
+        repos.errorPago = ErrorApp.SinConexion
         repos.espera!!.complete(Unit); runCurrent()
         assertEquals(repos.pago, vm.estado.value.pago); assertNotNull(vm.estado.value.pago!!.fechaPago)
         assertEquals(R.string.pago_estado_guardado, vm.estado.value.aviso)

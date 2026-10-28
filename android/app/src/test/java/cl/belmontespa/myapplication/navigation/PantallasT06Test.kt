@@ -6,7 +6,6 @@ import cl.belmontespa.myapplication.model.Sesion
 import org.junit.Assert.*
 import org.junit.Test
 
-// Comprueba cobertura y permisos; el recorrido visual completo se ejecuta en androidTest.
 class PantallasT06Test {
     @Test fun defineLas46VariantesDeLosMockups() { assertEquals(46, PantallaDemo.entries.size) }
     @Test fun sinSesionNoAbrePantallasPrivadas() {

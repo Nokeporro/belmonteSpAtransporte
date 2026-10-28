@@ -3,8 +3,6 @@ package cl.belmontespa.transporte.validation;
 import java.util.Comparator;
 import java.util.regex.Pattern;
 
-// Reglas de la tabla "Validaciones" del README, compartidas por los DTO de entrada y por las
-// claves de ruta. Se aplican sobre el valor ya normalizado (ver Normalizar).
 public final class Reglas {
 
 	public static final String CORREO = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
@@ -16,10 +14,8 @@ public final class Reglas {
 	public static final String HASH_PAGO = "^[0-9a-f]{32}$";
 	public static final String DNI_HASH = "^[A-Za-z0-9_-]{43}$";
 
-	// Mensaje de @Size cuando la regla es solo un máximo: "Debe tener como máximo 150 caracteres."
 	public static final String MAXIMO = "{validacion.maximo}";
 
-	// El folio se ordena por su número (TR-9999 antes que TR-10000), no como texto.
 	public static final Comparator<String> FOLIO_POR_NUMERO = Comparator.comparingLong(Reglas::numeroDeFolio);
 
 	private static final Pattern FOLIO_RE = Pattern.compile(FOLIO);
@@ -29,7 +25,6 @@ public final class Reglas {
 	private Reglas() {
 	}
 
-	// "TR-1001" → 1001. Solo para un folio que cumple FOLIO (a lo más 17 dígitos, cabe en un long).
 	public static long numeroDeFolio(String folio) {
 		return Long.parseLong(folio.substring("TR-".length()));
 	}
@@ -46,8 +41,6 @@ public final class Reglas {
 		return valor != null && DNI_HASH_RE.matcher(valor).matches();
 	}
 
-	// Módulo 11: factores 2, 3, 4, 5, 6, 7, 2… de derecha a izquierda; 11 − (suma mod 11),
-	// con 11 → '0' y 10 → 'K'. `cuerpo` son solo los dígitos, sin el dígito verificador.
 	public static char digitoVerificador(String cuerpo) {
 		int suma = 0;
 		int factor = 2;

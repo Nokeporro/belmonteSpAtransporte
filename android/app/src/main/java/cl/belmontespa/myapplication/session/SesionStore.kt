@@ -20,23 +20,12 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
-/**
- * Sesión guardada en Preferences DataStore (`sesion.preferences_pb`): `token`, `correo`, `rol`,
- * `expiraEn` y `ultimaCuenta`. Nunca guarda contraseñas. La sesión de una contraseña temporal vive
- * solo en memoria, así que se pierde al cerrar la app.
- */
 class SesionStore(
     private val dataStore: DataStore<Preferences>,
     private val clock: Clock,
 ) {
-    // La sesión de una contraseña temporal: vive solo en memoria y manda sobre la guardada.
     private val temporal = MutableStateFlow<Sesion?>(null)
 
-    /**
-     * El estado de la sesión: lo guardado en DataStore junto con la sesión temporal (si hay una, esa manda).
-     * Una sesión vencida cuenta como sin sesión. El vencimiento se comprueba cada vez que cambia lo guardado; quien
-     * muestre la sesión en pantalla (`SesionViewModel`) espera además a la hora de vencimiento.
-     */
     val estado: Flow<EstadoSesion> =
         combine(dataStore.data, temporal) { preferencias, sesionTemporal ->
             val sesion = sesionTemporal ?: leer(preferencias)
@@ -47,12 +36,10 @@ class SesionStore(
             }
         }.distinctUntilChanged()
 
-    /** Correo de la última cuenta que entró, para detectar un cambio de cuenta. */
     val ultimaCuenta: Flow<String?> =
         dataStore.data.map { it[ULTIMA_CUENTA] }.distinctUntilChanged()
 
     suspend fun guardar(sesion: Sesion) {
-        // Primero confirma la escritura; luego retira la sesión temporal.
         dataStore.edit {
             it[TOKEN] = sesion.token
             it[CORREO] = sesion.correo
@@ -63,17 +50,13 @@ class SesionStore(
         temporal.value = null
     }
 
-    /** Elimina la sesión persistida anterior antes de aceptar una temporal. */
     suspend fun guardarTemporal(sesion: Sesion) {
         borrarGuardada()
-        // No se escribe el token ni la cuenta temporal en DataStore.
         temporal.value = sesion
     }
 
-    /** Cierre de sesión local: borra la sesión y conserva `ultimaCuenta`. */
     suspend fun borrar() {
         borrarGuardada()
-        // ultimaCuenta permanece para las reglas de cambio de cuenta.
         temporal.value = null
     }
 
@@ -98,7 +81,6 @@ class SesionStore(
         @Volatile
         private var instancia: SesionStore? = null
 
-        /** Archivo `datastore/sesion.preferences_pb`, excluido de los respaldos. */
         fun getInstance(context: Context): SesionStore =
             instancia ?: synchronized(this) {
                 instancia ?: SesionStore(
@@ -107,7 +89,6 @@ class SesionStore(
                 ).also { instancia = it }
             }
 
-        /** Solo para pruebas: cambia la sesión de la app por una en memoria (o `null` para volver a la real). */
         @VisibleForTesting
         fun reemplazarParaPruebas(store: SesionStore?) {
             instancia = store

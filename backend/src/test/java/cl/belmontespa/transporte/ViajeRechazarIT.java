@@ -18,11 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * V8 (README, Máquinas de estado): el conductor asignado rechaza un viaje ASIGNADO con un motivo y el viaje vuelve
- * a PENDIENTE. Cada test arma sus propias cuentas, vehículos y viajes, porque el esquema lo comparten todas las
- * clases de integración. Los push de V8 se prueban en NotificacionesIT.
- */
 @DisplayName("Rechazar una asignación (HU25, V8)")
 class ViajeRechazarIT extends IntegrationTest {
 
@@ -260,7 +255,6 @@ class ViajeRechazarIT extends IntegrationTest {
 			api.cambiarEstadoOk(enCurso, flota.conductor(), "FINALIZADO");
 			assertConflicto(api.rechazar(enCurso, flota.conductor().token(), MOTIVO), "FINALIZADO");
 
-			// Cancelar conserva la asignación (V5): el conductor sigue siendo el del viaje, pero ya no hay qué rechazar.
 			Flota otra = api.flota(4);
 			String cancelado = api.viajeAsignado(solicitante, otra);
 			api.cancelarOk(cancelado, solicitante);

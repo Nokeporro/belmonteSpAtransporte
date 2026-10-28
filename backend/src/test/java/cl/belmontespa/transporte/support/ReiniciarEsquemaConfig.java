@@ -5,10 +5,6 @@ import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
-/**
- * Deja el esquema de pruebas en V1–V3 limpias al arrancar el contexto: así cada ejecución
- * parte del administrador sembrado recién creado y sin datos de corridas anteriores.
- */
 @TestConfiguration
 public class ReiniciarEsquemaConfig {
 
@@ -21,7 +17,6 @@ public class ReiniciarEsquemaConfig {
 		};
 	}
 
-	// Guarda: Flyway.clean() borra todo el esquema, así que nunca se ejecuta contra otra base.
 	static void exigirEsquemaDePruebas(String url) {
 		String sinParametros = url == null ? "" : url.split("\\?", 2)[0];
 		if (!sinParametros.endsWith("_test")) {

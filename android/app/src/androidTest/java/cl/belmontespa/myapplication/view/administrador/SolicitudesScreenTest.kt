@@ -23,7 +23,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Solicitudes» (HU04) con un estado fijo: lo que se ve y lo que se avisa, sin Room ni ViewModel. */
 class SolicitudesScreenTest {
 
     @get:Rule

@@ -17,7 +17,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 import java.util.regex.Pattern;
 
-// RUT ya normalizado (ver Normalizar.rut): 7 u 8 dígitos, guion y dígito verificador por módulo 11.
 @Documented
 @Constraint(validatedBy = Rut.Validador.class)
 @Target({ METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE })

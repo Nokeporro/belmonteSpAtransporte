@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Pasajeros de un viaje (M:N). Cada inserción actualiza VIAJE.cantidad_pasajeros por trigger.
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,7 +30,6 @@ public class DetalleViajePasajero {
 	@JoinColumn(name = "id_pasajero", insertable = false, updatable = false)
 	private Pasajero pasajero;
 
-	// Con fecha, Abordado; NULL, Por abordar.
 	@Column(name = "fh_abordaje")
 	private LocalDateTime fhAbordaje;
 

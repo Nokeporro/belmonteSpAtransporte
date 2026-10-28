@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/** Alcance A de P1: HU01, HU06, HU02 y HU03, contra MariaDB y la seguridad real. */
 class P1AIT extends IntegrationTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired PasswordEncoder encoder;

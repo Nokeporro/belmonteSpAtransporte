@@ -5,7 +5,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
-/** P4 y P5 al cancelar un viaje (README, Pago): el 50 % del Solicitante y el reembolso del Administrador. */
 class ReglasCancelacionTest {
 
     private fun pago(estado: String, monto: Int = 52_000, reembolsado: Int? = null) = PagoEntity(

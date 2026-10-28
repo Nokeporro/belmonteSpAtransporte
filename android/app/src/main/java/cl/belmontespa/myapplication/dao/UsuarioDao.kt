@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UsuarioDao {
-    /** Falla con una restricción si el correo ya existe (PK): "El correo ya está registrado". */
     @Insert
     suspend fun insertar(usuario: UsuarioEntity)
 
@@ -22,7 +21,6 @@ interface UsuarioDao {
     @Query("SELECT * FROM usuarios WHERE correo = :correo")
     fun observar(correo: String): Flow<UsuarioEntity?>
 
-    /** Cuentas de un rol (`SOLICITANTE`, `ADMINISTRADOR` o `CONDUCTOR`), por nombre. */
     @Query("SELECT * FROM usuarios WHERE rol = :rol ORDER BY nombre")
     fun observarPorRol(rol: String): Flow<List<UsuarioEntity>>
 

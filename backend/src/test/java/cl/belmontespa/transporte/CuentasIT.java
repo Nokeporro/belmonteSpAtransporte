@@ -27,7 +27,6 @@ class CuentasIT extends IntegrationTest {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	// Deja una temporal conocida por SQL, sin pasar por la ruta del Administrador.
 	private void dejarTemporal(String correo, String clave, LocalDateTime vence) {
 		jdbc.update("UPDATE usuario SET password_temporal_hash = ?, password_temporal_expira = ? WHERE correo = ?",
 				passwordEncoder.encode(clave), vence, correo);
@@ -38,13 +37,11 @@ class CuentasIT extends IntegrationTest {
 				correo);
 	}
 
-	// RUT normalizado (sin puntos) y con dígito verificador válido.
 	private static String rutUnico() {
 		String cuerpo = "75%06d".formatted(System.nanoTime() % 1_000_000);
 		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 	}
 
-	// "75123456-D" → "75.123.456-D": el formato con que lo escribe una persona.
 	private static String conPuntos(String rut) {
 		return rut.substring(0, 2) + "." + rut.substring(2, 5) + "." + rut.substring(5);
 	}

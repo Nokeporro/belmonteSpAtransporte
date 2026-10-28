@@ -20,14 +20,12 @@ import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.ui.theme.BelmonteTema
 
-// Los tres tipos de aviso que puede mostrar la interfaz.
 enum class TonoAviso {
     INFORMACION,
     AVISO,
     PELIGRO,
 }
 
-/** Recuadro de aviso: texto y borde del tono sobre su fondo suave (p. ej. "Faltan pasajeros…"). */
 @Composable
 fun Aviso(
     texto: String,
@@ -50,7 +48,6 @@ fun Aviso(
     }
 }
 
-/** Banner del Conductor sin conexión: "Sin conexión. Los cambios se enviarán al reconectar." */
 @Composable
 fun BannerSinConexion(modifier: Modifier = Modifier) {
     val (color, fondo) = coloresTono(TonoAviso.AVISO)
@@ -66,7 +63,6 @@ fun BannerSinConexion(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // El ícono es decorativo: el texto ya explica que no hay conexión.
             Icon(
                 painter = painterResource(R.drawable.ic_sin_red),
                 contentDescription = null,
@@ -80,8 +76,6 @@ fun BannerSinConexion(modifier: Modifier = Modifier) {
     }
 }
 
-// El primer color es el del texto y borde; el segundo, el fondo.
-// Se obtienen del tema activo para soportar claro y oscuro.
 @Composable
 private fun coloresTono(tono: TonoAviso): Pair<Color, Color> {
     val esquema = MaterialTheme.colorScheme

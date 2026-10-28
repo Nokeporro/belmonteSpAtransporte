@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface HabilitacionDao {
-    /** Una habilitación existente se ignora sin duplicar: devuelve -1 en ese caso. */
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertar(habilitacion: HabilitacionEntity): Long
 

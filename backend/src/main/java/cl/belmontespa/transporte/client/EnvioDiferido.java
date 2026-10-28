@@ -5,11 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-/**
- * Envía avisos externos (correo, push) sin afectar la operación de negocio: si hay una
- * transacción en curso, espera a que se confirme (si se revierte, no se envía nada) y
- * corre en otro hilo. Un fallo de envío solo se registra; nunca llega al llamador.
- */
 @Slf4j
 final class EnvioDiferido {
 

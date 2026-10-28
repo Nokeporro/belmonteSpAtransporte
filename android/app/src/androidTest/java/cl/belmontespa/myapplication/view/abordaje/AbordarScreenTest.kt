@@ -18,7 +18,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Abordar viaje» (HU29) con un estado fijo: qué se ofrece, qué se avisa y el diálogo «Ingresar patente», sin cámara ni ViewModel. */
 class AbordarScreenTest {
 
     @get:Rule
@@ -63,7 +62,6 @@ class AbordarScreenTest {
 
         compose.onNodeWithText(texto(R.string.abordaje_lector_indicacion)).assertExists()
         compose.onNodeWithText(texto(R.string.abordaje_indicacion)).assertDoesNotExist()
-        // El título de la barra y el botón comparten el mismo texto.
         compose.onAllNodesWithText(texto(R.string.abordaje_escanear)).assertCountEquals(2)
         assertEquals(emptyList<String>(), llamadas)
     }

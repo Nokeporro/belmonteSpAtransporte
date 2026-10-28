@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Filtros de «Solicitudes» en el orden de la pantalla; el inicial es «Pendientes». */
 enum class FiltroSolicitudes(val estado: EstadoViaje?) {
     PENDIENTES(EstadoViaje.PENDIENTE),
     ASIGNADO(EstadoViaje.ASIGNADO),
@@ -34,7 +33,6 @@ enum class FiltroSolicitudes(val estado: EstadoViaje?) {
     TODAS(null),
 }
 
-/** Un viaje con lo que depende de "ahora": su retraso y si se le ofrece «Asignar» directo. */
 data class SolicitudFila(
     val viaje: Viaje,
     val retraso: Retraso?,
@@ -62,7 +60,6 @@ class SolicitudesViewModel @JvmOverloads constructor(
 
     private var observacion: Job? = null
 
-    // Los viajes tal como llegaron: al volver a primer plano se recalcula el retraso sobre ellos.
     private var ultimos: List<Viaje> = emptyList()
 
     init {
@@ -71,7 +68,6 @@ class SolicitudesViewModel @JvmOverloads constructor(
 
     fun elegirFiltro(filtro: FiltroSolicitudes) {
         if (filtro == _estado.value.filtro) return
-        // Solo el nombre del filtro sobrevive a la muerte del proceso (README, Estado).
         guardado[CLAVE_FILTRO] = filtro.name
         ultimos = emptyList()
         _estado.update { it.copy(filtro = filtro, filas = emptyList(), cargando = true, error = null) }
@@ -79,10 +75,6 @@ class SolicitudesViewModel @JvmOverloads constructor(
         viewModelScope.launch { avisarSiFalla(viajes.refrescarViajes(FiltroViajes(estado = filtro.estado))) }
     }
 
-    /**
-     * Al abrir, «Actualizar» y «Reintentar»: vuelve a leer y a pedir los viajes del filtro y las cuentas
-     * por aprobar. Leer de nuevo también recupera una lista cuya lectura había fallado.
-     */
     fun actualizar() {
         _estado.update { it.copy(error = null) }
         observar(_estado.value.filtro)
@@ -92,10 +84,8 @@ class SolicitudesViewModel @JvmOverloads constructor(
         }
     }
 
-    /** El retraso se calcula con el reloj: al volver a primer plano puede haber cambiado. */
     fun alVolverAPrimerPlano() {
         _estado.update { it.copy(filas = filas(ultimos)) }
-        // HU27: al volver de revisar cuentas, conserva el filtro y actualiza su cantidad.
         viewModelScope.launch { actualizarCuentasPendientes() }
     }
 
@@ -122,7 +112,6 @@ class SolicitudesViewModel @JvmOverloads constructor(
         SolicitudFila(
             viaje = viaje,
             retraso = viaje.retraso(clock),
-            // «Asignar» directo solo en las pendientes; reasignar es del detalle (HU23).
             puedeAsignar = viaje.estado == EstadoViaje.PENDIENTE && viaje.asignable(clock),
         )
     }

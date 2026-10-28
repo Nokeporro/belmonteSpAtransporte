@@ -10,11 +10,6 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * Push por FCM (RF12). Se activa al definir FIREBASE_CREDENTIALS_FILE (ver FirebaseConfig);
- * sin eso solo registra que no se envió. El aviso sale después del commit de la operación
- * y en otro hilo, y un fallo nunca rompe la operación de negocio.
- */
 @Slf4j
 @Component
 public class FirebaseClient {
@@ -32,7 +27,6 @@ public class FirebaseClient {
 		this.executor = executor;
 	}
 
-	/** Sin token registrado (RF13) no hay a quién avisar y no se hace nada. */
 	public void notificar(String tokenFcm, String titulo, String mensaje, Map<String, String> datos) {
 		if (tokenFcm == null || tokenFcm.isBlank()) {
 			return;

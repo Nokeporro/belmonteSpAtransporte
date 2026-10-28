@@ -17,7 +17,6 @@ public class EstadoPago {
 	@Column(name = "id", nullable = false)
 	private Long id;
 
-	// Pendiente, Pagado, Rechazado, Anulado o Reembolsado.
 	@Column(name = "estado", length = 20, nullable = false, unique = true)
 	private String estado;
 

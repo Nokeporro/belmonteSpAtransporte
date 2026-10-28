@@ -16,8 +16,6 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
-// API stateless con JWT (RNF01). Cada ruta declara sus roles (README, "Mapeo de roles por
-// endpoint"); lo no listado se rechaza. "Solo lo propio" se valida en los controllers.
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -38,16 +36,12 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/error").permitAll()
 						.requestMatchers(POST, "/api/v1/auth/login").permitAll()
-						// CU-13/RF21: el Administrador genera la temporal de otra cuenta.
 						.requestMatchers(POST, "/api/v1/auth/recuperar-password").hasRole(ADM)
-						// Autorregistro del Solicitante (RF01): aún no tiene JWT.
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
-						// Abordaje del Pasajero (RF28): no tiene cuenta, se identifica con el QR del vehículo y su documento.
 						.requestMatchers(POST, "/api/v1/abordajes").permitAll()
 						.requestMatchers(POST, "/api/v1/auth/logout").authenticated()
 						.requestMatchers(GET, "/api/v1/catalogos").hasAnyRole(ADM, CON, SOL)
 
-						// Sin POST: las cuentas nacen por su rol (RF01, CU-07 y el alta de administradores).
 						.requestMatchers(GET, "/api/v1/usuarios", "/api/v1/usuarios/*").hasAnyRole(ADM, CON, SOL)
 						.requestMatchers(PUT, "/api/v1/usuarios/*").hasAnyRole(ADM, SOL)
 
@@ -95,7 +89,6 @@ public class SecurityConfig {
 		return new BCryptPasswordEncoder();
 	}
 
-	// Claim "rol" → ROLE_<rol>; el nombre del Authentication es el sub (correo).
 	private static JwtAuthenticationConverter rolDelToken() {
 		JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
 		roles.setAuthoritiesClaimName("rol");

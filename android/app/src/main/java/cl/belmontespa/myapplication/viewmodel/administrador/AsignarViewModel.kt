@@ -23,7 +23,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Un conductor activo de la lista; `habilitado` es si se puede elegir (los Ocupados, no). */
 data class ConductorOpcion(
     val correo: String,
     val nombre: String,
@@ -33,14 +32,12 @@ data class ConductorOpcion(
     val habilitado: Boolean,
 )
 
-/** Un vehículo habilitado para el conductor elegido, activo, disponible y con capacidad suficiente. */
 data class VehiculoOpcion(
     val patente: String,
     val capacidad: Int,
     val estado: EstadoMovil,
 )
 
-/** Por qué el viaje ya no admite una asignación (README, Navegación y pantallas). */
 enum class NoAsignable { SIN_PASAJEROS, YA_NO_SE_PUEDE }
 
 data class AsignarUiState(
@@ -54,23 +51,15 @@ data class AsignarUiState(
     val vehiculoElegido: String? = null,
     val enviando: Boolean = false,
     val error: ErrorApp? = null,
-    /** Verdadero cuando la asignación quedó guardada: la pantalla navega al detalle. */
     val asignado: Boolean = false,
 ) {
     val conductor: ConductorOpcion? get() = conductores.firstOrNull { it.correo == conductorElegido }
     val vehiculo: VehiculoOpcion? get() = vehiculos.firstOrNull { it.patente == vehiculoElegido }
 
-    /** Hay una elección a medias que se perdería al salir. */
     val modificado: Boolean get() = !asignado && conductorElegido != null
     val puedeConfirmar: Boolean get() = noAsignable == null && conductor != null && vehiculo != null && !enviando
 }
 
-/**
- * «Asignar conductor y vehículo» (HU05) y, con el viaje `ASIGNADO`, «Reasignar» (HU23): la misma V2.
- * El Conductor se elige entre los activos (los `OCUPADO`, deshabilitados); del elegido salen sus vehículos
- * habilitados, activos, disponibles y con capacidad. El conductor y el vehículo que el viaje ya tiene siguen
- * disponibles aunque estén en uso: reasignar solo valida lo que cambia.
- */
 class AsignarViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -84,10 +73,8 @@ class AsignarViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var observacion: Job? = null
 
-    // Los conductores tal como llegaron: las opciones se recalculan cuando cambia el viaje.
     private var conductores: List<Conductor> = emptyList()
 
-    /** Idempotente: la pantalla lo llama en cada composición con el mismo folio. */
     fun cargar(folio: String) {
         if (folio == this.folio) return
         this.folio = folio
@@ -96,7 +83,6 @@ class AsignarViewModel @JvmOverloads constructor(
         recargar()
     }
 
-    /** «Reintentar» y la recarga tras un 409: vuelve a leer el viaje y los conductores. */
     fun reintentar() {
         _estado.update { it.copy(error = null) }
         recargar()
@@ -106,7 +92,6 @@ class AsignarViewModel @JvmOverloads constructor(
         val estado = _estado.value
         val opcion = estado.conductores.firstOrNull { it.correo == correo } ?: return
         if (!opcion.habilitado || estado.enviando || correo == estado.conductorElegido) return
-        // El vehículo pertenece al conductor: al cambiar de conductor se vuelve a elegir.
         _estado.update {
             it.copy(
                 conductorElegido = correo, vehiculos = emptyList(), vehiculoElegido = null,
@@ -128,17 +113,14 @@ class AsignarViewModel @JvmOverloads constructor(
         val correo = estado.conductorElegido
         val patente = estado.vehiculoElegido
         if (!estado.puedeConfirmar || correo == null || patente == null) return
-        // `enviando` se marca antes de lanzar nada: un segundo toque no encuentra el botón libre.
         _estado.update { it.copy(enviando = true, error = null) }
         viewModelScope.launch {
             when (val resultado = viajes.asignar(folio, correo, patente)) {
                 is Resultado.Exito -> _estado.update { it.copy(enviando = false, asignado = true) }
                 is Resultado.Fallo -> {
                     _estado.update { it.copy(enviando = false, error = resultado.error) }
-                    // Un 409 casi siempre es que algo cambió: se vuelve a leer, conservando la elección.
                     if (resultado.error is ErrorApp.Conflicto) recargar(conservarEleccion = true)
                 }
-                // Asignar no se encola: no hay conexión que esperar.
                 Resultado.Encolado -> _estado.update { it.copy(enviando = false, error = ErrorApp.Inesperado) }
             }
         }
@@ -190,7 +172,6 @@ class AsignarViewModel @JvmOverloads constructor(
     private suspend fun cargarVehiculos(correo: String) {
         when (val resultado = flota.listarHabilitaciones(correo = correo)) {
             is Resultado.Exito -> {
-                // Una respuesta tardía de un conductor que ya no está elegido se descarta.
                 if (_estado.value.conductorElegido != correo) return
                 val viaje = _estado.value.viaje
                 val elegibles = resultado.valor.mapNotNull { vehiculoElegible(it, viaje) }
@@ -220,7 +201,6 @@ class AsignarViewModel @JvmOverloads constructor(
                 estado = conductor.estado,
                 viajesAsignados = conductor.viajesAsignados,
                 folioEnCurso = conductor.folioEnCurso,
-                // El que ya tiene el viaje no cambia, así que no hace falta que esté Disponible.
                 habilitado = conductor.estado == EstadoConductor.DISPONIBLE || conductor.correo == viaje?.correoConductor,
             )
         }

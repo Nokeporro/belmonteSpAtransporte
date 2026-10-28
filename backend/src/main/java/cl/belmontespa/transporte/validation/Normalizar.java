@@ -3,9 +3,6 @@ package cl.belmontespa.transporte.validation;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-// Normalización previa a la validación (README, "Validaciones"): el backend guarda el valor
-// normalizado. Los DTO la llaman desde su constructor compacto, que corre al deserializar y
-// antes de @Valid. Todos tratan null como "ausente" y no lo tocan.
 public final class Normalizar {
 
 	private static final Pattern SEPARADORES_TELEFONO = Pattern.compile("[\\s\\-()]");
@@ -17,7 +14,6 @@ public final class Normalizar {
 	private Normalizar() {
 	}
 
-	// nombre, razonSocial, direccion, comuna, region.
 	public static String texto(String valor) {
 		return valor == null ? null : valor.strip();
 	}
@@ -26,7 +22,6 @@ public final class Normalizar {
 		return valor == null ? null : valor.strip().toLowerCase(Locale.ROOT);
 	}
 
-	// Sin espacios, guiones ni paréntesis; 9 dígitos chilenos pasan a "+56…". Vacío es ausente.
 	public static String telefono(String valor) {
 		if (valor == null) {
 			return null;
@@ -42,12 +37,10 @@ public final class Normalizar {
 		return valor == null ? null : ESPACIOS_Y_GUIONES.matcher(valor).replaceAll("").toUpperCase(Locale.ROOT);
 	}
 
-	// Código del QR de abordaje: en mayúsculas y sin espacios ("7f3a 9c21 …" → "7F3A9C21…").
 	public static String codigoAbordaje(String valor) {
 		return valor == null ? null : ESPACIOS.matcher(valor).replaceAll("").toUpperCase(Locale.ROOT);
 	}
 
-	// Sin puntos, con guion antes del dígito verificador y K mayúscula: 76.543.210-3 → 76543210-3.
 	public static String rut(String valor) {
 		if (valor == null) {
 			return null;
@@ -60,7 +53,6 @@ public final class Normalizar {
 		return limpio;
 	}
 
-	// En mayúsculas y sin espacios: "la 1502" → "LA1502". Vacío es ausente (el campo es opcional).
 	public static String numeroVuelo(String valor) {
 		if (valor == null) {
 			return null;

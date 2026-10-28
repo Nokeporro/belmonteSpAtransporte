@@ -56,7 +56,6 @@ public class SolicitanteService
 		return solicitanteRepository.findByUsuarioCorreoIgnoreCase(correo);
 	}
 
-	// RF01: pertenecer a una empresa existente requiere revisión del Administrador.
 	@Override
 	protected Solicitante nuevaEntidad(SolicitanteDTORequest request) {
 		Solicitante solicitante = new Solicitante();
@@ -83,8 +82,6 @@ public class SolicitanteService
 		return solicitanteRepository.findByEstadoSolicitanteEstado(nombre, orden()).stream().map(this::aResponse).toList();
 	}
 
-	// CU-17: usa el bloqueo de la cuenta antes de leer el estado, igual que el login (HU22).
-	// Dos revisiones simultáneas nunca confirman decisiones distintas ni duplican el correo.
 	@Transactional
 	public SolicitanteDTOResponse revisar(String correo, boolean aprobado) {
 		var usuario = usuarioRepository.bloquearPorCorreo(correo)

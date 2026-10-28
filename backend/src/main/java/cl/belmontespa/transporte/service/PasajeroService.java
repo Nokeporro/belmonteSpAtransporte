@@ -45,7 +45,6 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 		return pasajeroRepository.findByDniHash(dniHash);
 	}
 
-	// El cliente no conoce el hash: si el documento ya existe, devuelve ese pasajero.
 	@Override
 	@Transactional
 	public PasajeroDTOResponse crear(PasajeroDTORequest request) {
@@ -68,7 +67,6 @@ public class PasajeroService extends CrudService<Pasajero, String, PasajeroDTORe
 		return PasajeroDTOResponse.from(pasajero);
 	}
 
-	// HMAC-SHA256 del RUT/pasaporte normalizado, en Base64url sin padding (43 caracteres).
 	public String hashDni(String dni) {
 		String normalizado = dni.replaceAll("[.\\-\\s]", "").toUpperCase(Locale.ROOT);
 		try {

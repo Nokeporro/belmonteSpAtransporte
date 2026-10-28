@@ -18,7 +18,6 @@ import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.administrador.DetalleVehiculoViewModel
 
-/** «Detalle de vehículo»: datos, código de abordaje (solo lo ve el Administrador), habilitados y baja. */
 @Composable
 fun DetalleVehiculoScreen(
     patente: String,
@@ -27,7 +26,6 @@ fun DetalleVehiculoScreen(
     viewModel: DetalleVehiculoViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // Al volver del alta o de editar, el detalle debe leer los datos guardados.
     LaunchedEffect(patente) { viewModel.cargar(patente, forzar = true) }
     ContenedorPantalla(
         titulo = stringResource(PantallaDemo.DETALLE_VEHICULO.titulo),

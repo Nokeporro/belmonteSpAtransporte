@@ -17,7 +17,6 @@ public class EstadoConductor {
 	@Column(name = "id_estado", nullable = false)
 	private Long idEstado;
 
-	// Sin NOT NULL en el DDL (README).
 	@Column(name = "estado", length = 20, unique = true)
 	private String estado;
 

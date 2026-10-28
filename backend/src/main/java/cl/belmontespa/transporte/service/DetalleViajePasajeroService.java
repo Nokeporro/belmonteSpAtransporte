@@ -16,8 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-// Pasajeros de un viaje. Ruta: /pasajeros-viaje/{folio}/{dni_hash}. Cada alta suma a
-// VIAJE.cantidad_pasajeros por trigger.
 @Service
 public class DetalleViajePasajeroService extends CrudService<DetalleViajePasajero,
 		DetalleViajePasajeroService.Clave, DetalleViajePasajeroDTORequest, DetalleViajePasajeroDTOResponse> {
@@ -45,7 +43,6 @@ public class DetalleViajePasajeroService extends CrudService<DetalleViajePasajer
 		return detalleRepository.findByViajeFolioAndPasajeroDniHash(clave.folio(), clave.dniHash());
 	}
 
-	// Si el pasajero ya está en el viaje no se duplica.
 	@Transactional(readOnly = true)
 	public boolean existe(String folio, String dniHash) {
 		return buscar(new Clave(folio, dniHash)).isPresent();
@@ -68,7 +65,6 @@ public class DetalleViajePasajeroService extends CrudService<DetalleViajePasajer
 			throw new ResponseStatusException(HttpStatus.CONFLICT,
 					"Solo se agregan pasajeros a viajes Pendientes o Asignados");
 		}
-		// El trigger también lo impide; aquí se responde 409 en vez de un error SQL.
 		if (viaje.getMovil() != null
 				&& Objects.requireNonNullElse(viaje.getCantidadPasajeros(), 0) >= viaje.getMovil().getCapacidad()) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "El viaje ya alcanzó la capacidad del móvil");

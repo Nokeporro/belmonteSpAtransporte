@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// El Administrador crea y edita conductores (CU-07); el Conductor solo consulta su cuenta.
 @RestController
 @RequestMapping("/api/v1/conductores")
 public class ConductorController extends CrudController<ConductorDTORequest, ConductorDTOResponse> {
@@ -42,7 +41,6 @@ public class ConductorController extends CrudController<ConductorDTORequest, Con
 		return conductorService.cambiarActivo(correo, request.activo());
 	}
 
-	// Solo Administrador (SecurityConfig): reemplaza datos y contraseña (CU-07/RF14).
 	@PutMapping("/{clave}")
 	public ConductorDTOResponse actualizar(@PathVariable String clave, @Valid @RequestBody ConductorDTORequest request) {
 		return conductorService.actualizar(clave, request);

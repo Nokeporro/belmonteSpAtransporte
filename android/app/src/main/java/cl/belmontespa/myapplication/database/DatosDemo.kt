@@ -22,39 +22,9 @@ import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import java.time.LocalDateTime
 
-/*
- * Datos ficticios de la build demo (RNF09), con los ejemplos de los mockups. SemillaDemo los inserta
- * en Room al crear la base, con fechas relativas a ese primer arranque: el viaje en ventana vence
- * unos 90 minutos después. Antes de cada demostración o grabación se borran los datos de la app:
- *     adb shell pm clear cl.belmontespa.myapplication
- *
- * Contraseña común de todas las cuentas: Belmonte2026
- *
- * Administradores: recepcion@belmontespa.cl (Andrea Castro), cherrera@belmontespa.cl (Camila Herrera)
- * Conductores:     ireyes@belmontespa.cl (Iván Reyes, conductor del viaje en ventana TR-1042)
- *                  pmunoz@belmontespa.cl (Paula Muñoz)
- *                  jlara@belmontespa.cl (Jorge Lara, con TR-1045 en curso)
- *                  msoto@belmontespa.cl (Marta Soto, inactiva: no inicia sesión)
- * Solicitantes:    crios@andesconsult.cl (Constanza Ríos, Andes Consultores SpA)
- *                  rperez@andesconsult.cl (Rodrigo Pérez, por aprobar: no inicia sesión)
- *                  mrojas@pacificoservicios.cl (Matías Rojas, Pacífico Servicios Ltda.)
- *
- * Documentos ficticios de los pasajeros (para "Abordar viaje"):
- *   Constanza Ríos RUT 15.234.567-4 · Tomás Vidal pasaporte P4471023 · Marcela Soto RUT 16.789.012-1
- *   Roberto Aguilar RUT 12.345.678-5 · Paula Lagos RUT 13.579.246-2 · Luis Pino RUT 14.682.035-2
- *   Diego Fuentes RUT 17.246.810-1 · Felipe Mora pasaporte X9087654 · Javiera Núñez RUT 18.364.925-6
- *
- * Vehículos y su código de abordaje (el QR de la puerta dice BELMONTE-ABORDAJE:{patente}):
- *   KXJR42 7F3A9C21B04E58D6 · LPHT17 2B8E41D07C95A316 · GZRW90 9D04C6E2A1F7B853
- *   HJKL21 5C1A8F3E0B6D2947 (inactivo, en taller)
- *
- * Viaje en ventana: TR-1042, ASIGNADO a ahora + 30 min, de Iván Reyes en KXJR42, con 3 pasajeros y
- * Constanza Ríos ya abordada; para abordar, usar el documento de Tomás Vidal o de Marcela Soto.
- */
 object DatosDemo {
     const val PASSWORD = "Belmonte2026"
 
-    /** Los 14 bancos de los datos iniciales, con su código SBIF. */
     val bancos = listOf(
         Banco("Banco de Chile", 1),
         Banco("Banco Internacional", 9),
@@ -72,7 +42,6 @@ object DatosDemo {
         Banco("Banco BTG Pactual Chile", 59),
     )
 
-    /** Regiones Metropolitana y de Valparaíso, con los nombres oficiales del catálogo del backend. */
     val regiones = listOf(
         Region(
             "Metropolitana de Santiago",
@@ -113,7 +82,6 @@ object DatosDemo {
     private val VINA_DEL_MAR = Ubicacion("Av. San Martín 199", "Viña del Mar", "Valparaíso", -33.019800, -71.552100)
     private val VALPARAISO = Ubicacion("Muelle Prat", "Valparaíso", "Valparaíso", -33.037900, -71.627600)
 
-    /** Lugares ficticios que «Nueva solicitud» ofrece como origen y destino mientras Google Places no esté integrado. */
     val lugares: List<Ubicacion> = listOf(
         AEROPUERTO, APOQUINDO, ISIDORA_GOYENECHEA, VITACURA_2939, EL_BOSQUE_NORTE, VITACURA, NUNOA, PROVIDENCIA,
         VINA_DEL_MAR, VALPARAISO,
@@ -124,7 +92,6 @@ object DatosDemo {
     private val ANDES = Empresa("Andes Consultores SpA", "76543210-3")
     private val PACIFICO = Empresa("Pacífico Servicios Ltda.", "77123456-9")
 
-    /** Pasajero ficticio con su documento en claro, que solo existe en este archivo y en las pruebas. */
     internal data class PasajeroDemo(val nombre: String, val documento: String) {
         val dniHash = Hashes.documento(documento)
     }
@@ -144,7 +111,6 @@ object DatosDemo {
         DIEGO_FUENTES, FELIPE_MORA, JAVIERA_NUNEZ,
     )
 
-    /** Filas listas para insertar en Room. */
     data class Semilla(
         val usuarios: List<UsuarioEntity>,
         val moviles: List<MovilEntity>,
@@ -155,7 +121,6 @@ object DatosDemo {
         val pagos: List<PagoEntity>,
     )
 
-    /** Crea la semilla con fechas relativas a [ahora] (hora de Chile, truncada al minuto). */
     fun crear(ahora: LocalDateTime, descargadoEn: Long = 0): Semilla {
         val cuentas = Cuentas(registro = FechaIso.texto(ahora.minusDays(90)), passwordSha256 = Hashes.password(PASSWORD))
         val pagos = pagos(ahora)
@@ -171,7 +136,6 @@ object DatosDemo {
         )
     }
 
-    /** Las 9 cuentas de la demo, con la misma contraseña y la misma fecha de registro. */
     private class Cuentas(private val registro: String, private val passwordSha256: String) {
         private fun cuenta(
             correo: String,
@@ -250,9 +214,7 @@ object DatosDemo {
     )
 
     private fun pagos(ahora: LocalDateTime) = listOf(
-        // V5 con el pago Pagado: reembolso del 50 % (P4).
         pago("9a4c2e7b1d5f3086c2a9e4b7d1f5c3e2", 1033, 40000, EstadoPago.REEMBOLSADO, 12, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(4), 20000),
-        // V7 con el pago Pendiente: anulado (P5).
         pago("5d3b1f8e2a7c4096d1e5b3a8c7f2e014", 1036, 35000, EstadoPago.ANULADO, 1, MedioPago.TARJETA_CREDITO, TipoRecibo.BOLETA, PACIFICO),
         pago("b71e4d2a9c3f5086a1d7e2c4b9f03a58", 1038, 52000, EstadoPago.PAGADO, 37, MedioPago.TRANSFERENCIA, TipoRecibo.FACTURA, ANDES, ahora.minusDays(2)),
         pago("0c5e8a3d7f1b4926b8e2d5a7c1f0e963", 1039, 45000, EstadoPago.RECHAZADO, 16, MedioPago.TARJETA_DEBITO, TipoRecibo.FACTURA, ANDES),
@@ -260,10 +222,8 @@ object DatosDemo {
         pago("e2a7c9f1d4b6083a5c7e1b9d2f4a6c80", 1051, 38000, EstadoPago.PENDIENTE, 39, MedioPago.EFECTIVO, TipoRecibo.BOLETA, ANDES),
     )
 
-    /** Un viaje con sus filas de pasajeros. */
     private class ViajeDemo(val viaje: ViajeEntity, val pasajeros: List<ViajePasajeroEntity>)
 
-    /** Arma los viajes con fechas relativas a [ahora] y toma el pago que tenga el mismo folio. */
     private class FabricaViaje(
         private val ahora: LocalDateTime,
         private val descargadoEn: Long,
@@ -338,7 +298,6 @@ object DatosDemo {
                 listOf(JAVIERA_NUNEZ to null),
                 motivo = "Cliente reprogramó el traslado",
             ),
-            // Vencido (más de 1 hora después de su hora agendada), con el pago Pagado.
             fabrica.viaje(
                 1038, EstadoViaje.PENDIENTE, cuentas.constanza, NUNOA, AEROPUERTO, ahora.minusHours(3),
                 listOf(LUIS_PINO to null),
@@ -349,7 +308,6 @@ object DatosDemo {
                 conductor = cuentas.ivan, patente = "LPHT17",
                 fhAsignacion = ahora.minusDays(2), fhInicio = ahora.minusHours(5).minusMinutes(5), fhFin = ahora.minusHours(4),
             ),
-            // Viaje en ventana de inicio: 3 pasajeros, 1 ya abordado.
             fabrica.viaje(
                 1042, EstadoViaje.ASIGNADO, cuentas.constanza, AEROPUERTO, APOQUINDO, ahora.plusMinutes(30),
                 listOf(CONSTANZA_RIOS to ahora.minusMinutes(5), TOMAS_VIDAL to null, MARCELA_SOTO to null),
@@ -360,7 +318,6 @@ object DatosDemo {
                 listOf(JAVIERA_NUNEZ to ahora.minusMinutes(30)),
                 conductor = cuentas.jorge, patente = "GZRW90", fhAsignacion = ahora.minusDays(1), fhInicio = ahora.minusMinutes(25),
             ),
-            // Atrasado: pasó su hora agendada, pero aún puede iniciarse.
             fabrica.viaje(
                 1047, EstadoViaje.PENDIENTE, cuentas.constanza, PROVIDENCIA, AEROPUERTO, ahora.minusMinutes(30),
                 listOf(DIEGO_FUENTES to null),
@@ -378,7 +335,6 @@ object DatosDemo {
                 1053, EstadoViaje.PENDIENTE, cuentas.matias, VINA_DEL_MAR, AEROPUERTO, ahora.plusDays(3),
                 listOf(JAVIERA_NUNEZ to null),
             ),
-            // Sin pasajeros: no se puede asignar hasta agregar al menos uno.
             fabrica.viaje(
                 1055, EstadoViaje.PENDIENTE, cuentas.constanza, VITACURA_2939, AEROPUERTO, ahora.plusDays(2),
                 emptyList(),

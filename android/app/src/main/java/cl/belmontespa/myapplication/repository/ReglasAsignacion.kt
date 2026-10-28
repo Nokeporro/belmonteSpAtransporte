@@ -5,24 +5,15 @@ import java.time.Duration
 import java.time.LocalDateTime
 import kotlin.math.abs
 
-/** El conductor o el vehículo que se propone para el viaje, con lo que V2 necesita saber de él. */
 internal data class ParticipanteAsignacion(
     val activo: Boolean,
     val disponible: Boolean,
-    /** `fhAgenda` de sus otros viajes Asignados o En curso, sin contar el que se está asignando. */
     val agendaDeOtrosViajes: List<LocalDateTime>,
-    /** El que ya tiene el viaje: no cambia, así que no se vuelve a validar. */
     val yaAsignado: Boolean,
 )
 
-/** Distancia mínima entre dos viajes de un mismo conductor o vehículo (README, V2). */
 private const val MINUTOS_ENTRE_VIAJES = 120L
 
-/**
- * V2 (README, Viaje): el mensaje del primer conflicto de asignar o reasignar un viaje, o `null` si se puede.
- * Es la misma regla, con los mismos textos y el mismo orden, que aplica el backend. Al reasignar solo se
- * valida lo que cambia; si no cambia ninguno, no hay nada que validar.
- */
 internal fun conflictoDeAsignacion(
     estado: EstadoViaje,
     fhAgenda: LocalDateTime,
@@ -58,6 +49,5 @@ internal fun conflictoDeAsignacion(
     return null
 }
 
-// Extremos excluidos: a 120 minutos exactos se puede.
 private fun cercano(fhAgenda: LocalDateTime, otra: LocalDateTime): Boolean =
     abs(Duration.between(fhAgenda, otra).toMinutes()) < MINUTOS_ENTRE_VIAJES

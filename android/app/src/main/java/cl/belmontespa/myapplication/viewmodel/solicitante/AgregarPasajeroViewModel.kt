@@ -23,11 +23,9 @@ data class AgregarPasajeroUiState(
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** Verdadero cuando el pasajero quedó guardado: la pantalla vuelve al detalle de la solicitud. */
     val agregado: Boolean = false,
 )
 
-/** «Agregar pasajero» (hoja inferior del detalle): suma un pasajero a una solicitud `PENDIENTE` o `ASIGNADO`. */
 class AgregarPasajeroViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),

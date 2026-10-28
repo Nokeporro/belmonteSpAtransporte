@@ -1,6 +1,5 @@
 package cl.belmontespa.myapplication.model
 
-// Códigos de la API (README, Datos iniciales). La app muestra su etiqueta, nunca el código.
 
 enum class EstadoViaje { PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO, CANCELADO }
 

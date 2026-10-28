@@ -20,14 +20,12 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.view.components.etiqueta
 
-/** Destino principal de un rol, con su ícono en la barra inferior. `ruta` es la de su pantalla. */
 data class ItemBarra(
     val ruta: String,
     @param:StringRes val etiqueta: Int,
     @param:DrawableRes val icono: Int,
 )
 
-/** Barra inferior de cada rol; el primer ítem es su pantalla de inicio. */
 fun itemsBarra(rol: Rol): List<ItemBarra> = when (rol) {
     Rol.SOLICITANTE -> listOf(
         ItemBarra(PantallaDemo.MIS_SOLICITUDES.ruta, R.string.nav_mis_solicitudes, R.drawable.ic_lista),
@@ -45,7 +43,6 @@ fun itemsBarra(rol: Rol): List<ItemBarra> = when (rol) {
     )
 }
 
-/** Verdadero si el destino es esa ruta o está dentro de ese grafo. */
 fun NavDestination.esRuta(ruta: String): Boolean = hierarchy.any { it.route == ruta }
 
 @Composable

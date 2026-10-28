@@ -63,17 +63,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 
-/**
- * «Mis viajes» del Conductor (HU07): su agenda del día por hora. Tocar un viaje abre su detalle; antes de
- * la ventana de inicio, la variante «Antes de la ventana».
- */
 @Composable
 fun MisViajesScreen(
     onNavegar: (PantallaDemo, String) -> Unit,
     viewModel: MisViajesViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // README (Retraso): «Atrasado» y «Vencido» se recalculan al volver a primer plano.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
     MisViajesContenido(
         estado = estado,
@@ -98,7 +93,6 @@ fun MisViajesContenido(
         val error = estado.error
         when {
             estado.cargando -> PantallaCargando()
-            // Sin nada que mostrar, el error ocupa la pantalla; con filas, avisa sobre la lista.
             error != null && estado.filas.isEmpty() -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = error.texto(), onReintentar = onActualizar)
             }
@@ -122,14 +116,12 @@ fun MisViajesContenido(
                 items(estado.filas, key = { it.viaje.folio }) { fila ->
                     FilaViaje(fila, dia = estado.fecha, onVerDetalle = { onVerDetalle(fila) })
                 }
-                // Alternativa al gesto de deslizar para actualizar.
                 item { BotonAncho(stringResource(R.string.accion_actualizar), onActualizar, tipo = TipoBoton.SECUNDARIO) }
             }
         }
     }
 }
 
-/** La fecha del selector de Material 3 viaja como milisegundos UTC a medianoche del día elegido. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectorDeFecha(fecha: LocalDate, esHoy: Boolean, onFecha: (LocalDate) -> Unit) {
@@ -178,7 +170,6 @@ private fun FilaViaje(fila: ViajeFila, dia: LocalDate, onVerDetalle: () -> Unit)
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // El EN_CURSO de un día anterior entra en la agenda de hoy: con solo la hora parecería de hoy.
             val hora = if (viaje.fhAgenda.toLocalDate() == dia) Formatos.hora(viaje.fhAgenda) else Formatos.fechaHoraLista(viaje.fhAgenda)
             Text(hora, style = EstilosMono.dato)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -193,7 +184,6 @@ private fun FilaViaje(fila: ViajeFila, dia: LocalDate, onVerDetalle: () -> Unit)
     }
 }
 
-// «Constanza Ríos +1»: el primer pasajero (por nombre) y cuántos más van.
 @Composable
 private fun pasajeros(viaje: Viaje): String {
     val primero = viaje.pasajeros.firstOrNull()?.nombre

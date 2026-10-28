@@ -4,7 +4,6 @@ import cl.belmontespa.transporte.model.DetalleViajePasajero;
 import cl.belmontespa.transporte.model.Pasajero;
 import java.time.LocalDateTime;
 
-// fhAbordaje solo se llena dentro de un viaje: con fecha, Abordado; null, Por abordar.
 public record PasajeroDTOResponse(
 		String dniHash,
 		String nombre,

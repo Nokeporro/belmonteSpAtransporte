@@ -25,7 +25,6 @@ import cl.belmontespa.myapplication.viewmodel.solicitante.CAMPO_ORIGEN
 import cl.belmontespa.myapplication.viewmodel.solicitante.CAMPO_PASAJERO_NOMBRE
 import cl.belmontespa.myapplication.viewmodel.solicitante.NuevaSolicitudViewModel
 
-/** «Nueva solicitud»: al guardar abre el detalle de la solicitud creada y el formulario sale del historial. */
 @Composable
 fun NuevaSolicitudScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

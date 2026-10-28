@@ -24,11 +24,9 @@ data class RegistrarVehiculoUiState(
     val enviando: Boolean = false,
     val modificado: Boolean = false,
     val error: ErrorApp? = null,
-    /** Patente del vehículo guardado: la pantalla navega a su detalle y la consume. */
     val registrado: String? = null,
 )
 
-/** «Registrar vehículo» (HU17, RF16): patente única, capacidad de 1 a 20 y serial GPS opcional. */
 class RegistrarVehiculoViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -51,7 +49,6 @@ class RegistrarVehiculoViewModel @JvmOverloads constructor(
             val datos = _estado.value
             val error = capturar(DATOS_INVALIDOS) {
                 val gps = datos.gps.trim()
-                // Un GPS ilegible no se confunde con «sin GPS»: llega como 0 y la validación lo rechaza.
                 val nuevo = NuevoMovil(
                     Validaciones.patente(datos.patente),
                     datos.capacidad.trim().toIntOrNull() ?: 0,

@@ -175,7 +175,6 @@ class ViajeIT extends IntegrationTest {
 			String enCurso = api.viajeAsignado(solicitante, flota);
 			api.iniciarOk(enCurso, flota.conductor());
 
-			// Diez días después: no hay solape, solo el conductor y el móvil están en uso.
 			String segundo = api.viaje(solicitante, LocalDateTime.now().plusDays(13));
 			api.conPasajero(solicitante, segundo);
 			assertThat(api.asignar(segundo, flota.conductor().correo(), otroMovil).status()).isEqualTo(409);
@@ -354,7 +353,6 @@ class ViajeIT extends IntegrationTest {
 
 			assertThat(api.cancelar(folio, beto.token()).status()).isEqualTo(403);
 			assertThat(api.cancelar(folio, flota.conductor().token()).status()).isEqualTo(403);
-			// El Administrador cancela con motivo (V7): sin cuerpo no hay motivo.
 			assertThat(api.cancelar(folio, api.admin()).status()).isEqualTo(400);
 			assertThat(api.cancelar("NOEXISTE", ana.token()).status()).isEqualTo(404);
 			assertThat(api.estadoViaje(folio)).isEqualTo("ASIGNADO");

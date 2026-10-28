@@ -50,7 +50,6 @@ class RelojTest {
 		folios.sort(Reglas.FOLIO_POR_NUMERO);
 		assertThat(folios).containsExactly("TR-1001", "TR-9999", "TR-10000", "TR-100000");
 
-		// Como texto quedaría TR-10000 antes que TR-1001 y TR-9999.
 		assertThat(folios.stream().sorted().toList()).containsExactly("TR-10000", "TR-100000", "TR-1001", "TR-9999");
 	}
 

@@ -9,7 +9,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MovilDao {
-    /** Falla con una restricción si la patente (PK) o el código de abordaje (UQ) ya existen. */
     @Insert
     suspend fun insertar(movil: MovilEntity)
 

@@ -5,10 +5,6 @@ import androidx.annotation.StringRes
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.Rol
 
-// Catálogo de las 46 pantallas/variantes de los wireframes del README. Cada una tiene su ruta de Navigation
-// Compose (como `Routes.LOGIN` del template del curso); las que reciben un dato (folio, correo, patente...) lo
-// llevan en el argumento opcional `id`. El rol se comprueba también al abrir una ruta; ocultar botones no
-// autoriza una operación.
 enum class PantallaDemo(@param:StringRes val titulo: Int, val rol: Rol?, val ruta: String) {
     INICIO(R.string.t06_inicio, null, "inicio"),
     LOGIN(R.string.t06_login, null, "login?id={id}"),
@@ -57,31 +53,22 @@ enum class PantallaDemo(@param:StringRes val titulo: Int, val rol: Rol?, val rut
     NAVEGAR(R.string.t06_navegar, Rol.CONDUCTOR, "navegar?id={id}"),
     PERFIL_CONDUCTOR(R.string.t06_perfil_conductor, Rol.CONDUCTOR, "perfil_conductor");
 
-    // Solo estas pantallas se pueden recorrer sin una cuenta autenticada.
     val publica: Boolean get() = ordinal <= ABORDADO.ordinal && this != CAMBIO_OBLIGATORIO && this != RECUPERAR
 
-    /** Verdadero si la pantalla recibe un dato en el argumento `id` (su ruta termina en `?id={id}`). */
     val conId: Boolean get() = ruta.endsWith(SUFIJO_ID)
 
-    /** La ruta sin el argumento: `detalle_admin?id={id}` → `detalle_admin`. */
     val base: String get() = ruta.removeSuffix(SUFIJO_ID)
 
-    /**
-     * La ruta lista para navegar. El `id` se codifica porque lleva `@`, `:` o `-` (correos, patentes, folios);
-     * sin `id` queda la ruta base y la pantalla recibe el valor por defecto, un texto vacío.
-     */
     fun hacia(id: String = ""): String = if (conId && id.isNotEmpty()) "$base?id=${Uri.encode(id)}" else base
 
     companion object {
         const val ARGUMENTO_ID = "id"
         private const val SUFIJO_ID = "?id={id}"
 
-        /** La pantalla que corresponde a la ruta de un destino de Navigation Compose, si es una del catálogo. */
         fun deRuta(ruta: String?): PantallaDemo? = entries.firstOrNull { it.ruta == ruta }
     }
 }
 
-/** Dónde está el usuario: una pantalla del catálogo y su dato (folio, correo...). Nunca lleva datos personales. */
 data class Destino(val pantalla: PantallaDemo, val id: String = "") {
     fun ruta(): String = pantalla.hacia(id)
 }

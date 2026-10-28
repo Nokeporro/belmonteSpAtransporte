@@ -55,10 +55,6 @@ import cl.belmontespa.myapplication.viewmodel.administrador.CAMPO_REEMBOLSO
 import cl.belmontespa.myapplication.viewmodel.administrador.CancelarViajeUiState
 import cl.belmontespa.myapplication.viewmodel.administrador.CancelarViajeViewModel
 
-/**
- * «Cancelar viaje» del Administrador (HU24, V7). Pide el motivo y, con el viaje vencido y el pago `PAGADO`, el monto a
- * reembolsar; «Confirmar» guarda y vuelve al detalle, que ya muestra el viaje cancelado y el efecto sobre el pago.
- */
 @Composable
 fun CancelarViajeScreen(
     folio: String,
@@ -70,7 +66,6 @@ fun CancelarViajeScreen(
     var confirmarSalida by remember { mutableStateOf(false) }
     LaunchedEffect(folio) { viewModel.cargar(folio) }
     LaunchedEffect(estado.cancelado) { if (estado.cancelado) onNavegar(PantallaDemo.DETALLE_ADMIN, folio) }
-    // Con un motivo escrito, salir pide confirmar el descarte.
     BackHandler(enabled = estado.modificado) { confirmarSalida = true }
     if (confirmarSalida) {
         AlertDialog(
@@ -106,7 +101,6 @@ fun CancelarViajeContenido(
 ) {
     val viaje = estado.viaje
     val error = estado.error
-    // Reserva el espacio del teclado para que los botones sigan siendo alcanzables.
     Column(Modifier.fillMaxSize().statusBarsPadding().imePadding()) {
         BarraSuperior(
             titulo = stringResource(R.string.t06_cancelar_viaje),
@@ -115,7 +109,6 @@ fun CancelarViajeContenido(
         )
         when {
             estado.cargando -> PantallaCargando()
-            // Sin viaje no hay nada que cancelar: el error ocupa la pantalla.
             viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onReintentar)
             }
@@ -130,7 +123,6 @@ fun CancelarViajeContenido(
             ) {
                 if (error != null) {
                     Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
-                    // Un 409 ya recargó los datos: reintentar solo tiene sentido si falló una lectura.
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onReintentar, tipo = TipoBoton.SECUNDARIO)
                     }
@@ -184,7 +176,6 @@ fun CancelarViajeContenido(
     }
 }
 
-/** Qué pasará con el pago al confirmar (README: V7, P4 y P5), antes de que el Administrador lo confirme. */
 @Composable
 private fun EfectoEnElPago(estado: CancelarViajeUiState, tieneHash: Boolean) {
     val pago = estado.pago

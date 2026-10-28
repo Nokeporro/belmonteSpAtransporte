@@ -28,7 +28,6 @@ import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.administrador.DetallePagoViewModel
 
-/** «Detalle de pago»: lo ven el Administrador (con las acciones P2 y P3) y el Solicitante (solo lectura). */
 @Composable
 fun DetallePagoScreen(
     hash: String,
@@ -36,7 +35,6 @@ fun DetallePagoScreen(
     viewModel: DetallePagoViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // Al volver del alta, o de otra pantalla, se lee de nuevo el pago guardado.
     LaunchedEffect(hash) { viewModel.cargar(hash, forzar = true) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
     ContenedorPantalla(

@@ -76,7 +76,7 @@ class HU20IT extends IntegrationTest {
         var viaje = api.verViaje(folio);
         var conductor = api.get("/conductores/" + flota.conductor().correo(), api.admin());
         var movil = api.get("/moviles/" + flota.patente(), api.admin());
-        api.vencer(folio); // V6 también cancela un viaje vencido.
+        api.vencer(folio);
         esperarAvisos(); fcm.limpiar();
         Api.exigir(cambio(hash, "ANULADO"), "P3", 200);
         assertThat(pago(hash).texto("$.fechaPago")).isEqualTo(pagado.texto("$.fechaPago"));

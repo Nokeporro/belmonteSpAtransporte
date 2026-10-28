@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// conductor, móvil y pago son NULL hasta la asignación / el registro del pago.
 public record ViajeDTOResponse(
 		String folio,
 		String estado,
@@ -84,7 +83,6 @@ public record ViajeDTOResponse(
 				pasajeros.stream().map(PasajeroDTOResponse::from).toList());
 	}
 
-	// Al Conductor no le llega nada del pago (README, "Recursos y roles").
 	public ViajeDTOResponse sinPago() {
 		return new ViajeDTOResponse(folio, estado, correoSolicitante, nombreSolicitante, telefonoSolicitante,
 				razonSocial, origen, destino, fhCreacion, fhAgenda, fhAsignacion, fhInicio, fhFin, numeroVuelo,

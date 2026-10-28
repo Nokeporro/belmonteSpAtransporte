@@ -23,6 +23,5 @@ public interface DetalleMovilConductorRepository
 			""")
 	List<DetalleMovilConductor> filtrar(String patente, String correo);
 
-	// CU-04: vehículos habilitados del conductor.
 	List<DetalleMovilConductor> findByIdUsuario(Long idUsuario);
 }

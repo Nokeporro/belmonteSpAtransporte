@@ -18,7 +18,6 @@ public class Pago {
 	@Column(name = "id", nullable = false)
 	private Long id;
 
-	// Generado por el backend al crear el pago.
 	@Column(name = "hash", length = 50, nullable = false, unique = true)
 	private String hash;
 
@@ -33,7 +32,6 @@ public class Pago {
 	@JoinColumn(name = "banco_id", nullable = false)
 	private Banco banco;
 
-	// Empresa que paga.
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "empresa_id_empresa", nullable = false)
 	private Empresa empresa;
@@ -46,11 +44,9 @@ public class Pago {
 	@JoinColumn(name = "tipo_recibo_id", nullable = false)
 	private TipoRecibo tipoRecibo;
 
-	// NULL hasta que el pago pasa a PAGADO (P2).
 	@Column(name = "fecha_pago")
 	private LocalDateTime fechaPago;
 
-	// NULL salvo que el pago se haya reembolsado (P4).
 	@Column(name = "monto_reembolsado")
 	private Integer montoReembolsado;
 

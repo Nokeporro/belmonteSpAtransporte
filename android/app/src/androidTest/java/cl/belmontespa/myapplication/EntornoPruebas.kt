@@ -18,11 +18,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.junit.rules.ExternalResource
 
-/**
- * Regla de las pruebas instrumentadas: cambia la base y la sesión de la app por Room y DataStore en memoria, así
- * ninguna escribe sobre las cuentas del usuario. Va con `order = 0`, antes de `createAndroidComposeRule`, para que la
- * actividad ya encuentre el entorno de prueba al arrancar.
- */
 class EntornoPruebas(private val reloj: Clock = Reloj.santiago) : ExternalResource() {
     lateinit var db: AppDatabase
         private set

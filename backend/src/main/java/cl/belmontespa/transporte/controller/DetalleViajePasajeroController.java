@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-// Pasajeros de un viaje (CU-01). Clave de dos segmentos: no extiende CrudController.
 @RestController
 @RequestMapping("/api/v1/pasajeros-viaje")
 public class DetalleViajePasajeroController {
@@ -42,7 +41,6 @@ public class DetalleViajePasajeroController {
 		return detalleService.obtener(new DetalleViajePasajeroService.Clave(folio, dniHash));
 	}
 
-	// Solo el Solicitante dueño del viaje agrega pasajeros.
 	@PostMapping
 	public org.springframework.http.ResponseEntity<DetalleViajePasajeroDTOResponse> crear(@Valid @RequestBody DetalleViajePasajeroDTORequest request,
 			Authentication auth) {

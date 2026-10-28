@@ -9,7 +9,6 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** La semilla de la build demo cumple el mínimo de `database/demo.sql` y las reglas del modelo. */
 class DatosDemoTest {
 
     private val ahora = LocalDateTime.of(2026, 9, 24, 14, 0)
@@ -80,9 +79,7 @@ class DatosDemoTest {
             val viaje = semilla.viajes.single { it.folio == pago.folio }
             assertEquals(pago.hash, viaje.hashPago)
             assertEquals(pago.estadoPago, viaje.estadoPago)
-            // Un viaje cancelado nunca queda con un pago Pendiente ni Pagado.
             if (viaje.estado == "CANCELADO") assertTrue(pago.estadoPago !in setOf("PENDIENTE", "PAGADO"))
-            // fecha_pago solo existe desde que el pago pasó a Pagado.
             if (pago.estadoPago == "PENDIENTE" || pago.estadoPago == "RECHAZADO") assertEquals(null, pago.fechaPago)
             if (pago.estadoPago == "REEMBOLSADO") assertNotNull(pago.montoReembolsado)
         }
@@ -146,7 +143,6 @@ class DatosDemoTest {
         semilla.usuarios.forEach { assertEquals(Hashes.password(DatosDemo.PASSWORD), it.passwordSha256) }
     }
 
-    /** Dígito verificador por módulo 11 (factores 2 a 7 de derecha a izquierda). */
     private fun rutValido(rut: String): Boolean {
         val limpio = rut.replace(".", "").replace("-", "").uppercase()
         val cuerpo = limpio.dropLast(1)

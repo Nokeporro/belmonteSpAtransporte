@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Navegar (README, CU-03): adónde lleva según el estado y las URL que se le pasan a Google Maps y a Waze. */
 class NavegacionTest {
 
     private val origen = Ubicacion("Aeropuerto A. Merino Benítez", "Pudahuel", "Metropolitana de Santiago", -33.393, -70.786)

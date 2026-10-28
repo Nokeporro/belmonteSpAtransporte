@@ -23,13 +23,11 @@ import kotlinx.coroutines.launch
 
 data class DetalleSolicitudAdminUiState(
     val viaje: Viaje? = null,
-    /** El pago del viaje, si se pudo leer; un pago ilegible no le oculta el viaje al Administrador (HU24). */
     val pago: Pago? = null,
     val cargando: Boolean = true,
     val error: ErrorApp? = null,
 )
 
-/** «Detalle de solicitud» del Administrador, también cuando no tiene pasajeros (HU04, HU05, HU24, HU30). */
 class DetalleSolicitudAdminViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
@@ -43,7 +41,6 @@ class DetalleSolicitudAdminViewModel @JvmOverloads constructor(
     private var folio: String? = null
     private var consulta: Job? = null
 
-    /** Idempotente con el mismo folio; [forzar] vuelve a leerlo. */
     fun cargar(folio: String, forzar: Boolean = false) {
         if (folio == this.folio && !forzar) return
         this.folio = folio

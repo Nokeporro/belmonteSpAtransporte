@@ -42,7 +42,6 @@ class SesionStoreTest {
 
         SesionStore(preferencias, reloj).guardar(sesion)
 
-        // Otra instancia representa una nueva apertura de la aplicación.
         val restaurada = SesionStore(preferencias, reloj)
         assertEquals(EstadoSesion.Autenticada(sesion), restaurada.estado.first())
     }
@@ -63,7 +62,6 @@ class SesionStoreTest {
 
         assertEquals(EstadoSesion.Temporal(temporal), store.estado.first())
 
-        // La instancia nueva no tiene acceso a la sesión que vivía en memoria.
         val reabierta = SesionStore(preferencias, reloj)
         assertEquals(EstadoSesion.SinSesion, reabierta.estado.first())
         assertEquals(anterior.correo, reabierta.ultimaCuenta.first())
@@ -110,7 +108,6 @@ class SesionStoreTest {
         expiraEn = expiraEn,
     )
 
-    // Sustituye solo el almacenamiento en estas pruebas unitarias; la aplicación usa el DataStore real.
     private class PreferenciasEnMemoria : DataStore<Preferences> {
         private val contenido = MutableStateFlow(emptyPreferences())
         private val escrituras = Mutex()
@@ -123,7 +120,6 @@ class SesionStoreTest {
         }
     }
 
-    // Clock y las esperas de las corrutinas comparten el mismo tiempo virtual.
     private class RelojDePrueba(
         private val ahora: () -> Long,
         private val zona: ZoneId = ZoneOffset.UTC,

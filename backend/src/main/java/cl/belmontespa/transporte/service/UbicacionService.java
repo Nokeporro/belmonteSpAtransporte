@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-// Sin recurso propio: solo la usa ViajeService para origen y destino (README).
 @Service
 public class UbicacionService {
 
@@ -23,7 +22,6 @@ public class UbicacionService {
 		this.comunaRepository = comunaRepository;
 	}
 
-	// Reutiliza la ubicación si ya existe (UNIQUE direccion + comuna + coordenadas, RF10).
 	Ubicacion obtenerOCrear(ViajeDTORequest.Ubicacion datos, String campo) {
 		Comuna comuna = comunaRepository.findAll().stream()
 				.filter(c -> normalizar(c.getNombre()).equals(normalizar(datos.comuna())))

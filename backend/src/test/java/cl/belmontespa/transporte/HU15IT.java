@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/** HU15/RF14: alta, consulta y edición, pasando por seguridad, JPA y MariaDB. */
 class HU15IT extends IntegrationTest {
 
 	@Autowired JdbcTemplate jdbc;

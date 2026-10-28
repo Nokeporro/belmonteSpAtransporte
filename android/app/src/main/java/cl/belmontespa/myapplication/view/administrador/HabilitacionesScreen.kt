@@ -16,7 +16,6 @@ import cl.belmontespa.myapplication.view.components.SelectorOpciones
 import cl.belmontespa.myapplication.view.components.deCampo
 import cl.belmontespa.myapplication.viewmodel.administrador.HabilitacionesViewModel
 
-/** «Gestionar habilitaciones»: `referencia` es `vehiculo:{patente}`, `conductor:{correo}` o vacía. */
 @Composable
 fun HabilitacionesScreen(
     referencia: String,
@@ -24,7 +23,6 @@ fun HabilitacionesScreen(
     viewModel: HabilitacionesViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // Al volver del alta o de editar, las listas deben leer lo guardado.
     LaunchedEffect(referencia) { viewModel.cargar(referencia, forzar = true) }
     ContenedorPantalla(
         titulo = stringResource(PantallaDemo.HABILITACIONES.titulo),

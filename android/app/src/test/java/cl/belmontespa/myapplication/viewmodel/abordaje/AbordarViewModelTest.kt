@@ -8,7 +8,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** «Abordar viaje» (HU29): del QR o de la patente escrita hasta un [CodigoAbordaje] listo para confirmar. */
 class AbordarViewModelTest {
 
     private val vm = AbordarViewModel(aplicacionFalsa())

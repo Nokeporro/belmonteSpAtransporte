@@ -11,13 +11,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Ventana de inicio, Atrasado y Vencido (README, Retraso y V3), con un `Clock` fijo. */
 class RetrasoTest {
 
     private val zona = ZoneId.of("America/Santiago")
     private val fhAgenda = LocalDateTime.of(2026, 10, 28, 14, 30)
 
-    /** Reloj fijo en `fhAgenda` más (o menos) esos minutos. */
     private fun relojA(minutos: Long, agenda: LocalDateTime = fhAgenda): Clock =
         Clock.fixed(agenda.plusMinutes(minutos).atZone(zona).toInstant(), zona)
 
@@ -114,9 +112,9 @@ class RetrasoTest {
     fun cruzaLaMedianocheConAritmeticaCivil() {
         val noche = LocalDateTime.of(2026, 10, 28, 23, 30)
         val v = viaje(agenda = noche)
-        assertEquals(Retraso.ATRASADO, v.retraso(relojA(50, noche))) // 00:20 del día siguiente
-        assertEquals(Retraso.ATRASADO, v.retraso(relojA(60, noche))) // 00:30
-        assertEquals(Retraso.VENCIDO, v.retraso(relojA(61, noche))) // 00:31
+        assertEquals(Retraso.ATRASADO, v.retraso(relojA(50, noche)))
+        assertEquals(Retraso.ATRASADO, v.retraso(relojA(60, noche)))
+        assertEquals(Retraso.VENCIDO, v.retraso(relojA(61, noche)))
         assertEquals(LocalDateTime.of(2026, 10, 28, 22, 30), v.disponibleDesde())
     }
 
@@ -129,8 +127,8 @@ class RetrasoTest {
     fun seAsignaUnViajePendienteConPasajerosQueNoEstaVencido() {
         val v = viaje(EstadoViaje.PENDIENTE, pasajeros = 2)
         assertTrue(v.asignable(relojA(-600)))
-        assertTrue(v.asignable(relojA(1))) // atrasado, pero aún puede iniciarse
-        assertTrue(v.asignable(relojA(60))) // el extremo cuenta como no vencido
+        assertTrue(v.asignable(relojA(1)))
+        assertTrue(v.asignable(relojA(60)))
         assertFalse(v.asignable(relojA(61)))
     }
 

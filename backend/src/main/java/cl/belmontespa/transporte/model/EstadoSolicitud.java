@@ -17,7 +17,6 @@ public class EstadoSolicitud {
 	@Column(name = "id_estado", nullable = false)
 	private Long idEstado;
 
-	// PENDIENTE, ASIGNADO, EN_CURSO, FINALIZADO, CANCELADO.
 	@Column(name = "nombre_estado", length = 20, nullable = false, unique = true)
 	private String nombreEstado;
 

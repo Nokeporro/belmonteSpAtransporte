@@ -35,7 +35,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** Detalle del viaje del Conductor (HU08) con un estado fijo: lo que se ve y lo que se avisa, sin Room ni ViewModel. */
 class DetalleViajeScreenTest {
 
     @get:Rule
@@ -110,7 +109,6 @@ class DetalleViajeScreenTest {
 
     private fun texto(id: Int) = textos.getString(id)
 
-    // El diálogo repite «Rechazar» en el título y en el botón, y la pantalla de atrás tiene el suyo.
     private fun botonRechazarDelDialogo() =
         hasText(texto(R.string.accion_rechazar)) and hasClickAction() and hasAnyAncestor(isDialog())
 
@@ -121,7 +119,7 @@ class DetalleViajeScreenTest {
         compose.onNodeWithText(textos.getString(R.string.detalle_viaje_titulo, "TR-1042")).assertExists()
         compose.onNodeWithText("28-10-2026 · 14:30").assertExists()
         compose.onNodeWithText("LA1502").assertExists()
-        compose.onAllNodesWithText("Constanza Ríos").assertCountEquals(2) // solicitante y pasajero
+        compose.onAllNodesWithText("Constanza Ríos").assertCountEquals(2)
         compose.onNodeWithText("+56 9 5555 0101").assertExists()
         compose.onNodeWithText("Aeropuerto A. Merino Benítez").assertExists()
         compose.onNodeWithText("Av. Apoquindo 5400").assertExists()
@@ -136,7 +134,6 @@ class DetalleViajeScreenTest {
 
         compose.onNodeWithText("Abordaron 1 de 2. Faltan: Tomás Vidal.").assertExists()
         compose.onNodeWithText(textos.getString(R.string.detalle_viaje_abordo_a_las, "14:05")).assertExists()
-        // El chip se expone por su descripción («Estado: Abordado»), no por el texto que dibuja.
         compose.onAllNodesWithContentDescription(textos.getString(R.string.chip_descripcion, texto(R.string.etiqueta_abordado))).assertCountEquals(1)
         compose.onAllNodesWithContentDescription(textos.getString(R.string.chip_descripcion, texto(R.string.etiqueta_por_abordar))).assertCountEquals(1)
     }
@@ -217,7 +214,6 @@ class DetalleViajeScreenTest {
         compose.onNodeWithText(texto(R.string.campo_abordaje)).assertDoesNotExist()
     }
 
-    // Navegar (HU10): la hoja «Abrir con» y el aviso cuando no hay aplicación.
 
     @Test
     fun laHojaAbrirConListaSoloLasAplicacionesInstaladas() {
@@ -267,7 +263,6 @@ class DetalleViajeScreenTest {
         val avisos = Avisos()
         mostrar(estado(), avisos)
 
-        // La pantalla se desplaza: los botones de abajo se buscan y se muestran antes de tocarlos.
         compose.onNodeWithText(texto(R.string.accion_iniciar)).performScrollTo().performClick()
         compose.onNodeWithText(texto(R.string.accion_navegar_origen)).performScrollTo().performClick()
         compose.onNodeWithText(texto(R.string.accion_rechazar)).performScrollTo().performClick()
@@ -292,7 +287,6 @@ class DetalleViajeScreenTest {
         mostrar(estado(rechazando = true))
 
         compose.onNodeWithText(texto(R.string.campo_motivo)).assertExists()
-        // El botón siempre está disponible: el ViewModel valida el motivo al confirmar y deja el error bajo el campo.
         compose.onNode(botonRechazarDelDialogo()).assertIsEnabled()
     }
 

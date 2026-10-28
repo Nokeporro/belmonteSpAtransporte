@@ -21,10 +21,6 @@ import cl.belmontespa.myapplication.model.Arqueo
 import cl.belmontespa.myapplication.model.PasajeroViaje
 import cl.belmontespa.myapplication.util.Formatos
 
-/**
- * Arqueo de abordaje (README, RF29): «Abordaron X de N. Faltan: …» y un chip por pasajero. Es el mismo en el
- * detalle del Conductor y en el del Administrador; `Viaje.arqueo()` decide en qué estados existe.
- */
 @Composable
 fun ArqueoDeAbordaje(arqueo: Arqueo, pasajeros: List<PasajeroViaje>, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -33,7 +29,6 @@ fun ArqueoDeAbordaje(arqueo: Arqueo, pasajeros: List<PasajeroViaje>, modifier: M
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.semantics { heading() },
         )
-        // Un solo elemento permite que TalkBack anuncie el arqueo completo (README, Accesibilidad).
         val texto = if (arqueo.completo) {
             stringResource(R.string.arqueo_todos)
         } else {

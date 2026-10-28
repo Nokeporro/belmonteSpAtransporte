@@ -13,7 +13,6 @@ import java.time.LocalDateTime
 import org.junit.Rule
 import org.junit.Test
 
-/** Arqueo de abordaje (HU30): el mismo componente en el detalle del Conductor y en el del Administrador. */
 class ArqueoAbordajeTest {
 
     @get:Rule

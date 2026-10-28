@@ -32,10 +32,6 @@ import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.view.components.rememberAhora
 import cl.belmontespa.myapplication.viewmodel.solicitante.DetalleSolicitudViewModel
 
-/**
- * «Detalle de solicitud» del Solicitante; `pantalla` distingue la variante «Solicitud sin pasajeros», que es la misma
- * pantalla con el aviso de que faltan pasajeros.
- */
 @Composable
 fun DetalleSolicitudScreen(
     pantalla: PantallaDemo,

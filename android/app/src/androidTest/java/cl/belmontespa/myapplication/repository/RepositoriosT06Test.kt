@@ -49,7 +49,6 @@ import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 
-// Pruebas contra Room real en memoria; ninguna escribe en la base instalada del usuario.
 @RunWith(AndroidJUnit4::class)
 class RepositoriosT06Test {
     private lateinit var db: AppDatabase
@@ -320,7 +319,6 @@ class RepositoriosT06Test {
         assertEquals(Hashes.password(temporal.password), guardado.passwordTemporalSha256)
         assertEquals(reloj.millis() + java.time.Duration.ofHours(24).toMillis(), guardado.passwordTemporalExpira)
         assertTrue((auth.iniciarSesion(solicitante.correo, temporal.password) as Resultado.Exito).valor is EstadoSesion.Temporal)
-        // Entrar con la temporal reemplaza la sesión del Administrador: se vuelve a entrar como Administrador.
         entrar(Rol.ADMINISTRADOR)
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ireyes@belmontespa.cl"))
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), auth.recuperarPassword("ausente@test.cl"))
@@ -714,7 +712,6 @@ class RepositoriosT06Test {
     @Test fun elAdministradorCancelaConMotivoYReembolsaTodoSiNoEstaVencido() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val (v, p) = solicitudConPago(50_001)
-        // El monto solo cuenta con el viaje vencido: aquí se ignora.
         assertTrue(viajes.cancelar(v.folio, "  Conductor sin disponibilidad  ", 1) is Resultado.Exito)
         val pago = db.pagoDao().obtener(p.hash)!!
         assertEquals("REEMBOLSADO", pago.estadoPago); assertEquals(50_001, pago.montoReembolsado)
@@ -732,7 +729,6 @@ class RepositoriosT06Test {
         for (monto in listOf(-1, 50_001)) {
             assertEquals(Resultado.Fallo(ErrorApp.Validacion(mapOf("montoReembolso" to rango))), viajes.cancelar(v.folio, "Nadie lo atendió", monto))
         }
-        // Un rechazo no deja nada a medias: ni el viaje ni el pago cambian.
         assertEquals(vencido, local.viaje(v.folio)); assertEquals(p, db.pagoDao().obtener(p.hash))
         assertTrue(viajes.cancelar(v.folio, "Nadie lo atendió", 20_000) is Resultado.Exito)
         assertEquals(p.copy(estadoPago = "REEMBOLSADO", montoReembolsado = 20_000), db.pagoDao().obtener(p.hash))
@@ -760,7 +756,6 @@ class RepositoriosT06Test {
             assertTrue(viajes.cancelar(v.folio, "Nadie lo atendió", null) is Resultado.Exito)
             assertEquals(if (estado == "PENDIENTE") original.copy(estadoPago = "ANULADO") else original, db.pagoDao().obtener(p.hash))
         }
-        // Sin pago tampoco se pide monto.
         val sinPago = local.viaje("TR-1055")
         assertTrue(viajes.cancelar(sinPago.folio, "Cambio de planes", null) is Resultado.Exito)
         assertEquals(sinPago.copy(estado = "CANCELADO", motivo = "Cambio de planes"), local.viaje(sinPago.folio))
@@ -849,7 +844,6 @@ class RepositoriosT06Test {
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), resultado)
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
     }
-    // Abordaje (HU29): las mismas reglas que `AbordajeService` del backend, con la semilla demo y el reloj fijo (12:00 en Chile).
     private val kxjr42 = CodigoAbordaje("KXJR42")
     @Test fun unPasajeroYaAbordadoRecibeSuMarcaOriginal() = runBlocking {
         val resultado = AbordajeRepository(local).registrarAbordaje(kxjr42, TipoDocumento.RUT, "15.234.567-4")
@@ -861,14 +855,12 @@ class RepositoriosT06Test {
     }
     @Test fun unDocumentoQueNoViajaEnElVehiculoEsNoEncontradoYNoCambiaNada() = runBlocking {
         val antes = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
-        // Felipe Mora viaja en LPHT17 (TR-1049), no en KXJR42.
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), AbordajeRepository(local).registrarAbordaje(kxjr42, TipoDocumento.PASAPORTE, "X9087654"))
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
     }
     @Test fun unViajeAsignadoSoloSeAbordaDentroDeLaVentanaDeUnaHora() = runBlocking {
         val abordaje = AbordajeRepository(local)
         val lphT17 = CodigoAbordaje("LPHT17")
-        // TR-1049 parte en 4 h 15 min: aún no es candidato.
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
         val ahora = local.ahora()
         db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1).plusSeconds(1))))
@@ -879,14 +871,12 @@ class RepositoriosT06Test {
     @Test fun unViajeEnCursoSeAbordaAunqueSuAgendaEsteLejos() = runBlocking {
         val gzrw90 = CodigoAbordaje("GZRW90")
         db.viajeDao().guardar(local.viaje("TR-1045").copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(6))))
-        // Javiera Núñez ya estaba abordada en TR-1045: recibe la misma marca.
         assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 30)), AbordajeRepository(local).registrarAbordaje(gzrw90, TipoDocumento.RUT, "18.364.925-6"))
     }
     @Test fun unDocumentoInvalidoEsValidacionAunqueElVehiculoNoExista() = runBlocking {
         val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("ZZZZ99"), TipoDocumento.RUT, "15.234.567-0")
         assertTrue(resultado is Resultado.Fallo && resultado.error is ErrorApp.Validacion)
     }
-    // Arqueo (HU30): el viaje que observa el Conductor refleja el abordaje apenas se registra.
     @Test fun alAbordarUnPasajeroElArqueoDelViajeSeActualiza() = runBlocking {
         entrar(Rol.CONDUCTOR)
         val antes = viajes.observarViaje("TR-1042").first()!!.arqueo()!!
@@ -909,7 +899,6 @@ class RepositoriosT06Test {
         assertEquals(unaVez.pasajeros.toSet(), dosVeces.pasajeros.toSet())
         assertEquals(unaVez.arqueo(), dosVeces.arqueo())
     }
-    // V2 no cambia el estado de nadie: Ocupado y En uso los marca V3, al iniciar el viaje.
     @Test fun asignarNoCambiaElEstadoDelConductorNiDelVehiculo() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         assertTrue(viajes.asignar("TR-1051", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
@@ -928,19 +917,16 @@ class RepositoriosT06Test {
     }
     @Test fun otroViajeDelConductorAMenosDeDosHorasEsConflicto() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // TR-1047 es una hora antes que TR-1042, el viaje de Iván Reyes.
         assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje a menos de 2 horas")),
             viajes.asignar("TR-1047", "ireyes@belmontespa.cl", "KXJR42"))
         assertEquals("PENDIENTE", local.viaje("TR-1047").estado)
     }
     @Test fun reasignarSoloElVehiculoVuelveAPorAbordar() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // LPHT17 tiene TR-1049 casi cuatro horas después: no choca.
         assertTrue(viajes.asignar("TR-1042", "ireyes@belmontespa.cl", "LPHT17") is Resultado.Exito)
         assertEquals("LPHT17", local.viaje("TR-1042").patenteMovil)
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
     }
-    // HU23: reasignar es la misma V2 que asignar; solo cambia lo que se pide y el reemplazado pierde el viaje.
     @Test fun reasignarSoloElConductorConservaElAbordajeYLaFlota() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
         val antes = local.viaje("TR-1042")
@@ -954,9 +940,7 @@ class RepositoriosT06Test {
         assertEquals("KXJR42", despues.patenteMovil)
         assertEquals(antes.fhAgenda, despues.fhAgenda)
         assertNotEquals(antes.fhAsignacion, despues.fhAsignacion)
-        // El mismo vehículo es el mismo QR: nadie vuelve a Por abordar.
         assertEquals(marcasAntes, db.viajePasajeroDao().obtenerDelViaje("TR-1042").toSet())
-        // V2 no cambia el estado de nadie.
         assertEquals("DISPONIBLE", local.usuario("ireyes@belmontespa.cl").estadoConductor)
         assertEquals("DISPONIBLE", local.usuario("pmunoz@belmontespa.cl").estadoConductor)
         assertEquals("DISPONIBLE", db.movilDao().obtener("KXJR42")?.estadoMovil)
@@ -973,7 +957,6 @@ class RepositoriosT06Test {
     }
     @Test fun reasignarConductorYVehiculoVuelveAPorAbordarYCambiaLaAgenda() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // Paula solo está habilitada en KXJR42: se la habilita también en LPHT17, que no choca con TR-1049.
         assertTrue(FlotaRepository(local).habilitar("LPHT17", "pmunoz@belmontespa.cl") is Resultado.Exito)
         assertEquals(1, db.viajePasajeroDao().obtenerDelViaje("TR-1042").count { it.fhAbordaje != null })
         assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "LPHT17") is Resultado.Exito)
@@ -983,7 +966,6 @@ class RepositoriosT06Test {
         assertEquals("LPHT17", guardado.patenteMovil)
         assertEquals(3, db.viajePasajeroDao().obtenerDelViaje("TR-1042").size)
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").all { it.fhAbordaje == null })
-        // El otro viaje de Iván no se toca.
         assertEquals("ireyes@belmontespa.cl", local.viaje("TR-1049").correoConductor)
         entrar(Rol.CONDUCTOR, "pmunoz@belmontespa.cl")
         assertTrue(viajes.observarViajes(FiltroViajes()).first().any { it.folio == "TR-1042" })
@@ -997,19 +979,16 @@ class RepositoriosT06Test {
     }
     @Test fun reasignarAUnConductorOcupadoSeRechazaSinCambiarNada() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // Jorge Lara está Ocupado con TR-1045: el conductor nuevo debe estar Disponible.
         rechazaLaReasignacion("TR-1042", "jlara@belmontespa.cl", "KXJR42", "El conductor no está disponible")
     }
     @Test fun reasignarAUnConductorConOtroViajeCercanoSeRechazaSinCambiarNada() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // Paula tiene otro viaje una hora después de TR-1042, que sale en media hora.
         db.viajeDao().guardar(local.viaje("TR-1051").copy(estado = "ASIGNADO", correoConductor = "pmunoz@belmontespa.cl",
             nombreConductor = "Paula Muñoz", patenteMovil = "GZRW90", fhAgenda = FechaIso.texto(local.ahora().plusMinutes(90))))
         rechazaLaReasignacion("TR-1042", "pmunoz@belmontespa.cl", "KXJR42", "El conductor ya tiene un viaje a menos de 2 horas")
     }
     @Test fun reasignarAUnVehiculoConOtroViajeCercanoSeRechazaSinCambiarNada() = runBlocking {
         entrar(Rol.ADMINISTRADOR)
-        // LPHT17 tiene otro viaje una hora después de TR-1042; Iván sigue siendo el conductor.
         db.viajeDao().guardar(local.viaje("TR-1051").copy(estado = "ASIGNADO", correoConductor = "pmunoz@belmontespa.cl",
             nombreConductor = "Paula Muñoz", patenteMovil = "LPHT17", fhAgenda = FechaIso.texto(local.ahora().plusMinutes(90))))
         rechazaLaReasignacion("TR-1042", "ireyes@belmontespa.cl", "LPHT17", "El móvil ya tiene un viaje a menos de 2 horas")
@@ -1028,7 +1007,6 @@ class RepositoriosT06Test {
             assertEquals(antes, local.viaje("TR-1042"))
         }
     }
-    // HU25: V8. El Conductor asignado devuelve el viaje a Pendiente y dice por qué; no toca el pago ni la flota.
     @Test fun rechazarDevuelveElViajeAPendienteSinNadaDeLaAsignacion() = runBlocking {
         entrar(Rol.CONDUCTOR)
         val antes = local.viaje("TR-1042")
@@ -1036,7 +1014,6 @@ class RepositoriosT06Test {
         val pagoAntes = db.pagoDao().obtener(hashPago)
         assertEquals(1, db.viajePasajeroDao().obtenerDelViaje("TR-1042").count { it.fhAbordaje != null })
         assertTrue(viajes.rechazar("TR-1042", "  Falla del vehículo  ") is Resultado.Exito)
-        // Solo cambia la asignación y el motivo (recortado): todo lo demás del viaje queda igual.
         assertEquals(antes.copy(estado = "PENDIENTE", correoConductor = null, nombreConductor = null, patenteMovil = null,
             fhAsignacion = null, motivo = "Falla del vehículo"), local.viaje("TR-1042"))
         val marcas = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
@@ -1056,7 +1033,6 @@ class RepositoriosT06Test {
         assertEquals(EstadoViaje.PENDIENTE, pendiente.estado)
         assertEquals("Falla del vehículo", pendiente.motivo)
         assertTrue(viajes.asignar("TR-1042", "pmunoz@belmontespa.cl", "KXJR42") is Resultado.Exito)
-        // V2 limpia el motivo del rechazo anterior y los pasajeros siguen Por abordar.
         val asignado = local.viaje("TR-1042")
         assertEquals("ASIGNADO", asignado.estado)
         assertEquals("pmunoz@belmontespa.cl", asignado.correoConductor)
@@ -1089,13 +1065,10 @@ class RepositoriosT06Test {
     }
     @Test fun soloSeRechazaUnViajeAsignadoDelConductor() = runBlocking {
         entrar(Rol.CONDUCTOR)
-        // TR-1045 está En curso con Jorge Lara: se lo presta a Iván.
         db.viajeDao().guardar(local.viaje("TR-1045").copy(correoConductor = "ireyes@belmontespa.cl"))
         assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje ya no se puede rechazar.")), rechazarSinCambiarNada("TR-1045", "Falla del vehículo"))
-        // Cancelar conserva la asignación: sigue siendo de Iván, pero ya no hay qué rechazar.
         db.viajeDao().guardar(local.viaje("TR-1042").copy(estado = "CANCELADO"))
         assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje ya no se puede rechazar.")), rechazarSinCambiarNada("TR-1042", "Falla del vehículo"))
-        // Un Pendiente no tiene conductor, así que no es de Iván; y un folio que no existe, no existe.
         assertTrue((rechazarSinCambiarNada("TR-1051", "Falla del vehículo") as Resultado.Fallo).error is ErrorApp.SinPermiso)
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), viajes.rechazar("TR-9999", "Falla del vehículo"))
     }
@@ -1109,7 +1082,6 @@ class RepositoriosT06Test {
             assertTrue((rechazarSinCambiarNada("TR-1042", "Falla del vehículo") as Resultado.Fallo).error is ErrorApp.SinPermiso)
         }
     }
-    // V3 y V4 (HU09): los mismos mensajes que el backend.
     @Test fun iniciarYFinalizarMarcanYLiberanAlConductorYAlVehiculo() = runBlocking {
         entrar(Rol.CONDUCTOR)
         assertTrue(viajes.cambiarEstado("TR-1042", EstadoViaje.EN_CURSO) is Resultado.Exito)
@@ -1125,7 +1097,6 @@ class RepositoriosT06Test {
     }
     @Test fun iniciarAntesDeLaVentanaEsConflictoYNoCambiaNada() = runBlocking {
         entrar(Rol.CONDUCTOR)
-        // TR-1049 es cuatro horas y cuarto después: la ventana abre una hora antes.
         assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El viaje está fuera de la ventana de inicio")),
             viajes.cambiarEstado("TR-1049", EstadoViaje.EN_CURSO))
         assertEquals("ASIGNADO", local.viaje("TR-1049").estado)
@@ -1134,7 +1105,6 @@ class RepositoriosT06Test {
     }
     @Test fun otroViajeEnCursoDelConductorOdelVehiculoImpideIniciar() = runBlocking {
         entrar(Rol.CONDUCTOR)
-        // TR-1045 está En curso con Jorge Lara en GZRW90: se lo presta a Iván, y luego solo el vehículo.
         val enCurso = local.viaje("TR-1045")
         db.viajeDao().guardar(enCurso.copy(correoConductor = "ireyes@belmontespa.cl"))
         assertEquals(Resultado.Fallo(ErrorApp.Conflicto("El conductor ya tiene un viaje en curso")),

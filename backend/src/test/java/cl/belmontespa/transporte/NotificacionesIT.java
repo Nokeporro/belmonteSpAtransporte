@@ -21,7 +21,6 @@ import org.junit.jupiter.api.Test;
 @DisplayName("Avisos externos: push (RF12) y correo")
 class NotificacionesIT extends IntegrationTest {
 
-	// `{fecha}` del README: 24-09-2026 · 14:30, escrita aquí a mano para no repetir el código que se prueba.
 	private String fechaDelViaje(String folio) {
 		LocalDateTime agenda = LocalDateTime.parse(Api.exigir(api.verViaje(folio), "consultar viaje", 200).texto("$.fhAgenda"));
 		return DateTimeFormatter.ofPattern("dd-MM-yyyy · HH:mm").format(agenda);
@@ -32,7 +31,6 @@ class NotificacionesIT extends IntegrationTest {
 		return fcm.envios();
 	}
 
-	// El envío es asíncrono: para comprobar que algo NO sale hay que dejar pasar un tiempo.
 	private static void dejarPasarEnvios() {
 		await().pollDelay(Duration.ofMillis(400)).atMost(5, SECONDS).until(() -> true);
 	}

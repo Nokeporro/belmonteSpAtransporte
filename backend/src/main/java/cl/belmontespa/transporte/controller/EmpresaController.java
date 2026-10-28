@@ -6,7 +6,6 @@ import cl.belmontespa.transporte.service.EmpresaService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Solo lectura: las empresas nacen con el registro del Solicitante (RF01).
 @RestController
 @RequestMapping("/api/v1/empresas")
 public class EmpresaController extends LecturaController<EmpresaDTOResponse> {

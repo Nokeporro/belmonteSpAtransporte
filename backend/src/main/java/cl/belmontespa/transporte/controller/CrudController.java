@@ -8,12 +8,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-/**
- * Lo de LecturaController más el POST común a los recursos que se crean por la API.
- *
- * @param <Q> DTORequest
- * @param <R> DTOResponse
- */
 public abstract class CrudController<Q, R> extends LecturaController<R> {
 
 	@Override

@@ -41,10 +41,6 @@ import cl.belmontespa.myapplication.view.components.texto
 import cl.belmontespa.myapplication.viewmodel.conductor.ConfirmarInicioUiState
 import cl.belmontespa.myapplication.viewmodel.conductor.ConfirmarInicioViewModel
 
-/**
- * «Confirmar inicio» (HU09): el Conductor confirma que pasa el viaje a En curso. Volver deja el viaje como está.
- * Al iniciarse vuelve al detalle, que ya muestra el estado nuevo porque lee el mismo viaje de Room.
- */
 @Composable
 fun ConfirmarInicioScreen(
     folio: String,
@@ -54,7 +50,6 @@ fun ConfirmarInicioScreen(
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     LaunchedEffect(folio) { viewModel.cargar(folio) }
     LaunchedEffect(estado.iniciado) { if (estado.iniciado) onVolver() }
-    // README (Retraso): la ventana de inicio se recalcula al volver a primer plano.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.alVolverAPrimerPlano() }
     ConfirmarInicioContenido(
         folio = folio,
@@ -78,9 +73,7 @@ fun ConfirmarInicioContenido(
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         BarraSuperior(titulo = stringResource(R.string.detalle_viaje_titulo, folio), onVolver = onVolver)
         when {
-            // Tras iniciar se espera la navegación al detalle en vez de mostrar el botón otra vez.
             estado.cargando || estado.iniciado -> PantallaCargando()
-            // Sin viaje no hay nada que confirmar: el error ocupa la pantalla.
             viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onActualizar)
             }

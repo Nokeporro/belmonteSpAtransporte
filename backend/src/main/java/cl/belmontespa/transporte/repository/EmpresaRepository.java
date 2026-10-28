@@ -6,6 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
 
-	// RF01: el registro del Solicitante crea o reutiliza la empresa por RUT.
 	Optional<Empresa> findByRut(String rut);
 }

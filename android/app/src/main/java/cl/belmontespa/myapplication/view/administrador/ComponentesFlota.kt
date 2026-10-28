@@ -22,14 +22,12 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 
-/** Cuántos viajes tiene asignados un Conductor y, si lo hay, el folio del viaje en curso. */
 @Composable
 internal fun ResumenAgendaConductor(conductor: Conductor) {
     Text(pluralStringResource(R.plurals.asignar_viajes_asignados, conductor.viajesAsignados, conductor.viajesAsignados))
     conductor.folioEnCurso?.let { Text(stringResource(R.string.asignar_en_curso, it), style = EstilosMono.dato) }
 }
 
-/** Una tarjeta por habilitación, con el estado del vehículo y el del conductor. */
 @Composable
 internal fun ResumenHabilitaciones(habilitaciones: List<Habilitacion>) {
     habilitaciones.forEach { h ->
@@ -45,7 +43,6 @@ internal fun ResumenHabilitaciones(habilitaciones: List<Habilitacion>) {
     }
 }
 
-/** «Desactivar» o «Reactivar» un conductor o un vehículo, con la confirmación de su efecto (HU26). */
 @Composable
 internal fun CambioActivo(
     identificador: String,

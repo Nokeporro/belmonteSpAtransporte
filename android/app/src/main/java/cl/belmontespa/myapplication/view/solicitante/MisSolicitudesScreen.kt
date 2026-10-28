@@ -26,7 +26,6 @@ import cl.belmontespa.myapplication.viewmodel.solicitante.MisSolicitudesViewMode
 
 private const val TODOS = "TODOS"
 
-/** «Mis solicitudes»: raíz de la barra inferior del Solicitante, con «Nueva solicitud» y el filtro por estado. */
 @Composable
 fun MisSolicitudesScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

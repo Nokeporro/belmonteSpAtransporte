@@ -22,11 +22,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-// CU-19/RF28: el Pasajero marca su abordaje con el QR del vehículo y su documento, sin cuenta (README, "Abordaje").
 @Service
 public class AbordajeService {
 
-	// Un único texto para todo lo que no encuentra viaje: no revela si falló la patente, el código o el documento (RNF08).
 	static final String NO_ENCONTRADO = "No encontramos un viaje para este documento en este vehículo";
 
 	private final MovilRepository movilRepository;
@@ -44,8 +42,6 @@ public class AbordajeService {
 		this.clock = clock;
 	}
 
-	// Los candidatos son los viajes del vehículo EN_CURSO o ASIGNADOS dentro de la ventana de V3; el dni_hash elige
-	// entre ellos y, si calza en varios, gana el de fh_agenda más cercana a ahora. No cambia ningún otro estado.
 	@Transactional
 	public AbordajeDTOResponse registrar(AbordajeDTORequest request) {
 		Documento.normalizar(request.tipoDocumento(), request.dni());
@@ -53,7 +49,6 @@ public class AbordajeService {
 				.filter(m -> codigoCoincide(m, request.codigoAbordaje()))
 				.orElseThrow(AbordajeService::noEncontrado);
 		String dniHash = pasajeroService.hashDni(request.dni());
-		// La base guarda segundos: truncar aquí hace que la primera respuesta y las repeticiones coincidan.
 		LocalDateTime ahora = LocalDateTime.now(clock).truncatedTo(ChronoUnit.SECONDS);
 		DetalleViajePasajero detalle = viajeRepository.findByMovilIdMovil(movil.getIdMovil()).stream()
 				.filter(viaje -> esCandidato(viaje, ahora))
@@ -75,7 +70,6 @@ public class AbordajeService {
 				|| ViajeService.ASIGNADO.equals(estado) && ViajeService.dentroDeLaVentanaDeInicio(viaje.getFhAgenda(), ahora);
 	}
 
-	// Tiempo constante: el código del QR es un secreto compartido.
 	private static boolean codigoCoincide(Movil movil, String codigo) {
 		return MessageDigest.isEqual(movil.getCodigoAbordaje().getBytes(StandardCharsets.UTF_8),
 				codigo.getBytes(StandardCharsets.UTF_8));

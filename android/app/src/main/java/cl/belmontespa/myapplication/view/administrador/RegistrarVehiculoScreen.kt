@@ -15,7 +15,6 @@ import cl.belmontespa.myapplication.view.components.CampoFormulario
 import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 import cl.belmontespa.myapplication.viewmodel.administrador.RegistrarVehiculoViewModel
 
-/** «Registrar vehículo»: al guardar abre el detalle del vehículo, con su código de abordaje. */
 @Composable
 fun RegistrarVehiculoScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

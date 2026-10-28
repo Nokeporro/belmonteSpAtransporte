@@ -5,7 +5,6 @@ import cl.belmontespa.transporte.validation.Reglas;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-// dni en texto plano (RUT o pasaporte); PasajeroService lo hashea en dni_hash.
 public record PasajeroDTORequest(
 		@NotBlank @jakarta.validation.constraints.Pattern(regexp = "RUT|PASAPORTE") String tipoDocumento,
 		@NotBlank @Size(max = 20, message = Reglas.MAXIMO) String dni,

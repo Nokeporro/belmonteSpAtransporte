@@ -41,7 +41,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** «Mis viajes» del Conductor (HU07): la agenda del día, el selector de fecha, el retraso y los errores. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MisViajesViewModelTest {
 
@@ -177,7 +176,6 @@ class MisViajesViewModelTest {
         val vm = crear()
         val refrescos = viajes.refrescados.size
 
-        // El Administrador asigna otro viaje al Conductor.
         viajes.todos.value = viajes.todos.value + viaje("TR-1049", EstadoViaje.ASIGNADO, 255)
 
         assertEquals(listOf("TR-1042", "TR-1049"), vm.estado.value.filas.map { it.viaje.folio })
@@ -245,7 +243,6 @@ class MisViajesViewModelTest {
         assertNull(vm.estado.value.filas.single().retraso)
 
         reloj.ahora = reloj.ahora.plusMinutes(40)
-        // Sin volver a primer plano, la pantalla conserva lo último que calculó.
         assertNull(vm.estado.value.filas.single().retraso)
         vm.alVolverAPrimerPlano()
 
@@ -329,7 +326,6 @@ class MisViajesViewModelTest {
         Cuenta(nombre, "ireyes@ejemplo.cl", null, Rol.CONDUCTOR, reloj.ahora.minusDays(30))
 }
 
-/** Los viajes de `todos` que caen en la fecha del filtro; guarda lo que le piden. */
 private class AgendaDelConductorFalsa : ViajeRepository(soporteVacio()) {
     val todos = MutableStateFlow<List<Viaje>>(emptyList())
     val observados = mutableListOf<FiltroViajes>()

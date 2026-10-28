@@ -16,8 +16,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.stereotype.Component;
 
-// Emite (JwtEncoder) y valida (JwtDecoder) el JWT de CU-14: sub = correo, rol y exp.
-// Firma HS256 con app.jwt.secret.
 @Component
 public class JwtProvider {
 
@@ -53,7 +51,6 @@ public class JwtProvider {
 		return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
 	}
 
-	// Verifica firma y expiración; lo usa el resource server de SecurityConfig.
 	public JwtDecoder decoder() {
 		return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build();
 	}

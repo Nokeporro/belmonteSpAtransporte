@@ -17,12 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * GET /viajes (README, "Consultas"): `estado` y `fecha` combinables para los tres roles, 400 con un
- * filtro mal formado, la agenda del Conductor y los campos de ViajeDTOResponse. El esquema lo
- * comparten todas las clases de integración, así que cada test crea sus propias cuentas y compara
- * solo los viajes que creó.
- */
 @DisplayName("Consultas de viajes: filtros por rol, agenda del Conductor y campos del viaje (README, Consultas)")
 class ViajeConsultasIT extends IntegrationTest {
 
@@ -40,7 +34,6 @@ class ViajeConsultasIT extends IntegrationTest {
 				"crear viaje", 201).texto("$.folio");
 	}
 
-	// La API no deja crear un viaje en el pasado: para probar los de ayer se mueve su fh_agenda.
 	private void fijarAgenda(String folio, LocalDateTime fhAgenda) {
 		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
@@ -173,7 +166,6 @@ class ViajeConsultasIT extends IntegrationTest {
 			Flota flota = api.flota(4);
 			String token = flota.conductor().token();
 			String deHoy = api.viajeAsignado(ana, flota);
-			// Se mantiene dentro del plazo de cancelación de HU16 a cualquier hora del día.
 			fijarAgenda(deHoy, LocalDateTime.now(ClockConfig.ZONA));
 
 			assertThat(folios("/viajes", token)).containsExactly(deHoy);
@@ -202,7 +194,6 @@ class ViajeConsultasIT extends IntegrationTest {
 			assertThat(folios("/viajes?estado=FINALIZADO", token)).containsExactly(folio);
 			assertThat(folios("/viajes?estado=FINALIZADO&fecha=" + agendado, token)).containsExactly(folio);
 			assertThat(folios("/viajes?estado=FINALIZADO&fecha=" + agendado.plusDays(1), token)).isEmpty();
-			// Un FINALIZADO de otro día no está en la agenda de hoy, pero sí en la de su día.
 			assertThat(folios("/viajes", token)).isEmpty();
 			assertThat(folios("/viajes?fecha=" + agendado, token)).containsExactly(folio);
 		}
@@ -249,7 +240,6 @@ class ViajeConsultasIT extends IntegrationTest {
 			assertThat(detalle.<List<Object>>json("$.pasajeros[?(@.dniHash=='" + porAbordar + "')].fhAbordaje"))
 					.containsExactly((Object) null);
 
-			// La lista trae lo mismo, para los tres roles que la ven.
 			Resp lista = Api.exigir(api.get("/viajes?estado=PENDIENTE", api.admin()), "listar", 200);
 			assertThat(campo(lista, folio, "nombreSolicitante")).containsExactly("Solicitante");
 			assertThat(campo(lista, folio, "telefonoSolicitante")).containsExactly("+56911111111");
@@ -297,7 +287,6 @@ class ViajeConsultasIT extends IntegrationTest {
 			Resp cambio = Api.exigir(api.cambiarEstadoEnLaVentana(folio, conductor, "EN_CURSO"), "iniciar", 200);
 			assertThat(cambio.<Object>json("$.hashPago")).isNull();
 			assertThat(cambio.<Object>json("$.estadoPago")).isNull();
-			// Lo que se oculta es la respuesta: el pago sigue ahí para el administrador.
 			assertThat(Api.exigir(api.verViaje(folio), "ver viaje", 200).texto("$.hashPago")).isEqualTo(hash);
 		}
 	}

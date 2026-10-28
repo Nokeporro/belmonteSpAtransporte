@@ -10,9 +10,7 @@ import java.text.Normalizer
 import java.time.LocalDateTime
 import java.util.Locale
 
-/** Reglas de entrada compartidas por formularios y repositorios de la demo. */
 object Validaciones {
-    // CU-18 comparte los datos de alta y las reglas de contraseña de CU-07.
     fun administrador(cuenta: NuevaCuenta): Map<String, String> = conductor(cuenta)
     fun correo(valor: String) = valor.trim().lowercase(Locale.ROOT)
     fun telefono(valor: String?): String? = valor?.filterNot { it.isWhitespace() || it in "()-" }
@@ -46,13 +44,11 @@ object Validaciones {
         TipoDocumento.RUT -> rutValido(valor)
         TipoDocumento.PASAPORTE -> documento(valor).matches(Regex("[A-Z0-9]{5,20}"))
     }
-    /** Motivo de una cancelación (V7) o de un rechazo (V8): de 5 a 200 caracteres, ya recortado. */
     fun motivo(valor: String): String? = when {
         valor.isBlank() -> "Es obligatorio."
         valor.trim().length !in 5..200 -> "Debe tener entre 5 y 200 caracteres."
         else -> null
     }
-    /** Monto a reembolsar de V7: de 0 al total del pago. El texto es lo que escribió el Administrador. */
     fun reembolso(texto: String, total: Int): String? {
         if (texto.isBlank()) return "Es obligatorio."
         val monto = texto.trim().toIntOrNull() ?: return "Ingresa un monto entero."

@@ -24,7 +24,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** PK, UQ, FK en cascada, consultas `Flow` y transacciones de Room v1 (README, Base de datos local). */
 @RunWith(AndroidJUnit4::class)
 class DaosTest {
 
@@ -78,7 +77,6 @@ class DaosTest {
         guardarViaje(1042, pasajeros = listOf("Constanza Ríos", "Tomás Vidal"))
         db.viajeDao().borrar("TR-1042")
         assertTrue(db.viajePasajeroDao().obtenerDelViaje("TR-1042").isEmpty())
-        // Los pasajeros siguen registrados: solo se borra su asociación con el viaje.
         assertEquals(2, db.pasajeroDao().observarTodos().first().size)
     }
 
@@ -93,7 +91,6 @@ class DaosTest {
 
     @Test
     fun unaTransaccionQueFallaNoGuardaNada() = runBlocking {
-        // El detalle apunta a un pasajero que no se guarda: la FK falla y se revierte todo el viaje.
         val error = runCatching {
             db.viajeDao().guardarConPasajeros(
                 viaje = viaje(1042),
@@ -148,7 +145,6 @@ class DaosTest {
         conductor: String? = null,
         pasajeros: List<String> = emptyList(),
     ) {
-        // En estas pruebas el "documento" es el nombre: basta con que el hash sea distinto por pasajero.
         val filas = pasajeros.map { PasajeroEntity(Hashes.documento(it), it) }
         db.viajeDao().guardarConPasajeros(
             viaje = viaje(folio, estado, fhAgenda, conductor, filas.size),

@@ -14,7 +14,6 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Solicitante (JWT), folio y estado (PENDIENTE) los fija ViajeService (CU-01/RF02).
 public record ViajeDTORequest(
 		@NotNull @Future LocalDateTime fhAgenda,
 		@Valid @NotNull Ubicacion origen,
@@ -26,7 +25,6 @@ public record ViajeDTORequest(
 		numeroVuelo = Normalizar.numeroVuelo(numeroVuelo);
 	}
 
-	// La comuna se identifica por nombre + región: su UNIQUE es (nombre, id_region).
 	public record Ubicacion(
 			@NotBlank @Size(max = 200, message = Reglas.MAXIMO) String direccion,
 			@NotBlank @Size(max = 80, message = Reglas.MAXIMO) String comuna,

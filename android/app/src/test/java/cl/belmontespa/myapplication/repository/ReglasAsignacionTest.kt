@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** V2 (README, Viaje): cada regla de asignar o reasignar, con su texto y su orden. */
 class ReglasAsignacionTest {
 
     private val agenda = LocalDateTime.of(2026, 10, 28, 12, 0)
@@ -103,10 +102,8 @@ class ReglasAsignacionTest {
 
     @Test
     fun alReasignarSoloSeValidaLoQueCambia() {
-        // Mismo conductor, Ocupado e incluso con otro viaje cerca: no cambia, no se revisa.
         val mismoConductor = participante(disponible = false, otros = listOf(agenda.plusMinutes(30)), yaAsignado = true)
         assertNull(conflicto(conductor = mismoConductor))
-        // Mismo vehículo, En uso: tampoco.
         val mismoMovil = participante(disponible = false, activo = false, otros = listOf(agenda), yaAsignado = true)
         assertNull(conflicto(movil = mismoMovil))
     }
@@ -119,7 +116,6 @@ class ReglasAsignacionTest {
             "El móvil ya tiene un viaje a menos de 2 horas",
             conflicto(conductor = mismoConductor, movil = participante(otros = listOf(agenda.plusMinutes(60)))),
         )
-        // Y el conductor que no cambia no choca con sus propios viajes.
         assertNull(conflicto(conductor = participante(otros = listOf(agenda), yaAsignado = true)))
     }
 

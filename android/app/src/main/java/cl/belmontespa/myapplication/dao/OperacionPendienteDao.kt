@@ -11,7 +11,6 @@ interface OperacionPendienteDao {
     @Insert
     suspend fun insertar(operacion: OperacionPendienteEntity)
 
-    /** Cola de una cuenta en orden de creación, como la envía el Worker. */
     @Query("SELECT * FROM operaciones_pendientes WHERE cuenta = :cuenta ORDER BY creado_en")
     fun observarDeCuenta(cuenta: String): Flow<List<OperacionPendienteEntity>>
 

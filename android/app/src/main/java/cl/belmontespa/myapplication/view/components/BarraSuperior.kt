@@ -22,10 +22,6 @@ import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 
-/**
- * Barra superior plana con divisor: título, subtítulo monoespaciado opcional (p. ej. el folio) y
- * flecha "Volver" en formularios y detalles.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarraSuperior(
@@ -36,7 +32,6 @@ fun BarraSuperior(
     acciones: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier) {
-        // El título puede ocupar más de una línea con el texto ampliado.
         TopAppBar(
             expandedHeight = 64.dp * LocalDensity.current.fontScale.coerceAtLeast(1f),
             title = {
@@ -52,11 +47,9 @@ fun BarraSuperior(
                 }
             },
             navigationIcon = {
-                // La pantalla decide si permite volver y qué acción corresponde.
                 if (onVolver != null) {
                     IconButton(
                         onClick = onVolver,
-                        // Garantiza un área táctil mínima de 48 × 48 dp.
                         modifier = Modifier.sizeIn(
                             minWidth = 48.dp,
                             minHeight = 48.dp,
@@ -64,7 +57,6 @@ fun BarraSuperior(
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_atras),
-                            // TalkBack anuncia la acción del botón.
                             contentDescription = stringResource(R.string.accion_volver),
                         )
                     }

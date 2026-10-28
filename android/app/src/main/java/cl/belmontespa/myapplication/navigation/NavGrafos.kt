@@ -56,11 +56,7 @@ import cl.belmontespa.myapplication.view.solicitante.MisSolicitudesScreen
 import cl.belmontespa.myapplication.view.solicitante.NuevaSolicitudScreen
 import cl.belmontespa.myapplication.view.solicitante.SolicitudCanceladaScreen
 
-// El NavHost de la app, partido por flujo: acceso, Solicitante, Administrador y Conductor. Cada pantalla es un
-// `composable` con su ruta (PantallaDemo.ruta) que llama directo a su Screen, como en el template del curso.
-// Las pantallas de la barra inferior van dentro del grafo de su rol; las demás se apilan sobre ellas.
 
-/** Lo que cada pantalla necesita del NavHost: la sesión para el control de rol y las acciones de navegación. */
 class AccionesNav(
     val estado: EstadoSesion?,
     val navegar: (PantallaDemo, String) -> Unit,
@@ -75,10 +71,6 @@ private val argumentoId = listOf(
     },
 )
 
-/**
- * Registra una pantalla del catálogo. `contenido` recibe su `id` (folio, correo, patente...). Si el rol de la sesión
- * no puede abrirla (README, Navegación y pantallas), muestra el aviso de falta de permiso en vez de la pantalla.
- */
 private fun NavGraphBuilder.pantalla(
     pantalla: PantallaDemo,
     acciones: AccionesNav,
@@ -101,14 +93,12 @@ private fun SinPermiso(onVolver: () -> Unit) {
     }
 }
 
-/** Pantalla inicial: mientras se lee la sesión guardada solo se ve «Comprobando sesión…». */
 fun NavGraphBuilder.pantallaInicio() {
     composable(PantallaDemo.INICIO.ruta) {
         PantallaCargando(texto = stringResource(R.string.inicio_comprobando_sesion), modifier = Modifier.statusBarsPadding())
     }
 }
 
-/** Login, registro, abordaje con QR y las pantallas que se ven sin una cuenta autenticada. */
 fun NavGraphBuilder.grafoAcceso(a: AccionesNav) {
     navigation(startDestination = PantallaDemo.LOGIN.ruta, route = Rutas.GRAFO_ACCESO) {
         composable(PantallaDemo.LOGIN.ruta, arguments = argumentoId) { entrada ->
@@ -119,7 +109,6 @@ fun NavGraphBuilder.grafoAcceso(a: AccionesNav) {
             )
         }
     }
-    // El Login con su aviso de «Sesión expirada» y el Login del modo demostración son este mismo Login.
     pantalla(PantallaDemo.LOGIN_DEMO, a) {
         Box(Modifier.fillMaxSize().testTag("pantalla_contenido")) {
             LoginScreen(
@@ -142,7 +131,6 @@ fun NavGraphBuilder.grafoAcceso(a: AccionesNav) {
     pantalla(PantallaDemo.CAMBIO_OBLIGATORIO, a) {
         CambiarPasswordScreen(pantalla = PantallaDemo.CAMBIO_OBLIGATORIO, onVolver = a.volver, onCerrarSesion = a.cerrarSesion)
     }
-    // «Escanear código QR» es el lector de Google Code Scanner: la misma pantalla de «Abordar viaje».
     pantalla(PantallaDemo.ABORDAR, a) {
         AbordarScreen(pantalla = PantallaDemo.ABORDAR, onNavegar = a.navegar, onVolver = a.volver)
     }
@@ -155,7 +143,6 @@ fun NavGraphBuilder.grafoAcceso(a: AccionesNav) {
     pantalla(PantallaDemo.ABORDADO, a) { id ->
         AbordadoScreen(hora = id, onNavegar = a.navegar, onVolver = a.volver)
     }
-    // Pantallas de varios roles: el control de rol decide quién las abre.
     pantalla(PantallaDemo.CAMBIAR_PASSWORD, a) {
         CambiarPasswordScreen(pantalla = PantallaDemo.CAMBIAR_PASSWORD, onVolver = a.volver, onCerrarSesion = a.cerrarSesion)
     }
@@ -174,7 +161,6 @@ fun NavGraphBuilder.grafoSolicitante(a: AccionesNav) {
         }
     }
     pantalla(PantallaDemo.NUEVA_SOLICITUD, a) { NuevaSolicitudScreen(onNavegar = a.navegar, onVolver = a.volver) }
-    // «Solicitud sin pasajeros» es el mismo detalle, con el aviso de que faltan pasajeros.
     pantalla(PantallaDemo.DETALLE_SOLICITUD, a) { id ->
         DetalleSolicitudScreen(pantalla = PantallaDemo.DETALLE_SOLICITUD, folio = id, onNavegar = a.navegar, onVolver = a.volver)
     }
@@ -207,7 +193,6 @@ fun NavGraphBuilder.grafoAdministrador(a: AccionesNav) {
         }
     }
     pantalla(PantallaDemo.CUENTAS_PENDIENTES, a) { CuentasPendientesScreen(onVolver = a.volver) }
-    // «Solicitud sin pasajeros» es el mismo detalle, con el aviso de que faltan pasajeros.
     pantalla(PantallaDemo.DETALLE_ADMIN, a) { id ->
         DetalleSolicitudAdminScreen(pantalla = PantallaDemo.DETALLE_ADMIN, folio = id, onNavegar = a.navegar, onVolver = a.volver)
     }
@@ -250,7 +235,6 @@ fun NavGraphBuilder.grafoConductor(a: AccionesNav) {
             )
         }
     }
-    // «Antes de la ventana» y «Abrir navegación» son este detalle, el segundo con la hoja «Abrir con» encima.
     pantalla(PantallaDemo.DETALLE_VIAJE, a) { id ->
         DetalleViajeScreen(folio = id, onNavegar = a.navegar, onVolver = a.volver)
     }
@@ -260,7 +244,6 @@ fun NavGraphBuilder.grafoConductor(a: AccionesNav) {
     pantalla(PantallaDemo.NAVEGAR, a) { id ->
         DetalleViajeScreen(folio = id, onNavegar = a.navegar, onVolver = a.volver, abrirNavegacion = true)
     }
-    // «Sin conexión» y «Cambio en conflicto» son este mismo detalle con los avisos del escenario.
     pantalla(PantallaDemo.SIN_CONEXION, a) { id ->
         DetalleViajeScreen(folio = id, onNavegar = a.navegar, onVolver = a.volver, escenario = EscenarioDemo.SIN_CONEXION)
     }

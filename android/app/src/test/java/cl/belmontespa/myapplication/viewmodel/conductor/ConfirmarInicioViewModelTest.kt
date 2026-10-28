@@ -36,7 +36,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-/** Confirmación de «Iniciar viaje» (HU09, V3): aviso de abordaje, ventana, envío único y errores del servidor. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConfirmarInicioViewModelTest {
 
@@ -335,7 +334,6 @@ class ConfirmarInicioViewModelTest {
     }
 }
 
-/** Un solo viaje observable; guarda los cambios de estado que le piden y responde con lo que la prueba diga. */
 private class ViajeParaIniciarFalso : ViajeRepository(soporteVacio()) {
     val viaje = MutableStateFlow<Viaje?>(null)
     val refrescados = mutableListOf<String>()

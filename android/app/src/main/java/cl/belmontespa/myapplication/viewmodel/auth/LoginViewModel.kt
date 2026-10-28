@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** La contraseña vive solo en la memoria del ViewModel, nunca en `SavedStateHandle`. */
 data class LoginUiState(
     val correo: String = "",
     val password: String = "",
@@ -29,7 +28,6 @@ class LoginViewModel @JvmOverloads constructor(
     private val authRepository: AuthRepository = AuthRepository(application),
 ) : AndroidViewModel(application) {
 
-    /** En la build demo el Login avisa que los datos son ficticios. */
     val modoDemo: Boolean = BuildConfig.MODO_LOCAL
 
     private val _estado = MutableStateFlow(LoginUiState())
@@ -45,7 +43,6 @@ class LoginViewModel @JvmOverloads constructor(
         _estado.update { it.copy(enviando = true, error = null) }
         viewModelScope.launch {
             val resultado = authRepository.iniciarSesion(actual.correo, actual.password)
-            // Con éxito no hay nada que mostrar: la app navega al inicio del rol al cambiar la sesión.
             _estado.update {
                 if (resultado is Resultado.Fallo) {
                     it.copy(enviando = false, error = mensajeLogin(resultado.error))
@@ -57,10 +54,8 @@ class LoginViewModel @JvmOverloads constructor(
     }
 }
 
-/** Texto de un fallo del login; nunca dice si el correo existe. */
 @StringRes
 fun mensajeLogin(error: ErrorApp): Int = when (error) {
-    // En el login, un 401 son credenciales inválidas (correo, contraseña o Conductor inactivo).
     ErrorApp.SesionExpirada -> R.string.error_credenciales
     is ErrorApp.SinPermiso -> when (error.motivo) {
         MotivoSinPermiso.CUENTA_PENDIENTE -> R.string.error_cuenta_pendiente

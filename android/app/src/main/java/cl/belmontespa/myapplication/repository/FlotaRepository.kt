@@ -19,7 +19,6 @@ import cl.belmontespa.myapplication.util.Validaciones
 import java.security.SecureRandom
 import kotlinx.coroutines.flow.first
 
-/** Conductores, vehículos y habilitaciones (Administrador). */
 open class FlotaRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
@@ -44,7 +43,6 @@ open class FlotaRepository(private val local: SoporteLocal) {
         local.db.usuarioDao().insertar(u)
         Resultado.Exito(local.conductorDe(u))
     }
-    /** Sin `password` se conserva la actual. */
     open suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val correoNormalizado = Validaciones.correo(correo)
@@ -101,7 +99,6 @@ open class FlotaRepository(private val local: SoporteLocal) {
         local.db.movilDao().guardar(nuevo)
         Resultado.Exito(aMovil(nuevo))
     }
-    /** Todas, o filtradas por vehículo (`patente`) o por conductor (`correo`). */
     open suspend fun listarHabilitaciones(patente: String? = null, correo: String? = null): Resultado<List<Habilitacion>> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val p = patente?.takeIf { it.isNotBlank() }?.let(Validaciones::patente)

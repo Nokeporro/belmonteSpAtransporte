@@ -7,7 +7,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Arqueo de abordaje (README, RF29): «Abordaron X de N» y quiénes faltan. */
 class ArqueoTest {
 
     private val agenda = LocalDateTime.of(2026, 10, 28, 14, 30)
@@ -78,7 +77,6 @@ class ArqueoTest {
 
     @Test
     fun elTotalEsLaCantidadDePasajerosDelViaje() {
-        // N es `cantidad_pasajeros`, aunque la lista traiga menos filas.
         val arqueo = viaje(3, pasajeroDePrueba("Ana", abordo)).arqueo()!!
 
         assertEquals(1, arqueo.abordaron)

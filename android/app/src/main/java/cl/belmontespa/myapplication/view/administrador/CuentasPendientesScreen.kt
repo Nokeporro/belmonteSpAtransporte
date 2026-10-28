@@ -29,14 +29,12 @@ import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.viewmodel.administrador.CuentasPendientesViewModel
 
-/** «Cuentas por aprobar»: cada decisión pide una confirmación con la identidad y la empresa. */
 @Composable
 fun CuentasPendientesScreen(
     onVolver: () -> Unit,
     viewModel: CuentasPendientesViewModel = viewModel(),
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
-    // Al volver a la pantalla se lee de nuevo la lista de pendientes.
     LaunchedEffect(Unit) { viewModel.cargar() }
     var revision by remember { mutableStateOf<Pair<Solicitante, Boolean>?>(null) }
     ContenedorPantalla(

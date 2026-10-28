@@ -12,7 +12,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-/** «Abordaje registrado» (HU29): la hora que viene en la ruta y la vuelta al inicio. */
 class AbordadoScreenTest {
 
     @get:Rule

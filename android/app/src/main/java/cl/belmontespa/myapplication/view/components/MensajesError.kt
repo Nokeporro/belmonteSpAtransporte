@@ -7,10 +7,7 @@ import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.MotivoSinPermiso
 
-// Texto de un error de pantalla (README, Textos y tema). El login tiene el suyo (`mensajeLogin`),
-// porque allí un 401 son credenciales inválidas y no una sesión terminada.
 
-/** Un 409 trae el `message` del backend; el resto sale de `strings.xml`. */
 @Composable
 fun ErrorApp.texto(): String = when (this) {
     is ErrorApp.Conflicto -> mensaje

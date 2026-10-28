@@ -16,17 +16,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * V2 (README, Máquinas de estado): asignar y reasignar. Cada test arma sus propias cuentas, vehículos
- * y viajes, porque el esquema lo comparten todas las clases de integración.
- */
 @DisplayName("Asignar y reasignar (HU05, V2)")
 class ViajeAsignarIT extends IntegrationTest {
 
 	@Autowired
 	private JdbcTemplate jdbc;
 
-	// Una hora redonda lejana: los minutos de diferencia entre viajes son exactos.
 	private final LocalDateTime base = LocalDateTime.now().plusDays(10).withHour(10).withMinute(0).withSecond(0)
 			.withNano(0);
 
@@ -49,14 +44,12 @@ class ViajeAsignarIT extends IntegrationTest {
 		assertThat(jdbc.update("UPDATE viaje SET fh_agenda = ? WHERE folio = ?", fhAgenda, folio)).isEqualTo(1);
 	}
 
-	/** Un conductor extra, habilitado también en la patente dada. */
 	private Cuenta conductorHabilitadoEn(String patente) {
 		Cuenta conductor = api.conductor();
 		api.habilitarOk(patente, conductor.correo());
 		return conductor;
 	}
 
-	/** Un móvil extra, en el que el conductor dado también está habilitado. */
 	private String movilHabilitadoPara(Cuenta conductor) {
 		String patente = api.movil(4);
 		api.habilitarOk(patente, conductor.correo());
@@ -141,7 +134,6 @@ class ViajeAsignarIT extends IntegrationTest {
 					.containsExactly(folio);
 		}
 
-		// README, Consultas: un viaje fuera del alcance, incluido uno que se reasignó, responde 403.
 		@Test
 		@DisplayName("el Conductor reemplazado pierde el detalle (403) y el viaje sale de su agenda")
 		void elReemplazadoPierdeElAcceso() {
@@ -344,11 +336,9 @@ class ViajeAsignarIT extends IntegrationTest {
 					UPDATE detalle_viaje_pasajero d JOIN viaje v ON v.id_viaje = d.id_viaje
 					SET d.fh_abordaje = ? WHERE v.folio = ?""", abordaron, folio);
 
-			// Cambia solo el conductor: el vehículo y su QR son los mismos, así que las marcas siguen.
 			api.asignarOk(folio, otroConductor.correo(), flota.patente());
 			assertThat(ver(folio).<List<Object>>json("$.pasajeros[*].fhAbordaje")).hasSize(2).doesNotContainNull();
 
-			// Cambia el vehículo: todos vuelven a Por abordar.
 			api.asignarOk(folio, flota.conductor().correo(), otroMovil);
 			assertThat(ver(folio).<List<Object>>json("$.pasajeros[*].fhAbordaje")).hasSize(2).containsOnlyNulls();
 		}

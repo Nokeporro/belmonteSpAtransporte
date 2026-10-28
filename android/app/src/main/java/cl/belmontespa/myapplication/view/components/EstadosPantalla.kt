@@ -19,7 +19,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import cl.belmontespa.myapplication.R
 
-// Representa una carga inicial, con un mensaje opcional.
 @Composable
 fun PantallaCargando(
     modifier: Modifier = Modifier,
@@ -47,8 +46,6 @@ fun PantallaCargando(
     }
 }
 
-// Muestra el error y permite que el usuario solicite otro intento.
-// Dibujar esta pantalla no ejecuta el reintento automáticamente.
 @Composable
 fun PantallaError(
     texto: String,
@@ -71,7 +68,6 @@ fun PantallaError(
             textAlign = TextAlign.Center,
         )
 
-        // Altura mínima, sin impedir que crezca con el tamaño del texto.
         OutlinedButton(
             onClick = onReintentar,
             modifier = Modifier.heightIn(min = 48.dp),

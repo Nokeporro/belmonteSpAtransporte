@@ -60,10 +60,6 @@ import cl.belmontespa.myapplication.viewmodel.administrador.ConductorOpcion
 import cl.belmontespa.myapplication.viewmodel.administrador.NoAsignable
 import cl.belmontespa.myapplication.viewmodel.administrador.VehiculoOpcion
 
-/**
- * «Asignar conductor y vehículo» (HU05); con el viaje `ASIGNADO` es la reasignación (HU23). Elegir un
- * conductor muestra sus vehículos habilitados; «Confirmar asignación» guarda y vuelve al detalle.
- */
 @Composable
 fun AsignarScreen(
     folio: String,
@@ -75,7 +71,6 @@ fun AsignarScreen(
     var confirmarSalida by remember { mutableStateOf(false) }
     LaunchedEffect(folio) { viewModel.cargar(folio) }
     LaunchedEffect(estado.asignado) { if (estado.asignado) onNavegar(PantallaDemo.DETALLE_ADMIN, folio) }
-    // Con una elección a medias, salir pide confirmar el descarte.
     BackHandler(enabled = estado.modificado) { confirmarSalida = true }
     if (confirmarSalida) {
         AlertDialog(
@@ -120,7 +115,6 @@ fun AsignarContenido(
         )
         when {
             estado.cargando -> PantallaCargando()
-            // Sin viaje no hay nada que asignar: el error ocupa la pantalla.
             viaje == null -> Box(Modifier.testTag("pantalla_error")) {
                 PantallaError(texto = (error ?: ErrorApp.NoEncontrado).texto(), onReintentar = onReintentar)
             }
@@ -135,7 +129,6 @@ fun AsignarContenido(
             ) {
                 if (error != null) {
                     Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
-                    // Un 409 ya recargó los datos: reintentar solo tiene sentido si falló la lectura.
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onReintentar, tipo = TipoBoton.SECUNDARIO)
                     }
@@ -244,7 +237,6 @@ private fun FilaVehiculo(vehiculo: VehiculoOpcion, seleccionado: Boolean, onEleg
     }
 }
 
-/** Fila de una opción única: toda la tarjeta se toca (48 dp como mínimo) y el estado lo lee TalkBack. */
 @Composable
 private fun OpcionSeleccionable(
     seleccionada: Boolean,

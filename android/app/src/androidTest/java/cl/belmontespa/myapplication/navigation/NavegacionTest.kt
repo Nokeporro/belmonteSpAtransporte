@@ -16,7 +16,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Flujo por rol, cambio obligatorio de contraseña e historial tras el login y el cierre de sesión. */
 
 class NavegacionTest {
 
@@ -61,10 +60,8 @@ class NavegacionTest {
         compose.onNodeWithText(texto(R.string.accion_cerrar_sesion)).performClick()
         esperarTexto(R.string.login_iniciar_sesion)
 
-        // Desde el Login no se vuelve al flujo autenticado: atrás cierra la app.
         val actividad = compose.activity
         pressBackUnconditionally()
-        // Android 12 o superior puede enviar la actividad raíz al fondo.
         compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
     }
 
@@ -86,15 +83,11 @@ class NavegacionTest {
         compose.onNodeWithText(texto(R.string.nav_perfil)).performClick()
         esperarTexto(R.string.accion_cerrar_sesion)
 
-        // Representa el estado emitido al vencer la sesión.
-        // El vencimiento del reloj se comprueba en SesionStoreTest.
         runBlocking { sesiones.borrar() }
         esperarTexto(R.string.login_iniciar_sesion)
 
-        // Atrás no debe recuperar el perfil de la sesión anterior.
         val actividad = compose.activity
         pressBackUnconditionally()
-        // Android 12 o superior puede enviar la actividad raíz al fondo.
         compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
     }
 
@@ -106,17 +99,13 @@ class NavegacionTest {
         runBlocking { sesiones.guardarTemporal(sesion) }
         esperarTexto(R.string.aviso_cambio_password_obligatorio)
 
-        // Representa el resultado de cambiar correctamente la contraseña.
-        // Aquí se verifica la navegación, no el formulario ni el backend.
         runBlocking { sesiones.guardar(sesion) }
         esperarTexto(R.string.nav_solicitudes)
         esperarTexto(R.string.nav_conductores)
         esperarTexto(R.string.nav_vehiculos)
 
-        // El cambio obligatorio no debe permanecer detrás del inicio.
         val actividad = compose.activity
         pressBackUnconditionally()
-        // Android 12 o superior puede enviar la actividad raíz al fondo.
         compose.waitUntil(5_000) { actividad.isFinishing || actividad.isDestroyed || !actividad.hasWindowFocus() }
     }
 

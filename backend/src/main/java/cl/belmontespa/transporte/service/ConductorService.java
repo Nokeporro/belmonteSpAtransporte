@@ -55,7 +55,6 @@ public class ConductorService extends CrudService<Conductor, String, ConductorDT
 		return conductorRepository.findByUsuarioCorreoIgnoreCase(correo);
 	}
 
-	// CU-07: queda disponible de inmediato para autenticarse y ser asignado.
 	@Override
 	protected Conductor nuevaEntidad(ConductorDTORequest request) {
 		Conductor conductor = new Conductor();
@@ -65,7 +64,6 @@ public class ConductorService extends CrudService<Conductor, String, ConductorDT
 		return conductor;
 	}
 
-	// El Administrador reemplaza los datos y la contraseña del Conductor (CU-07/RF14).
 	@Override
 	protected void reemplazar(Conductor conductor, ConductorDTORequest request) {
 		if (!conductor.getUsuario().getCorreo().equalsIgnoreCase(request.correo())) {
@@ -102,7 +100,6 @@ public class ConductorService extends CrudService<Conductor, String, ConductorDT
 		conductor.setEstadoConductor(estado(nombreEstado));
 	}
 
-	// La asignación toma el mismo bloqueo antes de comprobar activo (HU26).
 	Conductor bloquear(String correo) {
 		return conductorRepository.bloquearPorCorreo(correo)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

@@ -44,17 +44,10 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
 
-/** Una opción de [SelectorOpciones]. */
 data class Opcion(val id: String, val texto: String, val habilitada: Boolean = true)
 
-/** El motivo que dejó la validación bajo [clave], si el error es de validación. */
 fun ErrorApp?.deCampo(clave: String): String? = (this as? ErrorApp.Validacion)?.errores?.get(clave)
 
-/**
- * Marco común de las pantallas de formulario, lista y detalle: barra superior, espacio del teclado, carga, error con
- * «Reintentar» (salvo en un formulario, donde reintentar no corrige nada) y confirmación al salir con cambios.
- * `onVolver` es `null` en las pantallas raíz de la barra inferior.
- */
 @Composable
 fun ContenedorPantalla(
     titulo: String,
@@ -86,7 +79,6 @@ fun ContenedorPantalla(
             },
         )
     }
-    // Reserva el espacio del teclado para que los botones sigan siendo alcanzables.
     Column(modifier.fillMaxSize().statusBarsPadding().imePadding()) {
         BarraSuperior(
             titulo = titulo,
@@ -102,10 +94,8 @@ fun ContenedorPantalla(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 error?.let { e ->
-                    // Fuera del Login un 401 es una sesión terminada, no credenciales inválidas.
                     val texto = if (e is ErrorApp.Validacion) e.errores.values.joinToString("\n") else e.texto()
                     Aviso(texto, TonoAviso.PELIGRO, modifier = Modifier.testTag("pantalla_error"))
-                    // Recargar no corrige un formulario; tras un 409 sí es la forma de leer el estado vigente.
                     if (e !is ErrorApp.Validacion && onReintentar != null) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onReintentar, tipo = TipoBoton.SECUNDARIO)
                     }
@@ -117,7 +107,6 @@ fun ContenedorPantalla(
     }
 }
 
-/** Botón a ancho completo con su texto en `strings.xml`; se deshabilita mientras hay un envío en curso. */
 @Composable
 fun Accion(
     @StringRes texto: Int,
@@ -130,7 +119,6 @@ fun Accion(
     BotonAncho(stringResource(texto), onClick, tipo = tipo, habilitado = habilitada && !enviando, alto56 = alto56)
 }
 
-/** Campo de texto de un formulario: su error sale del `Validacion` del estado, bajo la [clave] del contrato. */
 @Composable
 fun CampoFormulario(
     valor: String,
@@ -144,7 +132,6 @@ fun CampoFormulario(
     CampoTexto(valor, onCambio, stringResource(etiqueta), tipoTeclado = tipo, habilitado = !enviando, error = error.deCampo(clave))
 }
 
-/** Un dato de solo lectura con su etiqueta; no se dibuja si el valor está vacío. */
 @Composable
 fun Dato(@StringRes etiqueta: Int, valor: String?) {
     if (!valor.isNullOrBlank()) {
@@ -158,7 +145,6 @@ fun Dato(@StringRes etiqueta: Int, valor: String?) {
     }
 }
 
-/** Tarjeta con un título (encabezado para TalkBack) y su contenido. */
 @Composable
 fun Bloque(titulo: String, contenido: @Composable ColumnScope.() -> Unit) {
     OutlinedCard(Modifier.fillMaxWidth()) {
@@ -169,7 +155,6 @@ fun Bloque(titulo: String, contenido: @Composable ColumnScope.() -> Unit) {
     }
 }
 
-/** Botón que abre un diálogo con las [opciones]; muestra la elegida, o «Selecciona» si [valor] no está entre ellas. */
 @Composable
 fun SelectorOpciones(
     valor: String,
@@ -215,7 +200,6 @@ fun SelectorOpciones(
     }
 }
 
-/** Botones «Fecha» y «Hora» con sus selectores del sistema, y el valor elegido debajo de cada uno. */
 @Composable
 fun CamposFechaHora(
     fecha: LocalDate,
@@ -238,7 +222,6 @@ fun CamposFechaHora(
     Text(hora.toString(), style = EstilosMono.dato)
 }
 
-/** La hora del [leer] (el `Clock` del ViewModel), recalculada cada segundo para los chips Atrasado y Vencido. */
 @Composable
 fun rememberAhora(leer: () -> LocalDateTime): LocalDateTime {
     var ahora by remember { mutableStateOf(leer()) }

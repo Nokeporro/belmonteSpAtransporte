@@ -15,10 +15,6 @@ import cl.belmontespa.myapplication.view.components.TonoAviso
 import cl.belmontespa.myapplication.view.components.estiloChip
 import cl.belmontespa.myapplication.view.components.etiqueta
 
-/**
- * El efecto de la cancelación sobre el pago. Con `confirmando` (antes de confirmar) dice qué se reembolsará o anulará;
- * sin él (ya cancelada) muestra lo que quedó guardado.
- */
 @Composable
 internal fun PagoDeCancelacion(viaje: Viaje, pago: Pago?, confirmando: Boolean) {
     if (pago == null) {

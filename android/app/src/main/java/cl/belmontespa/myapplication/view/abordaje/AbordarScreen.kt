@@ -38,11 +38,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 
-/**
- * «Abordar viaje» (HU29). El lector de Google Code Scanner es la variante «Escanear código QR» (README): se abre desde
- * aquí, a pantalla completa, en Google Play services. Como la variante del catálogo `ESCANEAR` no puede llevar la cámara
- * adentro, es esta misma pantalla con el título del lector y no abre nada por su cuenta. No necesita sesión.
- */
 @Composable
 fun AbordarScreen(
     pantalla: PantallaDemo,
@@ -75,9 +70,6 @@ fun AbordarScreen(
     )
 }
 
-// El lector corre en Google Play services: la app no pide `CAMERA`. Cancelar con atrás llega como `null` (vuelve sin
-// aviso) y un QR sin texto como "" (cae en «QR ajeno»); cualquier fallo (sin Play services, módulo sin descargar o
-// permiso negado en la pantalla de Google) deja «Ingresar patente» como salida.
 private fun Context.escanearQr(alLeer: (String?) -> Unit, alFallar: () -> Unit) {
     val opciones = GmsBarcodeScannerOptions.Builder()
         .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -122,7 +114,6 @@ fun AbordarContenido(
                 null -> Unit
             }
             BotonAncho(stringResource(R.string.abordaje_escanear), onEscanear, alto56 = true)
-            // El ingreso manual no depende del lector: está siempre disponible.
             BotonAncho(stringResource(R.string.abordaje_ingresar_codigo), onIngresar, tipo = TipoBoton.SECUNDARIO, alto56 = true)
         }
     }

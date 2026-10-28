@@ -18,7 +18,6 @@ import org.springframework.boot.test.context.ConfigDataApplicationContextInitial
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.util.TestPropertyValues;
 
-/** Usa el application.properties real: comprueba que la variable documentada activa el push. */
 @DisplayName("FirebaseConfig: FIREBASE_CREDENTIALS_FILE")
 class FirebaseConfigTest {
 

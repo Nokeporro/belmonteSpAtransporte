@@ -14,7 +14,6 @@ import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 import cl.belmontespa.myapplication.view.components.TipoBoton
 import cl.belmontespa.myapplication.viewmodel.auth.RegistroViewModel
 
-/** «Registro de solicitante»: al terminar ofrece volver al Login con el correo ya escrito. */
 @Composable
 fun RegistroScreen(
     onNavegar: (PantallaDemo, String) -> Unit,

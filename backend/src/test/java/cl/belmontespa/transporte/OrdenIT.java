@@ -18,12 +18,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/**
- * Orden fijo de las listas (README, "Consultas → Orden"). El esquema lo comparten todas las clases de
- * integración, así que cada test crea sus propios registros y compara solo la posición relativa de
- * ellos dentro de la lista completa. Los nombres mezclan mayúsculas y tilde («Álvaro», «beto», «Zoe»)
- * para distinguir la collation utf8mb4_unicode_ci del orden binario, donde «Zoe» < «beto» < «Álvaro».
- */
 @DisplayName("Orden fijo de las listas (README, Consultas)")
 class OrdenIT extends IntegrationTest {
 
@@ -34,7 +28,6 @@ class OrdenIT extends IntegrationTest {
 		return cuerpo + "-" + Reglas.digitoVerificador(cuerpo);
 	}
 
-	/** Falla si alguno de los esperados falta o si no aparecen en el orden dado. */
 	private static void assertEnOrden(List<String> lista, String... esperadosEnOrden) {
 		List<Integer> posiciones = new ArrayList<>();
 		for (String esperado : esperadosEnOrden) {
@@ -55,7 +48,6 @@ class OrdenIT extends IntegrationTest {
 		@Test
 		@DisplayName("conductores, solicitantes y empresas se ordenan por nombre y razón social, sin distinguir mayúsculas ni tildes")
 		void porTexto() {
-			// Por nombre: Álvaro, beto, Zoe. Por razón social: Álamo, beta, Zeta (otro orden).
 			String zoe = "zoe-" + System.nanoTime() + "@test.cl";
 			String beto = "beto-" + System.nanoTime() + "@test.cl";
 			String alvaro = "alvaro-" + System.nanoTime() + "@test.cl";
@@ -123,7 +115,6 @@ class OrdenIT extends IntegrationTest {
 			for (String patente : new String[] {"ZQBB02", "ZQBB01"}) {
 				Api.exigir(api.post("/moviles", api.admin(), api.cuerpoMovil(patente, 2)), "crear móvil", 201);
 			}
-			// Se habilitan en un orden distinto al esperado.
 			api.habilitarOk("ZQBB02", alvaro);
 			api.habilitarOk("ZQBB01", zoe);
 			api.habilitarOk("ZQBB02", zoe);
@@ -141,7 +132,6 @@ class OrdenIT extends IntegrationTest {
 			assertThat(propias).containsExactly("ZQBB01 Álvaro", "ZQBB01 Zoe", "ZQBB02 Álvaro", "ZQBB02 Zoe");
 		}
 
-		/** Crea un conductor con ese nombre y devuelve su correo. */
 		private String conductorLlamado(String nombre) {
 			String correo = "h" + nombre.toLowerCase().charAt(0) + "-" + System.nanoTime() + "@test.cl";
 			String cuerpo = api.cuerpoConductor(correo).replace("\"nombre\":\"Conductor\"",
@@ -162,7 +152,6 @@ class OrdenIT extends IntegrationTest {
 			String primero = api.viaje(solicitante);
 			String segundo = api.viaje(solicitante);
 			String tercero = api.viaje(solicitante);
-			// Se pagan en un orden distinto al de los folios.
 			String hashSegundo = api.pagarOk(segundo);
 			String hashPrimero = api.pagarOk(primero);
 			String hashTercero = api.pagarOk(tercero);
@@ -193,7 +182,6 @@ class OrdenIT extends IntegrationTest {
 		@DisplayName("sin estado, lo reciente primero; con PENDIENTE, lo próximo primero")
 		void porEstado() {
 			Cuenta ana = api.solicitante();
-			// Se crean en un orden de agenda que no es el de los folios: +2, +0 y +1 días.
 			String lejos = viajeEn(ana, base.plusDays(2));
 			String cerca = viajeEn(ana, base);
 			String medio = viajeEn(ana, base.plusDays(1));
@@ -237,7 +225,6 @@ class OrdenIT extends IntegrationTest {
 			Cuenta ana = api.solicitante();
 			Flota flota = api.flota(4);
 			LocalDate dia = base.toLocalDate().plusDays(5);
-			// El de la tarde se crea primero (folio menor) y se termina; el de la mañana queda asignado.
 			String tarde = viajeEn(ana, dia.atTime(LocalTime.of(16, 0)));
 			String manana = viajeEn(ana, dia.atTime(LocalTime.of(8, 0)));
 			api.conPasajero(ana, tarde);

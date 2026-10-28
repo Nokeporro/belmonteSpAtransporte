@@ -4,8 +4,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// Paleta clara: los colores principales corresponden al README.
-// Los roles complementarios mantienen la misma identidad visual.
 val EsquemaClaro = lightColorScheme(
     primary = Color(0xFF2F6F5E),
     onPrimary = Color(0xFFFFFFFF),
@@ -29,7 +27,6 @@ val EsquemaClaro = lightColorScheme(
     surfaceVariant = Color(0xFFECEAE3),
     onSurfaceVariant = Color(0xFF696864),
 
-    // Superficies utilizadas por tarjetas, menús y otros componentes.
     surfaceContainerLowest = Color(0xFFFFFFFF),
     surfaceContainerLow = Color(0xFFFFFFFF),
     surfaceContainer = Color(0xFFFFFFFF),
@@ -45,7 +42,6 @@ val EsquemaClaro = lightColorScheme(
     onErrorContainer = Color(0xFFA3402F),
 )
 
-// La paleta oscura conserva los mismos roles con sus valores del README.
 val EsquemaOscuro = darkColorScheme(
     primary = Color(0xFF4FAE95),
     onPrimary = Color(0xFF08201B),
@@ -84,8 +80,6 @@ val EsquemaOscuro = darkColorScheme(
     onErrorContainer = Color(0xFFE08A78),
 )
 
-// Material 3 no incluye un rol específico de advertencia.
-// Estos colores servirán para avisos y pendientes de sincronización.
 data class ColoresExtendidos(
     val aviso: Color,
     val contenedorAviso: Color,

@@ -24,7 +24,6 @@ data class RegistrarAdminUiState(
     val nombre: String = "",
     val correo: String = "",
     val telefono: String = "",
-    /** Contraseña inicial temporal: el nuevo Administrador debe cambiarla al entrar. */
     val password: String = "",
     val cuenta: Cuenta? = null,
     val cargando: Boolean = true,
@@ -34,7 +33,6 @@ data class RegistrarAdminUiState(
     val aviso: Int? = null,
 )
 
-/** «Registrar administrador» (HU28, CU-18): solo un Administrador crea a otro, con una contraseña inicial temporal. */
 class RegistrarAdminViewModel @JvmOverloads constructor(
     application: Application,
     private val cuentas: CuentaRepository = CuentaRepository(application),
@@ -45,7 +43,6 @@ class RegistrarAdminViewModel @JvmOverloads constructor(
 
     private var cargada = false
 
-    /** Idempotente: la pantalla lo llama en cada composición. */
     fun cargar() {
         if (cargada) return
         cargada = true
@@ -81,7 +78,6 @@ class RegistrarAdminViewModel @JvmOverloads constructor(
                 val errores = Validaciones.administrador(nueva)
                 if (errores.isNotEmpty()) throw FalloPantalla(ErrorApp.Validacion(errores))
                 val administrador = cuentas.registrarAdministrador(nueva).valor()
-                // La contraseña no sobrevive al envío exitoso; los demás campos quedan con lo guardado.
                 _estado.update {
                     it.copy(
                         password = "", nombre = administrador.nombre, correo = administrador.correo,

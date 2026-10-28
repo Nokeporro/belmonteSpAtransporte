@@ -19,7 +19,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.*
 import org.junit.Assert.*
 
-/** «Rechazar» (HU25, V8) de punta a punta sobre Room: del detalle del Conductor al diálogo del motivo y a «Mis viajes». */
 class HU25ScreenTest {
     @get:Rule(order = 0) val entorno = EntornoPruebas()
     @get:Rule(order = 1) val compose = createAndroidComposeRule<MainActivity>()
@@ -56,7 +55,6 @@ class HU25ScreenTest {
         abrir("TR-1042")
         abrirDialogo()
 
-        // Un motivo corto muestra su error bajo el campo y no cambia nada.
         campo().performTextInput("abc")
         confirmar().performClick()
         compose.onNodeWithText("Debe tener entre 5 y 200 caracteres.").assertIsDisplayed()

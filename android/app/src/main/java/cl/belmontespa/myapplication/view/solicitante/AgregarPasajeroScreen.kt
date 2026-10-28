@@ -17,7 +17,6 @@ import cl.belmontespa.myapplication.view.components.SelectorOpciones
 import cl.belmontespa.myapplication.view.components.etiqueta
 import cl.belmontespa.myapplication.viewmodel.solicitante.AgregarPasajeroViewModel
 
-/** «Agregar pasajero»: al guardar vuelve al detalle de la solicitud, que ya muestra al nuevo pasajero. */
 @Composable
 fun AgregarPasajeroScreen(
     folio: String,

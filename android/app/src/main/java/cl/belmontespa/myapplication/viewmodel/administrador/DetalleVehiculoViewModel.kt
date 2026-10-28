@@ -32,7 +32,6 @@ data class DetalleVehiculoUiState(
     val aviso: Int? = null,
 )
 
-/** «Detalle de vehículo» (HU17, HU26): sus datos y su código de abordaje, sus conductores habilitados y su baja. */
 class DetalleVehiculoViewModel @JvmOverloads constructor(
     application: Application,
     private val flota: FlotaRepository = FlotaRepository(application),
@@ -45,7 +44,6 @@ class DetalleVehiculoViewModel @JvmOverloads constructor(
     private var patente: String? = null
     private var consulta: Job? = null
 
-    /** Vuelve a leer al volver del alta o de editar. */
     fun cargar(patente: String, forzar: Boolean = false) {
         if (patente == this.patente && !forzar) return
         this.patente = patente
@@ -75,7 +73,6 @@ class DetalleVehiculoViewModel @JvmOverloads constructor(
         patente?.let { cargar(it, forzar = true) }
     }
 
-    /** Desactiva o reactiva (HU26); solo el Administrador, y el estado mostrado es el de la respuesta guardada. */
     fun cambiarActivo() {
         if (_estado.value.enviando) return
         _estado.update { it.copy(enviando = true, error = null, aviso = null) }

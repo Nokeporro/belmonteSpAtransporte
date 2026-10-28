@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-// Extensión 1:1 de USUARIO (RF01).
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,7 +25,6 @@ public class Solicitante {
 	@JoinColumn(name = "empresa_id_empresa", nullable = false)
 	private Empresa empresa;
 
-	// Pendiente de revisión, Aprobado o Rechazado (RF26).
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "estado_solicitante_id", nullable = false)
 	private EstadoSolicitante estadoSolicitante;

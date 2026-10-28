@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** Estado de la sesión que decide el flujo de navegación de toda la app. */
 class SesionViewModel @JvmOverloads constructor(
     application: Application,
     private val authRepository: AuthRepository = AuthRepository(application),
@@ -23,7 +22,6 @@ class SesionViewModel @JvmOverloads constructor(
 
     private val _estado = MutableStateFlow<EstadoSesion?>(null)
 
-    /** `null` mientras se lee la sesión guardada ("Comprobando sesión…"). */
     val estado: StateFlow<EstadoSesion?> = _estado.asStateFlow()
 
     private var vencimiento: Job? = null
@@ -37,7 +35,6 @@ class SesionViewModel @JvmOverloads constructor(
         }
     }
 
-    // Con la app abierta, la sesión pasa a `SinSesion` a la hora en que vence. La espera es local: no consulta al backend.
     private fun esperarVencimiento(estado: EstadoSesion) {
         vencimiento?.cancel()
         val sesion = when (estado) {

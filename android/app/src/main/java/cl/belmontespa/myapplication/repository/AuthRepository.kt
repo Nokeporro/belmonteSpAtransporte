@@ -26,11 +26,6 @@ import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
-/**
- * Sesión, login, autorregistro, recuperación de contraseña y token de notificaciones.
- *
- * Login de la build demo contra las cuentas ficticias de Room; la sesión se guarda igual que con el backend.
- */
 open class AuthRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
@@ -40,7 +35,6 @@ open class AuthRepository(private val local: SoporteLocal) {
 
     open fun observarSesion(): Flow<EstadoSesion> = sesionStore.estado
 
-    /** Devuelve `Autenticada` o, si entró con la contraseña temporal, `Temporal`. */
     open suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> {
         val resultado = local.ejecutar {
             val usuario = usuarioDao.obtener(Validaciones.correo(correo))
@@ -98,10 +92,6 @@ open class AuthRepository(private val local: SoporteLocal) {
             Resultado.Exito(aSolicitante(u))
         }
 
-    /**
-     * CU-13: un Administrador genera la contraseña temporal de un Solicitante o de otro Administrador.
-     * Se devuelve una sola vez; la build demo no envía correos y el Administrador la entrega por el suyo.
-     */
     open suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> = local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val errores = Validaciones.recuperarPassword(correo)
@@ -119,21 +109,17 @@ open class AuthRepository(private val local: SoporteLocal) {
         )
     }
 
-    /** La build demo no tiene push. */
     open suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = Resultado.Exito(Unit)
 
-    /** Cierra la sesión local; en la build demo Room se conserva, porque es su base de datos. */
     open suspend fun cerrarSesion(): Resultado<Unit> {
         sesionStore.borrar()
         return Resultado.Exito(Unit)
     }
 
-    /** 12 caracteres sin los que se confunden (0/O, 1/l/I), como la temporal del backend. */
     private fun passwordTemporal(): String =
         String(CharArray(LARGO_PASSWORD_TEMPORAL) { ALFABETO[random.nextInt(ALFABETO.length)] })
 
     private companion object {
-        /** Igual que el JWT del backend: 8 horas. */
         val DURACION_SESION: Duration = Duration.ofHours(8)
         const val ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
         const val LARGO_PASSWORD_TEMPORAL = 12

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-// Habilitación vehículo↔conductor (CU-10). Clave de dos segmentos: no extiende CrudController.
 @RestController
 @RequestMapping("/api/v1/habilitaciones-movil-conductor")
 public class DetalleMovilConductorController {

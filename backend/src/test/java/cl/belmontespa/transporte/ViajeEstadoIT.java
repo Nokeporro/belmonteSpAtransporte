@@ -15,18 +15,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * V3 y V4 (README, Máquinas de estado): iniciar solo a ± 1 h de la agenda y sin otro viaje En curso para el
- * conductor ni para el móvil; finalizar sin precondiciones. V1 no deja agendar a menos de 2 h, por eso cada
- * test acerca la agenda del viaje con JDBC. Los bordes exactos de la ventana los cubre {@code VentanaInicioTest}.
- */
 @DisplayName("Iniciar y finalizar el viaje (HU09, V3 y V4)")
 class ViajeEstadoIT extends IntegrationTest {
 
 	@Autowired
 	private JdbcTemplate jdbc;
 
-	// Una hora redonda lejana: los viajes del mismo conductor no se solapan.
 	private final LocalDateTime base = LocalDateTime.now().plusDays(10).withHour(10).withMinute(0).withSecond(0)
 			.withNano(0);
 
@@ -47,7 +41,6 @@ class ViajeEstadoIT extends IntegrationTest {
 		assertThat(resp.texto("$.message")).contains(fragmento);
 	}
 
-	/** Un viaje ASIGNADO cuya agenda está a {@code minutos} del instante actual (negativo: ya pasó). */
 	private String viajeConAgendaA(Cuenta solicitante, Flota flota, long minutos) {
 		String folio = api.viajeAsignado(solicitante, flota);
 		fijarAgenda(folio, ahora().plusMinutes(minutos));

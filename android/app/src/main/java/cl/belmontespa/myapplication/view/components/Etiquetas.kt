@@ -13,8 +13,6 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.TipoDocumento
 import cl.belmontespa.myapplication.model.TipoRecibo
 
-// La app nunca muestra un código de la API: muestra su etiqueta (strings.xml) y, en los estados,
-// el estilo de su chip según la tabla de README (Textos y tema).
 
 @get:StringRes
 val EstadoViaje.etiqueta: Int
@@ -126,17 +124,13 @@ val Rol.etiqueta: Int
         Rol.CONDUCTOR -> R.string.rol_conductor
     }
 
-// Devuelve el texto del estado cuando está activo.
-// Si está inactivo, utiliza la etiqueta común "Inactivo".
 @StringRes
 fun EstadoConductor.etiqueta(activo: Boolean): Int =
     if (activo) etiqueta else EtiquetaCalculada.INACTIVO.etiqueta
 
-// El estado inactivo utiliza el estilo tenue del README.
 fun EstadoConductor.estiloChip(activo: Boolean): EstiloChip =
     if (activo) estiloChip else EtiquetaCalculada.INACTIVO.estiloChip
 
-// Aplica la misma regla a los vehículos.
 @StringRes
 fun EstadoMovil.etiqueta(activo: Boolean): Int =
     if (activo) etiqueta else EtiquetaCalculada.INACTIVO.etiqueta
@@ -144,8 +138,6 @@ fun EstadoMovil.etiqueta(activo: Boolean): Int =
 fun EstadoMovil.estiloChip(activo: Boolean): EstiloChip =
     if (activo) estiloChip else EtiquetaCalculada.INACTIVO.estiloChip
 
-// Agrupa etiquetas visuales que no son estados recibidos de la API.
-// Las anotaciones indican que etiqueta contiene un recurso strings.xml.
 enum class EtiquetaCalculada(
     @param:StringRes
     @get:StringRes
@@ -164,7 +156,6 @@ enum class EtiquetaCalculada(
     INACTIVO(R.string.etiqueta_inactivo, EstiloChip.TENUE),
 }
 
-/** El chip de un retraso calculado con `Viaje.retraso(clock)`. */
 val Retraso.etiquetaCalculada: EtiquetaCalculada
     get() = when (this) {
         Retraso.ATRASADO -> EtiquetaCalculada.ATRASADO

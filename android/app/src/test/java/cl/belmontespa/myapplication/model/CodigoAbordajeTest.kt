@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** El vehículo del abordaje: la patente del QR de la puerta (BELMONTE-ABORDAJE:{patente}) o escrita a mano, siempre normalizada. */
 class CodigoAbordajeTest {
 
     private val esperado = CodigoAbordaje("KXJR42")

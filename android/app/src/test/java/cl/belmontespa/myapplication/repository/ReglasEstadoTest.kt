@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** V3 y V4 (README, Viaje): los mismos mensajes y el mismo orden que `ViajeService.cambiarEstado`. */
 class ReglasEstadoTest {
 
     private val agenda = LocalDateTime.of(2026, 10, 28, 14, 30)

@@ -22,9 +22,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-// GET según rol: Administrador todos, Solicitante los propios y Conductor su agenda, con los
-// filtros ?estado= y ?fecha=AAAA-MM-DD (FiltroViajes). Conductor, móvil y estado cambian solo por
-// las acciones de negocio.
 @RestController
 @RequestMapping("/api/v1/viajes")
 public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTOResponse> {
@@ -58,7 +55,6 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 		return viajeService.listarDelAdministrador(filtro);
 	}
 
-	// Al Conductor no le llega el pago del viaje (README, "Recursos y roles").
 	@Override
 	protected ViajeDTOResponse paraRol(ViajeDTOResponse viaje, Authentication auth) {
 		return tieneRol(auth, CON) ? viaje.sinPago() : viaje;
@@ -78,28 +74,23 @@ public class ViajeController extends CrudController<ViajeDTORequest, ViajeDTORes
 		return viajeService.crear(request, auth.getName());
 	}
 
-	// CU-04/RF05.
 	@PostMapping("/{folio}/asignar")
 	public ViajeDTOResponse asignar(@PathVariable String folio, @Valid @RequestBody AsignarViajeDTORequest request) {
 		return viajeService.asignar(folio, request);
 	}
 
-	// CU-05/RF09: solo el conductor asignado.
 	@PostMapping("/{folio}/estado")
 	public ViajeDTOResponse cambiarEstado(@PathVariable String folio,
 			@Valid @RequestBody CambiarEstadoViajeDTORequest request, Authentication auth) {
 		return paraRol(viajeService.cambiarEstado(folio, request, auth.getName()), auth);
 	}
 
-	// CU-16/RF24 (V8): solo el conductor asignado, con `motivo`; el viaje vuelve a PENDIENTE.
 	@PostMapping("/{folio}/rechazar")
 	public ViajeDTOResponse rechazar(@PathVariable String folio,
 			@Valid @RequestBody RechazarViajeDTORequest request, Authentication auth) {
 		return paraRol(viajeService.rechazar(folio, request, auth.getName()), auth);
 	}
 
-	// CU-08/RF15 (V5): el Solicitante dueño del viaje, sin cuerpo. CU-15/RF23 (V7): el Administrador, con
-	// `motivo` y, si el viaje está vencido y su pago PAGADO, `montoReembolso`.
 	@PostMapping("/{folio}/cancelar")
 	public ViajeDTOResponse cancelar(@PathVariable String folio,
 			@Valid @RequestBody(required = false) CancelarViajeDTORequest request, Authentication auth) {
