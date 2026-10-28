@@ -44,7 +44,7 @@ import java.time.LocalDateTime
  *   Roberto Aguilar RUT 12.345.678-5 · Paula Lagos RUT 13.579.246-2 · Luis Pino RUT 14.682.035-2
  *   Diego Fuentes RUT 17.246.810-1 · Felipe Mora pasaporte X9087654 · Javiera Núñez RUT 18.364.925-6
  *
- * Vehículos y su código de abordaje (el QR de la puerta dice BELMONTE-ABORDAJE:{patente}):
+ * Vehículos y código de abordaje (QR: BELMONTE-ABORDAJE:{patente}:{código}):
  *   KXJR42 7F3A9C21B04E58D6 · LPHT17 2B8E41D07C95A316 · GZRW90 9D04C6E2A1F7B853
  *   HJKL21 5C1A8F3E0B6D2947 (inactivo, en taller)
  *

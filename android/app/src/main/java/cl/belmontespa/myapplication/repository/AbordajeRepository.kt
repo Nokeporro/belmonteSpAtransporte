@@ -11,7 +11,7 @@ import cl.belmontespa.myapplication.util.Validaciones
 import java.time.LocalDateTime
 
 /**
- * Abordaje del pasajero con el QR del vehículo (su patente); no usa la sesión ni la cola.
+ * Abordaje del pasajero con el QR del vehículo; no usa la sesión ni la cola.
  *
  * El abordaje es público: no requiere sesión y devuelve la marca persistida. Guarda solo el hash del documento.
  */
@@ -22,8 +22,9 @@ open class AbordajeRepository(private val local: SoporteLocal) {
     open suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> = local.ejecutar {
         // Primero la forma (400) y después la búsqueda (404), como el backend.
         if (!Validaciones.documentoValido(tipoDocumento, dni)) return@ejecutar invalido(mapOf("dni" to "Ingresa un documento válido."))
-        // Patente inexistente, sin viaje candidato o documento que no viaja: siempre el mismo NoEncontrado.
+        // Patente inexistente, código ajeno, sin viaje candidato o documento que no viaja: siempre el mismo NoEncontrado.
         val movil = local.db.movilDao().obtener(codigo.patente.uppercase()) ?: return@ejecutar noEncontrado
+        if (movil.codigoAbordaje != codigo.codigo.filterNot(Char::isWhitespace).uppercase()) return@ejecutar noEncontrado
         val hash = Hashes.documento(dni)
         val ahora = local.ahora()
         val candidatos = ordenarPorCercania(

@@ -8,15 +8,15 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** «Abordar viaje» (HU29): del QR o de la patente escrita hasta un [CodigoAbordaje] listo para confirmar. */
+/** «Abordar viaje» (HU29): del QR o de la patente y el código escritos hasta un [CodigoAbordaje] listo para confirmar. */
 class AbordarViewModelTest {
 
     private val vm = AbordarViewModel(aplicacionFalsa())
-    private val esperado = CodigoAbordaje("KXJR42")
+    private val esperado = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
 
     @Test
     fun unQrDeUnVehiculoBelmonteDejaElCodigoListo() {
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR42")
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
 
         assertEquals(esperado, vm.estado.value.listo)
         assertNull(vm.estado.value.aviso)
@@ -31,12 +31,8 @@ class AbordarViewModelTest {
     }
 
     @Test
-    fun unQrConUnaPatenteMalFormadaOConPartesDeMasEsAjeno() {
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR4")
-        assertEquals(AvisoAbordar.QR_AJENO, vm.estado.value.aviso)
-
-        vm.alEscanear()
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
+    fun unQrConUnCodigoMalFormadoEsAjeno() {
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58")
 
         assertEquals(AvisoAbordar.QR_AJENO, vm.estado.value.aviso)
     }
@@ -62,7 +58,7 @@ class AbordarViewModelTest {
     @Test
     fun unQrValidoDespuesDeUnoAjenoQuitaElAviso() {
         vm.alLeer("otra cosa")
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR42")
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
 
         assertNull(vm.estado.value.aviso)
         assertEquals(esperado, vm.estado.value.listo)
@@ -70,7 +66,7 @@ class AbordarViewModelTest {
 
     @Test
     fun consumirLoListoNoDejaElCodigoParaLaVueltaAtras() {
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR42")
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
 
         vm.consumirListo()
 
@@ -107,7 +103,7 @@ class AbordarViewModelTest {
     fun unQrValidoDespuesDeUnLectorNoDisponibleQuitaElAviso() {
         vm.lectorNoDisponible()
 
-        vm.alLeer("BELMONTE-ABORDAJE:KXJR42")
+        vm.alLeer("BELMONTE-ABORDAJE:KXJR42:7F3A9C21B04E58D6")
 
         assertNull(vm.estado.value.aviso)
         assertEquals(esperado, vm.estado.value.listo)
@@ -118,6 +114,7 @@ class AbordarViewModelTest {
         vm.lectorNoDisponible()
         vm.abrirIngreso()
         vm.escribirPatente("KXJR42")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
 
         vm.continuarIngreso()
 
@@ -135,18 +132,22 @@ class AbordarViewModelTest {
     }
 
     @Test
-    fun elIngresoManualSoloSePuedeContinuarConLaPatenteEscrita() {
+    fun elIngresoManualSoloSePuedeContinuarConAmbosCamposEscritos() {
         vm.abrirIngreso()
         assertTrue(vm.estado.value.ingresando)
         assertFalse(vm.estado.value.puedeContinuar)
 
         vm.escribirPatente("KXJR42")
+        assertFalse(vm.estado.value.puedeContinuar)
+
+        vm.escribirCodigo("7F3A9C21B04E58D6")
         assertTrue(vm.estado.value.puedeContinuar)
     }
 
     @Test
-    fun continuarSinPatenteNoHaceNada() {
+    fun continuarSinLosDosCamposNoHaceNada() {
         vm.abrirIngreso()
+        vm.escribirPatente("KXJR42")
 
         vm.continuarIngreso()
 
@@ -159,6 +160,7 @@ class AbordarViewModelTest {
     fun elIngresoManualConEspaciosYMinusculasDejaElCodigoListoYCierraElDialogo() {
         vm.abrirIngreso()
         vm.escribirPatente("kx jr42")
+        vm.escribirCodigo("7f3a 9c21 b04e 58d6")
 
         vm.continuarIngreso()
 
@@ -171,6 +173,7 @@ class AbordarViewModelTest {
     fun unIngresoManualMalFormadoMarcaElErrorYSeQuedaEnElDialogo() {
         vm.abrirIngreso()
         vm.escribirPatente("KXJR4")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
 
         vm.continuarIngreso()
 
@@ -180,26 +183,30 @@ class AbordarViewModelTest {
     }
 
     @Test
-    fun corregirLoEscritoQuitaElError() {
+    fun corregirLoEscritoQuitaElErrorYConservaElOtroCampo() {
         vm.abrirIngreso()
         vm.escribirPatente("KXJR4")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
         vm.continuarIngreso()
 
         vm.escribirPatente("KXJR42")
 
         assertFalse(vm.estado.value.ingresoInvalido)
+        assertEquals("7F3A9C21B04E58D6", vm.estado.value.codigo)
     }
 
     @Test
     fun cerrarElDialogoConservaLoEscritoParaCorregirlo() {
         vm.abrirIngreso()
         vm.escribirPatente("KXJR4")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
         vm.continuarIngreso()
 
         vm.cerrarIngreso()
         vm.abrirIngreso()
 
         assertEquals("KXJR4", vm.estado.value.patente)
+        assertEquals("7F3A9C21B04E58D6", vm.estado.value.codigo)
         assertFalse(vm.estado.value.ingresoInvalido)
     }
 
@@ -208,6 +215,7 @@ class AbordarViewModelTest {
         vm.alLeer("otra cosa")
         vm.abrirIngreso()
         vm.escribirPatente("KXJR42")
+        vm.escribirCodigo("7F3A9C21B04E58D6")
 
         vm.continuarIngreso()
 

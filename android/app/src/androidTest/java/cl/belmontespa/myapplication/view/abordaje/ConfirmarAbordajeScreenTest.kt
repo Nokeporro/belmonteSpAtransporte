@@ -27,7 +27,7 @@ class ConfirmarAbordajeScreenTest {
 
     private val textos = InstrumentationRegistry.getInstrumentation().targetContext
     private val llamadas = mutableListOf<String>()
-    private val codigo = CodigoAbordaje("KXJR42")
+    private val codigo = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
 
     private fun mostrar(estado: ConfirmarAbordajeUiState) {
         compose.setContent {
