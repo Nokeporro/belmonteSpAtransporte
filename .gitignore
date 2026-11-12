@@ -36,7 +36,8 @@ __pycache__
 # Ignore de entregable
 ERS.md
 apuntes_android.txt
-backlog.md
+# backlog.md
 docs/
 qr_kxjr42.png
+*.zip
 
