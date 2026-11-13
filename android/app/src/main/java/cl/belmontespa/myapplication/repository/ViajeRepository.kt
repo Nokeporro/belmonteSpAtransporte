@@ -12,6 +12,7 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.aModelo
+import cl.belmontespa.myapplication.repository.api.ViajeRemoto
 import cl.belmontespa.myapplication.session.SesionStore
 import java.time.Clock
 import java.time.LocalDate
@@ -28,6 +29,7 @@ open class ViajeRepository(private val local: SoporteLocal) {
     private val sesionStore: SesionStore get() = local.sesiones
     private val clock: Clock get() = local.clock
     private val operaciones = OperacionesViajeLocal(local)
+    private val remoto by lazy { ViajeRemoto(local) }
 
     open fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> = flow {
         val sesion = sesionAutenticada()
@@ -79,22 +81,27 @@ open class ViajeRepository(private val local: SoporteLocal) {
             this
         }
 
-    open suspend fun refrescarViajes(filtro: FiltroViajes): Resultado<Unit> = Resultado.Exito(Unit)
+    open suspend fun refrescarViajes(filtro: FiltroViajes): Resultado<Unit> =
+        if (!local.modoLocal) remoto.refrescarViajes(filtro) else Resultado.Exito(Unit)
 
-    open suspend fun refrescarViaje(folio: String): Resultado<Unit> = Resultado.Exito(Unit)
+    open suspend fun refrescarViaje(folio: String): Resultado<Unit> =
+        if (!local.modoLocal) remoto.refrescarViaje(folio) else Resultado.Exito(Unit)
 
-    open suspend fun crearSolicitud(solicitud: NuevaSolicitud): Resultado<String> = operaciones.crear(solicitud)
+    open suspend fun crearSolicitud(solicitud: NuevaSolicitud): Resultado<String> =
+        if (!local.modoLocal) remoto.crearSolicitud(solicitud) else operaciones.crear(solicitud)
 
-    open suspend fun agregarPasajero(folio: String, pasajero: NuevoPasajero): Resultado<Unit> = operaciones.agregar(folio, pasajero)
+    open suspend fun agregarPasajero(folio: String, pasajero: NuevoPasajero): Resultado<Unit> =
+        if (!local.modoLocal) remoto.agregarPasajero(folio, pasajero) else operaciones.agregar(folio, pasajero)
 
     open suspend fun asignar(folio: String, correoConductor: String, patente: String): Resultado<Unit> =
-        operaciones.asignar(folio, correoConductor, patente)
+        if (!local.modoLocal) remoto.asignar(folio, correoConductor, patente) else operaciones.asignar(folio, correoConductor, patente)
 
     open suspend fun cancelar(folio: String, motivo: String? = null, montoReembolso: Int? = null): Resultado<Unit> =
-        operaciones.cancelar(folio, motivo, montoReembolso)
+        if (!local.modoLocal) remoto.cancelar(folio, motivo, montoReembolso) else operaciones.cancelar(folio, motivo, montoReembolso)
 
-    open suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> = operaciones.rechazar(folio, motivo)
+    open suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> =
+        if (!local.modoLocal) remoto.rechazar(folio, motivo) else operaciones.rechazar(folio, motivo)
 
     open suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> =
-        operaciones.estado(folio, estado)
+        if (!local.modoLocal) remoto.cambiarEstado(folio, estado) else operaciones.estado(folio, estado)
 }

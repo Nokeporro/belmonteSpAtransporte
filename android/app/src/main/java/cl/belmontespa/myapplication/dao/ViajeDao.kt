@@ -27,6 +27,22 @@ abstract class ViajeDao {
     @Query("DELETE FROM viajes WHERE folio = :folio")
     abstract suspend fun borrar(folio: String)
 
+    @Query("DELETE FROM operaciones_pendientes")
+    abstract suspend fun borrarOperaciones()
+
+    @Query("DELETE FROM viajes")
+    abstract suspend fun borrarViajes()
+
+    @Query("DELETE FROM pasajeros")
+    abstract suspend fun borrarPasajeros()
+
+    @Transaction
+    open suspend fun borrarCache() {
+        borrarOperaciones()
+        borrarViajes()
+        borrarPasajeros()
+    }
+
     @Transaction
     open suspend fun guardarConPasajeros(
         viaje: ViajeEntity,

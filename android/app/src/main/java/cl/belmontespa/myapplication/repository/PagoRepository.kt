@@ -9,20 +9,23 @@ import cl.belmontespa.myapplication.model.PagoEntity
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.permiteCambioA
+import cl.belmontespa.myapplication.repository.api.PagoRemoto
 import cl.belmontespa.myapplication.util.FechaIso
 import java.util.UUID
 
 open class PagoRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
-    open suspend fun obtenerPago(hash: String): Resultado<Pago> = local.ejecutar {
+    private val remoto by lazy { PagoRemoto(local) }
+
+    open suspend fun obtenerPago(hash: String): Resultado<Pago> = if (!local.modoLocal) remoto.obtenerPago(hash) else local.ejecutar {
         val s = local.sesion().obtener { return@ejecutar it }
         if (s.rol == Rol.CONDUCTOR) return@ejecutar sinPermiso()
         val p = local.db.pagoDao().obtener(hash) ?: return@ejecutar noEncontrado
         local.alcance(p.folio).obtener { return@ejecutar it }
         Resultado.Exito(aPago(p))
     }
-    open suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = local.ejecutar {
+    open suspend fun registrarPago(pago: NuevoPago): Resultado<Pago> = if (!local.modoLocal) remoto.registrarPago(pago) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val v = local.buscarViaje(pago.folio) ?: return@ejecutar noEncontrado
         if (v.estado == "CANCELADO" || v.hashPago != null) return@ejecutar conflicto("El viaje ya tiene un pago o está cancelado.")
@@ -36,7 +39,7 @@ open class PagoRepository(private val local: SoporteLocal) {
         local.db.viajeDao().guardar(v.copy(hashPago = p.hash, estadoPago = p.estadoPago))
         Resultado.Exito(aPago(p))
     }
-    open suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = local.ejecutar {
+    open suspend fun cambiarEstadoPago(hash: String, estado: EstadoPago): Resultado<Pago> = if (!local.modoLocal) remoto.cambiarEstadoPago(hash, estado) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val p = local.db.pagoDao().obtener(hash) ?: return@ejecutar noEncontrado
         if (!EstadoPago.valueOf(p.estadoPago).permiteCambioA(estado)) return@ejecutar conflicto("El cambio de pago no está permitido.")

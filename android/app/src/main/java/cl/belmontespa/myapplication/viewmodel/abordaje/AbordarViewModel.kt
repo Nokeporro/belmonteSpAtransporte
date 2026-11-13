@@ -18,10 +18,11 @@ data class AbordarUiState(
     val aviso: AvisoAbordar? = null,
     val ingresando: Boolean = false,
     val patente: String = "",
+    val codigo: String = "",
     val ingresoInvalido: Boolean = false,
     val listo: CodigoAbordaje? = null,
 ) {
-    val puedeContinuar: Boolean get() = patente.isNotBlank()
+    val puedeContinuar: Boolean get() = patente.isNotBlank() && codigo.isNotBlank()
 }
 
 class AbordarViewModel @JvmOverloads constructor(
@@ -57,10 +58,14 @@ class AbordarViewModel @JvmOverloads constructor(
         _estado.update { it.copy(patente = texto, ingresoInvalido = false) }
     }
 
+    fun escribirCodigo(texto: String) {
+        _estado.update { it.copy(codigo = texto, ingresoInvalido = false) }
+    }
+
     fun continuarIngreso() {
         val actual = _estado.value
         if (!actual.puedeContinuar) return
-        val codigo = CodigoAbordaje.manual(actual.patente)
+        val codigo = CodigoAbordaje.manual(actual.patente, actual.codigo)
         _estado.update {
             if (codigo != null) it.copy(ingresando = false, ingresoInvalido = false, aviso = null, listo = codigo)
             else it.copy(ingresoInvalido = true)

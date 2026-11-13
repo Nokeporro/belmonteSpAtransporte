@@ -42,7 +42,7 @@ data class RegistrarPagoUiState(
 class RegistrarPagoViewModel @JvmOverloads constructor(
     application: Application,
     private val viajes: ViajeRepository = ViajeRepository(application),
-    private val catalogos: CatalogoRepository = CatalogoRepository(),
+    private val catalogos: CatalogoRepository = CatalogoRepository(application),
     private val pagos: PagoRepository = PagoRepository(application),
 ) : AndroidViewModel(application) {
 

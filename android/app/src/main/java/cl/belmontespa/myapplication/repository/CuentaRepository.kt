@@ -8,6 +8,7 @@ import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Solicitante
 import cl.belmontespa.myapplication.model.UsuarioEntity
+import cl.belmontespa.myapplication.repository.api.CuentaRemoto
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import cl.belmontespa.myapplication.util.Validaciones
@@ -17,12 +18,14 @@ import java.util.Locale
 open class CuentaRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
-    open suspend fun obtenerPerfil(): Resultado<Cuenta> = local.ejecutar {
+    private val remoto by lazy { CuentaRemoto(local) }
+
+    open suspend fun obtenerPerfil(): Resultado<Cuenta> = if (!local.modoLocal) remoto.obtenerPerfil() else local.ejecutar {
         val sesion = local.sesion(permitirTemporal = true).obtener { return@ejecutar it }
         val usuario = local.buscarUsuario(sesion.correo) ?: return@ejecutar noEncontrado
         Resultado.Exito(aCuenta(usuario))
     }
-    open suspend fun actualizarCuentaPropia(nombre: String, telefono: String?): Resultado<Cuenta> = local.ejecutar {
+    open suspend fun actualizarCuentaPropia(nombre: String, telefono: String?): Resultado<Cuenta> = if (!local.modoLocal) remoto.actualizarCuentaPropia(nombre, telefono) else local.ejecutar {
         if (nombre.isBlank()) return@ejecutar conflicto("Ingresa el nombre.")
         val sesion = local.sesion().obtener { return@ejecutar it }
         val u = (local.buscarUsuario(sesion.correo) ?: return@ejecutar noEncontrado).copy(nombre = nombre.trim(), telefono = telefono)
@@ -30,6 +33,7 @@ open class CuentaRepository(private val local: SoporteLocal) {
         Resultado.Exito(aCuenta(u))
     }
     open suspend fun cambiarPassword(passwordActual: String, passwordNueva: String): Resultado<Unit> {
+        if (!local.modoLocal) return remoto.cambiarPassword(passwordActual, passwordNueva)
         val s = local.sesion(permitirTemporal = true).obtener { return it }
         val resultado = local.ejecutar {
             if (s.rol == Rol.CONDUCTOR) return@ejecutar sinPermiso()
@@ -47,7 +51,7 @@ open class CuentaRepository(private val local: SoporteLocal) {
         if (resultado is Resultado.Exito) local.sesiones.guardar(s)
         return resultado
     }
-    open suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> = local.ejecutar {
+    open suspend fun listarSolicitantesPendientes(): Resultado<List<Solicitante>> = if (!local.modoLocal) remoto.listarSolicitantesPendientes() else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val orden = Collator.getInstance(Locale.forLanguageTag("es-CL"))
             .apply { strength = Collator.PRIMARY }
@@ -66,9 +70,9 @@ open class CuentaRepository(private val local: SoporteLocal) {
         local.db.usuarioDao().guardar(nueva)
         Resultado.Exito(aSolicitante(nueva))
     }
-    open suspend fun aprobarSolicitante(correo: String) = aprobar(correo, EstadoSolicitante.APROBADO)
-    open suspend fun rechazarSolicitante(correo: String) = aprobar(correo, EstadoSolicitante.RECHAZADO)
-    open suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = local.ejecutar {
+    open suspend fun aprobarSolicitante(correo: String) = if (!local.modoLocal) remoto.aprobarSolicitante(correo) else aprobar(correo, EstadoSolicitante.APROBADO)
+    open suspend fun rechazarSolicitante(correo: String) = if (!local.modoLocal) remoto.rechazarSolicitante(correo) else aprobar(correo, EstadoSolicitante.RECHAZADO)
+    open suspend fun registrarAdministrador(cuenta: NuevaCuenta): Resultado<Cuenta> = if (!local.modoLocal) remoto.registrarAdministrador(cuenta) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val errores = Validaciones.administrador(cuenta)
         if (errores.isNotEmpty()) return@ejecutar invalido(errores)

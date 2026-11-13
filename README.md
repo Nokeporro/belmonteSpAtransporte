@@ -30,9 +30,8 @@ en Kotlin con Jetpack Compose.
 ### Cómo leer esta especificación
 
 - **Precedencia:** este README es la fuente de verdad. Los [mockups](mockups/wireframes-belmonte.html)
-  ilustran las 46 pantallas; si discrepan, gana el README. `ERS.md` conserva la versión detallada
-  anterior como referencia (si difiere, gana este README). `docs/` guarda el material de origen:
-  el Anexo de Requerimiento y las instrucciones del curso.
+  ilustran las 46 pantallas; si discrepan, gana el README. `docs/` guarda el material de origen:
+  el Anexo de Requerimiento.
 - **Alcance:** lo descrito es obligatorio; lo que no se menciona no se implementa (p. ej. borrar
   registros, pagos en línea, mapa embebido).
 - **Rangos y hora:** "de A a B" incluye ambos extremos. "Ahora" es la hora del servidor en
@@ -319,7 +318,7 @@ La API lee `DB_URL`, `DB_USER` y `DB_PASSWORD` del entorno, y Flyway migra al in
 |---|---|---|---|---|
 | Desarrollo | Compose local y `./gradlew bootRun` | Mailpit | Opcional | Debug contra `10.0.2.2` |
 | Demostración | Compose y backend en un computador anfitrión con IP fija, en una red controlada (solo el `8080` abierto), con `.env.demo` | Proveedor transaccional | Firebase | Release contra la IP del anfitrión |
-| Sin backend | Ninguno: Room con `DatosDemo` ([Build demo](#build-demo)) | — | — | Builds `demo` y `debug` |
+| Sin backend | Ninguno: Room con `DatosDemo` ([Build demo](#build-demo)) | — | — | Build `demo` |
 
 - **`database/demo.sql`** (no es migración; se recarga antes de cada demostración y de `FlujosE2ETest`):
   vacía las tablas de negocio y carga 2 Administradores, 4 Conductores y 4 vehículos (1 inactivo
@@ -350,7 +349,7 @@ La API lee `DB_URL`, `DB_USER` y `DB_PASSWORD` del entorno, y Flyway migra al in
 
 | Recurso | Clave | Roles y alcance |
 |---|---|---|
-| `auth` | — | Público; `logout` y `token-fcm` con JWT ([Autenticación](#autenticación)). |
+| `auth` | — | `login` público; `logout`, `token-fcm` y `recuperar-password` (Administrador) con JWT ([Autenticación](#autenticación)). |
 | `catalogos` | — | Cualquier rol autenticado, solo `GET`. |
 | `usuarios` | `correo` | Cada uno su cuenta: `GET`, y `PUT` salvo el Conductor. Sin `POST`. |
 | `administradores` | `correo` | Administrador: consulta y alta (CU-18). |
@@ -731,7 +730,9 @@ View (Compose) ⇄ ViewModel ⇄ Repository (clase) ⇄ DAO (Room)
 - **Repository:** una clase concreta por dominio sobre los DAO de `dao/`. En la Etapa 1 solo usa
   Room: aplica [Máquinas de estado](#máquinas-de-estado) y [Validaciones](#validaciones) con
   `@Transaction` (la [Build demo](#build-demo)). En la Etapa 2 el mismo Repository llama también a
-  Retrofit cuando `BuildConfig.MODO_LOCAL` es falso, y entonces el backend es la autoridad.
+  Retrofit cuando `modoLocal` es falso, y entonces el backend es la autoridad: `modoLocal` sale de
+  `SoporteLocal` (por defecto `BuildConfig.MODO_LOCAL`, que las instrumentadas fuerzan a verdadero) y
+  cada Repository delega en una clase `XRemoto` de `repository/api/`.
 - Las lecturas de viajes son `Flow` desde Room; lo demás es `suspend` y devuelve `Resultado<T>`:
   `Exito`, `Fallo(ErrorApp)` o `Encolado` (solo Iniciar o Finalizar sin conexión).
 - `ErrorApp` es uno de `Validacion` (por campo), `SinConexion`, `SesionExpirada`, `SinPermiso`,
@@ -764,11 +765,11 @@ remotas de los Repository (T14): mientras no tengan un `import`, no se declaran.
 | `androidx.activity:activity-compose` / `androidx.navigation:navigation-compose` / `androidx.lifecycle` / `androidx.core:core-ktx` | 1.13.0 / 2.10.2 / 2.11.0 / 1.19.1 |
 | Room / DataStore | 2.8.5 / 1.2.1 (`datastore-preferences`) |
 | WorkManager (Etapa 2: cola y sincronización) | 2.12.0 |
-| Retrofit / OkHttp (Etapa 2: llamadas remotas de los Repository) | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo en debug, sin cuerpos) |
+| Retrofit / OkHttp (Etapa 2: llamadas remotas de los Repository) | 3.0.0 (`converter-kotlinx-serialization`) / 5.5.0 (`logging-interceptor` solo activo con `BuildConfig.DEBUG`, sin cuerpos) |
 | `kotlinx-serialization-json` / `kotlinx-coroutines` | 1.11.0 / 1.11.0 |
 | Firebase BoM / plugin `google-services` / Places SDK (Etapa 2: push y Google Places) | 35.0.2 (`firebase-messaging`) / 4.5.0 / 6.0.2 |
 | `com.google.android.gms:play-services-code-scanner` | 16.1.0 (`GmsBarcodeScanning`, `GmsBarcodeScannerOptions`) |
-| JUnit / `androidx.test` | 4.13.2 / `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 |
+| JUnit / `androidx.test` / MockWebServer (Etapa 2: pruebas JVM del interceptor y de `BelmonteApi`) | 4.13.2 / `runner` 1.7.0, `ext:junit` 1.3.0, `espresso-core` 3.7.0 / `okhttp3:mockwebserver` 5.5.0 |
 
 Plugins: `com.android.application`, `org.jetbrains.kotlin.plugin.compose`,
 `org.jetbrains.kotlin.plugin.serialization`, `com.google.devtools.ksp`;
@@ -917,8 +918,8 @@ WCAG 2.1 AA, revisada con una pasada de TalkBack antes de cada entrega:
 ### Sesión y conectividad
 
 - **API:** Retrofit con los DTO de [Contratos JSON](#contratos-json); OkHttp con 15 s de timeout
-  y sin reintentos. Un interceptor agrega `Authorization: Bearer` salvo en el login, la
-  recuperación, el autorregistro y `/abordajes`. `ErrorMapper` traduce HTTP y red a `ErrorApp`.
+  y sin reintentos. Un interceptor agrega `Authorization: Bearer` salvo en el login, el
+  autorregistro y `/abordajes`. `ErrorMapper` traduce HTTP y red a `ErrorApp`.
 - **Sesión:** Preferences DataStore (`sesion.preferences_pb`) con `token`, `correo`, `rol`,
   `expiraEn` (ms, desde `expiresIn`) y `ultimaCuenta`; nunca contraseñas. La temporal vive solo
   en memoria y el archivo queda fuera de los respaldos. Un 401 con sesión la borra y abre el
@@ -953,13 +954,13 @@ recibe 409 y queda en conflicto.
 
 ### Base de datos local
 
-`belmonte_local.db`, Room versión 2: fuente de verdad en las builds `demo` y `debug`, que
-arrancan con `DatosDemo`; en `release`, solo los viajes consultados y la cola. Fechas de negocio como `String` ISO; instantes técnicos como `Long`
+`belmonte_local.db`, Room versión 2: fuente de verdad en la build `demo`, que
+arranca con `DatosDemo`; en `debug` y `release` es una caché: solo los viajes consultados, sus pasajeros y la cola. Fechas de negocio como `String` ISO; instantes técnicos como `Long`
 en ms.
 
 | Tabla | Campos | Claves |
 |---|---|---|
-| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?`, `password_temporal_sha256?`, `password_temporal_expira?` (credenciales ficticias solo en `demo` y `debug`) | PK `correo`; migración 1 → 2 conserva las filas |
+| `usuarios` | `correo`, `nombre`, `telefono?`, `rol`, `activo`, `estado_conductor?`, `estado_solicitante?`, `razon_social?`, `rut_empresa?`, `fecha_registro`, `password_sha256?`, `password_temporal_sha256?`, `password_temporal_expira?` (credenciales ficticias solo en `demo`) | PK `correo`; migración 1 → 2 conserva las filas |
 | `moviles` | `patente`, `capacidad`, `gps_serial?`, `activo`, `estado_movil`, `codigo_abordaje` | PK `patente`; UQ `codigo_abordaje` |
 | `habilitaciones` | `patente`, `correo_conductor` | PK compuesta; FK a `moviles` y `usuarios` |
 | `viajes` | Los de `ViajeDTOResponse` salvo `pasajeros` (`origen_*` y `destino_*` aplanados), `folio_correlativo`, `descargado_en` | PK `folio` |
@@ -972,7 +973,7 @@ en ms.
   (`folio_correlativo` para el folio). Cada respuesta reemplaza sus viajes en una transacción;
   una consulta fallida no borra nada. DAO con lecturas `Flow`, escrituras `suspend` y
   `@Transaction` cuando tocan varias tablas.
-- El documento nunca se guarda en claro: en `demo` y `debug`, `dni_hash` es el SHA-256 en Base64url del
+- El documento nunca se guarda en claro: en `demo`, `dni_hash` es el SHA-256 en Base64url del
   documento normalizado. La base queda fuera de los respaldos y no usa
   `fallbackToDestructiveMigration`.
 
@@ -1011,8 +1012,10 @@ en ms.
 - `compileSdk` 37 (lo exigen las AndroidX fijadas), `targetSdk` 36 y `minSdk` 26. Builds `debug`; `demo` (`initWith(debug)`, mismo
   `applicationId`, `MODO_LOCAL = true`); y `release` (R8, keystore `belmonte-release.jks` fuera
   del repositorio, con sus claves en `~/.gradle/gradle.properties`).
-- `BuildConfig.CON_SEMILLA`: `true` en `debug` y `demo`, que cargan `DatosDemo` y abren sin backend; `false` en
-  `release`, que nunca lleva cuentas ficticias. `MODO_LOCAL` (los avisos de demostración) es `true` solo en `demo`.
+- `BuildConfig.CON_SEMILLA`: `true` solo en `demo`, que carga `DatosDemo` y abre sin backend; `false` en
+  `debug` y `release`, que nunca llevan cuentas ficticias. `MODO_LOCAL` es `true` solo en `demo`: los
+  Repository usan Room (y se muestran los avisos de demostración); en `debug` y `release` llaman al
+  backend y Room es solo caché.
 - `BuildConfig.API_BASE_URL`: debug, `http://10.0.2.2:8080/`; release, la propiedad Gradle
   obligatoria `belmonte.apiBaseUrl`. `network_security_config` permite HTTP solo hacia `10.0.2.2`
   y el anfitrión (este se agrega con el APK release, T19).
@@ -1031,13 +1034,15 @@ App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
 - El login local compara el SHA-256 con `usuarios.password_sha256`; la sesión se guarda igual,
   con un `token` `demo-…` de 8 horas.
 - `DatosDemo` (RNF09) se inserta en `RoomDatabase.Callback.onCreate` cuando `CON_SEMILLA` es `true`
-  (`demo` y `debug`; `debug` no muestra los avisos de demostración): el mismo mínimo que
+  (solo `demo`): el mismo mínimo que
   `database/demo.sql`, los catálogos de pago, las regiones Metropolitana y de Valparaíso con sus
   comunas y un `codigo_abordaje` fijo por vehículo. Su comentario inicial lista las cuentas, la
   contraseña común, los documentos ficticios y el Conductor del viaje en ventana.
 - Las fechas son relativas al primer arranque: antes de cada demostración,
   `adb shell pm clear cl.belmontespa.myapplication`. La semilla se carga solo al crear la base, así que
-  una instalación anterior con la base vacía también necesita ese `pm clear`.
+  una instalación anterior con la base vacía también necesita ese `pm clear`. `debug` y `demo` comparten
+  `applicationId` y `belmonte_local.db`: al pasar de una a otra, el mismo `pm clear` evita que la semilla de
+  `demo` quede en la caché de `debug`.
 - Sin push, sin correo ("Recuperar contraseña" genera y muestra la temporal, sin enviarla) y sin cola. Sin Google Places, el
   origen y el destino de "Nueva solicitud" se eligen de una lista de lugares ficticios
   (`DatosDemo.lugares`); Places llega en la Etapa 2. El QR se ve como Administrador y se escanea
@@ -1049,7 +1054,8 @@ App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
 
 `./gradlew testDebugUnitTest` (JVM, con dobles del Repository escritos a mano y `kotlinx-coroutines-test`; en CI)
 y `./gradlew connectedDebugAndroidTest` (instrumentadas, en emuladores API 26 y 36, en local).
-Las pruebas fijan el `Clock` y usan solo datos ficticios.
+Las pruebas fijan el `Clock` y usan solo datos ficticios. Las instrumentadas fuerzan el modo local
+(`EntornoPruebas`) aunque corran en `debug`.
 
 | Pruebas | Tipo | Cubren |
 |---|---|---|
@@ -1058,6 +1064,8 @@ Las pruebas fijan el `Clock` y usan solo datos ficticios.
 | `FormatosTest` | JVM | Etiquetas y formatos. |
 | `CodigoAbordajeTest` | JVM | QR válido e inválido y entrada manual con o sin espacios. |
 | `ErrorMapperTest` (Etapa 2) | JVM | Cada código HTTP y fallo de red; 400 de varias líneas. |
+| `DtosTest` (Etapa 2) | JVM | JSON de cada contrato a modelo y entidades: fechas con fracciones, `null`, enums y coordenadas a 6 decimales. |
+| `AuthInterceptorTest`, `BelmonteApiTest` (Etapa 2) | JVM con MockWebServer | Bearer por ruta, 401 con y sin sesión, y ruta, método y cuerpo de las llamadas con reglas especiales. |
 | `*ViewModelTest` | JVM con dobles del Repository | Estados de pantalla, envío sin duplicados, botones según estado y abordaje con 404. |
 | `*RepositoryTest` | Instrumentada (Room en memoria) | Reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance, login local y abordaje. |
 | `DaosTest` | Instrumentada | PK, FK en cascada, `Flow` y transacciones. |

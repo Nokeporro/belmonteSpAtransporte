@@ -232,7 +232,7 @@ internal class ReposP1Falsos {
     }
     val auth = AuthFalso()
 
-    inner class CatalogoFalso : CatalogoRepository() {
+    inner class CatalogoFalso : CatalogoRepository(soporteVacio()) {
         override suspend fun obtenerCatalogos(): Resultado<Catalogos> = errorCatalogos?.let { Resultado.Fallo(it) }
             ?: Resultado.Exito(catalogosPago ?: Catalogos(emptyList(), emptyList(), emptyList(), listOf(Region("Metropolitana", listOf("Providencia", "Las Condes")))))
     }

@@ -1,7 +1,9 @@
 package cl.belmontespa.myapplication.repository
 
 import android.app.Application
+import androidx.annotation.VisibleForTesting
 import androidx.room.withTransaction
+import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.database.AppDatabase
 import cl.belmontespa.myapplication.model.Conductor
 import cl.belmontespa.myapplication.model.Cuenta
@@ -36,10 +38,14 @@ open class SoporteLocal(
     val db: AppDatabase,
     val sesiones: SesionStore,
     val clock: Clock,
+    val modoLocal: Boolean = modoLocalPorDefecto,
 ) {
     fun ahora(): LocalDateTime = LocalDateTime.now(clock)
 
     companion object {
+        @VisibleForTesting
+        var modoLocalPorDefecto: Boolean = BuildConfig.MODO_LOCAL
+
         fun de(application: Application): SoporteLocal =
             SoporteLocal(AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago)
     }

@@ -60,7 +60,7 @@ class RepositoriosT06Test {
     @Before fun crear() {
         db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java).addCallback(SemillaDemo(reloj)).build()
         sesiones = SesionStore(PreferenciasRepositorio(), reloj)
-        local = SoporteLocal(db, sesiones, reloj)
+        local = SoporteLocal(db, sesiones, reloj, modoLocal = true)
         operaciones = OperacionesViajeLocal(local)
         viajes = ViajeRepository(local)
     }
@@ -832,25 +832,25 @@ class RepositoriosT06Test {
     }
     @Test fun repetirElAbordajeConservaLaMarca() = runBlocking {
         val abordaje = AbordajeRepository(local)
-        val codigo = CodigoAbordaje("KXJR42")
+        val codigo = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
         val primera = abordaje.registrarAbordaje(codigo, TipoDocumento.PASAPORTE, "P4471023")
         assertTrue(primera is Resultado.Exito)
         val segunda = abordaje.registrarAbordaje(codigo, TipoDocumento.PASAPORTE, "P4471023")
         assertEquals(primera, segunda)
     }
-    @Test fun unAbordajeEnUnVehiculoInexistenteNoModificaElViaje() = runBlocking {
+    @Test fun unAbordajeAjenoNoModificaElViaje() = runBlocking {
         val antes = db.viajePasajeroDao().obtenerDelViaje("TR-1042")
-        val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("ZZZZ99"), TipoDocumento.PASAPORTE, "P4471023")
+        val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.PASAPORTE, "P4471023")
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), resultado)
         assertEquals(antes, db.viajePasajeroDao().obtenerDelViaje("TR-1042"))
     }
-    private val kxjr42 = CodigoAbordaje("KXJR42")
+    private val kxjr42 = CodigoAbordaje("KXJR42", "7F3A9C21B04E58D6")
     @Test fun unPasajeroYaAbordadoRecibeSuMarcaOriginal() = runBlocking {
         val resultado = AbordajeRepository(local).registrarAbordaje(kxjr42, TipoDocumento.RUT, "15.234.567-4")
         assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 55)), resultado)
     }
-    @Test fun unRutSinPuntosCalzaIgual() = runBlocking {
-        val resultado = AbordajeRepository(local).registrarAbordaje(kxjr42, TipoDocumento.RUT, "16789012-1")
+    @Test fun unRutSinPuntosYUnCodigoConEspaciosCalzanIgual() = runBlocking {
+        val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "7f3a 9c21 b04e 58d6"), TipoDocumento.RUT, "16789012-1")
         assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 12, 0)), resultado)
     }
     @Test fun unDocumentoQueNoViajaEnElVehiculoEsNoEncontradoYNoCambiaNada() = runBlocking {
@@ -860,7 +860,7 @@ class RepositoriosT06Test {
     }
     @Test fun unViajeAsignadoSoloSeAbordaDentroDeLaVentanaDeUnaHora() = runBlocking {
         val abordaje = AbordajeRepository(local)
-        val lphT17 = CodigoAbordaje("LPHT17")
+        val lphT17 = CodigoAbordaje("LPHT17", "2B8E41D07C95A316")
         assertEquals(Resultado.Fallo(ErrorApp.NoEncontrado), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
         val ahora = local.ahora()
         db.viajeDao().guardar(local.viaje("TR-1049").copy(fhAgenda = FechaIso.texto(ahora.plusHours(1).plusSeconds(1))))
@@ -869,12 +869,12 @@ class RepositoriosT06Test {
         assertEquals(Resultado.Exito(ahora), abordaje.registrarAbordaje(lphT17, TipoDocumento.PASAPORTE, "X9087654"))
     }
     @Test fun unViajeEnCursoSeAbordaAunqueSuAgendaEsteLejos() = runBlocking {
-        val gzrw90 = CodigoAbordaje("GZRW90")
+        val gzrw90 = CodigoAbordaje("GZRW90", "9D04C6E2A1F7B853")
         db.viajeDao().guardar(local.viaje("TR-1045").copy(fhAgenda = FechaIso.texto(local.ahora().minusHours(6))))
         assertEquals(Resultado.Exito(LocalDateTime.of(2026, 10, 21, 11, 30)), AbordajeRepository(local).registrarAbordaje(gzrw90, TipoDocumento.RUT, "18.364.925-6"))
     }
-    @Test fun unDocumentoInvalidoEsValidacionAunqueElVehiculoNoExista() = runBlocking {
-        val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("ZZZZ99"), TipoDocumento.RUT, "15.234.567-0")
+    @Test fun unDocumentoInvalidoEsValidacionAunqueElCodigoSeaAjeno() = runBlocking {
+        val resultado = AbordajeRepository(local).registrarAbordaje(CodigoAbordaje("KXJR42", "0000000000000000"), TipoDocumento.RUT, "15.234.567-0")
         assertTrue(resultado is Resultado.Fallo && resultado.error is ErrorApp.Validacion)
     }
     @Test fun alAbordarUnPasajeroElArqueoDelViajeSeActualiza() = runBlocking {

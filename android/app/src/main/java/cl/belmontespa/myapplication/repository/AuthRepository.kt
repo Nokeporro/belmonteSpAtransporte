@@ -13,6 +13,7 @@ import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.model.Solicitante
 import cl.belmontespa.myapplication.model.UsuarioEntity
+import cl.belmontespa.myapplication.repository.api.AuthRemoto
 import cl.belmontespa.myapplication.session.SesionStore
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
@@ -29,6 +30,8 @@ import kotlinx.coroutines.flow.first
 open class AuthRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
+    private val remoto by lazy { AuthRemoto(local) }
+
     private val usuarioDao: UsuarioDao get() = local.db.usuarioDao()
     private val sesionStore: SesionStore get() = local.sesiones
     private val clock: Clock get() = local.clock
@@ -36,6 +39,7 @@ open class AuthRepository(private val local: SoporteLocal) {
     open fun observarSesion(): Flow<EstadoSesion> = sesionStore.estado
 
     open suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> {
+        if (!local.modoLocal) return remoto.iniciarSesion(correo, password)
         val resultado = local.ejecutar {
             val usuario = usuarioDao.obtener(Validaciones.correo(correo))
                 ?: return@ejecutar Resultado.Fallo(ErrorApp.SesionExpirada)
@@ -92,7 +96,7 @@ open class AuthRepository(private val local: SoporteLocal) {
             Resultado.Exito(aSolicitante(u))
         }
 
-    open suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> = local.ejecutar {
+    open suspend fun recuperarPassword(correo: String): Resultado<PasswordTemporal> = if (!local.modoLocal) remoto.recuperarPassword(correo) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val errores = Validaciones.recuperarPassword(correo)
         if (errores.isNotEmpty()) return@ejecutar invalido(errores)
@@ -109,9 +113,10 @@ open class AuthRepository(private val local: SoporteLocal) {
         )
     }
 
-    open suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = Resultado.Exito(Unit)
+    open suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = if (!local.modoLocal) remoto.actualizarTokenFcm(token) else Resultado.Exito(Unit)
 
     open suspend fun cerrarSesion(): Resultado<Unit> {
+        if (!local.modoLocal) return remoto.cerrarSesion()
         sesionStore.borrar()
         return Resultado.Exito(Unit)
     }

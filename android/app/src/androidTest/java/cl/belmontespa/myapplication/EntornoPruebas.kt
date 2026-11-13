@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.database.AppDatabase
 import cl.belmontespa.myapplication.database.SemillaDemo
 import cl.belmontespa.myapplication.repository.SoporteLocal
@@ -32,12 +33,14 @@ class EntornoPruebas(private val reloj: Clock = Reloj.santiago) : ExternalResour
         sesiones = SesionStore(PreferenciasEnMemoria(), reloj)
         AppDatabase.reemplazarParaPruebas(db)
         SesionStore.reemplazarParaPruebas(sesiones)
+        SoporteLocal.modoLocalPorDefecto = true
         local = SoporteLocal(db, sesiones, reloj)
     }
 
     override fun after() {
         AppDatabase.reemplazarParaPruebas(null)
         SesionStore.reemplazarParaPruebas(null)
+        SoporteLocal.modoLocalPorDefecto = BuildConfig.MODO_LOCAL
         db.close()
     }
 }

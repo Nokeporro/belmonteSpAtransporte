@@ -65,6 +65,7 @@ fun AbordarScreen(
         onIngresar = viewModel::abrirIngreso,
         onVolver = onVolver,
         onPatente = viewModel::escribirPatente,
+        onCodigo = viewModel::escribirCodigo,
         onContinuar = viewModel::continuarIngreso,
         onCerrarIngreso = viewModel::cerrarIngreso,
     )
@@ -89,6 +90,7 @@ fun AbordarContenido(
     onIngresar: () -> Unit,
     onVolver: () -> Unit,
     onPatente: (String) -> Unit,
+    onCodigo: (String) -> Unit,
     onContinuar: () -> Unit,
     onCerrarIngreso: () -> Unit,
 ) {
@@ -122,13 +124,21 @@ fun AbordarContenido(
             onDismissRequest = onCerrarIngreso,
             title = { Text(stringResource(R.string.abordaje_ingresar_codigo)) },
             text = {
-                CampoTexto(
-                    valor = estado.patente,
-                    onCambio = onPatente,
-                    etiqueta = stringResource(R.string.campo_patente),
-                    modifier = Modifier.fillMaxWidth(),
-                    error = if (estado.ingresoInvalido) stringResource(R.string.abordaje_codigo_invalido) else null,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CampoTexto(
+                        valor = estado.patente,
+                        onCambio = onPatente,
+                        etiqueta = stringResource(R.string.campo_patente),
+                        modifier = Modifier.fillMaxWidth(),
+                        error = if (estado.ingresoInvalido) stringResource(R.string.abordaje_codigo_invalido) else null,
+                    )
+                    CampoTexto(
+                        valor = estado.codigo,
+                        onCambio = onCodigo,
+                        etiqueta = stringResource(R.string.campo_codigo),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = onContinuar, enabled = estado.puedeContinuar) { Text(stringResource(R.string.accion_continuar)) }

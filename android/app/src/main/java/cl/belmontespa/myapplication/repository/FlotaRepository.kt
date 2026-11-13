@@ -13,6 +13,7 @@ import cl.belmontespa.myapplication.model.NuevoMovil
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.UsuarioEntity
+import cl.belmontespa.myapplication.repository.api.FlotaRemoto
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import cl.belmontespa.myapplication.util.Validaciones
@@ -22,17 +23,19 @@ import kotlinx.coroutines.flow.first
 open class FlotaRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
+    private val remoto by lazy { FlotaRemoto(local) }
+
     private val random = SecureRandom()
-    open suspend fun listarConductores(): Resultado<List<Conductor>> = local.ejecutar {
+    open suspend fun listarConductores(): Resultado<List<Conductor>> = if (!local.modoLocal) remoto.listarConductores() else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         Resultado.Exito(local.db.usuarioDao().observarPorRol("CONDUCTOR").first().map { local.conductorDe(it) })
     }
-    open suspend fun obtenerConductor(correo: String): Resultado<Conductor> = local.ejecutar {
+    open suspend fun obtenerConductor(correo: String): Resultado<Conductor> = if (!local.modoLocal) remoto.obtenerConductor(correo) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val conductor = local.conductor(correo) ?: return@ejecutar noEncontrado
         Resultado.Exito(conductor)
     }
-    open suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> = local.ejecutar {
+    open suspend fun registrarConductor(cuenta: NuevaCuenta): Resultado<Conductor> = if (!local.modoLocal) remoto.registrarConductor(cuenta) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val errores = Validaciones.conductor(cuenta)
         if (errores.isNotEmpty()) return@ejecutar invalido(errores)
@@ -43,7 +46,7 @@ open class FlotaRepository(private val local: SoporteLocal) {
         local.db.usuarioDao().insertar(u)
         Resultado.Exito(local.conductorDe(u))
     }
-    open suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> = local.ejecutar {
+    open suspend fun actualizarConductor(correo: String, nombre: String, telefono: String?, password: String?): Resultado<Conductor> = if (!local.modoLocal) remoto.actualizarConductor(correo, nombre, telefono, password) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val correoNormalizado = Validaciones.correo(correo)
         val errores = Validaciones.conductor(NuevaCuenta(nombre, correoNormalizado, telefono, password.orEmpty()), passwordRequerida = false)
@@ -55,7 +58,7 @@ open class FlotaRepository(private val local: SoporteLocal) {
         val conductor = local.conductor(correoNormalizado) ?: return@ejecutar noEncontrado
         Resultado.Exito(conductor)
     }
-    open suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = local.ejecutar {
+    open suspend fun cambiarActivoConductor(correo: String, activo: Boolean): Resultado<Conductor> = if (!local.modoLocal) remoto.cambiarActivoConductor(correo, activo) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val u = local.buscarUsuario(Validaciones.correo(correo)) ?: return@ejecutar noEncontrado
         if (u.rol != "CONDUCTOR") return@ejecutar noEncontrado
@@ -67,16 +70,16 @@ open class FlotaRepository(private val local: SoporteLocal) {
         val conductor = local.conductor(u.correo) ?: return@ejecutar noEncontrado
         Resultado.Exito(conductor)
     }
-    open suspend fun listarMoviles(): Resultado<List<Movil>> = local.ejecutar {
+    open suspend fun listarMoviles(): Resultado<List<Movil>> = if (!local.modoLocal) remoto.listarMoviles() else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         Resultado.Exito(local.db.movilDao().observarTodos().first().map(::aMovil))
     }
-    open suspend fun obtenerMovil(patente: String): Resultado<Movil> = local.ejecutar {
+    open suspend fun obtenerMovil(patente: String): Resultado<Movil> = if (!local.modoLocal) remoto.obtenerMovil(patente) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val movil = local.db.movilDao().obtener(patente) ?: return@ejecutar noEncontrado
         Resultado.Exito(aMovil(movil))
     }
-    open suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> = local.ejecutar {
+    open suspend fun registrarMovil(movil: NuevoMovil): Resultado<Movil> = if (!local.modoLocal) remoto.registrarMovil(movil) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val errores = Validaciones.movil(movil)
         if (errores.isNotEmpty()) return@ejecutar invalido(errores)
@@ -89,7 +92,7 @@ open class FlotaRepository(private val local: SoporteLocal) {
         local.db.movilDao().insertar(nuevo)
         Resultado.Exito(aMovil(nuevo))
     }
-    open suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = local.ejecutar {
+    open suspend fun cambiarActivoMovil(patente: String, activo: Boolean): Resultado<Movil> = if (!local.modoLocal) remoto.cambiarActivoMovil(patente, activo) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val m = local.db.movilDao().obtener(Validaciones.patente(patente)) ?: return@ejecutar noEncontrado
         if (m.activo == activo) return@ejecutar Resultado.Exito(aMovil(m))
@@ -99,7 +102,7 @@ open class FlotaRepository(private val local: SoporteLocal) {
         local.db.movilDao().guardar(nuevo)
         Resultado.Exito(aMovil(nuevo))
     }
-    open suspend fun listarHabilitaciones(patente: String? = null, correo: String? = null): Resultado<List<Habilitacion>> = local.ejecutar {
+    open suspend fun listarHabilitaciones(patente: String? = null, correo: String? = null): Resultado<List<Habilitacion>> = if (!local.modoLocal) remoto.listarHabilitaciones(patente, correo) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val p = patente?.takeIf { it.isNotBlank() }?.let(Validaciones::patente)
         val c = correo?.takeIf { it.isNotBlank() }?.let(Validaciones::correo)
@@ -116,7 +119,7 @@ open class FlotaRepository(private val local: SoporteLocal) {
         }
         Resultado.Exito(habilitaciones.sortedWith(compareBy<Habilitacion> { it.patente }.thenBy { it.nombreConductor }.thenBy { it.correoConductor }))
     }
-    open suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = local.ejecutar {
+    open suspend fun habilitar(patente: String, correoConductor: String): Resultado<Habilitacion> = if (!local.modoLocal) remoto.habilitar(patente, correoConductor) else local.ejecutar {
         local.sesion(Rol.ADMINISTRADOR).obtener { return@ejecutar it }
         val p = Validaciones.patente(patente)
         val c = Validaciones.correo(correoConductor)

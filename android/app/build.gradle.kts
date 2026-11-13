@@ -42,7 +42,7 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("boolean", "CON_SEMILLA", "true")
+            buildConfigField("boolean", "CON_SEMILLA", "false")
         }
         release {
             optimization {
@@ -54,6 +54,7 @@ android {
         create("demo") {
             initWith(getByName("debug"))
             buildConfigField("boolean", "MODO_LOCAL", "true")
+            buildConfigField("boolean", "CON_SEMILLA", "true")
             matchingFallbacks += "debug"
         }
     }
@@ -103,6 +104,11 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging.interceptor)
+
     implementation(libs.play.services.code.scanner)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -110,6 +116,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)

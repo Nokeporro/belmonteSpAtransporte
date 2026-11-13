@@ -5,6 +5,7 @@ import cl.belmontespa.myapplication.model.CodigoAbordaje
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.TipoDocumento
+import cl.belmontespa.myapplication.repository.api.AbordajeRemoto
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Hashes
 import cl.belmontespa.myapplication.util.Validaciones
@@ -13,9 +14,12 @@ import java.time.LocalDateTime
 open class AbordajeRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
-    open suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> = local.ejecutar {
+    private val remoto by lazy { AbordajeRemoto(local) }
+
+    open suspend fun registrarAbordaje(codigo: CodigoAbordaje, tipoDocumento: TipoDocumento, dni: String): Resultado<LocalDateTime> = if (!local.modoLocal) remoto.registrarAbordaje(codigo, tipoDocumento, dni) else local.ejecutar {
         if (!Validaciones.documentoValido(tipoDocumento, dni)) return@ejecutar invalido(mapOf("dni" to "Ingresa un documento válido."))
         val movil = local.db.movilDao().obtener(codigo.patente.uppercase()) ?: return@ejecutar noEncontrado
+        if (movil.codigoAbordaje != codigo.codigo.filterNot(Char::isWhitespace).uppercase()) return@ejecutar noEncontrado
         val hash = Hashes.documento(dni)
         val ahora = local.ahora()
         val candidatos = ordenarPorCercania(
