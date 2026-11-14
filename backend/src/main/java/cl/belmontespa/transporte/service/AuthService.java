@@ -73,11 +73,22 @@ public class AuthService {
 			usuario.setPasswordTemporalExpira(null);
 		}
 		if (request.tokenFcm() != null && !request.tokenFcm().isBlank()) {
-			usuarioRepository.quitarTokenFcm(request.tokenFcm(), usuario.getIdUsuario());
-			usuario.setTokenFcm(request.tokenFcm());
+			asignarTokenFcm(usuario, request.tokenFcm());
 		}
 		return new LoginDTOResponse(jwtProvider.generar(usuario.getCorreo(), rol, temporal), "Bearer",
 				jwtProvider.getExpirationSeconds(), usuario.getCorreo(), rol, temporal);
+	}
+
+	@Transactional
+	public void registrarTokenFcm(String correo, String tokenFcm) {
+		Usuario usuario = usuarioRepository.bloquearPorCorreo(correo)
+				.orElseThrow(AuthService::credencialesInvalidas);
+		asignarTokenFcm(usuario, tokenFcm);
+	}
+
+	private void asignarTokenFcm(Usuario usuario, String tokenFcm) {
+		usuarioRepository.quitarTokenFcm(tokenFcm, usuario.getIdUsuario());
+		usuario.setTokenFcm(tokenFcm);
 	}
 
 	@Transactional

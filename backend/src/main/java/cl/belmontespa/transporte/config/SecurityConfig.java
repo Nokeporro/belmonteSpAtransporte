@@ -39,7 +39,7 @@ public class SecurityConfig {
 						.requestMatchers(POST, "/api/v1/auth/recuperar-password").hasRole(ADM)
 						.requestMatchers(POST, "/api/v1/solicitantes").permitAll()
 						.requestMatchers(POST, "/api/v1/abordajes").permitAll()
-						.requestMatchers(POST, "/api/v1/auth/logout").authenticated()
+						.requestMatchers(POST, "/api/v1/auth/logout", "/api/v1/auth/token-fcm").authenticated()
 						.requestMatchers(GET, "/api/v1/catalogos").hasAnyRole(ADM, CON, SOL)
 
 						.requestMatchers(GET, "/api/v1/usuarios", "/api/v1/usuarios/*").hasAnyRole(ADM, CON, SOL)

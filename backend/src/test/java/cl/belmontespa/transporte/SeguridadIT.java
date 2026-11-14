@@ -9,6 +9,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.List;
 import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,12 +41,15 @@ class SeguridadIT extends IntegrationTest {
 		assertThat(api.get("/viajes", null).status()).isEqualTo(401);
 		assertThat(api.get("/usuarios", null).status()).isEqualTo(401);
 		assertThat(api.post("/viajes", null, "{}").status()).isEqualTo(401);
+		assertThat(api.post("/auth/token-fcm", null, "{}").status()).isEqualTo(401);
 	}
 
 	@Test
 	@DisplayName("un token alterado responde 401")
 	void tokenAlteradoResponde401() {
 		assertThat(api.get("/viajes", api.admin() + "x").status()).isEqualTo(401);
+		assertThat(api.post("/auth/token-fcm", api.admin() + "x", "{\"tokenFcm\":\"dispositivo\"}").status())
+				.isEqualTo(401);
 	}
 
 	@Test
@@ -55,6 +59,8 @@ class SeguridadIT extends IntegrationTest {
 		String vencido = firmar(secretoJwt, Api.ADMIN_CORREO, "ADMINISTRADOR", ahora.minusSeconds(900),
 				ahora.minusSeconds(600));
 		assertThat(api.get("/viajes", vencido).status()).isEqualTo(401);
+		assertThat(api.post("/auth/token-fcm", vencido, "{\"tokenFcm\":\"dispositivo\"}").status())
+				.isEqualTo(401);
 	}
 
 	@Test
@@ -189,6 +195,97 @@ class SeguridadIT extends IntegrationTest {
 				{"nombre":"Hack","correo":"%s"}""".formatted(beto.correo());
 		assertThat(api.put("/usuarios/" + beto.correo(), ana.token(), cuerpo).status()).isEqualTo(403);
 		assertThat(api.put("/usuarios/" + beto.correo(), beto.token(), cuerpo).status()).isEqualTo(200);
+	}
+
+	@Test
+	@DisplayName("los tres roles pueden registrar, reemplazar y repetir su token FCM sin devolverlo")
+	void registrarTokenFcmParaCadaRol() {
+		Cuenta administrador = new Cuenta(Api.ADMIN_CORREO, api.admin());
+		try {
+			for (Cuenta cuenta : List.of(administrador, api.conductor(), api.solicitante())) {
+				String token = "fcm-" + cuenta.correo();
+				var respuesta = Api.exigir(api.post("/auth/token-fcm", cuenta.token(),
+						"{\"tokenFcm\":\"" + token + "\"}"), "registrar token", 200);
+				assertThat(respuesta.cuerpo()).isEmpty();
+				assertThat(tokenFcm(cuenta.correo())).isEqualTo(token);
+				String nuevo = token + "-nuevo";
+				for (int i = 0; i < 2; i++) {
+					Api.exigir(api.post("/auth/token-fcm", cuenta.token(),
+							"{\"tokenFcm\":\"" + nuevo + "\"}"), "reemplazar o repetir token", 200);
+					assertThat(tokenFcm(cuenta.correo())).isEqualTo(nuevo);
+				}
+			}
+		} finally {
+			api.post("/auth/logout", administrador.token(), null);
+		}
+	}
+
+	@Test
+	@DisplayName("un dispositivo pasa entre cuentas tanto por token-fcm como por login")
+	void tokenFcmUnicoEntreCuentas() {
+		Cuenta ana = api.solicitante();
+		Cuenta beto = api.conductor();
+		String token = "dispositivo-compartido-" + System.nanoTime();
+		String cuerpo = "{\"tokenFcm\":\"" + token + "\"}";
+		Api.exigir(api.post("/auth/token-fcm", ana.token(), cuerpo), "registrar en Ana", 200);
+		Api.exigir(api.post("/auth/token-fcm", beto.token(), cuerpo), "transferir a Beto", 200);
+		assertThat(tokenFcm(ana.correo())).isNull();
+		assertThat(tokenFcm(beto.correo())).isEqualTo(token);
+		assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM usuario WHERE token_fcm = ?", Integer.class, token))
+				.isEqualTo(1);
+		Api.exigir(api.iniciarSesion(ana.correo(), Api.CLAVE, token), "recuperar dispositivo con login", 200);
+		assertThat(tokenFcm(beto.correo())).isNull();
+		assertThat(tokenFcm(ana.correo())).isEqualTo(token);
+		Api.exigir(api.post("/auth/logout", ana.token(), null), "cerrar sesión", 204);
+		assertThat(tokenFcm(ana.correo())).isNull();
+	}
+
+	@Test
+	@DisplayName("el token FCM se registra para el subject del JWT y no para un correo del cuerpo")
+	void tokenFcmSoloParaLaCuentaAutenticada() {
+		Cuenta ana = api.solicitante();
+		Cuenta beto = api.solicitante();
+		String tokenDeBeto = api.dispositivo(beto);
+		Api.exigir(api.post("/auth/token-fcm", ana.token(),
+				"{\"tokenFcm\":\"token-propio\",\"correo\":\"" + beto.correo() + "\"}"), "registrar token propio", 200);
+		assertThat(tokenFcm(ana.correo())).isEqualTo("token-propio");
+		assertThat(tokenFcm(beto.correo())).isEqualTo(tokenDeBeto);
+	}
+
+	@Test
+	@DisplayName("un token FCM ausente, vacío, demasiado largo o con JSON ilegible responde 400 sin modificarlo")
+	void tokenFcmInvalidoNoModificaElRegistrado() {
+		Cuenta cuenta = api.solicitante();
+		String anterior = api.dispositivo(cuenta);
+		for (String cuerpo : List.of("{}", "{\"tokenFcm\":null}", "{\"tokenFcm\":\"\"}",
+				"{\"tokenFcm\":\"   \"}", "{\"tokenFcm\":\"" + "a".repeat(256) + "\"}", "null", "{")) {
+			var respuesta = api.post("/auth/token-fcm", cuenta.token(), cuerpo);
+			assertThat(respuesta.status()).as("cuerpo inválido: %s", cuerpo).isEqualTo(400);
+			assertThat(tokenFcm(cuenta.correo())).isEqualTo(anterior);
+		}
+		String limite = "a".repeat(255);
+		Api.exigir(api.post("/auth/token-fcm", cuenta.token(), "{\"tokenFcm\":\"" + limite + "\"}"),
+				"token de 255 caracteres", 200);
+		assertThat(tokenFcm(cuenta.correo())).isEqualTo(limite);
+	}
+
+	@Test
+	@DisplayName("una sesión con contraseña temporal no puede actualizar el token FCM")
+	void tokenFcmDenegadoParaSesionTemporal() {
+		Cuenta cuenta = api.solicitante();
+		String anterior = api.dispositivo(cuenta);
+		var temporal = Api.exigir(api.recuperarPassword(api.admin(), cuenta.correo()), "recuperar contraseña", 200);
+		var login = Api.exigir(api.iniciarSesion(cuenta.correo(), temporal.texto("$.passwordTemporal")),
+				"login temporal", 200);
+		assertThat(login.<Boolean>json("$.cambioPasswordRequerido")).isTrue();
+		var respuesta = api.post("/auth/token-fcm", login.texto("$.accessToken"), "{\"tokenFcm\":\"otro-token\"}");
+		assertThat(respuesta.status()).isEqualTo(403);
+		assertThat(respuesta.texto("$.message")).isEqualTo("Debes cambiar la contraseña");
+		assertThat(tokenFcm(cuenta.correo())).isEqualTo(anterior);
+	}
+
+	private String tokenFcm(String correo) {
+		return jdbc.queryForObject("SELECT token_fcm FROM usuario WHERE correo = ?", String.class, correo);
 	}
 
 	private static String firmar(String base64Secret, String correo, String rol, Instant emitido, Instant expira) {

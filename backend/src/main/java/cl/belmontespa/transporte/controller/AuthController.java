@@ -2,6 +2,7 @@ package cl.belmontespa.transporte.controller;
 
 import cl.belmontespa.transporte.dto.request.LoginDTORequest;
 import cl.belmontespa.transporte.dto.request.RecuperarPasswordDTORequest;
+import cl.belmontespa.transporte.dto.request.TokenFcmDTORequest;
 import cl.belmontespa.transporte.dto.response.LoginDTOResponse;
 import cl.belmontespa.transporte.dto.response.PasswordTemporalDTOResponse;
 import cl.belmontespa.transporte.service.AuthService;
@@ -37,5 +38,11 @@ public class AuthController {
 	@PostMapping("/recuperar-password")
 	public PasswordTemporalDTOResponse recuperarPassword(@Valid @RequestBody RecuperarPasswordDTORequest request) {
 		return authService.recuperarPassword(request);
+	}
+
+	@PostMapping("/token-fcm")
+	public void registrarTokenFcm(org.springframework.security.core.Authentication auth,
+			@Valid @RequestBody TokenFcmDTORequest request) {
+		authService.registrarTokenFcm(auth.getName(), request.tokenFcm());
 	}
 }

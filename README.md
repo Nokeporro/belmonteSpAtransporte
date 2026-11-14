@@ -434,7 +434,7 @@ Todas son `POST` con el prefijo `/api/v1/`. Las reglas están en [Máquinas de e
 |---|---|---|
 | `POST /api/v1/auth/login` | No | CU-14. |
 | `POST /api/v1/auth/logout` | Sí | Deja `token_fcm` en NULL; `204`. |
-| `POST /api/v1/auth/token-fcm` | Sí | Reemplaza el token FCM (RF13). |
+| `POST /api/v1/auth/token-fcm` | Sí | Reemplaza el token FCM del usuario autenticado (RF13); `200` sin cuerpo. |
 | `POST /api/v1/auth/recuperar-password` | Sí (Administrador) | CU-13; responde `200` con la temporal, una sola vez ([Contratos JSON](#contratos-json)). Correo inexistente o de un Conductor: 404. |
 
 - **JWT:** HS256 con `JWT_SECRET`; `sub` (correo), `rol` y `exp` (`JWT_EXPIRATION_SECONDS`). Va
