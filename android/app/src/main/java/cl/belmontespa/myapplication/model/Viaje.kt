@@ -40,6 +40,7 @@ data class Viaje(
     val estadoPago: EstadoPago?,
     val motivo: String?,
     val pasajeros: List<PasajeroViaje>,
+    val cambioPendiente: CambioPendiente? = null,
 )
 
 data class FiltroViajes(

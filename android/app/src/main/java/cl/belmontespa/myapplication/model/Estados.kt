@@ -11,6 +11,8 @@ enum class EstadoMovil { DISPONIBLE, EN_USO }
 
 enum class EstadoSolicitante { PENDIENTE, APROBADO, RECHAZADO }
 
+enum class EstadoEnvio { PENDIENTE, CONFLICTO }
+
 enum class TipoDocumento { RUT, PASAPORTE }
 
 enum class MedioPago { TRANSFERENCIA, TARJETA_DEBITO, TARJETA_CREDITO, EFECTIVO }

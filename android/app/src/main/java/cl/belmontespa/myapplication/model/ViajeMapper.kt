@@ -56,3 +56,13 @@ fun ViajeConPasajeros.aModelo(): Viaje {
             .sortedWith(compareBy(orden) { it.nombre }),
     )
 }
+
+fun List<OperacionPendienteEntity>.aCambioPendiente(): CambioPendiente? {
+    val enConflicto = firstOrNull { it.estadoEnvio == EstadoEnvio.CONFLICTO.name }
+    val operacion = enConflicto ?: maxByOrNull { it.creadoEn } ?: return null
+    return CambioPendiente(
+        estadoDestino = EstadoViaje.valueOf(operacion.estadoDestino),
+        enConflicto = enConflicto != null,
+        mensajeError = operacion.mensajeError,
+    )
+}
