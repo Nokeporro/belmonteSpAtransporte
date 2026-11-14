@@ -1,6 +1,6 @@
 # Backlog priorizado
 
-**Proyecto:** Aplicación de Belmonte SpA · **Fecha:** 12-11-2026 · **Etapa 1 (Prueba 2):** entregada el
+**Proyecto:** Aplicación de Belmonte SpA · **Fecha:** 14-11-2026 · **Etapa 1 (Prueba 2):** entregada el
 28-10-2026 · **Etapa 2:** backend completo el sábado 14-11-2026.
 
 Fuente: [README.md](README.md) (la especificación; si este backlog difiere, gana el README). El
@@ -87,9 +87,9 @@ del 14-11 no se recorta.
 
 | Fecha | Hito |
 |---|---|
-| Jueves 12-11 (hoy) | B: el QR del Android vuelve a `{patente}:{codigo}` (HU29). A: `POST /auth/token-fcm` (HU14). Ambos: base de T14 (Retrofit/OkHttp, `ApiClient`, interceptor, `ErrorMapper`) y `modoLocal` en los Repository. |
+| Jueves 12-11 | B: el QR del Android vuelve a `{patente}:{codigo}` (HU29). A: `POST /auth/token-fcm` (HU14). Ambos: base de T14 (Retrofit/OkHttp, `ApiClient`, interceptor, `ErrorMapper`) y `modoLocal` en los Repository. |
 | Viernes 13-11 | A: push de V1, de cuenta pendiente y de V3/V4; T14 de Auth, Catálogo y Cuenta. B: `database/demo.sql` (T16) y job `backend` de CI (T15); T14 de Viaje y Abordaje. |
-| Sábado 14-11 | Backend completo: 48 de 48 rutas, ITs corridas contra MariaDB (compose en el 3307) y CI en verde. T14 de Pago y Flota si alcanza. |
+| Sábado 14-11 (hoy) | Backend completo: 48 de 48 rutas, ITs corridas contra MariaDB (compose en el 3307) y CI en verde. T14 de Pago y Flota si alcanza. |
 
 ## Etapa 1: Prueba 2
 
@@ -193,7 +193,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 
 | # | ID | Ítem | Resp. | Prio. | Prio. HU | SP | Depende de | Backend | Estado |
 |---|---|---|---|---|---|---|---|---|---|
-| 40 | T14 | Llamadas remotas en los Repository, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | Hecho en Android el 12-11 (los 7 Repository, `ErrorMapper`, interceptor y pruebas JVM); falta probarlo contra el backend (ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11)) |
+| 40 | T14 | Llamadas remotas en los Repository, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | Hecho en Android el 12-11 (los 7 Repository, `ErrorMapper`, interceptor y pruebas JVM); probado contra el backend y en el emulador el 14-11, salvo lo que indica el [riesgo](#riesgos) y `POST /auth/token-fcm`, que el backend aún no tiene (ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11)) |
 | 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 1 falta (A, 12-11) | Backend 12-11; Android después de la ventana |
 | 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; falta el token (HU14) | Android después de la ventana |
 | 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar V3 y V4 (A, 13-11) | Backend 13-11; Android después de la ventana |
@@ -353,10 +353,10 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 |---|---|
 | **Plazo del 14-11:** quedan dos días (12 y 13-11, más el 14 para cerrar) para el backend completo y T14. | La Etapa 1 está entregada (28-10). Lo recortable es T14 de Pago y Flota; el backend completo no se recorta. Ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11). |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3, y en la ventana concentra `token-fcm` y los push. | B hace la base del backend (T07 a T10) y en la Etapa 2 `demo.sql`, el job de CI y las IT. Si A se atrasa, B toma los push de V1 y de cuenta pendiente, previo acuerdo, sin afectar que cada uno explique su Android. |
-| **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión (sin MariaDB). Las instrumentadas de Android pasan (263 en la última corrida). | El 14-11, levantar el compose y correr `./gradlew test`; en Android, repetir las instrumentadas en un emulador aparte antes de cerrar T14 (comparten el `applicationId` de la demo y borran sus datos). |
+| **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión. Las instrumentadas de Android pasan (263 el 14-11, en un emulador con `modoLocalPorDefecto` en `true`). | El 14-11, correr `./gradlew test` completo contra el compose (3307); en Android, repetir las instrumentadas tras cualquier cambio (comparten el `applicationId` de la demo y borran sus datos). Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |
 | **Divergencia del QR (resuelta el 12-11):** desde `6b38cda` el Android leía solo la patente; el README y el backend exigen `{patente}:{codigo}`. | El Android volvió a `BELMONTE-ABORDAJE:{patente}:{codigo}` con ingreso manual de patente y código; `POST /abordajes` los envía. |
 | **Cambio de `debug` a remoto:** desde T14 la build `debug` llama al backend (`10.0.2.2:8080`) y no carga semilla; `demo` es la única local. `debug` y `demo` comparten `applicationId` y base: la semilla de `demo` queda en la caché de `debug`. | Correr `adb shell pm clear cl.belmontespa.myapplication` al pasar de una a otra (README, Build `demo`). El README ya describe el cambio. |
-| **T14 sin probar contra el backend:** las 459 pruebas JVM pasan (ErrorMapper, DTO, interceptor y `BelmonteApi` con MockWebServer), pero no se corrió la app contra el servidor ni las instrumentadas con `modoLocalPorDefecto` (no había emulador). | Antes de cerrar T14: compose en el 3307, backend, emulador y recorrido manual (login de cada rol, nueva solicitud, asignar, cancelar, abordaje con QR); luego las instrumentadas por adb. `POST /auth/token-fcm` responde 403 hasta que A la agregue. |
+| **T14 probado en parte contra el backend (14-11):** con el compose (3307), `bootRun` y el emulador, la app inició sesión como Administrador y como Conductor, listó viajes y mostró el detalle con el abordaje y el pago. Con curl se recorrieron las rutas de T14 (login de los tres roles, cuenta pendiente y aprobación, flota, viaje en 3 pasos, asignar, pagar, iniciar, abordaje con patente y código, y los 400, 401, 404 y 409) y los contratos coinciden con los DTOs. Siguen sin recorrerse por la interfaz: nueva solicitud, asignar, cancelar, pagos, flota y el abordaje con QR. | Recorrerlos con un emulador y el backend en `10.0.2.2:8080` antes de cerrar T14. Un viaje solo se inicia a ±1 h de `fhAgenda` y esta debe estar entre 2 h y 90 días: para probar `EN_CURSO` y el abordaje hay que mover `fh_agenda` en la base. `POST /auth/token-fcm` responde 403 hasta que A la agregue. |
 | **CI sin job `backend`:** `.github/workflows/ci.yml` solo corre `android`; el README define `backend` con MariaDB como parte de la Etapa 2 (T15). | B lo agrega el 13-11 (PR `chore/`). |
 | **ViewModels sin prueba:** `Conductores`, `DetalleSolicitudAdmin`, `MisSolicitudes`, `Notificacion`, `Perfil` y `Vehiculos` no tienen `*ViewModelTest` (`Sesion` ya lo tiene). | Escribirlas con los dobles de `ReposFalsos` si alcanza el tiempo; cada integrante cubre las de sus pantallas. |
 | **Evaluación individual:** cada uno debe explicar y modificar su Android sin apuntes ni IA. | Cada integrante escribe el Android de sus HU (README, [Plan de trabajo](README.md#plan-de-trabajo)), y T12 ensaya la explicación y un cambio en vivo. |
