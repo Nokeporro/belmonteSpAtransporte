@@ -262,8 +262,8 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 					"No se puede pasar de " + actual + " a " + nuevo);
 		}
 		viaje.setEstado(estado(nuevo));
-		firebaseClient.notificar(viaje.getSolicitante().getUsuario().getTokenFcm(),
-				"Viaje " + viaje.getFolio(), "Estado: " + nuevo, Map.of("folio", viaje.getFolio()));
+		avisar(viaje.getSolicitante().getUsuario().getTokenFcm(),
+				AvisosDeViaje.estadoDelViaje(viaje.getFolio(), nuevo));
 		return aResponse(viaje);
 	}
 

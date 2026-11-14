@@ -672,8 +672,9 @@ conductor reemplazado) y `CUENTAS` "Cuentas por aprobar". `{fecha}` va como `24-
 | P2 a P5 | Solicitante | Pago del viaje `{folio}` | Estado: Pagado / Rechazado / Anulado / Reembolsado |
 | Cuenta pendiente (RF01) | Administradores | Cuenta por aprobar | Hay una cuenta nueva por revisar |
 
-Etapa 2: los push de V1 y de cuenta pendiente, y el formato final de V3 y V4 (`data.tipo` y la
-etiqueta en español), se completan con HU12 y HU14.
+HU12 backend: los push de V3 y V4 ya llevan `data.tipo = VIAJE`, el folio y la etiqueta en español.
+Siguen pendientes los push de V1 y de cuenta pendiente (HU02 y HU01), y la recepción de
+notificaciones en Android (HU12, HU13 y HU14).
 
 **Correo.** Va en texto plano, firmado "Belmonte SpA". El sistema solo envía estos dos correos; la contraseña temporal
 no viaja por ellos: la entrega el Administrador con su propio correo.

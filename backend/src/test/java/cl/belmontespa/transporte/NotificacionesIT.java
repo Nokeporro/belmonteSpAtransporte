@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.awaitility.Awaitility.await;
 
+import cl.belmontespa.transporte.config.ClockConfig;
+import cl.belmontespa.transporte.dto.request.CambiarEstadoViajeDTORequest;
+import cl.belmontespa.transporte.service.ViajeService;
 import cl.belmontespa.transporte.support.Api;
 import cl.belmontespa.transporte.support.Api.Cuenta;
 import cl.belmontespa.transporte.support.Api.Flota;
@@ -17,9 +20,17 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @DisplayName("Avisos externos: push (RF12) y correo")
 class NotificacionesIT extends IntegrationTest {
+	@Autowired
+	private ViajeService viajes;
+
+	@Autowired
+	private PlatformTransactionManager transacciones;
 
 	private String fechaDelViaje(String folio) {
 		LocalDateTime agenda = LocalDateTime.parse(Api.exigir(api.verViaje(folio), "consultar viaje", 200).texto("$.fhAgenda"));
@@ -217,19 +228,104 @@ class NotificacionesIT extends IntegrationTest {
 			api.dispositivo(flota.conductor());
 			String folio = api.viajeAsignado(solicitante, flota);
 			esperarEnvios(2);
+			dejarPasarEnvios();
 			fcm.limpiar();
 
 			api.iniciarOk(folio, flota.conductor());
 			Envio enCurso = esperarEnvios(1).getFirst();
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).hasSize(1);
 			assertThat(enCurso.token()).isEqualTo(tokenSolicitante);
-			assertThat(enCurso.mensaje()).contains("EN_CURSO");
-			assertThat(enCurso.datos()).containsEntry("folio", folio);
+			assertThat(enCurso.titulo()).isEqualTo("Viaje " + folio);
+			assertThat(enCurso.mensaje()).isEqualTo("Estado: En curso");
+			assertThat(enCurso.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
 			fcm.limpiar();
 
+			String tokenActualizado = "token-actualizado-" + solicitante.correo();
+			Api.exigir(api.post("/auth/token-fcm", solicitante.token(),
+					"{\"tokenFcm\":\"" + tokenActualizado + "\"}"), "actualizar token FCM", 200);
 			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
 			Envio finalizado = esperarEnvios(1).getFirst();
-			assertThat(finalizado.token()).isEqualTo(tokenSolicitante);
-			assertThat(finalizado.mensaje()).contains("FINALIZADO");
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).hasSize(1);
+			assertThat(finalizado.token()).isEqualTo(tokenActualizado);
+			assertThat(finalizado.titulo()).isEqualTo("Viaje " + folio);
+			assertThat(finalizado.mensaje()).isEqualTo("Estado: Finalizado");
+			assertThat(finalizado.datos()).containsOnlyKeys("tipo", "folio")
+					.containsEntry("tipo", "VIAJE").containsEntry("folio", folio);
+			assertThat(fcm.para(tokenSolicitante)).isEmpty();
+		}
+
+		@Test
+		@DisplayName("V3 y V4 no avisan al conductor si el solicitante no tiene dispositivo registrado")
+		void cambioDeEstadoSinTokenDelSolicitante() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(1);
+			dejarPasarEnvios();
+			fcm.limpiar();
+
+			api.iniciarOk(folio, flota.conductor());
+			api.cambiarEstadoOk(folio, flota.conductor(), "FINALIZADO");
+
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).isEmpty();
+		}
+
+		@Test
+		@DisplayName("un cambio de estado inválido o por otro conductor no modifica el viaje ni envía push")
+		void cambioDeEstadoRechazadoNoAvisa() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			Cuenta otroConductor = api.conductor();
+			api.dispositivo(solicitante);
+			api.dispositivo(flota.conductor());
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(2);
+			dejarPasarEnvios();
+			fcm.limpiar();
+
+			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "PENDIENTE").status()).isEqualTo(400);
+			assertThat(api.cambiarEstado(folio, otroConductor.token(), "EN_CURSO").status()).isEqualTo(403);
+			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "FINALIZADO").status()).isEqualTo(409);
+			assertThat(api.cambiarEstado(folio, flota.conductor().token(), "EN_CURSO").status()).isEqualTo(409);
+
+			dejarPasarEnvios();
+			assertThat(fcm.envios()).isEmpty();
+			assertThat(api.estadoViaje(folio)).isEqualTo("ASIGNADO");
+		}
+
+		@Test
+		@DisplayName("V3 y V4 solo notifican tras confirmar la transacción; un rollback no envía push")
+		void rollbackDelCambioDeEstadoNoAvisa() {
+			Cuenta solicitante = api.solicitante();
+			Flota flota = api.flota(4);
+			api.dispositivo(solicitante);
+			String folio = api.viajeAsignado(solicitante, flota);
+			esperarEnvios(1);
+			dejarPasarEnvios();
+			fcm.limpiar();
+			api.fijarAgenda(folio, LocalDateTime.now(ClockConfig.ZONA));
+
+			for (String estado : List.of("EN_CURSO", "FINALIZADO")) {
+				new TransactionTemplate(transacciones).executeWithoutResult(tx -> {
+					viajes.cambiarEstado(folio, new CambiarEstadoViajeDTORequest(estado), flota.conductor().correo());
+					assertThat(fcm.envios()).isEmpty();
+					tx.setRollbackOnly();
+				});
+				dejarPasarEnvios();
+				assertThat(fcm.envios()).isEmpty();
+				assertThat(api.estadoViaje(folio)).isEqualTo("EN_CURSO".equals(estado) ? "ASIGNADO" : "EN_CURSO");
+				if ("EN_CURSO".equals(estado)) {
+					api.iniciarOk(folio, flota.conductor());
+					esperarEnvios(1);
+					dejarPasarEnvios();
+					fcm.limpiar();
+				}
+			}
 		}
 
 		@Test

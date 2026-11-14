@@ -47,6 +47,7 @@ public abstract class IntegrationTest {
 
 	@BeforeEach
 	void iniciarApi() throws Exception {
+		jdbcDeLaApi.update("UPDATE usuario SET token_fcm = NULL");
 		api = new Api(mvc, jdbcDeLaApi);
 		CORREO.purgeEmailFromAllMailboxes();
 		fcm.limpiar();

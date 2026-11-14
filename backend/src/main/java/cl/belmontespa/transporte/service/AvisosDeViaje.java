@@ -21,6 +21,15 @@ final class AvisosDeViaje {
 		return new Aviso("Viaje asignado", "Tu viaje " + folio + " ya tiene conductor y vehículo", viaje(folio));
 	}
 
+	static Aviso estadoDelViaje(String folio, String estado) {
+		String etiqueta = switch (estado) {
+			case "EN_CURSO" -> "En curso";
+			case "FINALIZADO" -> "Finalizado";
+			default -> throw new IllegalArgumentException("Estado de viaje sin aviso: " + estado);
+		};
+		return new Aviso("Viaje " + folio, "Estado: " + etiqueta, viaje(folio));
+	}
+
 	static Aviso viajeReasignado(String folio) {
 		return new Aviso("Viaje reasignado", "El viaje " + folio + " fue asignado a otro conductor",
 				Map.of("tipo", "AGENDA", "folio", folio));

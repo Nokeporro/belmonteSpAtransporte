@@ -1,13 +1,14 @@
 package cl.belmontespa.transporte.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import cl.belmontespa.transporte.service.AvisosDeViaje.Aviso;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("AvisosDeViaje: los push de V2 y V8 según la tabla del README")
+@DisplayName("AvisosDeViaje: los push de V2, V3, V4 y V8 según la tabla del README")
 class AvisosDeViajeTest {
 
 	@Test
@@ -77,10 +78,40 @@ class AvisosDeViajeTest {
 	}
 
 	@Test
+	@DisplayName("V3 al solicitante: título con folio, etiqueta En curso y tipo VIAJE")
+	void viajeEnCurso() {
+		Aviso aviso = AvisosDeViaje.estadoDelViaje("TR-1042", "EN_CURSO");
+
+		assertThat(aviso.titulo()).isEqualTo("Viaje TR-1042");
+		assertThat(aviso.mensaje()).isEqualTo("Estado: En curso");
+		assertThat(aviso.datos()).containsOnlyKeys("tipo", "folio")
+				.containsEntry("tipo", "VIAJE").containsEntry("folio", "TR-1042");
+	}
+
+	@Test
+	@DisplayName("V4 al solicitante: título con folio, etiqueta Finalizado y tipo VIAJE")
+	void viajeFinalizado() {
+		Aviso aviso = AvisosDeViaje.estadoDelViaje("TR-1042", "FINALIZADO");
+
+		assertThat(aviso.titulo()).isEqualTo("Viaje TR-1042");
+		assertThat(aviso.mensaje()).isEqualTo("Estado: Finalizado");
+		assertThat(aviso.datos()).containsOnlyKeys("tipo", "folio")
+				.containsEntry("tipo", "VIAJE").containsEntry("folio", "TR-1042");
+	}
+
+	@Test
+	void otrosEstadosNoGeneranUnAvisoDeInicioOFinalizacion() {
+		assertThatThrownBy(() -> AvisosDeViaje.estadoDelViaje("TR-1042", "PENDIENTE"))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
 	@DisplayName("el push lleva el folio y la fecha, sin nombres ni direcciones (RNF08)")
 	void sinDatosPersonales() {
 		for (Aviso aviso : new Aviso[] {
 				AvisosDeViaje.nuevoViaje("TR-1042", LocalDateTime.of(2026, 9, 24, 14, 30)),
+				AvisosDeViaje.estadoDelViaje("TR-1042", "EN_CURSO"),
+				AvisosDeViaje.estadoDelViaje("TR-1042", "FINALIZADO"),
 				AvisosDeViaje.viajeAsignado("TR-1042"), AvisosDeViaje.viajeReasignado("TR-1042"),
 					AvisosDeViaje.viajeRechazado("TR-1042"), AvisosDeViaje.viajeSinConductor("TR-1042") }) {
 			assertThat(aviso.datos().values()).allMatch(valor -> valor.matches("VIAJE|AGENDA|TR-1042"));

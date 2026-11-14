@@ -48,7 +48,7 @@ estado del backend sale de revisar `backend/` en esta rama.
 
 **Backend:**
 - **Compilación:** compila (`./gradlew compileJava compileTestJava`).
-- **Pruebas:** 407 pruebas aprobadas, sin fallos ni omisiones, el 14-11 con `./gradlew test --offline`,
+- **Pruebas:** 413 pruebas aprobadas, sin fallos ni omisiones, el 14-11 con `./gradlew test --offline`,
   incluidas las IT contra una MariaDB 11.4 temporal en el puerto 13307 (`belmonte_test`).
 - **Rutas:** las 48 del README tienen controlador, incluido `POST /auth/token-fcm` (HU14 backend, 14-11).
   Ya no existen las 3 rutas que el README no admite (`POST /usuarios`, `PUT /solicitantes/{correo}` y
@@ -196,7 +196,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 | 40 | T14 | Llamadas remotas en los Repository, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | Hecho en Android el 12-11 (los 7 Repository, `ErrorMapper`, interceptor y pruebas JVM); probado contra el backend y en el emulador el 14-11, salvo lo que indica el [riesgo](#riesgos) (ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11)) |
 | 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | Hecho y probado el 14-11 | Backend listo; Android (servicio FCM y onNewToken) después de la ventana |
 | 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; HU14 backend disponible | Android después de la ventana |
-| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar V3 y V4 (A, 13-11) | Backend 13-11; Android después de la ventana |
+| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Hecho y probado el 14-11 | Backend listo: V3 y V4 con etiqueta en español y tipo VIAJE; Android después de la ventana |
 | 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | Hecho el 14-11 (Iniciar y Finalizar se encolan solo ante un fallo de red y se envían con WorkManager; chip, banner, conflicto con «Descartar cambio», cierre de sesión y cambio de cuenta con pendientes); recorrido en el emulador contra el backend, ver el [riesgo](#riesgos) |
 | 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes | 14-11 |
 | 46 | T16 | `database/demo.sql` | B | E2 | — | — | Etapa 1 | — | Hecho el 14-11 (las mismas cuentas, vehículos, códigos de abordaje, pasajeros, viajes y pagos de `DatosDemo`, con folios TR-1001 a TR-1011; probado en `belmonte_test` contra el backend, ver el [riesgo](#riesgos)) |
@@ -244,9 +244,9 @@ día: `ViajeService` lo toca solo A el 13-11, y `ci.yml` y `demo.sql` solo B.
 | A | HU14 backend: `POST /auth/token-fcm` | 12-11 | Implementado el 14-11: `TokenFcmDTORequest`, método en `AuthController`, `AuthService.registrarTokenFcm` (quita el token a cualquier otro usuario, con la misma lógica de `login`), regla `authenticated()` en `SecurityConfig`; `TokenFcmDTORequestTest`, `AuthServiceTest` y casos en `SeguridadIT` | — |
 | B | HU29 Android: QR con código | 12-11 | `CodigoAbordaje(patente, codigo)`, `AbordajeRepository` compara `codigo_abordaje`, ingreso manual con patente y código, `strings.xml` y sus pruebas | — |
 | A y B | T14 base | 12-11 | Retrofit y OkHttp en el catálogo, `ApiClient`, `AuthInterceptor`, `ErrorMapper` + `ErrorMapperTest` (A); `modoLocal` en los 7 Repository (B) | — |
-| A | HU12 backend: push de V3 y V4 | 13-11 | `AvisosDeViaje.estadoDelViaje` (título «Viaje {folio}», «Estado: En curso/Finalizado», `data.tipo=VIAJE`) usado en `ViajeService`; `NotificacionesIT` actualizado | HU14 |
+| A | HU12 backend: push de V3 y V4 | 13-11 | Implementado el 14-11: `AvisosDeViaje.estadoDelViaje` (título «Viaje {folio}», «Estado: En curso/Finalizado», `data.tipo=VIAJE`) usado en `ViajeService`; `NotificacionesIT` verifica el destinatario, el token actualizado, los cambios rechazados y el rollback | HU14 |
 | A | HU02 y HU01 backend: push de V1 y de cuenta pendiente | 13-11 | «Nueva solicitud» y «Cuenta por aprobar» (`data.tipo=CUENTAS`) a los Administradores con token, con un ayudante de difusión compartido con V8; `SolicitanteService` recibe `FirebaseClient` y `AdministradorRepository` | HU14 |
-| A | Pruebas de push | 13-11 | `IntegrationTest.iniciarApi` deja `token_fcm` en NULL para que el token del Administrador no altere los conteos de `NotificacionesIT`, `HU16IT` y `HU20IT` | HU12, HU02 |
+| A | Pruebas de push | 13-11 | Aislamiento implementado el 14-11: `IntegrationTest.iniciarApi` deja `token_fcm` en NULL para que los dispositivos de otra prueba no alteren los conteos de `NotificacionesIT`, `HU16IT` y `HU20IT`; volver a verificar al agregar los push de HU02/HU01 | HU12, HU02 |
 | A | T14: Auth, Catálogo y Cuenta | 13-11 | Repository en modo remoto: login (`expiraEn = expiresIn × 1000`, `cambioPasswordRequerido`), registro, recuperación, logout, `token-fcm`, catálogos, perfil y aprobación de cuentas | T14 base |
 | B | T16: `database/demo.sql` | 13-11 | El script de [Stack y entornos](README.md#stack-y-entornos), con los 4 códigos de abordaje fijos de la semilla Android | — |
 | B | T15: job `backend` de CI | 13-11 | Job `backend` con `mariadb:11.4`, `./gradlew test` y subida de `build/reports/tests`, con las versiones de acciones del job `android` | — |
@@ -270,19 +270,21 @@ Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/`.
 - **HU14 backend implementado el 14-11:** `POST /auth/token-fcm` registra el token del usuario del JWT;
   exige un token no vacío de hasta 255 caracteres y lo quita de cualquier otro usuario. Conserva el
   bloqueo de sesiones temporales. Se agregaron pruebas de DTO, servicio y autorización en `SeguridadIT`.
-  Pasaron las 8 unitarias nuevas y los 21 casos de `SeguridadIT`, dentro de la suite completa de 407
+  Pasaron las 8 unitarias nuevas y los 21 casos de `SeguridadIT`, incluidos en la suite actual de 413
   pruebas contra MariaDB. La integración de Firebase en Android sigue pendiente.
-- **Push de V3 y V4 al Solicitante (HU12, A, 13-11):** `ViajeService` envía `data` solo con `folio` y el mensaje
-  con el código ("Estado: EN_CURSO"). Debe llevar `data.tipo = VIAJE`, el título "Viaje {folio}" y la etiqueta
-  ("En curso" o "Finalizado").
+- **HU12 backend implementado el 14-11:** V3 y V4 avisan solo al Solicitante con el título "Viaje {folio}",
+  "Estado: En curso" o "Estado: Finalizado", y `data` con `tipo = VIAJE` y `folio`. Se reutiliza el envío
+  después del commit; los cambios rechazados o revertidos no envían push. Pasaron las 10 pruebas de
+  `AvisosDeViajeTest` y las 18 de `NotificacionesIT`, dentro de la suite de 413 (también `HU16IT` y `HU20IT`).
+  La integración de Firebase en Android sigue pendiente.
 - **Push de V1 y de cuenta pendiente (HU02 y HU01, A, 13-11):** no se envían. Faltan "Nueva solicitud" (V1) y
   "Cuenta por aprobar" (con `data.tipo = CUENTAS`), ambos a los Administradores con token.
 - **Job `backend` de CI (T15, B, 13-11):** `.github/workflows/ci.yml` solo tiene el job `android`.
-- **Pruebas de integración (T15, A y B, 14-11):** `NotificacionesIT` espera hoy `EN_CURSO` y `FINALIZADO` en el
-  mensaje de V3 y V4, y los conteos de push de `NotificacionesIT`, `HU16IT` y `HU20IT` cambian cuando el
-  Administrador tiene token y se envía V1.
+- **Pruebas de integración (T15, A y B, 14-11):** `NotificacionesIT` ya verifica las etiquetas en español
+  de V3/V4 y `data.tipo`. El token de todos los usuarios se limpia antes de cada prueba para aislar los
+  conteos. Repetir la suite tras agregar los avisos de V1 y de cuenta pendiente.
 - **Ya llevan `data.tipo`:** los push de asignación y reasignación (`AvisosDeViaje`, con `VIAJE` y `AGENDA`),
-  de rechazo (V8), de cancelación y de pago.
+  de inicio y finalización (V3/V4), de rechazo (V8), de cancelación y de pago.
 
 ## Rutas y 75 %
 
@@ -342,7 +344,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 **Totales:**
 - **Por estado:** 48 hechas y 0 faltantes (HU14 backend implementado el 14-11). El estado sale de comparar cada ruta de la
   tabla con los `@…Mapping` de los controladores, incluidas las heredadas de `LecturaController` y
-  `CrudController`; las 407 pruebas actuales, incluidas las IT, pasan contra MariaDB. Siguen pendientes
+  `CrudController`; las 413 pruebas actuales, incluidas las IT, pasan contra MariaDB. Siguen pendientes
   los ajustes de push descritos en esta etapa.
 - **Etapa 1:** tiene 47 rutas (todas menos `POST /auth/token-fcm`); hay que dejar al menos 36 de las 48
   cumpliendo el README con pruebas.
@@ -356,7 +358,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 |---|---|
 | **Plazo del 14-11:** quedan dos días (12 y 13-11, más el 14 para cerrar) para el backend completo y T14. | La Etapa 1 está entregada (28-10). Lo recortable es T14 de Pago y Flota; el backend completo no se recorta. Ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11). |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3, y en la ventana concentra `token-fcm` y los push. | B hace la base del backend (T07 a T10) y en la Etapa 2 `demo.sql`, el job de CI y las IT. Si A se atrasa, B toma los push de V1 y de cuenta pendiente, previo acuerdo, sin afectar que cada uno explique su Android. |
-| **Pruebas verificadas el 14-11:** las 407 del backend pasan sin fallos ni omisiones, incluidas las IT contra MariaDB 11.4 temporal en 13307. Las instrumentadas de Android pasan (307 el 14-11 con HU11, en un emulador con `modoLocalPorDefecto` en `true`; las 5 de T17 se omiten sin `-e e2e true`) y las 500 JVM también. | Repetir las pruebas del backend tras los cambios de push pendientes y completar el job de CI (T15); en Android, repetir las instrumentadas tras cualquier cambio (comparten el `applicationId` de la demo y borran sus datos). Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |
+| **Pruebas verificadas el 14-11:** las 413 del backend pasan sin fallos ni omisiones, incluidas las IT contra MariaDB 11.4 temporal en 13307. Las instrumentadas de Android pasan (307 el 14-11 con HU11, en un emulador con `modoLocalPorDefecto` en `true`; las 5 de T17 se omiten sin `-e e2e true`) y las 500 JVM también. | Repetir las pruebas del backend tras los cambios de push pendientes y completar el job de CI (T15); en Android, repetir las instrumentadas tras cualquier cambio (comparten el `applicationId` de la demo y borran sus datos). Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |
 | **Divergencia del QR (resuelta el 12-11):** desde `6b38cda` el Android leía solo la patente; el README y el backend exigen `{patente}:{codigo}`. | El Android volvió a `BELMONTE-ABORDAJE:{patente}:{codigo}` con ingreso manual de patente y código; `POST /abordajes` los envía. |
 | **Cambio de `debug` a remoto:** desde T14 la build `debug` llama al backend (`10.0.2.2:8080`) y no carga semilla; `demo` es la única local. `debug` y `demo` comparten `applicationId` y base: la semilla de `demo` queda en la caché de `debug`. | Correr `adb shell pm clear cl.belmontespa.myapplication` al pasar de una a otra (README, Build `demo`). El README ya describe el cambio. |
 | **T14 probado en parte contra el backend (14-11):** con el compose (3307), `bootRun` y el emulador, la app inició sesión como Administrador y como Conductor, listó viajes y mostró el detalle con el abordaje y el pago. Con curl se recorrieron las rutas de T14 (login de los tres roles, cuenta pendiente y aprobación, flota, viaje en 3 pasos, asignar, pagar, iniciar, abordaje con patente y código, y los 400, 401, 404 y 409) y los contratos coinciden con los DTOs. Siguen sin recorrerse por la interfaz: nueva solicitud, asignar, cancelar, pagos, flota y el abordaje con QR. | Recorrerlos con un emulador y el backend en `10.0.2.2:8080` antes de cerrar T14. Un viaje solo se inicia a ±1 h de `fhAgenda` y esta debe estar entre 2 h y 90 días: para probar `EN_CURSO` y el abordaje hay que mover `fh_agenda` en la base. HU14 backend ya implementa `POST /auth/token-fcm`; falta la integración de Firebase en Android. |
