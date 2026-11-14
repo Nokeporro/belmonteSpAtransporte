@@ -21,6 +21,7 @@ data class LoginUiState(
     val password: String = "",
     val enviando: Boolean = false,
     @param:StringRes val error: Int? = null,
+    val confirmandoOtraCuenta: Boolean = false,
 )
 
 class LoginViewModel @JvmOverloads constructor(
@@ -39,16 +40,35 @@ class LoginViewModel @JvmOverloads constructor(
 
     fun iniciarSesion() {
         val actual = _estado.value
-        if (actual.enviando) return
+        if (actual.enviando || actual.confirmandoOtraCuenta) return
         _estado.update { it.copy(enviando = true, error = null) }
         viewModelScope.launch {
-            val resultado = authRepository.iniciarSesion(actual.correo, actual.password)
-            _estado.update {
-                if (resultado is Resultado.Fallo) {
-                    it.copy(enviando = false, error = mensajeLogin(resultado.error))
-                } else {
-                    it.copy(enviando = false, password = "")
-                }
+            if (authRepository.hayCambiosDeOtraCuenta(actual.correo)) {
+                _estado.update { it.copy(enviando = false, confirmandoOtraCuenta = true) }
+            } else {
+                entrar(actual)
+            }
+        }
+    }
+
+    fun confirmarOtraCuenta() {
+        val actual = _estado.value
+        if (!actual.confirmandoOtraCuenta) return
+        _estado.update { it.copy(confirmandoOtraCuenta = false, enviando = true, error = null) }
+        viewModelScope.launch { entrar(actual) }
+    }
+
+    fun cancelarOtraCuenta() {
+        _estado.update { it.copy(confirmandoOtraCuenta = false) }
+    }
+
+    private suspend fun entrar(actual: LoginUiState) {
+        val resultado = authRepository.iniciarSesion(actual.correo, actual.password)
+        _estado.update {
+            if (resultado is Resultado.Fallo) {
+                it.copy(enviando = false, error = mensajeLogin(resultado.error))
+            } else {
+                it.copy(enviando = false, password = "")
             }
         }
     }

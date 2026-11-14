@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +68,8 @@ fun LoginScreen(
         onIniciarSesion = viewModel::iniciarSesion,
         onCrearCuenta = onCrearCuenta,
         onAbordarViaje = onAbordarViaje,
+        onConfirmarOtraCuenta = viewModel::confirmarOtraCuenta,
+        onCancelarOtraCuenta = viewModel::cancelarOtraCuenta,
     )
 }
 
@@ -79,6 +82,8 @@ fun LoginContenido(
     onIniciarSesion: () -> Unit,
     onCrearCuenta: () -> Unit,
     onAbordarViaje: () -> Unit,
+    onConfirmarOtraCuenta: () -> Unit = {},
+    onCancelarOtraCuenta: () -> Unit = {},
 ) {
     var pedirTemporal by remember { mutableStateOf(false) }
     Column(
@@ -158,6 +163,14 @@ fun LoginContenido(
             stringResource(R.string.login_nota_conductores),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (estado.confirmandoOtraCuenta) {
+        AlertDialog(
+            onDismissRequest = onCancelarOtraCuenta,
+            text = { Text(stringResource(R.string.aviso_pendientes_otra_cuenta)) },
+            confirmButton = { TextButton(onClick = onConfirmarOtraCuenta) { Text(stringResource(R.string.accion_continuar)) } },
+            dismissButton = { TextButton(onClick = onCancelarOtraCuenta) { Text(stringResource(R.string.accion_cancelar)) } },
         )
     }
 }

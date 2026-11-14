@@ -1,9 +1,16 @@
 package cl.belmontespa.myapplication.view.auth
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.belmontespa.myapplication.BuildConfig
@@ -15,6 +22,7 @@ import cl.belmontespa.myapplication.view.components.Accion
 import cl.belmontespa.myapplication.view.components.ContenedorPantalla
 import cl.belmontespa.myapplication.view.components.Dato
 import cl.belmontespa.myapplication.view.components.TipoBoton
+import cl.belmontespa.myapplication.view.components.texto
 import cl.belmontespa.myapplication.viewmodel.auth.PerfilViewModel
 
 @Composable
@@ -27,6 +35,12 @@ fun PerfilScreen(
 ) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.cargar() }
+    LaunchedEffect(estado.cerrar) {
+        if (estado.cerrar) {
+            viewModel.consumirCierre()
+            onCerrarSesion()
+        }
+    }
     ContenedorPantalla(
         titulo = stringResource(pantalla.titulo),
         cargando = estado.cargando,
@@ -57,6 +71,30 @@ fun PerfilScreen(
                 Accion(R.string.accion_ver_escenarios, { onNavegar(PantallaDemo.NOTIFICACION, "") }, TipoBoton.SECUNDARIO)
             }
         }
-        Accion(R.string.accion_cerrar_sesion, onCerrarSesion, TipoBoton.SECUNDARIO)
+        Accion(R.string.accion_cerrar_sesion, viewModel::pedirCerrarSesion, TipoBoton.SECUNDARIO)
+    }
+    if (estado.confirmandoCierre) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelarCierre,
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.aviso_cierre_con_pendientes))
+                    estado.errorSincronizacion?.let { Text(it.texto(), color = MaterialTheme.colorScheme.error) }
+                    TextButton(onClick = viewModel::descartarYCerrar, enabled = !estado.sincronizando) {
+                        Text(stringResource(R.string.accion_descartar))
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::sincronizarYCerrar, enabled = !estado.sincronizando) {
+                    Text(stringResource(R.string.accion_sincronizar))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelarCierre, enabled = !estado.sincronizando) {
+                    Text(stringResource(R.string.accion_cancelar))
+                }
+            },
+        )
     }
 }
