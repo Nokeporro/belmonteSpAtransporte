@@ -26,6 +26,8 @@ import cl.belmontespa.myapplication.model.TipoRecibo
 import cl.belmontespa.myapplication.model.UsuarioEntity
 import cl.belmontespa.myapplication.model.ViajeEntity
 import cl.belmontespa.myapplication.session.SesionStore
+import cl.belmontespa.myapplication.sync.ProgramadorSincronizacion
+import cl.belmontespa.myapplication.sync.ProgramadorWorkManager
 import cl.belmontespa.myapplication.util.FechaIso
 import cl.belmontespa.myapplication.util.Reloj
 import java.time.Clock
@@ -39,6 +41,7 @@ open class SoporteLocal(
     val sesiones: SesionStore,
     val clock: Clock,
     val modoLocal: Boolean = modoLocalPorDefecto,
+    val programador: ProgramadorSincronizacion = ProgramadorSincronizacion.Ninguno,
 ) {
     fun ahora(): LocalDateTime = LocalDateTime.now(clock)
 
@@ -47,7 +50,10 @@ open class SoporteLocal(
         var modoLocalPorDefecto: Boolean = BuildConfig.MODO_LOCAL
 
         fun de(application: Application): SoporteLocal =
-            SoporteLocal(AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago)
+            SoporteLocal(
+                AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago,
+                programador = ProgramadorWorkManager(application),
+            )
     }
 
     suspend fun sesion(rol: Rol? = null, permitirTemporal: Boolean = false): Resultado<Sesion> {

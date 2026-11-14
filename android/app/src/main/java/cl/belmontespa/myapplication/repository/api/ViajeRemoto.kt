@@ -1,9 +1,11 @@
 package cl.belmontespa.myapplication.repository.api
 
+import cl.belmontespa.myapplication.model.EstadoEnvio
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.FiltroViajes
 import cl.belmontespa.myapplication.model.NuevaSolicitud
 import cl.belmontespa.myapplication.model.NuevoPasajero
+import cl.belmontespa.myapplication.model.OperacionPendienteEntity
 import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.repository.SoporteLocal
@@ -17,6 +19,8 @@ import cl.belmontespa.myapplication.repository.dto.aDto
 import cl.belmontespa.myapplication.repository.dto.aRequest
 import cl.belmontespa.myapplication.repository.obtener
 import cl.belmontespa.myapplication.util.Validaciones
+import java.io.IOException
+import java.util.UUID
 import kotlinx.coroutines.CancellationException
 
 internal class ViajeRemoto(private val local: SoporteLocal) {
@@ -72,7 +76,38 @@ internal class ViajeRemoto(private val local: SoporteLocal) {
         cache.guardar(listOf(api.rechazar(folio, RechazarRequest(motivo.trim()))))
     }
 
-    suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> = llamar {
-        cache.guardar(listOf(api.cambiarEstadoViaje(folio, EstadoViajeRequest(estado.name))))
+    suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> = intentar {
+        val sesion = local.sesion().obtener { return@intentar it }
+        val encolable = sesion.rol == Rol.CONDUCTOR && estado in ESTADOS_ENCOLABLES
+        if (encolable && local.db.operacionPendienteDao().contarDelViaje(folio) > 0) {
+            return@intentar encolar(sesion.correo, folio, estado)
+        }
+        val viaje = try {
+            api.cambiarEstadoViaje(folio, EstadoViajeRequest(estado.name))
+        } catch (e: IOException) {
+            if (encolable) return@intentar encolar(sesion.correo, folio, estado) else throw e
+        }
+        cache.guardar(listOf(viaje))
+        Resultado.Exito(Unit)
+    }
+
+    private suspend fun encolar(cuenta: String, folio: String, estado: EstadoViaje): Resultado<Nothing> {
+        local.db.operacionPendienteDao().insertar(
+            OperacionPendienteEntity(
+                id = UUID.randomUUID().toString(),
+                cuenta = cuenta,
+                folio = folio,
+                estadoDestino = estado.name,
+                creadoEn = local.clock.millis(),
+                estadoEnvio = EstadoEnvio.PENDIENTE.name,
+                mensajeError = null,
+            ),
+        )
+        local.programador.programar()
+        return Resultado.Encolado
+    }
+
+    private companion object {
+        val ESTADOS_ENCOLABLES = setOf(EstadoViaje.EN_CURSO, EstadoViaje.FINALIZADO)
     }
 }

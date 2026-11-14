@@ -27,6 +27,12 @@ object ApiClient {
     }
 
     @VisibleForTesting
+    @Synchronized
+    fun reemplazarParaPruebas(sesiones: SesionStore, api: BelmonteApi?) {
+        actual = api?.let { sesiones to it }
+    }
+
+    @VisibleForTesting
     fun crear(sesiones: SesionStore, urlBase: String): BelmonteApi {
         val cliente = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)

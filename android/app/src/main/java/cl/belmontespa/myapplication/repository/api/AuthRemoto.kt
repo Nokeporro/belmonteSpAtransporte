@@ -34,9 +34,13 @@ internal class AuthRemoto(private val local: SoporteLocal) {
             EstadoSesion.Temporal(sesion)
         } else {
             local.sesiones.guardar(sesion)
+            if (local.db.operacionPendienteDao().contarDeLaCuenta(sesion.correo) > 0) local.programador.programar()
             EstadoSesion.Autenticada(sesion)
         }
     }
+
+    suspend fun hayCambiosDeOtraCuenta(correo: String): Boolean =
+        local.db.operacionPendienteDao().contarDeOtraCuenta(correo.trim()) > 0
 
     suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> = llamar {
         api.registrarSolicitante(

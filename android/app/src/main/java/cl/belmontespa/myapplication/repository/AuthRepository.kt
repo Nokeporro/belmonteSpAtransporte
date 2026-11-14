@@ -115,6 +115,9 @@ open class AuthRepository(private val local: SoporteLocal) {
 
     open suspend fun actualizarTokenFcm(token: String): Resultado<Unit> = if (!local.modoLocal) remoto.actualizarTokenFcm(token) else Resultado.Exito(Unit)
 
+    open suspend fun hayCambiosDeOtraCuenta(correo: String): Boolean =
+        !local.modoLocal && remoto.hayCambiosDeOtraCuenta(correo)
+
     open suspend fun cerrarSesion(): Resultado<Unit> {
         if (!local.modoLocal) return remoto.cerrarSesion()
         sesionStore.borrar()

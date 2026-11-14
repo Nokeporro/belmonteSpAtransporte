@@ -1,7 +1,10 @@
 package cl.belmontespa.myapplication.repository
 
 import android.app.Application
+import cl.belmontespa.myapplication.dao.OperacionPendienteDao
 import cl.belmontespa.myapplication.dao.ViajeDao
+import cl.belmontespa.myapplication.model.ErrorApp
+import cl.belmontespa.myapplication.model.EstadoEnvio
 import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.FiltroViajes
@@ -11,12 +14,17 @@ import cl.belmontespa.myapplication.model.Resultado
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.model.Sesion
 import cl.belmontespa.myapplication.model.Viaje
+import cl.belmontespa.myapplication.model.aCambioPendiente
 import cl.belmontespa.myapplication.model.aModelo
 import cl.belmontespa.myapplication.repository.api.ViajeRemoto
+import cl.belmontespa.myapplication.repository.api.intentar
 import cl.belmontespa.myapplication.session.SesionStore
+import cl.belmontespa.myapplication.sync.ResultadoSync
+import cl.belmontespa.myapplication.sync.SincronizadorDeCola
 import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -26,6 +34,7 @@ open class ViajeRepository(private val local: SoporteLocal) {
     constructor(application: Application) : this(SoporteLocal.de(application))
 
     private val viajeDao: ViajeDao get() = local.db.viajeDao()
+    private val cola: OperacionPendienteDao get() = local.db.operacionPendienteDao()
     private val sesionStore: SesionStore get() = local.sesiones
     private val clock: Clock get() = local.clock
     private val operaciones = OperacionesViajeLocal(local)
@@ -61,17 +70,20 @@ open class ViajeRepository(private val local: SoporteLocal) {
                 ascendente = filtro.estado in setOf(EstadoViaje.PENDIENTE, EstadoViaje.ASIGNADO, EstadoViaje.EN_CURSO),
             )
         }
-        return consulta.map { filas -> filas.map { it.aModelo().paraRol(sesion.rol) } }
+        return combine(consulta, cola.observarDeCuenta(sesion.correo)) { filas, operaciones ->
+            val porFolio = operaciones.groupBy { it.folio }
+            filas.map { it.aModelo().copy(cambioPendiente = porFolio[it.viaje.folio]?.aCambioPendiente()).paraRol(sesion.rol) }
+        }
     }
 
     private fun detallePara(sesion: Sesion, folio: String): Flow<Viaje?> =
-        viajeDao.observar(folio).map { relacion ->
+        combine(viajeDao.observar(folio), cola.observarDelViaje(folio)) { relacion, operaciones ->
             val enAlcance = relacion != null && when (sesion.rol) {
                 Rol.SOLICITANTE -> relacion.viaje.correoSolicitante == sesion.correo
                 Rol.CONDUCTOR -> relacion.viaje.correoConductor == sesion.correo
                 Rol.ADMINISTRADOR -> true
             }
-            if (enAlcance) relacion?.aModelo()?.paraRol(sesion.rol) else null
+            if (enAlcance) relacion?.aModelo()?.copy(cambioPendiente = operaciones.aCambioPendiente())?.paraRol(sesion.rol) else null
         }
 
     private fun Viaje.paraRol(rol: Rol): Viaje =
@@ -104,4 +116,32 @@ open class ViajeRepository(private val local: SoporteLocal) {
 
     open suspend fun cambiarEstado(folio: String, estado: EstadoViaje): Resultado<Unit> =
         if (!local.modoLocal) remoto.cambiarEstado(folio, estado) else operaciones.estado(folio, estado)
+
+    open suspend fun descartarCambio(folio: String): Resultado<Unit> = intentar {
+        cola.borrarDelViaje(folio)
+        refrescarViaje(folio)
+    }
+
+    open suspend fun contarPendientes(): Int {
+        val sesion = sesionAutenticada() ?: return 0
+        return cola.contarDeLaCuenta(sesion.correo)
+    }
+
+    open suspend fun sincronizarAhora(): Resultado<Unit> = intentar {
+        val sesion = sesionAutenticada() ?: return@intentar Resultado.Fallo(ErrorApp.SesionExpirada)
+        if (local.modoLocal) return@intentar Resultado.Exito(Unit)
+        when (SincronizadorDeCola(local).enviar()) {
+            ResultadoSync.REINTENTAR -> Resultado.Fallo(ErrorApp.SinConexion)
+            ResultadoSync.ESPERAR_SESION -> Resultado.Fallo(ErrorApp.SesionExpirada)
+            ResultadoSync.LISTO -> {
+                val restantes = cola.observarDeCuenta(sesion.correo).first()
+                if (restantes.isEmpty()) {
+                    Resultado.Exito(Unit)
+                } else {
+                    val mensaje = restantes.firstOrNull { it.estadoEnvio == EstadoEnvio.CONFLICTO.name }?.mensajeError
+                    Resultado.Fallo(ErrorApp.Conflicto(mensaje ?: "No pudimos sincronizar el cambio."))
+                }
+            }
+        }
+    }
 }

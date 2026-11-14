@@ -28,7 +28,12 @@ internal class CacheViajes(private val local: SoporteLocal) {
         try {
             guardar(listOf(api.viaje(folio)))
         } catch (e: HttpException) {
-            if (e.code() == 403 || e.code() == 404) local.db.viajeDao().borrar(folio)
+            if (e.code() == 403 || e.code() == 404) {
+                local.db.withTransaction {
+                    local.db.operacionPendienteDao().borrarDelViaje(folio)
+                    local.db.viajeDao().borrar(folio)
+                }
+            }
             throw e
         }
         Resultado.Exito(Unit)

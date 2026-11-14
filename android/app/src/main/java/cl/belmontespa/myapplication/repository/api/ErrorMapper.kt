@@ -20,8 +20,11 @@ object ErrorMapper {
         else -> ErrorApp.Inesperado
     }
 
+    fun mensajeDe(cuerpo: String?): String? =
+        cuerpo?.let { runCatching { json.decodeFromString<ErrorApi>(it).message }.getOrNull() }
+
     fun desdeHttp(codigo: Int, cuerpo: String?): ErrorApp {
-        val mensaje = cuerpo?.let { runCatching { json.decodeFromString<ErrorApi>(it).message }.getOrNull() }
+        val mensaje = mensajeDe(cuerpo)
         return when (codigo) {
             400 -> ErrorApp.Validacion(campos(mensaje))
             401 -> ErrorApp.SesionExpirada
