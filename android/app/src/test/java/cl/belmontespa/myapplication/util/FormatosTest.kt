@@ -97,7 +97,11 @@ class FormatosTest {
                 EtiquetaCalculada.ABORDADO.estiloChip,
             ),
             EstiloChip.PELIGRO to listOf(EstadoViaje.CANCELADO.estiloChip, EstadoPago.RECHAZADO.estiloChip),
-            EstiloChip.PELIGRO_BORDE to listOf(EstadoPago.ANULADO.estiloChip, EtiquetaCalculada.VENCIDO.estiloChip),
+            EstiloChip.PELIGRO_BORDE to listOf(
+                EstadoPago.ANULADO.estiloChip,
+                EtiquetaCalculada.VENCIDO.estiloChip,
+                EtiquetaCalculada.CAMBIO_EN_CONFLICTO.estiloChip,
+            ),
             EstiloChip.AVISO to listOf(
                 EstadoPago.REEMBOLSADO.estiloChip,
                 EtiquetaCalculada.ATRASADO.estiloChip,

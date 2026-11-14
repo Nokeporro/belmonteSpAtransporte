@@ -11,6 +11,7 @@ internal fun viajeDePrueba(
     correoConductor: String? = null,
     patenteMovil: String? = null,
     pasajeros: List<PasajeroViaje> = emptyList(),
+    cambioPendiente: CambioPendiente? = null,
 ): Viaje {
     val lugar = Ubicacion("Av. Providencia 1234", "Providencia", "Metropolitana de Santiago", -33.4261, -70.611)
     return Viaje(
@@ -36,6 +37,7 @@ internal fun viajeDePrueba(
         estadoPago = null,
         motivo = null,
         pasajeros = pasajeros,
+        cambioPendiente = cambioPendiente,
     )
 }
 

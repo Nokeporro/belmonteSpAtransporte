@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.platform.app.InstrumentationRegistry
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.CambioPendiente
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.PasajeroViaje
@@ -59,7 +60,10 @@ class MisViajesScreenTest {
         fecha: LocalDate = hoy,
         error: ErrorApp? = null,
         conductor: String? = "Iván Reyes",
-    ) = MisViajesUiState(fecha = fecha, hoy = hoy, conductor = conductor, filas = filas, cargando = false, error = error)
+        sinConexion: Boolean = false,
+    ) = MisViajesUiState(
+        fecha = fecha, hoy = hoy, conductor = conductor, filas = filas, cargando = false, error = error, sinConexion = sinConexion,
+    )
 
     private fun mostrar(
         estado: MisViajesUiState,
@@ -189,5 +193,30 @@ class MisViajesScreenTest {
         compose.onNodeWithText(textos.getString(R.string.accion_actualizar)).performClick()
 
         assertEquals(1, actualizaciones)
+    }
+
+    private fun chip(id: Int) = textos.getString(R.string.chip_descripcion, textos.getString(id))
+
+    @Test
+    fun unCambioPendienteMuestraSuChipYElBannerDeSinConexion() {
+        val pendiente = viaje("TR-1042", EstadoViaje.ASIGNADO, hoy.atTime(14, 30), listOf("Constanza Ríos"))
+            .copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+        mostrar(estado(filas = listOf(fila(pendiente)), error = ErrorApp.SinConexion, sinConexion = true))
+
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_pendiente_sincronizar)).assertCountEquals(1)
+        compose.onNodeWithText(textos.getString(R.string.banner_sin_conexion_conductor)).assertExists()
+        compose.onNodeWithTag("pantalla_error").assertDoesNotExist()
+        compose.onNodeWithText(textos.getString(R.string.accion_reintentar)).assertExists()
+    }
+
+    @Test
+    fun unCambioEnConflictoMuestraSuChipSinBanner() {
+        val conflicto = viaje("TR-1042", EstadoViaje.ASIGNADO, hoy.atTime(14, 30), listOf("Constanza Ríos"))
+            .copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true))
+        mostrar(estado(filas = listOf(fila(conflicto))))
+
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_cambio_en_conflicto)).assertCountEquals(1)
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_pendiente_sincronizar)).assertCountEquals(0)
+        compose.onNodeWithText(textos.getString(R.string.banner_sin_conexion_conductor)).assertDoesNotExist()
     }
 }

@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import cl.belmontespa.myapplication.database.AppDatabase
 import cl.belmontespa.myapplication.model.HabilitacionEntity
 import cl.belmontespa.myapplication.model.MovilEntity
+import cl.belmontespa.myapplication.model.OperacionPendienteEntity
 import cl.belmontespa.myapplication.model.PasajeroEntity
 import cl.belmontespa.myapplication.model.UsuarioEntity
 import cl.belmontespa.myapplication.model.ViajeEntity
@@ -137,6 +138,40 @@ class DaosTest {
         assertEquals(0, db.viajePasajeroDao().marcarAbordaje("TR-1042", dniHash, "2026-09-24T14:20:00"))
         assertEquals("2026-09-24T14:05:00", db.viajePasajeroDao().obtenerDelViaje("TR-1042").single().fhAbordaje)
     }
+
+    @Test
+    fun laColaSeConsultaPorCuentaViajeYEstado() = runBlocking {
+        guardarViaje(1042)
+        guardarViaje(1049)
+        val cola = db.operacionPendienteDao()
+        cola.insertar(operacion("a", "TR-1042", "ireyes@belmontespa.cl", 1, "PENDIENTE"))
+        cola.insertar(operacion("b", "TR-1042", "ireyes@belmontespa.cl", 2, "CONFLICTO"))
+        cola.insertar(operacion("c", "TR-1049", "IREYES@BELMONTESPA.CL", 3, "PENDIENTE"))
+        cola.insertar(operacion("d", "TR-1049", "otra@belmontespa.cl", 4, "PENDIENTE"))
+
+        assertEquals(listOf("a"), cola.pendientesDeLaCuenta("ireyes@belmontespa.cl").map { it.id })
+        assertEquals(listOf("TR-1042"), cola.foliosEnConflicto("ireyes@belmontespa.cl"))
+        assertEquals(2, cola.contarDelViaje("TR-1042"))
+        assertEquals(3, cola.contarDeLaCuenta("ireyes@belmontespa.cl"))
+        assertEquals(1, cola.contarDeOtraCuenta("ireyes@belmontespa.cl"))
+        assertEquals(listOf("a", "b"), cola.observarDelViaje("TR-1042").first().map { it.id })
+    }
+
+    @Test
+    fun borrarUnViajeConOperacionesPendientesExigeBorrarAntesLaCola() = runBlocking {
+        guardarViaje(1042)
+        db.operacionPendienteDao().insertar(operacion("a", "TR-1042", "ireyes@belmontespa.cl", 1, "PENDIENTE"))
+
+        val error = runCatching { db.viajeDao().borrar("TR-1042") }.exceptionOrNull()
+        assertTrue(error is SQLiteConstraintException)
+
+        db.operacionPendienteDao().borrarDelViaje("TR-1042")
+        db.viajeDao().borrar("TR-1042")
+        assertNull(db.viajeDao().obtener("TR-1042"))
+    }
+
+    private fun operacion(id: String, folio: String, cuenta: String, creadoEn: Long, envio: String) =
+        OperacionPendienteEntity(id, cuenta, folio, "EN_CURSO", creadoEn, envio, null)
 
     private suspend fun guardarViaje(
         folio: Int,

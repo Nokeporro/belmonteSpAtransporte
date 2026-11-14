@@ -82,6 +82,8 @@ internal class ReposP1Falsos {
     var enviosPasajero = 0
     var nuevoPasajero: Pair<String, NuevoPasajero>? = null
     var enviosRegistro = 0
+    var iniciosDeSesion = 0
+    var cambiosDeOtraCuenta = false
     var registro: RegistroSolicitante? = null
     var estadoRegistro = EstadoSolicitante.PENDIENTE
 
@@ -214,8 +216,12 @@ internal class ReposP1Falsos {
     val pagos = PagoFalso()
 
     inner class AuthFalso : AuthRepository(soporteVacio()) {
-        override suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> = fallo?.let { Resultado.Fallo(it) }
-            ?: Resultado.Exito(EstadoSesion.Autenticada(Sesion("demo", correo, Rol.SOLICITANTE, Long.MAX_VALUE)))
+        override suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> {
+            iniciosDeSesion++
+            return fallo?.let { Resultado.Fallo(it) }
+                ?: Resultado.Exito(EstadoSesion.Autenticada(Sesion("demo", correo, Rol.SOLICITANTE, Long.MAX_VALUE)))
+        }
+        override suspend fun hayCambiosDeOtraCuenta(correo: String): Boolean = cambiosDeOtraCuenta
         override fun observarSesion(): Flow<EstadoSesion> = flowOf(EstadoSesion.SinSesion)
         override suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> {
             enviosRegistro++; this@ReposP1Falsos.registro = registro; espera?.await()

@@ -2,6 +2,7 @@ package cl.belmontespa.myapplication.viewmodel.conductor
 
 import androidx.lifecycle.SavedStateHandle
 import cl.belmontespa.myapplication.RelojMovil
+import cl.belmontespa.myapplication.model.CambioPendiente
 import cl.belmontespa.myapplication.model.Cuenta
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
@@ -276,6 +277,92 @@ class MisViajesViewModelTest {
 
         assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
         assertEquals(listOf("TR-1042"), vm.estado.value.filas.map { it.viaje.folio })
+    }
+
+    @Test
+    fun unInicioPendienteNoSeMuestraAtrasadoYAvisaQueNoHayConexion() {
+        viajes.todos.value = listOf(
+            viaje("TR-1", EstadoViaje.ASIGNADO, -30).copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO)),
+            viaje("TR-2", EstadoViaje.ASIGNADO, -30),
+        )
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+
+        val vm = crear()
+
+        val filas = vm.estado.value.filas.associateBy { it.viaje.folio }
+        assertNull(filas.getValue("TR-1").retraso)
+        assertEquals(Retraso.ATRASADO, filas.getValue("TR-2").retraso)
+        assertTrue(vm.estado.value.sinConexion)
+        assertTrue(vm.estado.value.bannerSinConexion)
+    }
+
+    @Test
+    fun sinCambiosPendientesUnFalloDeConexionNoMuestraElBanner() {
+        viajes.todos.value = listOf(viaje("TR-1", EstadoViaje.ASIGNADO, 30))
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+
+        val vm = crear()
+
+        assertTrue(vm.estado.value.sinConexion)
+        assertFalse(vm.estado.value.bannerSinConexion)
+    }
+
+    @Test
+    fun unCambioEnConflictoNoMuestraElBannerDeSinConexion() {
+        viajes.todos.value = listOf(
+            viaje("TR-1", EstadoViaje.ASIGNADO, 30).copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true)),
+        )
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+
+        val vm = crear()
+
+        assertFalse(vm.estado.value.bannerSinConexion)
+    }
+
+    @Test
+    fun alSincronizarseLosCambiosPendientesDesapareceElAvisoDeSinConexion() {
+        viajes.todos.value = listOf(
+            viaje("TR-1", EstadoViaje.ASIGNADO, 30).copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO)),
+        )
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+
+        viajes.todos.value = listOf(viaje("TR-1", EstadoViaje.EN_CURSO, 30))
+
+        assertNull(vm.estado.value.error)
+        assertFalse(vm.estado.value.sinConexion)
+        assertFalse(vm.estado.value.bannerSinConexion)
+    }
+
+    @Test
+    fun alPasarElCambioAConflictoDesapareceElAvisoDeSinConexion() {
+        viajes.todos.value = listOf(
+            viaje("TR-1", EstadoViaje.ASIGNADO, 30).copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO)),
+        )
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+
+        viajes.todos.value = listOf(
+            viaje("TR-1", EstadoViaje.CANCELADO, 30)
+                .copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true, mensajeError = "No se puede")),
+        )
+
+        assertNull(vm.estado.value.error)
+        assertFalse(vm.estado.value.sinConexion)
+    }
+
+    @Test
+    fun unRefrescoExitosoApagaElIndicadorDeSinConexion() {
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertTrue(vm.estado.value.sinConexion)
+
+        viajes.resultadoRefresco = Resultado.Exito(Unit)
+        vm.actualizar()
+
+        assertFalse(vm.estado.value.sinConexion)
     }
 
     @Test

@@ -2,6 +2,7 @@ package cl.belmontespa.myapplication.viewmodel.conductor
 
 import cl.belmontespa.myapplication.RelojMovil
 import cl.belmontespa.myapplication.model.AppNavegacion
+import cl.belmontespa.myapplication.model.CambioPendiente
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.FiltroViajes
@@ -362,7 +363,134 @@ class DetalleViajeViewModelTest {
 
         assertNull(vm.estado.value.error)
         assertFalse(vm.estado.value.enviando)
+        assertTrue(vm.estado.value.sinConexion)
         assertEquals(EstadoViaje.EN_CURSO, vm.estado.value.viaje?.estado)
+    }
+
+    @Test
+    fun conUnInicioPendienteSeHabilitaFinalizarYNoSePuedeIniciarDeNuevo() {
+        viajes.viaje.value = viaje(minutosDesdeAhora = -30)
+        val vm = crear()
+        assertEquals(Retraso.ATRASADO, vm.estado.value.retraso)
+        assertTrue(vm.estado.value.puedeIniciar)
+
+        viajes.viaje.value = viaje(minutosDesdeAhora = -30).copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+
+        val estado = vm.estado.value
+        assertEquals(EstadoViaje.ASIGNADO, estado.viaje?.estado)
+        assertNull(estado.retraso)
+        assertEquals(Inicio.NO_APLICA, estado.inicio)
+        assertTrue(estado.pendiente)
+        assertFalse(estado.puedeIniciar)
+        assertTrue(estado.puedeFinalizar)
+        assertFalse(estado.puedeRechazar)
+    }
+
+    @Test
+    fun conUnFinalizarPendienteYaNoQuedanControles() {
+        viajes.viaje.value = viaje(estado = EstadoViaje.EN_CURSO).copy(cambioPendiente = CambioPendiente(EstadoViaje.FINALIZADO))
+
+        val estado = crear().estado.value
+
+        assertTrue(estado.pendiente)
+        assertFalse(estado.conControles)
+        assertFalse(estado.puedeFinalizar)
+    }
+
+    @Test
+    fun unCambioEnConflictoOcultaLosControlesYSePuedeDescartar() {
+        val conflicto = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true, mensajeError = "El viaje fue cancelado.")
+        viajes.viaje.value = viaje().copy(cambioPendiente = conflicto)
+        val vm = crear()
+
+        assertTrue(vm.estado.value.enConflicto)
+        assertFalse(vm.estado.value.pendiente)
+        assertFalse(vm.estado.value.conControles)
+        assertFalse(vm.estado.value.puedeIniciar)
+
+        vm.descartarCambio()
+
+        assertEquals(listOf("TR-1042"), viajes.descartados)
+        assertFalse(vm.estado.value.enviando)
+        assertNull(vm.estado.value.error)
+    }
+
+    @Test
+    fun descartarSinConflictoNoHaceNada() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+
+        vm.descartarCambio()
+
+        assertTrue(viajes.descartados.isEmpty())
+    }
+
+    @Test
+    fun elBannerDeSinConexionSoloApareceConUnCambioPendiente() {
+        viajes.viaje.value = viaje(estado = EstadoViaje.EN_CURSO)
+        val vm = crear()
+        viajes.respuestaEstado = { Resultado.Encolado }
+
+        vm.pedirFinalizar()
+        vm.confirmarFinalizar()
+        assertTrue(vm.estado.value.sinConexion)
+        assertFalse(vm.estado.value.bannerSinConexion)
+
+        viajes.viaje.value = viaje(estado = EstadoViaje.EN_CURSO).copy(cambioPendiente = CambioPendiente(EstadoViaje.FINALIZADO))
+        assertTrue(vm.estado.value.bannerSinConexion)
+    }
+
+    @Test
+    fun alSincronizarseElCambioPendienteDesapareceElAvisoDeSinConexion() {
+        viajes.viaje.value = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+        assertTrue(vm.estado.value.sinConexion)
+
+        viajes.viaje.value = viaje(estado = EstadoViaje.EN_CURSO)
+
+        assertNull(vm.estado.value.error)
+        assertFalse(vm.estado.value.sinConexion)
+    }
+
+    @Test
+    fun alPasarElCambioAConflictoDesapareceElAvisoDeSinConexion() {
+        viajes.viaje.value = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+
+        viajes.viaje.value = viaje(estado = EstadoViaje.CANCELADO)
+            .copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true, mensajeError = "No se puede"))
+
+        assertNull(vm.estado.value.error)
+        assertFalse(vm.estado.value.sinConexion)
+        assertTrue(vm.estado.value.enConflicto)
+    }
+
+    @Test
+    fun alSincronizarseUnOtroErrorNoSeBorra() {
+        viajes.viaje.value = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.Inesperado)
+        val vm = crear()
+
+        viajes.viaje.value = viaje(estado = EstadoViaje.EN_CURSO)
+
+        assertEquals(ErrorApp.Inesperado, vm.estado.value.error)
+    }
+
+    @Test
+    fun unRefrescoExitosoApagaElIndicadorDeSinConexion() {
+        viajes.viaje.value = viaje()
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+        assertTrue(vm.estado.value.sinConexion)
+
+        viajes.resultadoRefresco = Resultado.Exito(Unit)
+        vm.actualizar()
+
+        assertFalse(vm.estado.value.sinConexion)
     }
 
     @Test
@@ -609,6 +737,16 @@ class DetalleViajeViewModelTest {
     }
 
     @Test
+    fun conUnInicioPendienteNavegaAlDestino() {
+        viajes.viaje.value = conRuta().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO))
+        navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS)
+
+        crear().navegar()
+
+        assertEquals(listOf(AppNavegacion.GOOGLE_MAPS to destino), navegador.abiertas)
+    }
+
+    @Test
     fun conVariasAplicacionesPreguntaConCualSinAbrirNada() {
         viajes.viaje.value = conRuta()
         navegador.disponibles = listOf(AppNavegacion.GOOGLE_MAPS, AppNavegacion.WAZE)
@@ -782,6 +920,7 @@ private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
     val refrescados = mutableListOf<String>()
     val estados = mutableListOf<Pair<String, EstadoViaje>>()
     val rechazos = mutableListOf<Pair<String, String>>()
+    val descartados = mutableListOf<String>()
     var resultadoRefresco: Resultado<Unit> = Resultado.Exito(Unit)
     var respuestaEstado: suspend () -> Resultado<Unit> = { Resultado.Exito(Unit) }
     var respuestaRechazo: suspend () -> Resultado<Unit> = { Resultado.Exito(Unit) }
@@ -805,6 +944,11 @@ private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
     override suspend fun rechazar(folio: String, motivo: String): Resultado<Unit> {
         rechazos += folio to motivo
         return respuestaRechazo()
+    }
+
+    override suspend fun descartarCambio(folio: String): Resultado<Unit> {
+        descartados += folio
+        return Resultado.Exito(Unit)
     }
 
     override fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> = sinUso()

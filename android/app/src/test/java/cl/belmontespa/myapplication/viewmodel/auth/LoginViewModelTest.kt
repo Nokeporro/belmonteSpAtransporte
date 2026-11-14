@@ -14,6 +14,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -38,5 +40,54 @@ class LoginViewModelTest {
         assertEquals(R.string.error_cuenta_pendiente, login.estado.value.error)
         repos.fallo = null; login.iniciarSesion(); runCurrent()
         assertEquals("", login.estado.value.password)
+    }
+
+    @Test fun conCambiosDeOtraCuentaPideConfirmarAntesDeEntrar() = runTest(dispatcher) {
+        val login = LoginViewModel(aplicacionFalsa(), repos.auth)
+        login.cambiarCorreo("otra@test.cl"); login.cambiarPassword("Clave12345")
+        repos.cambiosDeOtraCuenta = true
+
+        login.iniciarSesion(); runCurrent()
+
+        assertTrue(login.estado.value.confirmandoOtraCuenta)
+        assertFalse(login.estado.value.enviando)
+        assertEquals(0, repos.iniciosDeSesion)
+
+        login.confirmarOtraCuenta(); runCurrent()
+
+        assertFalse(login.estado.value.confirmandoOtraCuenta)
+        assertEquals(1, repos.iniciosDeSesion)
+        assertEquals("", login.estado.value.password)
+    }
+
+    @Test fun cancelarLaConfirmacionNoIniciaSesionYConservaLosDatos() = runTest(dispatcher) {
+        val login = LoginViewModel(aplicacionFalsa(), repos.auth)
+        login.cambiarCorreo("otra@test.cl"); login.cambiarPassword("Clave12345")
+        repos.cambiosDeOtraCuenta = true
+        login.iniciarSesion(); runCurrent()
+
+        login.cancelarOtraCuenta(); runCurrent()
+
+        assertFalse(login.estado.value.confirmandoOtraCuenta)
+        assertEquals(0, repos.iniciosDeSesion)
+        assertEquals("Clave12345", login.estado.value.password)
+    }
+
+    @Test fun sinCambiosDeOtraCuentaEntraSinPreguntar() = runTest(dispatcher) {
+        val login = LoginViewModel(aplicacionFalsa(), repos.auth)
+        login.cambiarCorreo("cuenta@test.cl"); login.cambiarPassword("Clave12345")
+
+        login.iniciarSesion(); runCurrent()
+
+        assertFalse(login.estado.value.confirmandoOtraCuenta)
+        assertEquals(1, repos.iniciosDeSesion)
+    }
+
+    @Test fun confirmarSinConfirmacionPendienteNoHaceNada() = runTest(dispatcher) {
+        val login = LoginViewModel(aplicacionFalsa(), repos.auth)
+
+        login.confirmarOtraCuenta(); runCurrent()
+
+        assertEquals(0, repos.iniciosDeSesion)
     }
 }

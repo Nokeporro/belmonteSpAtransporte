@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.platform.app.InstrumentationRegistry
 import cl.belmontespa.myapplication.R
 import cl.belmontespa.myapplication.model.AppNavegacion
+import cl.belmontespa.myapplication.model.CambioPendiente
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.EstadoViaje
 import cl.belmontespa.myapplication.model.Inicio
@@ -73,10 +74,11 @@ class DetalleViajeScreenTest {
         motivo: String = "",
         opciones: List<AppNavegacion>? = null,
         sinAppDeNavegacion: Boolean = false,
+        sinConexion: Boolean = false,
     ) = DetalleViajeUiState(
         cargando = false, viaje = viaje, retraso = retraso, arqueo = viaje?.arqueo(), inicio = inicio,
         confirmandoFin = confirmandoFin, rechazando = rechazando, motivo = motivo, error = error,
-        opcionesDeNavegacion = opciones, sinAppDeNavegacion = sinAppDeNavegacion,
+        opcionesDeNavegacion = opciones, sinAppDeNavegacion = sinAppDeNavegacion, sinConexion = sinConexion,
     )
 
     private class Avisos {
@@ -102,6 +104,7 @@ class DetalleViajeScreenTest {
                     onDescartarRechazo = { avisos.llamadas += "descartarRechazo" },
                     onElegirApp = { avisos.llamadas += "elegir:${it.name}" },
                     onCerrarOpciones = { avisos.llamadas += "cerrarOpciones" },
+                    onDescartarCambioPendiente = { avisos.llamadas += "descartarCambio" },
                 )
             }
         }
@@ -308,6 +311,66 @@ class DetalleViajeScreenTest {
         compose.onNodeWithText("El viaje cambió de estado. Actualiza el detalle.").assertExists()
         compose.onNodeWithTag("pantalla_contenido").assertExists()
         compose.onNodeWithText(texto(R.string.accion_reintentar)).assertDoesNotExist()
+    }
+
+    private fun chip(id: Int) = textos.getString(R.string.chip_descripcion, texto(id))
+
+    @Test
+    fun unInicioPendienteMuestraElChipYDejaSoloFinalizar() {
+        mostrar(estado(viaje = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO)), inicio = Inicio.NO_APLICA))
+
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_pendiente_sincronizar)).assertCountEquals(1)
+        compose.onAllNodesWithContentDescription(chip(R.string.estado_viaje_asignado)).assertCountEquals(1)
+        compose.onNodeWithText(texto(R.string.accion_iniciar)).assertIsNotEnabled()
+        compose.onNodeWithText(texto(R.string.accion_finalizar)).assertIsEnabled()
+        compose.onNodeWithText(texto(R.string.accion_rechazar)).assertDoesNotExist()
+    }
+
+    @Test
+    fun conUnCambioPendienteYSinConexionElBannerReemplazaAlAvisoRojo() {
+        mostrar(
+            estado(
+                viaje = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO)),
+                inicio = Inicio.NO_APLICA, error = ErrorApp.SinConexion, sinConexion = true,
+            ),
+        )
+
+        compose.onNodeWithText(texto(R.string.banner_sin_conexion_conductor)).assertExists()
+        compose.onNodeWithTag("pantalla_error").assertDoesNotExist()
+        compose.onNodeWithText(texto(R.string.accion_reintentar)).assertExists()
+    }
+
+    @Test
+    fun sinCambiosPendientesElFalloDeConexionSigueSiendoElAvisoRojo() {
+        mostrar(estado(error = ErrorApp.SinConexion, sinConexion = true))
+
+        compose.onNodeWithTag("pantalla_error").assertExists()
+        compose.onNodeWithText(texto(R.string.banner_sin_conexion_conductor)).assertDoesNotExist()
+    }
+
+    @Test
+    fun unConflictoMuestraElMensajeDelServidorYOfreceDescartarElCambio() {
+        val avisos = Avisos()
+        val conflicto = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true, mensajeError = "El viaje fue cancelado")
+        mostrar(estado(viaje = viaje().copy(cambioPendiente = conflicto)), avisos)
+
+        compose.onNodeWithTag("pantalla_conflicto").assertExists()
+        compose.onNodeWithText("El viaje fue cancelado").assertExists()
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_cambio_en_conflicto)).assertCountEquals(1)
+        compose.onAllNodesWithContentDescription(chip(R.string.etiqueta_pendiente_sincronizar)).assertCountEquals(0)
+        compose.onNodeWithText(texto(R.string.accion_iniciar)).assertDoesNotExist()
+        compose.onNodeWithText(texto(R.string.accion_finalizar)).assertDoesNotExist()
+
+        compose.onNodeWithText(texto(R.string.accion_descartar_cambio)).performClick()
+
+        assertEquals(listOf("descartarCambio"), avisos.llamadas)
+    }
+
+    @Test
+    fun unConflictoSinMensajeUsaElTextoGeneral() {
+        mostrar(estado(viaje = viaje().copy(cambioPendiente = CambioPendiente(EstadoViaje.EN_CURSO, enConflicto = true))))
+
+        compose.onNodeWithText(texto(R.string.error_sincronizacion)).assertExists()
     }
 
     @Test

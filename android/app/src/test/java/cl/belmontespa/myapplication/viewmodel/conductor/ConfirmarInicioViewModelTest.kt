@@ -267,14 +267,14 @@ class ConfirmarInicioViewModelTest {
     }
 
     @Test
-    fun unCambioEnColaNoSeMuestraComoIniciadoNiComoError() {
+    fun unCambioEnColaVuelveAlDetalleSinMostrarErrorNiCambiarElEstado() {
         viajes.viaje.value = viaje()
         val vm = crear()
         viajes.respuestaEstado = { Resultado.Encolado }
 
         vm.confirmar()
 
-        assertFalse(vm.estado.value.iniciado)
+        assertTrue(vm.estado.value.iniciado)
         assertFalse(vm.estado.value.enviando)
         assertNull(vm.estado.value.error)
         assertEquals(EstadoViaje.ASIGNADO, vm.estado.value.viaje?.estado)

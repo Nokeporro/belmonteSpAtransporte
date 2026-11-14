@@ -35,8 +35,8 @@ estado del backend sale de revisar `backend/` en esta rama.
 - **Android:** la app vive en `android/` y la build `demo` corre completa sobre Room, con las 46 pantallas
   (MVVM con Repository simple, sin Hilt, `view/` y `viewmodel/`). Cada pantalla tiene su ViewModel,
   salvo "Inicio de aplicación" y "Abordaje registrado", que no tienen estado propio. Las llamadas
-  remotas del Repository (T14, desde el 12-11), el push y la cola sin conexión son la Etapa 2. La rama
-  `android` es obsoleta y no se usa.
+  remotas del Repository (T14, desde el 12-11) y la cola sin conexión (HU11) están hechas; el push es la
+  Etapa 2. La rama `android` es obsoleta y no se usa.
 
 ## Resumen
 
@@ -197,7 +197,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 | 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | 1 falta (A, 12-11) | Backend 12-11; Android después de la ventana |
 | 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; falta el token (HU14) | Android después de la ventana |
 | 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Ajustar V3 y V4 (A, 13-11) | Backend 13-11; Android después de la ventana |
-| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | Después de la ventana |
+| 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | Hecho el 14-11 (Iniciar y Finalizar se encolan solo ante un fallo de red y se envían con WorkManager; chip, banner, conflicto con «Descartar cambio», cierre de sesión y cambio de cuenta con pendientes); recorrido en el emulador contra el backend, ver el [riesgo](#riesgos) |
 | 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | Rutas restantes | 14-11 |
 | 46 | T16 | `database/demo.sql` | B | E2 | — | — | Etapa 1 | — | 13-11 |
 | 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — | Después de la ventana |
@@ -256,7 +256,7 @@ día: `ViajeService` lo toca solo A el 13-11, y `ci.yml` y `demo.sql` solo B.
 
 Si A termina antes, toma Pago y Catálogo; si B termina antes, apoya Flota.
 
-**Fuera de la ventana:** HU11 (cola con WorkManager), el lado Android de HU12, HU13 y HU14 (servicio FCM,
+**Fuera de la ventana:** el lado Android de HU12, HU13 y HU14 (servicio FCM,
 `onNewToken`, permiso de notificaciones, plugin `google-services` y el secreto `GOOGLE_SERVICES_JSON` en CI),
 Google Places en HU02, T17, T18 y T19. El plugin `google-services` rompe todas las variantes si falta
 `google-services.json`, por eso no se agrega hasta HU14.
@@ -353,10 +353,11 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 |---|---|
 | **Plazo del 14-11:** quedan dos días (12 y 13-11, más el 14 para cerrar) para el backend completo y T14. | La Etapa 1 está entregada (28-10). Lo recortable es T14 de Pago y Flota; el backend completo no se recorta. Ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11). |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3, y en la ventana concentra `token-fcm` y los push. | B hace la base del backend (T07 a T10) y en la Etapa 2 `demo.sql`, el job de CI y las IT. Si A se atrasa, B toma los push de V1 y de cuenta pendiente, previo acuerdo, sin afectar que cada uno explique su Android. |
-| **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión. Las instrumentadas de Android pasan (263 el 14-11, en un emulador con `modoLocalPorDefecto` en `true`). | El 14-11, correr `./gradlew test` completo contra el compose (3307); en Android, repetir las instrumentadas tras cualquier cambio (comparten el `applicationId` de la demo y borran sus datos). Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |
+| **Pruebas sin verificar:** las IT del backend no se corrieron en esta revisión. Las instrumentadas de Android pasan (307 el 14-11 con HU11, en un emulador con `modoLocalPorDefecto` en `true`) y las 500 JVM también. | El 14-11, correr `./gradlew test` completo contra el compose (3307); en Android, repetir las instrumentadas tras cualquier cambio (comparten el `applicationId` de la demo y borran sus datos). Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |
 | **Divergencia del QR (resuelta el 12-11):** desde `6b38cda` el Android leía solo la patente; el README y el backend exigen `{patente}:{codigo}`. | El Android volvió a `BELMONTE-ABORDAJE:{patente}:{codigo}` con ingreso manual de patente y código; `POST /abordajes` los envía. |
 | **Cambio de `debug` a remoto:** desde T14 la build `debug` llama al backend (`10.0.2.2:8080`) y no carga semilla; `demo` es la única local. `debug` y `demo` comparten `applicationId` y base: la semilla de `demo` queda en la caché de `debug`. | Correr `adb shell pm clear cl.belmontespa.myapplication` al pasar de una a otra (README, Build `demo`). El README ya describe el cambio. |
 | **T14 probado en parte contra el backend (14-11):** con el compose (3307), `bootRun` y el emulador, la app inició sesión como Administrador y como Conductor, listó viajes y mostró el detalle con el abordaje y el pago. Con curl se recorrieron las rutas de T14 (login de los tres roles, cuenta pendiente y aprobación, flota, viaje en 3 pasos, asignar, pagar, iniciar, abordaje con patente y código, y los 400, 401, 404 y 409) y los contratos coinciden con los DTOs. Siguen sin recorrerse por la interfaz: nueva solicitud, asignar, cancelar, pagos, flota y el abordaje con QR. | Recorrerlos con un emulador y el backend en `10.0.2.2:8080` antes de cerrar T14. Un viaje solo se inicia a ±1 h de `fhAgenda` y esta debe estar entre 2 h y 90 días: para probar `EN_CURSO` y el abordaje hay que mover `fh_agenda` en la base. `POST /auth/token-fcm` responde 403 hasta que A la agregue. |
+| **HU11 probado en el emulador contra el backend (14-11):** con la red cortada, Iniciar y Finalizar quedan «Pendiente de sincronizar» y al reconectar el servidor pasa a `EN_CURSO` y `FINALIZADO`; con el viaje cancelado por el Administrador mientras tanto, el envío responde 409, el detalle muestra el mensaje del backend y «Descartar cambio» lo limpia; cerrar sesión con un cambio pendiente ofrece sincronizar o descartar (sin red «Sincronizar» no cierra). El banner de «Sin conexión» sale de un fallo de red en el envío o la consulta, no de `ConnectivityManager`. Sin recorrer por la interfaz: el aviso al entrar con otra cuenta (solo con pruebas instrumentadas) y el envío tras reiniciar el equipo. | Repetirlo con el emulador y el backend en `10.0.2.2:8080`: cortar la red con `adb shell svc wifi disable; adb shell svc data disable` y devolverla con `enable`. La cola solo existe con `modoLocal` falso (`debug` y `release`); `demo` no encola. |
 | **CI sin job `backend`:** `.github/workflows/ci.yml` solo corre `android`; el README define `backend` con MariaDB como parte de la Etapa 2 (T15). | B lo agrega el 13-11 (PR `chore/`). |
-| **ViewModels sin prueba:** `Conductores`, `DetalleSolicitudAdmin`, `MisSolicitudes`, `Notificacion`, `Perfil` y `Vehiculos` no tienen `*ViewModelTest` (`Sesion` ya lo tiene). | Escribirlas con los dobles de `ReposFalsos` si alcanza el tiempo; cada integrante cubre las de sus pantallas. |
+| **ViewModels sin prueba:** `Conductores`, `DetalleSolicitudAdmin`, `MisSolicitudes`, `Notificacion` y `Vehiculos` no tienen `*ViewModelTest` (`Sesion` ya lo tiene). | Escribirlas con los dobles de `ReposFalsos` si alcanza el tiempo; cada integrante cubre las de sus pantallas. |
 | **Evaluación individual:** cada uno debe explicar y modificar su Android sin apuntes ni IA. | Cada integrante escribe el Android de sus HU (README, [Plan de trabajo](README.md#plan-de-trabajo)), y T12 ensaya la explicación y un cambio en vivo. |
