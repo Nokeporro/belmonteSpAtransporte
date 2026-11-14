@@ -12,6 +12,7 @@ import cl.belmontespa.myapplication.model.Retraso
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.retraso
+import cl.belmontespa.myapplication.model.vigente
 import cl.belmontespa.myapplication.repository.CuentaRepository
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.util.Reloj
@@ -39,8 +40,10 @@ data class MisViajesUiState(
     val filas: List<ViajeFila> = emptyList(),
     val cargando: Boolean = true,
     val error: ErrorApp? = null,
+    val sinConexion: Boolean = false,
 ) {
     val esHoy: Boolean get() = fecha == hoy
+    val bannerSinConexion: Boolean get() = sinConexion && filas.any { it.viaje.cambioPendiente?.enConflicto == false }
 }
 
 class MisViajesViewModel @JvmOverloads constructor(
@@ -108,8 +111,12 @@ class MisViajesViewModel @JvmOverloads constructor(
             viajes.observarViajes(filtro())
                 .catch { _estado.update { it.copy(cargando = false, error = ErrorApp.Inesperado) } }
                 .collect { lista ->
+                    val sincronizado = ultimos.any { it.cambioPendiente?.enConflicto == false } && lista.none { it.cambioPendiente?.enConflicto == false }
                     ultimos = lista
-                    _estado.update { it.copy(filas = filas(lista), cargando = false) }
+                    _estado.update {
+                        val base = if (sincronizado && it.error == ErrorApp.SinConexion) it.copy(error = null, sinConexion = false) else it
+                        base.copy(filas = filas(lista), cargando = false)
+                    }
                 }
         }
     }
@@ -117,10 +124,11 @@ class MisViajesViewModel @JvmOverloads constructor(
     private fun filas(lista: List<Viaje>): List<ViajeFila> {
         val ahora = LocalDateTime.now(clock)
         return lista.map { viaje ->
+            val vigente = viaje.vigente()
             ViajeFila(
                 viaje = viaje,
-                retraso = viaje.retraso(clock),
-                antesDeLaVentana = viaje.estado == EstadoViaje.ASIGNADO && ahora < viaje.disponibleDesde(),
+                retraso = vigente.retraso(clock),
+                antesDeLaVentana = vigente.estado == EstadoViaje.ASIGNADO && ahora < vigente.disponibleDesde(),
             )
         }
     }
@@ -134,7 +142,9 @@ class MisViajesViewModel @JvmOverloads constructor(
 
     private fun avisarSiFalla(resultado: Resultado<*>) {
         if (resultado is Resultado.Fallo) {
-            _estado.update { it.copy(error = resultado.error, cargando = false) }
+            _estado.update { it.copy(error = resultado.error, cargando = false, sinConexion = resultado.error == ErrorApp.SinConexion) }
+        } else {
+            _estado.update { it.copy(sinConexion = false) }
         }
     }
 

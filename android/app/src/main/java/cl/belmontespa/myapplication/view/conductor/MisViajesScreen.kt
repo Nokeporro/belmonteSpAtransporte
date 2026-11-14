@@ -39,12 +39,14 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.navigation.PantallaDemo
 import cl.belmontespa.myapplication.ui.theme.EstilosMono
 import cl.belmontespa.myapplication.util.Formatos
 import cl.belmontespa.myapplication.view.components.Aviso
+import cl.belmontespa.myapplication.view.components.BannerSinConexion
 import cl.belmontespa.myapplication.view.components.BarraSuperior
 import cl.belmontespa.myapplication.view.components.BotonAncho
 import cl.belmontespa.myapplication.view.components.EstadoChip
@@ -105,11 +107,14 @@ fun MisViajesContenido(
                 if (error != null) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
+                            if (!(error is ErrorApp.SinConexion && estado.bannerSinConexion)) {
+                                Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
+                            }
                             BotonAncho(stringResource(R.string.accion_reintentar), onActualizar, tipo = TipoBoton.SECUNDARIO)
                         }
                     }
                 }
+                if (estado.bannerSinConexion) item { BannerSinConexion() }
                 if (estado.filas.isEmpty()) {
                     item { Text(stringResource(R.string.vacio_mis_viajes), color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
@@ -176,6 +181,7 @@ private fun FilaViaje(fila: ViajeFila, dia: LocalDate, onVerDetalle: () -> Unit)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip)
                     fila.retraso?.etiquetaCalculada?.let { EstadoChip(stringResource(it.etiqueta), it.estiloChip) }
+                    viaje.cambioPendiente?.etiquetaCalculada?.let { EstadoChip(stringResource(it.etiqueta), it.estiloChip) }
                 }
                 Text(pasajeros(viaje), style = MaterialTheme.typography.titleMedium)
                 Text("${viaje.origen.direccion} → ${viaje.destino.direccion}")

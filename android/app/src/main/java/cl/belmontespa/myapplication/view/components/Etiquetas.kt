@@ -2,6 +2,7 @@ package cl.belmontespa.myapplication.view.components
 
 import androidx.annotation.StringRes
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.model.CambioPendiente
 import cl.belmontespa.myapplication.model.EstadoConductor
 import cl.belmontespa.myapplication.model.EstadoMovil
 import cl.belmontespa.myapplication.model.EstadoPago
@@ -150,6 +151,7 @@ enum class EtiquetaCalculada(
         R.string.etiqueta_pendiente_sincronizar,
         EstiloChip.AVISO,
     ),
+    CAMBIO_EN_CONFLICTO(R.string.etiqueta_cambio_en_conflicto, EstiloChip.PELIGRO_BORDE),
     ABORDADO(R.string.etiqueta_abordado, EstiloChip.CORRECTO),
     POR_ABORDAR(R.string.etiqueta_por_abordar, EstiloChip.NEUTRO),
 
@@ -161,3 +163,6 @@ val Retraso.etiquetaCalculada: EtiquetaCalculada
         Retraso.ATRASADO -> EtiquetaCalculada.ATRASADO
         Retraso.VENCIDO -> EtiquetaCalculada.VENCIDO
     }
+
+val CambioPendiente.etiquetaCalculada: EtiquetaCalculada
+    get() = if (enConflicto) EtiquetaCalculada.CAMBIO_EN_CONFLICTO else EtiquetaCalculada.PENDIENTE_SINCRONIZAR

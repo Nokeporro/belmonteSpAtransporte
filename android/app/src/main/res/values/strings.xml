@@ -48,6 +48,8 @@
 
     <string name="banner_sin_conexion_conductor">Sin conexión. Los cambios se enviarán al reconectar.</string>
     <string name="aviso_pendientes_al_volver">Tus cambios pendientes se enviarán al volver a entrar.</string>
+    <string name="aviso_cierre_con_pendientes">Tienes cambios sin enviar. Puedes sincronizarlos ahora o descartarlos.</string>
+    <string name="accion_sincronizar">Sincronizar</string>
     <string name="aviso_pendientes_otra_cuenta">Hay cambios sin enviar de otra cuenta. Si continúas, se descartarán.</string>
     <string name="aviso_formulario_reiniciado">El formulario se reinició. Ingresa de nuevo los datos.</string>
 
@@ -113,6 +115,7 @@
     <string name="etiqueta_atrasado">Atrasado</string>
     <string name="etiqueta_vencido">Vencido</string>
     <string name="etiqueta_pendiente_sincronizar">Pendiente de sincronizar</string>
+    <string name="etiqueta_cambio_en_conflicto">Cambio en conflicto</string>
     <string name="etiqueta_abordado">Abordado</string>
     <string name="etiqueta_por_abordar">Por abordar</string>
     <string name="etiqueta_inactivo">Inactivo</string>

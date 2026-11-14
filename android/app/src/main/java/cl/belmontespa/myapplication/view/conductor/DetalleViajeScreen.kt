@@ -99,6 +99,7 @@ fun DetalleViajeScreen(
         onCerrarOpciones = viewModel::cerrarOpciones,
         escenario = escenario,
         onDescartarCambio = { onNavegar(PantallaDemo.DETALLE_VIAJE, folio) },
+        onDescartarCambioPendiente = viewModel::descartarCambio,
     )
 }
 
@@ -123,6 +124,7 @@ fun DetalleViajeContenido(
     onCerrarOpciones: () -> Unit,
     escenario: EscenarioDemo? = null,
     onDescartarCambio: () -> Unit = {},
+    onDescartarCambioPendiente: () -> Unit = {},
 ) {
     val viaje = estado.viaje
     val error = estado.error
@@ -143,12 +145,16 @@ fun DetalleViajeContenido(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 if (error != null) {
-                    Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
+                    if (!(error is ErrorApp.SinConexion && estado.bannerSinConexion)) {
+                        Aviso(error.texto(), TonoAviso.PELIGRO, Modifier.testTag("pantalla_error"))
+                    }
                     if (error !is ErrorApp.Conflicto) {
                         BotonAncho(stringResource(R.string.accion_reintentar), onActualizar, tipo = TipoBoton.SECUNDARIO)
                     }
                 }
+                if (estado.bannerSinConexion) BannerSinConexion()
                 Escenario(escenario, onActualizar, onDescartarCambio)
+                CambioEnConflicto(estado, onDescartarCambio = onDescartarCambioPendiente)
                 Datos(estado)
                 estado.arqueo?.let { ArqueoDeAbordaje(it, viaje.pasajeros) }
                 if (estado.conControles) {
@@ -208,6 +214,20 @@ private fun Escenario(escenario: EscenarioDemo?, onActualizar: () -> Unit, onDes
     }
 }
 
+@Composable
+private fun CambioEnConflicto(estado: DetalleViajeUiState, onDescartarCambio: () -> Unit) {
+    val cambio = estado.viaje?.cambioPendiente?.takeIf { it.enConflicto } ?: return
+    Aviso(
+        cambio.mensajeError ?: stringResource(R.string.error_sincronizacion),
+        TonoAviso.PELIGRO,
+        Modifier.testTag("pantalla_conflicto"),
+    )
+    BotonAncho(
+        stringResource(R.string.accion_descartar_cambio), onDescartarCambio,
+        tipo = TipoBoton.SECUNDARIO, habilitado = !estado.enviando,
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Datos(estado: DetalleViajeUiState) {
@@ -215,6 +235,7 @@ private fun Datos(estado: DetalleViajeUiState) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         EstadoChip(stringResource(viaje.estado.etiqueta), viaje.estado.estiloChip, grande = true)
         estado.retraso?.etiquetaCalculada?.let { EstadoChip(stringResource(it.etiqueta), it.estiloChip, grande = true) }
+        viaje.cambioPendiente?.etiquetaCalculada?.let { EstadoChip(stringResource(it.etiqueta), it.estiloChip, grande = true) }
     }
     Dato(stringResource(R.string.detalle_viaje_horario), Formatos.fechaHoraDetalle(viaje.fhAgenda), mono = true)
     viaje.numeroVuelo?.let { Dato(stringResource(R.string.detalle_viaje_vuelo), it, mono = true) }
@@ -258,12 +279,12 @@ private fun Controles(
     if (estado.inicio == Inicio.VENCIDO) {
         Aviso(stringResource(R.string.iniciar_vencido), TonoAviso.AVISO)
     }
-    val navegar = if (viaje.estado == EstadoViaje.EN_CURSO) R.string.accion_navegar_destino else R.string.accion_navegar_origen
+    val navegar = if (estado.vigente?.estado == EstadoViaje.EN_CURSO) R.string.accion_navegar_destino else R.string.accion_navegar_origen
     BotonAncho(stringResource(navegar), onNavegar, tipo = TipoBoton.SECUNDARIO, alto56 = true)
     if (estado.sinAppDeNavegacion) {
         Aviso(stringResource(R.string.error_sin_app_navegacion), TonoAviso.AVISO, Modifier.testTag("pantalla_aviso_navegacion"))
     }
-    if (viaje.estado == EstadoViaje.ASIGNADO) {
+    if (viaje.estado == EstadoViaje.ASIGNADO && viaje.cambioPendiente == null) {
         BotonAncho(
             stringResource(R.string.accion_rechazar), onRechazar,
             tipo = TipoBoton.PELIGRO, habilitado = estado.puedeRechazar, alto56 = true,

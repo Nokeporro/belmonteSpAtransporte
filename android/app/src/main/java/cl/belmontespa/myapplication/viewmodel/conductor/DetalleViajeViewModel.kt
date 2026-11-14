@@ -17,6 +17,7 @@ import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.puntoDeNavegacion
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.model.ventanaDeInicio
+import cl.belmontespa.myapplication.model.vigente
 import cl.belmontespa.myapplication.navegador.Navegador
 import cl.belmontespa.myapplication.navegador.NavegadorAndroid
 import cl.belmontespa.myapplication.repository.ViajeRepository
@@ -48,13 +49,19 @@ data class DetalleViajeUiState(
     val rechazado: Boolean = false,
     val opcionesDeNavegacion: List<AppNavegacion>? = null,
     val sinAppDeNavegacion: Boolean = false,
+    val sinConexion: Boolean = false,
 ) {
-    private val estado: EstadoViaje? get() = viaje?.estado
+    val vigente: Viaje? get() = viaje?.vigente()
+    private val estado: EstadoViaje? get() = vigente?.estado
 
-    val conControles: Boolean get() = estado == EstadoViaje.ASIGNADO || estado == EstadoViaje.EN_CURSO
-    val puedeIniciar: Boolean get() = inicio == Inicio.HABILITADO && !enviando
-    val puedeFinalizar: Boolean get() = estado == EstadoViaje.EN_CURSO && !enviando
-    val puedeRechazar: Boolean get() = estado == EstadoViaje.ASIGNADO && !enviando
+    val enConflicto: Boolean get() = viaje?.cambioPendiente?.enConflicto == true
+    val pendiente: Boolean get() = viaje?.cambioPendiente?.let { !it.enConflicto } == true
+    val bannerSinConexion: Boolean get() = sinConexion && pendiente
+
+    val conControles: Boolean get() = !enConflicto && (estado == EstadoViaje.ASIGNADO || estado == EstadoViaje.EN_CURSO)
+    val puedeIniciar: Boolean get() = inicio == Inicio.HABILITADO && !enviando && !pendiente && !enConflicto
+    val puedeFinalizar: Boolean get() = estado == EstadoViaje.EN_CURSO && !enviando && !enConflicto
+    val puedeRechazar: Boolean get() = viaje?.estado == EstadoViaje.ASIGNADO && viaje.cambioPendiente == null && !enviando
     val puedeConfirmarRechazo: Boolean get() = puedeRechazar
 
     val disponibleDesde: LocalDateTime? get() = viaje?.takeIf { inicio == Inicio.ANTES_DE_LA_VENTANA }?.disponibleDesde()
@@ -90,7 +97,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
     }
 
     fun navegar() {
-        val punto = _estado.value.viaje?.puntoDeNavegacion() ?: return
+        val punto = _estado.value.vigente?.puntoDeNavegacion() ?: return
         val apps = navegador.instaladas()
         when (apps.size) {
             0 -> _estado.update { it.copy(opcionesDeNavegacion = null, sinAppDeNavegacion = true) }
@@ -100,7 +107,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
     }
 
     fun mostrarOpciones() {
-        if (_estado.value.viaje?.puntoDeNavegacion() == null) return
+        if (_estado.value.vigente?.puntoDeNavegacion() == null) return
         val apps = navegador.instaladas()
         _estado.update {
             if (apps.isEmpty()) it.copy(opcionesDeNavegacion = null, sinAppDeNavegacion = true)
@@ -111,7 +118,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
     fun elegir(app: AppNavegacion) {
         val actual = _estado.value
         if (actual.opcionesDeNavegacion?.contains(app) != true) return
-        val punto = actual.viaje?.puntoDeNavegacion()
+        val punto = actual.vigente?.puntoDeNavegacion()
         _estado.update { it.copy(opcionesDeNavegacion = null) }
         if (punto != null) abrir(app, punto)
     }
@@ -138,6 +145,17 @@ class DetalleViajeViewModel @JvmOverloads constructor(
         if (!_estado.value.puedeFinalizar) return
         _estado.update { it.copy(enviando = true, confirmandoFin = false, error = null) }
         viewModelScope.launch { terminarEnvio(viajes.cambiarEstado(folio, EstadoViaje.FINALIZADO)) }
+    }
+
+    fun descartarCambio() {
+        val folio = folio ?: return
+        val actual = _estado.value
+        if (!actual.enConflicto || actual.enviando) return
+        _estado.update { it.copy(enviando = true, error = null) }
+        viewModelScope.launch {
+            val resultado = viajes.descartarCambio(folio)
+            _estado.update { it.copy(enviando = false, error = (resultado as? Resultado.Fallo)?.error) }
+        }
     }
 
     fun pedirRechazo() {
@@ -191,7 +209,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
                 _estado.update { it.copy(enviando = false, error = resultado.error) }
                 if (resultado.error is ErrorApp.Conflicto) refrescar()
             }
-            Resultado.Encolado -> _estado.update { it.copy(enviando = false) }
+            Resultado.Encolado -> _estado.update { it.copy(enviando = false, sinConexion = true) }
         }
     }
 
@@ -209,7 +227,11 @@ class DetalleViajeViewModel @JvmOverloads constructor(
                                 opcionesDeNavegacion = null, sinAppDeNavegacion = false)
                         }
                     } else {
-                        _estado.update { it.copy(cargando = false).derivado(viaje) }
+                        _estado.update { actual ->
+                            val sincronizado = actual.viaje?.cambioPendiente?.enConflicto == false && viaje.cambioPendiente?.enConflicto != false
+                            val base = if (sincronizado && actual.error == ErrorApp.SinConexion) actual.copy(error = null, sinConexion = false) else actual
+                            base.copy(cargando = false).derivado(viaje)
+                        }
                     }
                 }
         }
@@ -220,17 +242,22 @@ class DetalleViajeViewModel @JvmOverloads constructor(
         val folio = folio ?: return
         viewModelScope.launch {
             val resultado = viajes.refrescarViaje(folio)
-            if (resultado is Resultado.Fallo) _estado.update { it.copy(cargando = false, error = resultado.error) }
+            if (resultado is Resultado.Fallo) {
+                _estado.update { it.copy(cargando = false, error = resultado.error, sinConexion = resultado.error == ErrorApp.SinConexion) }
+            } else {
+                _estado.update { it.copy(sinConexion = false) }
+            }
         }
     }
 
     private fun DetalleViajeUiState.derivado(viaje: Viaje): DetalleViajeUiState {
-        val navegable = viaje.puntoDeNavegacion() != null
+        val vigente = viaje.vigente()
+        val navegable = vigente.puntoDeNavegacion() != null
         return copy(
             viaje = viaje,
-            retraso = viaje.retraso(clock),
+            retraso = vigente.retraso(clock),
             arqueo = viaje.arqueo(),
-            inicio = viaje.ventanaDeInicio(clock),
+            inicio = vigente.ventanaDeInicio(clock),
             opcionesDeNavegacion = opcionesDeNavegacion.takeIf { navegable },
             sinAppDeNavegacion = sinAppDeNavegacion && navegable,
             error = error.takeUnless { it == ErrorApp.NoEncontrado },

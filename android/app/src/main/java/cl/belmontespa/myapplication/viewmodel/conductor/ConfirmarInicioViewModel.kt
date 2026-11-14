@@ -11,6 +11,7 @@ import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.arqueo
 import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.ventanaDeInicio
+import cl.belmontespa.myapplication.model.vigente
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.util.Reloj
 import java.time.Clock
@@ -76,7 +77,7 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
                     _estado.update { it.copy(enviando = false, error = resultado.error) }
                     if (resultado.error is ErrorApp.Conflicto) refrescar()
                 }
-                Resultado.Encolado -> _estado.update { it.copy(enviando = false) }
+                Resultado.Encolado -> _estado.update { it.copy(enviando = false, iniciado = true) }
             }
         }
     }
@@ -112,7 +113,7 @@ class ConfirmarInicioViewModel @JvmOverloads constructor(
     private fun ConfirmarInicioUiState.derivado(viaje: Viaje): ConfirmarInicioUiState = copy(
         viaje = viaje,
         faltan = viaje.arqueo()?.faltan?.size ?: 0,
-        inicio = viaje.ventanaDeInicio(clock),
+        inicio = viaje.vigente().ventanaDeInicio(clock),
         error = error.takeUnless { it == ErrorApp.NoEncontrado },
     )
 }
