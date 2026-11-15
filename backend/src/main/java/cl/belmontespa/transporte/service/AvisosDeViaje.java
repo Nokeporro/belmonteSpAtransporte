@@ -13,6 +13,10 @@ final class AvisosDeViaje {
 	private AvisosDeViaje() {
 	}
 
+	static Aviso nuevaSolicitud(String folio, LocalDateTime fhAgenda) {
+		return new Aviso("Nueva solicitud", "Viaje " + folio + " para " + FECHA.format(fhAgenda), viaje(folio));
+	}
+
 	static Aviso nuevoViaje(String folio, LocalDateTime fhAgenda) {
 		return new Aviso("Nuevo viaje asignado", "Viaje " + folio + " para " + FECHA.format(fhAgenda), viaje(folio));
 	}

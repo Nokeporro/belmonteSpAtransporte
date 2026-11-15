@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import cl.belmontespa.myapplication.navigation.BelmonteApp
 import cl.belmontespa.myapplication.ui.theme.BelmonteTheme
 import cl.belmontespa.myapplication.viewmodel.SesionViewModel
+import cl.belmontespa.myapplication.notificaciones.PermisoNotificaciones
 
 class MainActivity : ComponentActivity() {
 
@@ -21,6 +22,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             BelmonteTheme {
                 val estadoSesion by sesionViewModel.estado.collectAsStateWithLifecycle()
+                PermisoNotificaciones(estadoSesion)
                 BelmonteApp(estadoSesion = estadoSesion, onCerrarSesion = sesionViewModel::cerrarSesion)
             }
         }

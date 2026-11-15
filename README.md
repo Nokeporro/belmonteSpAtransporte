@@ -673,8 +673,9 @@ conductor reemplazado) y `CUENTAS` "Cuentas por aprobar". `{fecha}` va como `24-
 | Cuenta pendiente (RF01) | Administradores | Cuenta por aprobar | Hay una cuenta nueva por revisar |
 
 HU12 backend: los push de V3 y V4 ya llevan `data.tipo = VIAJE`, el folio y la etiqueta en español.
-Siguen pendientes los push de V1 y de cuenta pendiente (HU02 y HU01), y la recepción de
-notificaciones en Android (HU12, HU13 y HU14).
+HU02 y HU01 backend: V1 avisa a los Administradores con `tipo = VIAJE` y el folio; una cuenta
+pendiente avisa con `tipo = CUENTAS`. Ambos usan la misma difusión a Administradores que V8 y
+se envían después del commit. Sigue pendiente la recepción de notificaciones en Android (HU12, HU13 y HU14).
 
 **Correo.** Va en texto plano, firmado "Belmonte SpA". El sistema solo envía estos dos correos; la contraseña temporal
 no viaja por ellos: la entrega el Administrador con su propio correo.
@@ -983,6 +984,12 @@ en ms.
 - **Push:** canal `avisos` ("Avisos de viajes"), importancia alta. `POST_NOTIFICATIONS` se pide
   tras el primer login (no en `demo`) y, si se niega, no se vuelve a pedir. El token va en el
   login; si cambia (`onNewToken`), con `POST /auth/token-fcm`, o se guarda para el próximo login.
+  HU14 Android integra ese registro: el token y la marca de permiso solicitado se guardan en
+  `notificaciones.xml`, fuera de los respaldos. `TokenFcmWorker` registra el token con conexión y
+  sesión normal, reintenta fallos transitorios y conserva el token para el siguiente login si no hay
+  sesión o es temporal. No se registra ni se pide permiso si Firebase no está configurado.
+  Se mantiene el token de registro FCM que usa el backend; la modalidad FID del SDK queda desactivada.
+  Siguen pendientes la presentación en primer plano y la navegación al tocar el aviso (HU12/HU13).
 - **Navegar (CU-03):** `ACTION_VIEW` a Google Maps (`google.navigation:q={lat},{lng}`, paquete
   `com.google.android.apps.maps`) o Waze (`https://waze.com/ul?ll={lat},{lng}&navigate=yes`,
   `com.waze`), declarados en `<queries>`. La hoja "Abrir con" lista solo las instaladas (con una,
@@ -1020,14 +1027,27 @@ en ms.
 - `BuildConfig.API_BASE_URL`: debug, `http://10.0.2.2:8080/`; release, la propiedad Gradle
   obligatoria `belmonte.apiBaseUrl`. `network_security_config` permite HTTP solo hacia `10.0.2.2`
   y el anfitrión (este se agrega con el APK release, T19).
+  `debug` permite además `localhost` y `127.0.0.1` para los servidores simulados de las pruebas;
+  la configuración de `release` conserva la restricción anterior.
 - Con Firebase y Google Places (Etapa 2), `google-services.json` (en `app/`) y `PLACES_API_KEY`
   (en `local.properties`) quedan fuera de Git; las credenciales del backend nunca van en el APK.
+- **Activar Firebase:** crear el proyecto en Firebase, registrar la app Android con el paquete
+  `cl.belmontespa.myapplication` y guardar su archivo en `android/app/google-services.json`.
+  El plugin `google-services` se aplica solo cuando ese archivo existe; en ese caso
+  `FIREBASE_CONFIGURADO` es `true` en `debug` y `release`. Sin el archivo, esas variantes compilan
+  y funcionan con el backend, con Firebase desactivado. Todavía hace falta configurar el proyecto
+  real y verificar la entrega de un aviso; las pruebas locales no sustituyen esa verificación.
+  El emisor del backend requiere además `FIREBASE_CREDENTIALS_FILE` con una cuenta de servicio del
+  mismo proyecto (ver [Configuración](#configuración)); ese archivo privado queda fuera de Git y del APK.
 - `versionCode` sube con cada APK y `versionName` sigue `MAYOR.MENOR.PARCHE`;
   `belmonte-<versionName>.apk` y su SHA-256 se publican en GitHub Releases (RNF10).
 
 ### Build `demo`
 
 App completa sin backend, para la Prueba 2 (no reemplaza a `FlujosE2ETest`):
+- `FIREBASE_CONFIGURADO` es siempre `false`; su manifest quita el proveedor de inicio, el receptor
+  y los servicios de Firebase Messaging. No registra tokens ni solicita el permiso de avisos,
+  incluso si existe la configuración de Firebase para las otras variantes.
 - Los Repository (`AuthRepository`, `ViajeRepository`,
   `AbordajeRepository`, etc.) aplican en una `@Transaction` V1–V8, P1–P5, el
   [Abordaje](#abordaje), las [Validaciones](#validaciones) y el alcance por rol, con el `Clock`

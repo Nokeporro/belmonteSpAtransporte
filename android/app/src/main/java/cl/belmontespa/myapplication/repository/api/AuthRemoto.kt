@@ -21,7 +21,7 @@ internal class AuthRemoto(private val local: SoporteLocal) {
     private val api get() = ApiClient.de(local.sesiones)
 
     suspend fun iniciarSesion(correo: String, password: String): Resultado<EstadoSesion> = llamar {
-        val respuesta = api.login(LoginRequest(Validaciones.correo(correo), password))
+        val respuesta = api.login(LoginRequest(Validaciones.correo(correo), password, local.tokenDispositivo.leerToken()))
         val sesion = Sesion(
             respuesta.accessToken,
             respuesta.correo,

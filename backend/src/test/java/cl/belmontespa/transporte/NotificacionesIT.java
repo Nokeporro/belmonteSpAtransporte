@@ -190,8 +190,10 @@ class NotificacionesIT extends IntegrationTest {
 			String tokenConductor = api.dispositivo(flota.conductor());
 			String tokenAdministrador = api.dispositivoDelAdministrador();
 			String folio = api.viajeAsignado(solicitante, flota);
-			esperarEnvios(2);
+			esperarEnvios(3);
 			dejarPasarEnvios();
+			assertThat(fcm.para(tokenAdministrador)).singleElement()
+					.satisfies(envio -> assertThat(envio.titulo()).isEqualTo("Nueva solicitud"));
 			fcm.limpiar();
 
 			assertThat(api.rechazar(folio, flota.conductor().token(), "abc").status()).isEqualTo(400);

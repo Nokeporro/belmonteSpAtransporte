@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="canal_avisos_nombre">Avisos de viajes</string>
     <string name="app_name">Belmonte</string>
     <string name="marca" translatable="false">BELMONTE</string>
     <string name="marca_lema">Traslados corporativos</string>

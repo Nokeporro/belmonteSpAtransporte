@@ -1,14 +1,17 @@
 package cl.belmontespa.transporte.service;
 
 import cl.belmontespa.transporte.client.EmailClient;
+import cl.belmontespa.transporte.client.FirebaseClient;
 import cl.belmontespa.transporte.dto.request.SolicitanteDTORequest;
 import cl.belmontespa.transporte.dto.response.SolicitanteDTOResponse;
 import cl.belmontespa.transporte.model.EstadoSolicitante;
 import cl.belmontespa.transporte.model.Solicitante;
 import cl.belmontespa.transporte.repository.EstadoSolicitanteRepository;
+import cl.belmontespa.transporte.repository.AdministradorRepository;
 import cl.belmontespa.transporte.repository.SolicitanteRepository;
 import cl.belmontespa.transporte.repository.UsuarioRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -29,16 +32,32 @@ public class SolicitanteService
 	private final EmpresaService empresaService;
 	private final UsuarioRepository usuarioRepository;
 	private final EmailClient emailClient;
+	private final FirebaseClient firebaseClient;
+	private final AdministradorRepository administradorRepository;
 
 	public SolicitanteService(SolicitanteRepository solicitanteRepository,
 			EstadoSolicitanteRepository estadoSolicitanteRepository, UsuarioService usuarioService,
-			EmpresaService empresaService, UsuarioRepository usuarioRepository, EmailClient emailClient) {
+			EmpresaService empresaService, UsuarioRepository usuarioRepository, EmailClient emailClient,
+			FirebaseClient firebaseClient, AdministradorRepository administradorRepository) {
 		this.solicitanteRepository = solicitanteRepository;
 		this.estadoSolicitanteRepository = estadoSolicitanteRepository;
 		this.usuarioService = usuarioService;
 		this.empresaService = empresaService;
 		this.usuarioRepository = usuarioRepository;
 		this.emailClient = emailClient;
+		this.firebaseClient = firebaseClient;
+		this.administradorRepository = administradorRepository;
+	}
+
+	@Override
+	@Transactional
+	public SolicitanteDTOResponse crear(SolicitanteDTORequest request) {
+		Solicitante solicitante = solicitanteRepository.saveAndFlush(nuevaEntidad(request));
+		if ("PENDIENTE".equals(solicitante.getEstadoSolicitante().getEstado())) {
+			AvisosAdministracion.notificar(administradorRepository, firebaseClient,
+					"Cuenta por aprobar", "Hay una cuenta nueva por revisar", Map.of("tipo", "CUENTAS"));
+		}
+		return aResponse(solicitante);
 	}
 
 	@Override

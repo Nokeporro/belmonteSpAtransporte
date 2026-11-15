@@ -123,6 +123,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setNumeroVuelo(request.numeroVuelo());
 		viajeRepository.saveAndFlush(viaje);
 		entityManager.refresh(viaje);
+		avisarAdministradores(AvisosDeViaje.nuevaSolicitud(viaje.getFolio(), viaje.getFhAgenda()));
 		return aResponse(viaje);
 	}
 
@@ -201,6 +202,11 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 
 	private void avisar(String tokenFcm, AvisosDeViaje.Aviso aviso) {
 		firebaseClient.notificar(tokenFcm, aviso.titulo(), aviso.mensaje(), aviso.datos());
+	}
+
+	private void avisarAdministradores(AvisosDeViaje.Aviso aviso) {
+		AvisosAdministracion.notificar(administradorRepository, firebaseClient,
+				aviso.titulo(), aviso.mensaje(), aviso.datos());
 	}
 
 	private static boolean haySolape(Viaje viaje, List<Viaje> deLaMismaFlota) {
@@ -282,8 +288,7 @@ public class ViajeService extends CrudService<Viaje, String, ViajeDTORequest, Vi
 		viaje.setMotivo(request.motivo());
 		viaje.setEstado(estado(PENDIENTE));
 		limpiarAbordaje(viaje);
-		administradorRepository.findAll().forEach(administrador -> avisar(
-				administrador.getUsuario().getTokenFcm(), AvisosDeViaje.viajeRechazado(viaje.getFolio())));
+		avisarAdministradores(AvisosDeViaje.viajeRechazado(viaje.getFolio()));
 		avisar(viaje.getSolicitante().getUsuario().getTokenFcm(), AvisosDeViaje.viajeSinConductor(viaje.getFolio()));
 		return aResponse(viaje);
 	}

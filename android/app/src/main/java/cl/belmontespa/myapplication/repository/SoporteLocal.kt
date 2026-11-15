@@ -26,6 +26,8 @@ import cl.belmontespa.myapplication.model.TipoRecibo
 import cl.belmontespa.myapplication.model.UsuarioEntity
 import cl.belmontespa.myapplication.model.ViajeEntity
 import cl.belmontespa.myapplication.session.SesionStore
+import cl.belmontespa.myapplication.notificaciones.PreferenciasNotificaciones
+import cl.belmontespa.myapplication.notificaciones.TokenDispositivo
 import cl.belmontespa.myapplication.sync.ProgramadorSincronizacion
 import cl.belmontespa.myapplication.sync.ProgramadorWorkManager
 import cl.belmontespa.myapplication.util.FechaIso
@@ -42,6 +44,7 @@ open class SoporteLocal(
     val clock: Clock,
     val modoLocal: Boolean = modoLocalPorDefecto,
     val programador: ProgramadorSincronizacion = ProgramadorSincronizacion.Ninguno,
+    val tokenDispositivo: TokenDispositivo = TokenDispositivo.Ninguno,
 ) {
     fun ahora(): LocalDateTime = LocalDateTime.now(clock)
 
@@ -53,6 +56,8 @@ open class SoporteLocal(
             SoporteLocal(
                 AppDatabase.getDatabase(application), SesionStore.getInstance(application), Reloj.santiago,
                 programador = ProgramadorWorkManager(application),
+                tokenDispositivo = if (BuildConfig.FIREBASE_CONFIGURADO && !modoLocalPorDefecto)
+                    PreferenciasNotificaciones(application) else TokenDispositivo.Ninguno,
             )
     }
 

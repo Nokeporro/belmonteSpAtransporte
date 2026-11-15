@@ -8,6 +8,11 @@ plugins {
 val apiBaseUrlRelease = providers.gradleProperty("belmonte.apiBaseUrl")
 
 val keystoreRelease = providers.gradleProperty("belmonte.keystore.archivo")
+val firebaseConfigurado = file("google-services.json").isFile
+
+if (firebaseConfigurado) {
+    apply(plugin = "com.google.gms.google-services")
+}
 
 android {
     namespace = "cl.belmontespa.myapplication"
@@ -26,6 +31,7 @@ android {
 
         buildConfigField("boolean", "MODO_LOCAL", "false")
         buildConfigField("boolean", "CON_SEMILLA", "false")
+        buildConfigField("boolean", "FIREBASE_CONFIGURADO", firebaseConfigurado.toString())
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
     }
 
@@ -55,6 +61,7 @@ android {
             initWith(getByName("debug"))
             buildConfigField("boolean", "MODO_LOCAL", "true")
             buildConfigField("boolean", "CON_SEMILLA", "true")
+            buildConfigField("boolean", "FIREBASE_CONFIGURADO", "false")
             matchingFallbacks += "debug"
         }
     }
@@ -111,6 +118,8 @@ dependencies {
     implementation(libs.androidx.work.runtime)
 
     implementation(libs.play.services.code.scanner)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

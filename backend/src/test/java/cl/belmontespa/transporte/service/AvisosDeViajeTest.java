@@ -8,8 +8,17 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("AvisosDeViaje: los push de V2, V3, V4 y V8 según la tabla del README")
+@DisplayName("AvisosDeViaje: los push de V1, V2, V3, V4 y V8 según la tabla del README")
 class AvisosDeViajeTest {
+	@Test
+	void nuevaSolicitudAvisaConFolioFechaYTipoViaje() {
+		Aviso aviso = AvisosDeViaje.nuevaSolicitud("TR-1042", LocalDateTime.of(2026, 9, 24, 14, 30));
+
+		assertThat(aviso.titulo()).isEqualTo("Nueva solicitud");
+		assertThat(aviso.mensaje()).isEqualTo("Viaje TR-1042 para 24-09-2026 · 14:30");
+		assertThat(aviso.datos()).containsOnlyKeys("tipo", "folio")
+				.containsEntry("tipo", "VIAJE").containsEntry("folio", "TR-1042");
+	}
 
 	@Test
 	@DisplayName("al conductor: «Nuevo viaje asignado», con la fecha como 24-09-2026 · 14:30 y tipo VIAJE")
@@ -109,6 +118,7 @@ class AvisosDeViajeTest {
 	@DisplayName("el push lleva el folio y la fecha, sin nombres ni direcciones (RNF08)")
 	void sinDatosPersonales() {
 		for (Aviso aviso : new Aviso[] {
+				AvisosDeViaje.nuevaSolicitud("TR-1042", LocalDateTime.of(2026, 9, 24, 14, 30)),
 				AvisosDeViaje.nuevoViaje("TR-1042", LocalDateTime.of(2026, 9, 24, 14, 30)),
 				AvisosDeViaje.estadoDelViaje("TR-1042", "EN_CURSO"),
 				AvisosDeViaje.estadoDelViaje("TR-1042", "FINALIZADO"),
