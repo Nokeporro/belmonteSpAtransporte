@@ -43,3 +43,47 @@ jobs:
             android/app/build/outputs/apk/debug/*.apk
             android/app/build/outputs/apk/demo/*.apk
           retention-days: 7
+
+  backend:
+    runs-on: ubuntu-latest
+    # El runner está en UTC; con esa zona fallan 4 pruebas que comparan fechas de Chile con la hora de la JVM.
+    env:
+      TZ: America/Santiago
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: belmonte_test
+          MARIADB_USER: belmonte
+          MARIADB_PASSWORD: belmonte_dev
+          MARIADB_ROOT_PASSWORD: root_dev
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Pruebas
+        run: ./gradlew test
+
+      - name: Subir reporte de pruebas
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-tests
+          path: backend/build/reports/tests
+          retention-days: 7
