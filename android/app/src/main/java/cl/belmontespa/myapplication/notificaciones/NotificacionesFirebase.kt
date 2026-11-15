@@ -15,9 +15,7 @@ object NotificacionesFirebase {
         if (!notificacionesRemotasHabilitadas()) return
         val aplicacion = contexto.applicationContext
         if (FirebaseApp.getApps(aplicacion).isEmpty() && FirebaseApp.initializeApp(aplicacion) == null) return
-        aplicacion.getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CANAL_AVISOS, aplicacion.getString(R.string.canal_avisos_nombre), NotificationManager.IMPORTANCE_HIGH),
-        )
+        crearCanal(aplicacion)
         FirebaseMessaging.getInstance().apply {
             isAutoInitEnabled = true
             token.addOnSuccessListener { actual ->
@@ -25,5 +23,12 @@ object NotificacionesFirebase {
                 TokenFcmWorker.programar(aplicacion)
             }
         }
+    }
+
+    fun crearCanal(contexto: Context) {
+        val aplicacion = contexto.applicationContext
+        aplicacion.getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel(CANAL_AVISOS, aplicacion.getString(R.string.canal_avisos_nombre), NotificationManager.IMPORTANCE_HIGH),
+        )
     }
 }

@@ -18,6 +18,7 @@ import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.pasajeroDePrueba
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.model.viajeDePrueba
+import cl.belmontespa.myapplication.notificaciones.AvisoPush
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.viewmodel.aplicacionFalsa
 import cl.belmontespa.myapplication.viewmodel.soporteVacio
@@ -28,6 +29,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -48,6 +50,7 @@ class DetalleViajeViewModelTest {
     private val reloj = RelojMovil(LocalDateTime.of(2026, 10, 28, 12, 0), zona)
     private val viajes = DetalleDeViajeFalso()
     private val navegador = NavegadorFalso()
+    private val avisos = MutableSharedFlow<AvisoPush>(extraBufferCapacity = 8)
 
     @Before
     fun prepararHilo() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -55,7 +58,8 @@ class DetalleViajeViewModelTest {
     @After
     fun soltarHilo() = Dispatchers.resetMain()
 
-    private fun crear(folio: String = "TR-1042") = DetalleViajeViewModel(aplicacionFalsa(), viajes, reloj, navegador).also { it.cargar(folio) }
+    private fun crear(folio: String = "TR-1042") =
+        DetalleViajeViewModel(aplicacionFalsa(), viajes, reloj, navegador, avisos).also { it.cargar(folio) }
 
     private fun viaje(
         estado: EstadoViaje = EstadoViaje.ASIGNADO,
@@ -913,6 +917,70 @@ class DetalleViajeViewModelTest {
         assertNull(vm.estado.value.opcionesDeNavegacion)
         assertTrue(navegador.abiertas.isEmpty())
     }
+
+    @Test
+    fun unViajeQueAunNoEstaEnRoomSeVeCargandoHastaQueLlegaDelServidor() {
+        viajes.esperaRefresco = CompletableDeferred()
+
+        val vm = crear()
+
+        assertTrue(vm.estado.value.cargando)
+        assertNull(vm.estado.value.error)
+        assertNull(vm.estado.value.viaje)
+
+        viajes.viaje.value = viaje()
+        viajes.esperaRefresco?.complete(Unit)
+
+        assertFalse(vm.estado.value.cargando)
+        assertNull(vm.estado.value.error)
+        assertEquals("TR-1042", vm.estado.value.viaje?.folio)
+    }
+
+    @Test
+    fun siElServidorNoLoTieneSeVeNoEncontradoAlTerminarElRefresco() {
+        viajes.esperaRefresco = CompletableDeferred()
+        val vm = crear("TR-9999")
+        assertTrue(vm.estado.value.cargando)
+
+        viajes.esperaRefresco?.complete(Unit)
+
+        assertFalse(vm.estado.value.cargando)
+        assertEquals(ErrorApp.NoEncontrado, vm.estado.value.error)
+    }
+
+    @Test
+    fun siElRefrescoFallaMientrasNoHayViajeSeMuestraEseError() {
+        viajes.esperaRefresco = CompletableDeferred()
+        viajes.resultadoRefresco = Resultado.Fallo(ErrorApp.SinConexion)
+        val vm = crear()
+
+        viajes.esperaRefresco?.complete(Unit)
+
+        assertFalse(vm.estado.value.cargando)
+        assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+    }
+
+    @Test
+    fun unAvisoDeEsteViajeLoVuelveAPedirAlServidor() {
+        viajes.viaje.value = viaje()
+        val vm = crear()
+
+        avisos.tryEmit(AvisoPush.desde("VIAJE", "TR-1042"))
+
+        assertEquals(listOf("TR-1042", "TR-1042"), viajes.refrescados)
+        assertNull(vm.estado.value.error)
+    }
+
+    @Test
+    fun unAvisoDeOtroViajeOSinFolioNoRecargaEstaPantalla() {
+        viajes.viaje.value = viaje()
+        crear()
+
+        avisos.tryEmit(AvisoPush.desde("VIAJE", "TR-1099"))
+        avisos.tryEmit(AvisoPush.desde("CUENTAS", null))
+
+        assertEquals(listOf("TR-1042"), viajes.refrescados)
+    }
 }
 
 private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
@@ -924,6 +992,7 @@ private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
     var resultadoRefresco: Resultado<Unit> = Resultado.Exito(Unit)
     var respuestaEstado: suspend () -> Resultado<Unit> = { Resultado.Exito(Unit) }
     var respuestaRechazo: suspend () -> Resultado<Unit> = { Resultado.Exito(Unit) }
+    var esperaRefresco: CompletableDeferred<Unit>? = null
     var falla = false
 
     override fun observarViaje(folio: String): Flow<Viaje?> {
@@ -933,6 +1002,7 @@ private class DetalleDeViajeFalso : ViajeRepository(soporteVacio()) {
 
     override suspend fun refrescarViaje(folio: String): Resultado<Unit> {
         refrescados += folio
+        esperaRefresco?.await()
         return resultadoRefresco
     }
 

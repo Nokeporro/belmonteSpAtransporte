@@ -20,6 +20,8 @@ import cl.belmontespa.myapplication.model.ventanaDeInicio
 import cl.belmontespa.myapplication.model.vigente
 import cl.belmontespa.myapplication.navegador.Navegador
 import cl.belmontespa.myapplication.navegador.NavegadorAndroid
+import cl.belmontespa.myapplication.notificaciones.AvisoPush
+import cl.belmontespa.myapplication.notificaciones.AvisosEntrantes
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.util.Reloj
 import cl.belmontespa.myapplication.util.Validaciones
@@ -27,10 +29,12 @@ import cl.belmontespa.myapplication.viewmodel.administrador.CAMPO_MOTIVO
 import java.time.Clock
 import java.time.LocalDateTime
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -72,6 +76,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
     private val viajes: ViajeRepository = ViajeRepository(application),
     private val clock: Clock = Reloj.santiago,
     private val navegador: Navegador = NavegadorAndroid(application),
+    avisos: Flow<AvisoPush> = AvisosEntrantes.flujo,
 ) : AndroidViewModel(application) {
 
     private val _estado = MutableStateFlow(DetalleViajeUiState())
@@ -79,6 +84,13 @@ class DetalleViajeViewModel @JvmOverloads constructor(
 
     private var folio: String? = null
     private var observacion: Job? = null
+    private var refrescosEnCurso = 0
+
+    init {
+        viewModelScope.launch {
+            avisos.collect { aviso -> if (aviso.folio != null && aviso.folio == folio) refrescar() }
+        }
+    }
 
     fun cargar(folio: String) {
         if (folio == this.folio) return
@@ -215,6 +227,7 @@ class DetalleViajeViewModel @JvmOverloads constructor(
 
     private fun iniciar() {
         val folio = folio ?: return
+        refrescosEnCurso++
         observacion?.cancel()
         observacion = viewModelScope.launch {
             viajes.observarViaje(folio)
@@ -222,9 +235,10 @@ class DetalleViajeViewModel @JvmOverloads constructor(
                 .collect { viaje ->
                     if (viaje == null) {
                         _estado.update {
-                            it.copy(cargando = false, viaje = null, retraso = null, arqueo = null,
-                                inicio = Inicio.NO_APLICA, error = it.error ?: ErrorApp.NoEncontrado,
+                            val sinViaje = it.copy(viaje = null, retraso = null, arqueo = null, inicio = Inicio.NO_APLICA,
                                 opcionesDeNavegacion = null, sinAppDeNavegacion = false)
+                            if (refrescosEnCurso > 0) sinViaje
+                            else sinViaje.copy(cargando = false, error = it.error ?: ErrorApp.NoEncontrado)
                         }
                     } else {
                         _estado.update { actual ->
@@ -235,17 +249,28 @@ class DetalleViajeViewModel @JvmOverloads constructor(
                     }
                 }
         }
-        refrescar()
+        consultar(folio)
     }
 
     private fun refrescar() {
         val folio = folio ?: return
+        refrescosEnCurso++
+        consultar(folio)
+    }
+
+    // Mientras llega la primera respuesta, un viaje que aún no está en Room se ve cargando y no como «No encontrado».
+    private fun consultar(folio: String) {
         viewModelScope.launch {
             val resultado = viajes.refrescarViaje(folio)
+            refrescosEnCurso--
             if (resultado is Resultado.Fallo) {
                 _estado.update { it.copy(cargando = false, error = resultado.error, sinConexion = resultado.error == ErrorApp.SinConexion) }
             } else {
-                _estado.update { it.copy(sinConexion = false) }
+                val ausente = _estado.value.viaje == null && viajes.observarViaje(folio).catch { }.firstOrNull() == null
+                _estado.update {
+                    if (ausente) it.copy(cargando = false, error = it.error ?: ErrorApp.NoEncontrado, sinConexion = false)
+                    else it.copy(sinConexion = false)
+                }
             }
         }
     }

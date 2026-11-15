@@ -17,6 +17,7 @@ import cl.belmontespa.myapplication.model.Solicitante
 import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.model.viajeDePrueba
+import cl.belmontespa.myapplication.notificaciones.AvisoPush
 import cl.belmontespa.myapplication.repository.CuentaRepository
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.viewmodel.aplicacionFalsa
@@ -28,6 +29,7 @@ import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
@@ -50,6 +52,7 @@ class MisViajesViewModelTest {
     private val hoy = LocalDate.of(2026, 10, 28)
     private val viajes = AgendaDelConductorFalsa()
     private val cuentas = PerfilFalso()
+    private val avisos = MutableSharedFlow<AvisoPush>(extraBufferCapacity = 8)
 
     @Before
     fun prepararHilo() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -58,7 +61,7 @@ class MisViajesViewModelTest {
     fun soltarHilo() = Dispatchers.resetMain()
 
     private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
-        MisViajesViewModel(aplicacionFalsa(), guardado, viajes, cuentas, reloj)
+        MisViajesViewModel(aplicacionFalsa(), guardado, viajes, cuentas, reloj, avisos)
 
     private fun viaje(folio: String, estado: EstadoViaje, minutosDesdeAhora: Long, pasajeros: Int = 1) =
         viajeDePrueba(
@@ -78,6 +81,31 @@ class MisViajesViewModelTest {
         assertFalse(estado.cargando)
         assertEquals(FiltroViajes(fecha = hoy), viajes.observados.last())
         assertEquals(listOf(FiltroViajes(fecha = hoy)), viajes.refrescados)
+    }
+
+    @Test
+    fun unAvisoDeViajeOReasignacionVuelveAPedirLaAgendaDeLaFechaElegida() {
+        val otra = hoy.plusDays(2)
+        val vm = crear()
+        vm.elegirFecha(otra)
+        val refrescos = viajes.refrescados.size
+
+        avisos.tryEmit(AvisoPush.desde("VIAJE", "TR-1009"))
+        avisos.tryEmit(AvisoPush.desde("AGENDA", "TR-1009"))
+
+        assertEquals(refrescos + 2, viajes.refrescados.size)
+        assertEquals(FiltroViajes(fecha = otra), viajes.refrescados.last())
+    }
+
+    @Test
+    fun unAvisoDeCuentasOSinTipoNoTocaLaAgenda() {
+        crear()
+        val refrescos = viajes.refrescados.size
+
+        avisos.tryEmit(AvisoPush.desde("CUENTAS", null))
+        avisos.tryEmit(AvisoPush.desde(null, null, "Promoción", "Texto"))
+
+        assertEquals(refrescos, viajes.refrescados.size)
     }
 
     @Test

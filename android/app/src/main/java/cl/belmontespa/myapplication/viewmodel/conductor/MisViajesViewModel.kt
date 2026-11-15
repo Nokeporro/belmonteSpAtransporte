@@ -13,6 +13,9 @@ import cl.belmontespa.myapplication.model.Viaje
 import cl.belmontespa.myapplication.model.disponibleDesde
 import cl.belmontespa.myapplication.model.retraso
 import cl.belmontespa.myapplication.model.vigente
+import cl.belmontespa.myapplication.notificaciones.AvisoPush
+import cl.belmontespa.myapplication.notificaciones.AvisosEntrantes
+import cl.belmontespa.myapplication.notificaciones.TipoAviso
 import cl.belmontespa.myapplication.repository.CuentaRepository
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.util.Reloj
@@ -20,6 +23,7 @@ import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -52,6 +56,7 @@ class MisViajesViewModel @JvmOverloads constructor(
     private val viajes: ViajeRepository = ViajeRepository(application),
     private val cuentas: CuentaRepository = CuentaRepository(application),
     private val clock: Clock = Reloj.santiago,
+    private val avisos: Flow<AvisoPush> = AvisosEntrantes.flujo,
 ) : AndroidViewModel(application) {
 
     private var fechaElegida: LocalDate? = fechaGuardada()
@@ -68,6 +73,13 @@ class MisViajesViewModel @JvmOverloads constructor(
     init {
         actualizar()
         cargarNombre()
+        viewModelScope.launch {
+            avisos.collect { aviso ->
+                if (aviso.tipo == TipoAviso.VIAJE || aviso.tipo == TipoAviso.AGENDA) {
+                    avisarSiFalla(viajes.refrescarViajes(filtro()))
+                }
+            }
+        }
     }
 
     fun elegirFecha(fecha: LocalDate) {
