@@ -1,6 +1,11 @@
 package cl.belmontespa.myapplication.viewmodel.solicitante
 
 import cl.belmontespa.myapplication.R
+import cl.belmontespa.myapplication.lugares.ComponenteDeLugar
+import cl.belmontespa.myapplication.lugares.LugarCrudo
+import cl.belmontespa.myapplication.lugares.ResultadoDeBusqueda
+import cl.belmontespa.myapplication.lugares.ServicioDeLugaresFalso
+import cl.belmontespa.myapplication.lugares.aUbicacion
 import cl.belmontespa.myapplication.model.ErrorApp
 import cl.belmontespa.myapplication.model.TipoDocumento
 import cl.belmontespa.myapplication.model.Ubicacion
@@ -35,13 +40,24 @@ class NuevaSolicitudViewModelTest {
         Ubicacion("Origen", "Providencia", "Metropolitana", -33.42, -70.61),
         Ubicacion("Destino", "Las Condes", "Metropolitana", -33.41, -70.60),
     )
+    private val aeropuerto = LugarCrudo(
+        "Aeropuerto Arturo Merino Benítez", listOf("airport", "establishment"), null,
+        listOf(
+            ComponenteDeLugar(listOf("locality"), "Pudahuel"),
+            ComponenteDeLugar(listOf("administrative_area_level_1"), "Región Metropolitana de Santiago"),
+        ),
+        -33.393, -70.7858,
+    )
+    private val mirador = LugarCrudo("Mirador sin comuna", listOf("point_of_interest"), null, emptyList(), -33.01, -70.02)
     private lateinit var repos: ReposP1Falsos
+    private lateinit var servicio: ServicioDeLugaresFalso
     private lateinit var vm: NuevaSolicitudViewModel
 
     @Before fun preparar() {
         Dispatchers.setMain(dispatcher)
         repos = ReposP1Falsos()
-        vm = NuevaSolicitudViewModel(aplicacionFalsa(), repos.viajes, clock, lugares)
+        servicio = ServicioDeLugaresFalso().apply { lugares["aeropuerto"] = aeropuerto; lugares["mirador"] = mirador }
+        vm = NuevaSolicitudViewModel(aplicacionFalsa(), repos.viajes, clock, lugares, servicio, repos.catalogos)
     }
 
     @After fun cerrar() { Dispatchers.resetMain() }
@@ -123,5 +139,97 @@ class NuevaSolicitudViewModelTest {
         assertTrue(vm.estado.value.pasajeros.isEmpty())
         assertEquals("Invitado", vm.estado.value.pasajeroNombre); assertEquals("DEMO123", vm.estado.value.documento)
         assertEquals(TipoDocumento.PASAPORTE, vm.estado.value.tipoDocumento)
+    }
+
+    private fun pasajero() {
+        vm.escribirPasajeroNombre("Invitado"); vm.elegirTipoDocumento("PASAPORTE"); vm.escribirDocumento("DEMO123")
+        vm.agregarPasajero()
+    }
+
+    @Test fun laBusquedaDeLugaresSeOfreceSoloConElServicioDisponible() {
+        assertTrue(vm.estado.value.conBusqueda)
+        val sinBusqueda = NuevaSolicitudViewModel(
+            aplicacionFalsa(), repos.viajes, clock, lugares, ServicioDeLugaresFalso(disponible = false), repos.catalogos,
+        )
+        assertFalse(sinBusqueda.estado.value.conBusqueda)
+    }
+
+    @Test fun elegirUnLugarFijaElCampoYGuardarEnviaLaUbicacionDeGoogle() = runTest(dispatcher) {
+        vm.elegirLugar(true, "aeropuerto"); vm.elegirLugar(false, "mirador"); runCurrent()
+        assertEquals(aeropuerto.nombre, vm.estado.value.origen); assertEquals(mirador.nombre, vm.estado.value.destino)
+        vm.corregirComuna(false, "Metropolitana", "Las Condes"); pasajero()
+        assertTrue(vm.estado.value.puedeGuardar)
+        vm.guardar(); runCurrent()
+        assertEquals("TR-2000", vm.estado.value.creada)
+        assertEquals(aeropuerto.aUbicacion(), repos.solicitud!!.origen)
+        assertEquals(mirador.aUbicacion()!!.copy(comuna = "Las Condes", region = "Metropolitana"), repos.solicitud!!.destino)
+    }
+
+    @Test fun unLugarSinComunaPideElSelectorYBloqueaElGuardado() = runTest(dispatcher) {
+        pasajero(); vm.elegirLugar(true, "mirador"); vm.elegirDestino("Destino"); runCurrent()
+        assertTrue(vm.estado.value.origenSinComuna); assertFalse(vm.estado.value.destinoSinComuna)
+        assertFalse(vm.estado.value.puedeGuardar)
+        assertEquals(listOf("Metropolitana"), vm.estado.value.regiones.map { it.nombre })
+        vm.guardar(); runCurrent()
+        assertEquals(0, repos.envios)
+    }
+
+    @Test fun corregirLaComunaConservaLaDireccionYLasCoordenadas() = runTest(dispatcher) {
+        pasajero(); vm.elegirLugar(true, "mirador"); vm.elegirDestino("Destino"); runCurrent()
+        vm.corregirComuna(true, "Metropolitana", "Valdivia")
+        assertTrue(vm.estado.value.origenSinComuna)
+        vm.corregirComuna(true, "Metropolitana", "Providencia")
+        assertEquals(Ubicacion("Mirador sin comuna", "Providencia", "Metropolitana", -33.01, -70.02), vm.estado.value.origenLugar)
+        assertTrue(vm.estado.value.puedeGuardar)
+    }
+
+    @Test fun unRechazoDeComunaDelServidorReactivaElSelectorDeEseExtremo() = runTest(dispatcher) {
+        pasajero(); vm.elegirLugar(true, "aeropuerto"); vm.elegirLugar(false, "aeropuerto"); runCurrent()
+        repos.fallo = ErrorApp.Validacion(mapOf("destino.comuna" to "No existe en el catálogo."))
+        vm.guardar(); runCurrent()
+        assertTrue(vm.estado.value.destinoSinComuna); assertFalse(vm.estado.value.origenSinComuna)
+        assertFalse(vm.estado.value.puedeGuardar)
+        assertEquals(1, vm.estado.value.regiones.size)
+        repos.fallo = null; vm.corregirComuna(false, "Metropolitana", "Las Condes")
+        vm.guardar(); runCurrent()
+        assertEquals("TR-2000", vm.estado.value.creada)
+        assertEquals("Las Condes", repos.solicitud!!.destino.comuna); assertEquals("Pudahuel", repos.solicitud!!.origen.comuna)
+    }
+
+    @Test fun unFalloAlObtenerElLugarNoCambiaElCampoYAvisa() = runTest(dispatcher) {
+        vm.elegirOrigen("Origen")
+        servicio.fallo = ErrorApp.SinConexion
+        vm.elegirLugar(true, "aeropuerto"); runCurrent()
+        assertEquals("Origen", vm.estado.value.origen); assertEquals(lugares[0], vm.estado.value.origenLugar)
+        assertEquals(R.string.aviso_lugar_no_disponible, vm.estado.value.aviso)
+    }
+
+    @Test fun unLugarSinTextoUtilNoSeAcepta() = runTest(dispatcher) {
+        servicio.lugares["vacio"] = LugarCrudo(null, emptyList(), null, emptyList(), -33.0, -70.0)
+        vm.elegirLugar(true, "vacio"); runCurrent()
+        assertEquals("", vm.estado.value.origen); assertNull(vm.estado.value.origenLugar)
+        assertEquals(R.string.aviso_lugar_no_disponible, vm.estado.value.aviso)
+    }
+
+    @Test fun elResultadoDeLaBusquedaSoloConsultaCuandoHayUnaEleccion() = runTest(dispatcher) {
+        servicio.resultado = ResultadoDeBusqueda.Cancelado
+        vm.resultadoDeBusqueda(true, 0, null); runCurrent()
+        assertTrue(servicio.consultas.isEmpty()); assertNull(vm.estado.value.aviso)
+        servicio.resultado = ResultadoDeBusqueda.Fallido
+        vm.resultadoDeBusqueda(true, 2, null); runCurrent()
+        assertTrue(servicio.consultas.isEmpty()); assertEquals(R.string.aviso_lugar_no_disponible, vm.estado.value.aviso)
+        servicio.resultado = ResultadoDeBusqueda.Elegido("aeropuerto")
+        vm.resultadoDeBusqueda(false, -1, null); runCurrent()
+        assertEquals(listOf("aeropuerto"), servicio.consultas); assertEquals(aeropuerto.nombre, vm.estado.value.destino)
+        assertNull(vm.estado.value.origenLugar)
+    }
+
+    @Test fun sinCatalogoElSelectorDeComunaPermiteReintentar() = runTest(dispatcher) {
+        repos.errorCatalogos = ErrorApp.SinConexion
+        vm.elegirLugar(true, "mirador"); runCurrent()
+        assertTrue(vm.estado.value.regiones.isEmpty()); assertEquals(ErrorApp.SinConexion, vm.estado.value.error)
+        repos.errorCatalogos = null
+        vm.cargarRegiones(); runCurrent()
+        assertEquals(1, vm.estado.value.regiones.size)
     }
 }

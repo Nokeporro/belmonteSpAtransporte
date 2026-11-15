@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -9,6 +11,17 @@ val apiBaseUrlRelease = providers.gradleProperty("belmonte.apiBaseUrl")
 
 val keystoreRelease = providers.gradleProperty("belmonte.keystore.archivo")
 val firebaseConfigurado = file("google-services.json").isFile
+
+val propiedadesLocales = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) }
+}
+val placesApiKey = (
+    providers.gradleProperty("PLACES_API_KEY").orNull
+        ?: providers.environmentVariable("PLACES_API_KEY").orNull
+        ?: propiedadesLocales.getProperty("PLACES_API_KEY")
+        ?: ""
+    ).trim()
+require(Regex("[A-Za-z0-9_-]*").matches(placesApiKey)) { "PLACES_API_KEY solo admite letras, dígitos, «-» y «_»." }
 
 if (firebaseConfigurado) {
     apply(plugin = "com.google.gms.google-services")
@@ -32,6 +45,8 @@ android {
         buildConfigField("boolean", "MODO_LOCAL", "false")
         buildConfigField("boolean", "CON_SEMILLA", "false")
         buildConfigField("boolean", "FIREBASE_CONFIGURADO", firebaseConfigurado.toString())
+        buildConfigField("boolean", "PLACES_CONFIGURADO", placesApiKey.isNotEmpty().toString())
+        buildConfigField("String", "PLACES_API_KEY", "\"$placesApiKey\"")
         buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
     }
 
@@ -62,6 +77,8 @@ android {
             buildConfigField("boolean", "MODO_LOCAL", "true")
             buildConfigField("boolean", "CON_SEMILLA", "true")
             buildConfigField("boolean", "FIREBASE_CONFIGURADO", "false")
+            buildConfigField("boolean", "PLACES_CONFIGURADO", "false")
+            buildConfigField("String", "PLACES_API_KEY", "\"\"")
             matchingFallbacks += "debug"
         }
     }
@@ -118,6 +135,7 @@ dependencies {
     implementation(libs.androidx.work.runtime)
 
     implementation(libs.play.services.code.scanner)
+    implementation(libs.places)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 

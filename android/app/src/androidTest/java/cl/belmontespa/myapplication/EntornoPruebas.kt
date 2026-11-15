@@ -9,6 +9,7 @@ import androidx.test.core.app.ApplicationProvider
 import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.database.AppDatabase
 import cl.belmontespa.myapplication.database.SemillaDemo
+import cl.belmontespa.myapplication.lugares.LugaresPlaces
 import cl.belmontespa.myapplication.repository.SoporteLocal
 import cl.belmontespa.myapplication.session.SesionStore
 import cl.belmontespa.myapplication.util.Reloj
@@ -34,6 +35,7 @@ class EntornoPruebas(private val reloj: Clock = Reloj.santiago) : ExternalResour
         AppDatabase.reemplazarParaPruebas(db)
         SesionStore.reemplazarParaPruebas(sesiones)
         SoporteLocal.modoLocalPorDefecto = true
+        LugaresPlaces.habilitadoPorDefecto = false
         local = SoporteLocal(db, sesiones, reloj)
     }
 
@@ -41,6 +43,7 @@ class EntornoPruebas(private val reloj: Clock = Reloj.santiago) : ExternalResour
         AppDatabase.reemplazarParaPruebas(null)
         SesionStore.reemplazarParaPruebas(null)
         SoporteLocal.modoLocalPorDefecto = BuildConfig.MODO_LOCAL
+        LugaresPlaces.habilitadoPorDefecto = BuildConfig.PLACES_CONFIGURADO
         db.close()
     }
 }

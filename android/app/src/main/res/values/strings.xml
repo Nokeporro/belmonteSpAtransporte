@@ -233,6 +233,8 @@
     <string name="campo_hora">Hora</string>
     <string name="campo_origen">Origen</string>
     <string name="campo_destino">Destino</string>
+    <string name="campo_region">Región</string>
+    <string name="campo_comuna">Comuna</string>
     <string name="campo_vuelo">Número de vuelo (opcional)</string>
     <string name="campo_documento">Documento</string>
     <string name="campo_tipo_documento">Tipo de documento</string>
@@ -283,6 +285,9 @@
     <string name="aviso_sin_pago">Este viaje todavía no tiene un pago registrado.</string>
     <string name="aviso_sin_resultados">No hay registros para mostrar.</string>
     <string name="aviso_selecciona">Selecciona una opción.</string>
+    <string name="aviso_busca_lugar">Busca una dirección o un lugar.</string>
+    <string name="aviso_lugar_no_disponible">No pudimos obtener el lugar. Inténtalo de nuevo.</string>
+    <string name="aviso_comuna_faltante">Falta la comuna de este lugar. Elige la región y la comuna.</string>
     <string name="aviso_solicitud_cancelada">Tu solicitud fue cancelada.</string>
     <string name="aviso_password_guardada">Tu contraseña fue actualizada.</string>
     <string name="aviso_campos_obligatorios">Completa los campos obligatorios.</string>

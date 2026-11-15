@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.WorkManager
 import cl.belmontespa.myapplication.BuildConfig
 import cl.belmontespa.myapplication.database.AppDatabase
+import cl.belmontespa.myapplication.lugares.LugaresPlaces
 import cl.belmontespa.myapplication.session.SesionStore
 import cl.belmontespa.myapplication.util.Reloj
 import java.net.HttpURLConnection
@@ -32,12 +33,14 @@ class EntornoE2E : ExternalResource() {
             "FlujosE2ETest necesita un backend con database/demo.sql: pasar -e e2e true a am instrument",
             InstrumentationRegistry.getArguments().getString("e2e") == "true",
         )
+        LugaresPlaces.habilitadoPorDefecto = false
         limpiarLaApp()
     }
 
     override fun after() {
         cambiarRed(true)
         limpiarLaApp()
+        LugaresPlaces.habilitadoPorDefecto = BuildConfig.PLACES_CONFIGURADO
     }
 
     fun cortarRed() {
