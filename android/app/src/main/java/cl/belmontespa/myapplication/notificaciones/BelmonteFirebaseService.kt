@@ -12,14 +12,11 @@ class BelmonteFirebaseService : FirebaseMessagingService() {
         TokenFcmWorker.programar(this)
     }
 
-    // Solo llega con la app en primer plano: en segundo plano FCM muestra el aviso y lo abre con `data` como extras.
     override fun onMessageReceived(remoto: RemoteMessage) {
         if (!notificacionesRemotasHabilitadas()) return
-        val aviso = AvisoPush.desde(
-            tipo = remoto.data[AvisoPush.CLAVE_TIPO], folio = remoto.data[AvisoPush.CLAVE_FOLIO],
-            titulo = remoto.notification?.title, mensaje = remoto.notification?.body,
-        )
+        val datos = AvisoPush.deDatos(remoto.data) ?: return
+        val aviso = datos.copy(titulo = remoto.notification?.title, mensaje = remoto.notification?.body)
         AvisosEntrantes.publicar(aviso)
-        PresentadorDeAvisos.presentar(this, aviso)
+        if (remoto.notification != null) PresentadorDeAvisos.presentar(this, aviso)
     }
 }

@@ -675,7 +675,8 @@ conductor reemplazado) y `CUENTAS` "Cuentas por aprobar". `{fecha}` va como `24-
 HU12 backend: los push de V3 y V4 ya llevan `data.tipo = VIAJE`, el folio y la etiqueta en español.
 HU02 y HU01 backend: V1 avisa a los Administradores con `tipo = VIAJE` y el folio; una cuenta
 pendiente avisa con `tipo = CUENTAS`. Ambos usan la misma difusión a Administradores que V8 y
-se envían después del commit. Sigue pendiente la recepción de notificaciones en Android (HU12, HU13 y HU14).
+se envían después del commit. Android ya integra el registro del token, la recepción en primer plano
+y la navegación por `data.tipo`; falta configurar Firebase y verificar la entrega real.
 
 **Correo.** Va en texto plano, firmado "Belmonte SpA". El sistema solo envía estos dos correos; la contraseña temporal
 no viaja por ellos: la entrega el Administrador con su propio correo.
@@ -989,7 +990,19 @@ en ms.
   sesión normal, reintenta fallos transitorios y conserva el token para el siguiente login si no hay
   sesión o es temporal. No se registra ni se pide permiso si Firebase no está configurado.
   Se mantiene el token de registro FCM que usa el backend; la modalidad FID del SDK queda desactivada.
-  Siguen pendientes la presentación en primer plano y la navegación al tocar el aviso (HU12/HU13).
+  `BelmonteFirebaseService.onMessageReceived` presenta el aviso en primer plano con un icono propio;
+  en segundo plano, FCM presenta el mensaje y entrega `tipo`/`folio` a `MainActivity` al tocarlo.
+  Se conserva el contrato de mensajes `notification` + `data` del backend (AndroidConfig v1).
+  Cada viaje tiene su propio `PendingIntent` inmutable; otro estado del mismo viaje actualiza su aviso.
+  Sin permiso, se omite la presentación y la app sigue funcionando.
+  `AvisoPush` acepta solo `VIAJE` con folio válido, `AGENDA` y `CUENTAS`: abre el detalle según el rol,
+  la agenda solo al Conductor y las cuentas solo al Administrador. Ignora rutas y roles del payload.
+  Al abrir sin sesión espera al login, incluso tras recrear la actividad; una sesión temporal mantiene
+  el cambio obligatorio de contraseña. Una vez consumido, el aviso no se vuelve a abrir al recrear.
+  Volver desde el detalle lleva al inicio del rol. Los detalles del Solicitante y del Administrador
+  consultan el servidor antes de mostrar el viaje; los errores de acceso ocultan el contenido anterior
+  y permiten reintentar. Un nuevo toque recarga el detalle, incluso si ya estaba abierto.
+  La configuración Firebase y la entrega real siguen pendientes.
 - **Navegar (CU-03):** `ACTION_VIEW` a Google Maps (`google.navigation:q={lat},{lng}`, paquete
   `com.google.android.apps.maps`) o Waze (`https://waze.com/ul?ll={lat},{lng}&navigate=yes`,
   `com.waze`), declarados en `<queries>`. La hoja "Abrir con" lista solo las instaladas (con una,
@@ -1087,10 +1100,13 @@ Las pruebas fijan el `Clock` y usan solo datos ficticios. Las instrumentadas fue
 | `ErrorMapperTest` (Etapa 2) | JVM | Cada código HTTP y fallo de red; 400 de varias líneas. |
 | `DtosTest` (Etapa 2) | JVM | JSON de cada contrato a modelo y entidades: fechas con fracciones, `null`, enums y coordenadas a 6 decimales. |
 | `AuthInterceptorTest`, `BelmonteApiTest` (Etapa 2) | JVM con MockWebServer | Bearer por ruta, 401 con y sin sesión, y ruta, método y cuerpo de las llamadas con reglas especiales. |
+| `RegistroTokenFcmTest`, `AvisoPushTest` | JVM | Registro/reintento del token, permiso y destinos permitidos por sesión, rol y formato del payload. |
 | `*ViewModelTest` | JVM con dobles del Repository | Estados de pantalla, envío sin duplicados, botones según estado y abordaje con 404. |
 | `*RepositoryTest` | Instrumentada (Room en memoria) | Reglas de la build `demo`: V1–V8, P1–P5, capacidad, solapamiento, alcance, login local y abordaje. |
 | `DaosTest` | Instrumentada | PK, FK en cascada, `Flow` y transacciones. |
 | `NavegacionTest` | Instrumentada | Flujos por rol, cambio obligatorio de contraseña, historial y abordaje desde el Login y el Perfil. |
+| `HU14TokenTest` | Instrumentada con MockWebServer | Token en el login, renovación con el JWT actual, conservación tras logout y marca de permiso persistida. |
+| `HU12AvisosTest` | Instrumentada, sin Firebase real | Publicación en el canal, dos viajes con acciones independientes, apertura por rol, login pendiente, sesión temporal, recreación y retorno al inicio. |
 | `SincronizacionWorkerTest` (Etapa 2) | Instrumentada (`work-testing`) | Cada fila de la tabla de la cola y "Descartar cambio". |
 | `FlujosE2ETest` (Etapa 2) | Instrumentada contra el backend con `database/demo.sql` recién cargado | Flujos principales de los 4 actores, incluido el Conductor sin conexión; antes de cada entrega, no en CI. |
 

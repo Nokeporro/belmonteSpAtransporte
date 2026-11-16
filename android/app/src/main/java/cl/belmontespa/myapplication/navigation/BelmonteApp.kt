@@ -22,7 +22,6 @@ import androidx.navigation.compose.rememberNavController
 import cl.belmontespa.myapplication.model.EstadoSesion
 import cl.belmontespa.myapplication.model.Rol
 import cl.belmontespa.myapplication.notificaciones.AvisoPush
-import cl.belmontespa.myapplication.notificaciones.TipoAviso
 import kotlinx.coroutines.flow.first
 
 @Composable
@@ -39,43 +38,42 @@ fun BelmonteApp(
     val mostrarBarra = items.any { destinoActual?.esRuta(it.ruta) == true }
     val rol = (estadoSesion as? EstadoSesion.Autenticada)?.sesion?.rol
     var previa by remember { mutableStateOf<EstadoSesion?>(null) }
-    var encaminada by remember { mutableStateOf<EstadoSesion?>(null) }
     var cierreManual by remember { mutableStateOf(false) }
     val cerrar: () -> Unit = { cierreManual = true; onCerrarSesion() }
     val volver: () -> Unit = { navController.popBackStack() }
     val navegar: (PantallaDemo, String) -> Unit = { pantalla, id -> navController.irA(pantalla, id, rol) }
 
-    LaunchedEffect(estadoSesion) {
+    LaunchedEffect(estadoSesion, aviso) {
         snapshotFlow { entrada }.first { it != null }
         val anterior = previa
         previa = estadoSesion
         val estado = estadoSesion ?: return@LaunchedEffect
-        val destino = destinoPorSesion(anterior, estado, cierreManual)
-        cierreManual = false
-        val actual = navController.currentBackStackEntry.destino()
-        if (conservarPantalla(anterior, estado, actual)) {
-            encaminada = estado
-            return@LaunchedEffect
-        }
-        val grafo = grafoDeSesion(destino, estado)
-        val yaEstaAhi = if (grafo != null) navController.currentDestination?.esRuta(grafo) == true else actual == destino
-        if (!yaEstaAhi) {
-            navController.navigate(grafo ?: destino.ruta()) {
-                popUpTo(navController.graph.id) { inclusive = true }
-                launchSingleTop = true
+        if (anterior != estado) {
+            val destino = destinoPorSesion(anterior, estado, cierreManual)
+            cierreManual = false
+            val actual = navController.currentBackStackEntry.destino()
+            if (!conservarPantalla(anterior, estado, actual)) {
+                val grafo = grafoDeSesion(destino, estado)
+                val yaEstaAhi = if (grafo != null) navController.currentDestination?.esRuta(grafo) == true else actual == destino
+                if (!yaEstaAhi) {
+                    navController.navigate(grafo ?: destino.ruta()) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
             }
         }
-        encaminada = estado
-    }
-
-    LaunchedEffect(estadoSesion, encaminada, aviso) {
-        val solicitud = aviso ?: return@LaunchedEffect
-        val estado = estadoSesion ?: return@LaunchedEffect
-        if (encaminada != estado) return@LaunchedEffect
-        val rolDelAviso = (estado as? EstadoSesion.Autenticada)?.sesion?.rol
-        val destino = rolDelAviso?.let { destinoDeAviso(solicitud, it) }
-        if (rolDelAviso != null && destino != null) navController.abrirAviso(destino, inicioDe(rolDelAviso))
-        onAvisoAtendido()
+        // Espera al login normal; las sesiones temporales conservan el cambio obligatorio.
+        if (estado is EstadoSesion.Autenticada && aviso != null) {
+            aviso.destino(estado)?.let { destino ->
+                val inicio = inicioDe(estado.sesion.rol)
+                navController.navigate(Rutas.grafoDe(estado.sesion.rol)) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
+                if (destino.pantalla != inicio) navController.navigate(destino.ruta())
+            }
+            onAvisoAtendido()
+        }
     }
 
     Scaffold(
@@ -143,12 +141,6 @@ private fun NavHostController.irA(pantalla: PantallaDemo, id: String, rol: Rol?)
     }
 }
 
-private fun NavHostController.abrirAviso(destino: Destino, inicio: PantallaDemo) {
-    if (currentBackStackEntry.destino() == destino) return
-    popBackStack(inicio.ruta, inclusive = false)
-    if (destino.pantalla != inicio) apilar(destino)
-}
-
 private fun rutaDeInicio(correo: String, rol: Rol?): String =
     if (rol != null) Rutas.grafoDe(rol) else Destino(PantallaDemo.LOGIN, correo).ruta()
 
@@ -190,24 +182,7 @@ internal fun destinoPorSesion(anterior: EstadoSesion?, estado: EstadoSesion, cie
     is EstadoSesion.Autenticada -> Destino(inicioDe(estado.sesion.rol))
 }
 
-internal fun destinoDeAviso(aviso: AvisoPush, rol: Rol): Destino? {
-    val folio = aviso.folio
-    return when (aviso.tipo) {
-        TipoAviso.VIAJE -> folio?.let {
-            Destino(
-                when (rol) {
-                    Rol.CONDUCTOR -> PantallaDemo.DETALLE_VIAJE
-                    Rol.SOLICITANTE -> PantallaDemo.DETALLE_SOLICITUD
-                    Rol.ADMINISTRADOR -> PantallaDemo.DETALLE_ADMIN
-                },
-                it,
-            )
-        }
-        TipoAviso.AGENDA -> Destino(PantallaDemo.MIS_VIAJES).takeIf { rol == Rol.CONDUCTOR }
-        TipoAviso.CUENTAS -> Destino(PantallaDemo.CUENTAS_PENDIENTES).takeIf { rol == Rol.ADMINISTRADOR }
-        null -> null
-    }
-}
+internal fun destinoDeAviso(aviso: AvisoPush, rol: Rol): Destino? = aviso.destino(rol)
 
 internal fun inicioDe(rol: Rol): PantallaDemo = when (rol) {
     Rol.SOLICITANTE -> PantallaDemo.MIS_SOLICITUDES

@@ -96,4 +96,20 @@ class DetalleSolicitudViewModelTest {
         repos.viajeActual.value = null; vm.cargar("TR-9999"); runCurrent()
         assertEquals(ErrorApp.NoEncontrado, vm.estado.value.error); assertNull(vm.estado.value.viaje)
     }
+
+    @Test fun consultaElServidorAlAbrirYAlReintentarAunqueExistaCache() = runTest(dispatcher) {
+        cargar(); runCurrent()
+        vm.reintentar(); runCurrent()
+        assertEquals(listOf(repos.viajeActual.value!!.folio, repos.viajeActual.value!!.folio), repos.refrescosViaje)
+    }
+
+    @Test fun unaRespuestaSinPermisoOcultaElViajeAnteriorYPermiteReintentar() = runTest(dispatcher) {
+        cargar(); runCurrent(); assertNotNull(vm.estado.value.viaje)
+        repos.errorRefrescoViaje = ErrorApp.SinPermiso()
+        vm.reintentar(); runCurrent()
+        assertNull(vm.estado.value.viaje); assertNull(vm.estado.value.pago)
+        assertEquals(ErrorApp.SinPermiso(), vm.estado.value.error)
+        repos.errorRefrescoViaje = null; vm.reintentar(); runCurrent()
+        assertNotNull(vm.estado.value.viaje); assertNull(vm.estado.value.error)
+    }
 }

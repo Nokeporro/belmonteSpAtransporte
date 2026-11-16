@@ -195,8 +195,8 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 |---|---|---|---|---|---|---|---|---|---|
 | 40 | T14 | Llamadas remotas en los Repository, `ErrorMapper` e interceptor | A y B | E2 | — | — | Etapa 1 | — | Hecho en Android el 12-11 (los 7 Repository, `ErrorMapper`, interceptor y pruebas JVM); probado contra el backend y en el emulador el 14-11, salvo lo que indica el [riesgo](#riesgos) (ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11)) |
 | 41 | HU14 | Todos: token de notificaciones | A | E2 | Alta | 3 | T14 | Hecho y probado el 14-11 | Backend listo; Android integra token, onNewToken, reintentos y permiso (510 JVM y 3 pruebas de HU14 en API 36); falta crear el proyecto Firebase, añadir google-services.json y probar un aviso real |
-| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; HU14 backend disponible | Hecho y probado el 14-11 en Android (aviso en primer plano, toque que abre el viaje según `data.tipo` y rol, recarga con la app abierta y primer detalle sin «No encontrado»; 529 JVM y 6 instrumentadas, recorrido en el emulador contra el backend); falta la entrega real de FCM, ver el [riesgo](#riesgos) |
-| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Hecho y probado el 14-11 | Backend listo: V3 y V4 con etiqueta en español y tipo VIAJE; en Android el despacho de HU13 ya abre el detalle del Solicitante (solo con pruebas JVM); falta su recorrido y la entrega real |
+| 42 | HU13 | Conductor: push de asignación | B | E2 | Alta | 5 | HU14 | Hecho; integrado con HU12 el 15-11 | Aviso en primer plano, toque que abre el viaje según `data.tipo` y rol, recarga con la app abierta y primer detalle sin «No encontrado». La base común espera una sesión normal y preserva el aviso durante recreación; falta la entrega real de FCM, ver el [riesgo](#riesgos) |
+| 43 | HU12 | Solicitante: push de estado | A | E2 | Media | 5 | HU14 | Hecho; integrado con HU13 el 15-11 | Android presenta el aviso en primer plano y abre el detalle por sesión y rol; consulta el estado al servidor. La validación y la navegación se unificaron con HU13. Pendiente la entrega real con Firebase |
 | 44 | HU11 | Conductor: uso sin conexión | B | E2 | Media | 8 | T14 | Sin backend | Hecho el 14-11 (Iniciar y Finalizar se encolan solo ante un fallo de red y se envían con WorkManager; chip, banner, conflicto con «Descartar cambio», cierre de sesión y cambio de cuenta con pendientes); recorrido en el emulador contra el backend, ver el [riesgo](#riesgos) |
 | 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | 48 rutas y suite local verificadas | 422 pruebas aprobadas el 14-11; job `backend` agregado a `ci.yml` el 15-11 y probado en local con sus mismos comandos; falta verlo en verde en GitHub (B), ver el [riesgo](#riesgos) |
 | 46 | T16 | `database/demo.sql` | B | E2 | — | — | Etapa 1 | — | Hecho el 14-11 (las mismas cuentas, vehículos, códigos de abordaje, pasajeros, viajes y pagos de `DatosDemo`, con folios TR-1001 a TR-1011; probado en `belmonte_test` contra el backend, ver el [riesgo](#riesgos)) |
@@ -266,7 +266,7 @@ proyecto Firebase: falta crearlo y verificar la entrega real. No se agregaron cr
 el aviso en el canal `avisos` con `PresentadorDeAvisos` y avisa a las pantallas con `AvisosEntrantes`; con la app
 en segundo plano lo muestra FCM. En ambos casos el toque abre `MainActivity` (`singleTop`) con `tipo` y `folio`
 como extras y `BelmonteApp` navega con `destinoDeAviso` tras comprobar sesión y rol (`VIAJE` al detalle, `AGENDA`
-a Mis viajes, `CUENTAS` a Cuentas por aprobar); con sesión temporal o sin sesión el aviso se descarta.
+a Mis viajes, `CUENTAS` a Cuentas por aprobar); con sesión temporal o sin sesión espera al login normal, como HU12.
 `DetalleViajeViewModel` ya no muestra «No encontrado» mientras llega el primer `GET /viajes/{folio}`.
 
 **HU02 Android, Google Places (15-11):** con `PLACES_API_KEY` (en `android/local.properties`, o `-PPLACES_API_KEY` o la
@@ -279,9 +279,19 @@ dos campos; mientras falte, «Guardar» queda deshabilitado y `guardar()` no env
 el selector de lugares ficticios de siempre; `EntornoPruebas` y `EntornoE2E` lo fijan así, para que las pruebas no dependan de
 la clave. El job de CI no la recibe todavía.
 
-**Fuera de la ventana:** el recorrido de HU12 en Android, la configuración real de Firebase y la verificación de
-la entrega de HU12/HU13, los secretos `GOOGLE_SERVICES_JSON` y `PLACES_API_KEY` en CI, una búsqueda de Google Places con clave
-real, T18 y T19.
+**Avance de A del 15-11:** HU12 Android integra la presentación en primer plano y la apertura del
+detalle desde los extras del push, con la app abierta o al iniciarla. La base común admite `VIAJE`,
+`AGENDA` y `CUENTAS` según el rol actual, y quedó integrada con la navegación y validación de HU13.
+El aviso espera el login normal, se conserva durante la recreación y no salta el cambio obligatorio
+de contraseña. Los detalles del Solicitante y del Administrador refrescan desde el servidor y ocultan
+el contenido anterior ante un error de acceso. Pasan 557 pruebas JVM. `HU12AvisosTest` (6) volvió a
+pasar en API 36 con un identificador de aplicación aislado para conservar los datos de la app
+instalada. Queda pendiente una corrida conjunta limpia de todas las instrumentadas: el emulador dejó
+el runner sin resumen al ejecutar el grupo completo. Falta verificar la entrega real con Firebase y
+validar API 26; no se repitió toda la suite instrumentada ni las E2E.
+
+**Pendientes:** configurar Firebase y verificar la entrega real de HU12/HU13; configurar los secretos de CI,
+probar Google Places con una clave real, verificar el job backend en GitHub, T18 y T19.
 - **T19:** según [Compilación y distribución](README.md#compilación-y-distribución).
 
 ## Pendiente del backend (Etapa 2)
@@ -303,13 +313,15 @@ Rutas de archivo relativas a `backend/src/main/java/cl/belmontespa/transporte/`.
   "Estado: En curso" o "Estado: Finalizado", y `data` con `tipo = VIAJE` y `folio`. Se reutiliza el envío
   después del commit; los cambios rechazados o revertidos no envían push. Pasaron las 11 pruebas de
   `AvisosDeViajeTest` y las 18 de `NotificacionesIT`, dentro de la suite de 422 (también `HU16IT` y `HU20IT`).
-  La integración de Firebase en Android sigue pendiente.
+  Android integra recepción en primer plano y apertura del detalle desde el 15-11; falta configurar
+  Firebase y probar la entrega real.
 - **HU02 y HU01 backend implementados el 14-11:** "Nueva solicitud" (V1, `data.tipo = VIAJE` y folio) y
   "Cuenta por aprobar" (`data.tipo = CUENTAS`) se difunden a todos los Administradores con token,
   mediante `AvisosAdministracion`, compartido con V8. Una cuenta aprobada automáticamente no genera
   el aviso de revisión; los registros rechazados o revertidos no notifican. Pasaron las 6 pruebas de
   `NotificacionesAdministracionIT` y las 2 de `AvisosAdministracionTest`, además del formato de V1 en
-  `AvisosDeViajeTest`, dentro de la suite de 422. La recepción en Android sigue pendiente.
+  `AvisosDeViajeTest`, dentro de la suite de 422. La base Android ya recibe estos tipos y abre su
+  destino según el rol; falta verificar la entrega con Firebase real.
 - **Job `backend` de CI (T15, B, 13-11):** agregado a `.github/workflows/ci.yml` el 15-11 (ver el [riesgo](#riesgos)).
 - **Pruebas de integración (T15, A y B, 14-11):** `NotificacionesIT` verifica las etiquetas en español
   de V3/V4 y `data.tipo`; `NotificacionesAdministracionIT` cubre V1 y cuentas pendientes, varios
@@ -389,6 +401,7 @@ Estado de cada ruta del README e ítem que la cumple. Las rutas son relativas a 
 
 | Riesgo | Mitigación |
 |---|---|
+| **Notificaciones Android integradas localmente el 15-11:** pasan 557 JVM; `HU12AvisosTest` (6) pasa de nuevo en API 36 con un identificador aislado. La recepción y el toque se prueban sin un proyecto Firebase; el intento de corrida conjunta quedó sin resumen por el emulador, por lo que no confirma entrega desde la nube. | Crear el proyecto, configurar Android y la cuenta de servicio del backend del mismo proyecto, y probar asignación, inicio y fin con la app abierta y cerrada. Repetir las instrumentadas en una corrida limpia y validar también API 26 antes del release. |
 | **Plazo del 14-11:** quedan dos días (12 y 13-11, más el 14 para cerrar) para el backend completo y T14. | La Etapa 1 está entregada (28-10). Lo recortable es T14 de Pago y Flota; el backend completo no se recorta. Ver el [reparto](#reparto-de-la-etapa-2-12-al-14-11). |
 | **Backend desigual:** A tiene 42 de las 48 rutas y la mayor parte de P3, y en la ventana concentra `token-fcm` y los push. | B hace la base del backend (T07 a T10) y en la Etapa 2 `demo.sql`, el job de CI y las IT. Si A se atrasa, B toma los push de V1 y de cuenta pendiente, previo acuerdo, sin afectar que cada uno explique su Android. |
 | **Pruebas verificadas el 14-11:** las 422 del backend pasan sin fallos ni omisiones, incluidas las IT contra MariaDB 11.4 temporal en 13307 y los avisos de HU02/HU01. Android (15-11): 548 JVM y las 324 instrumentadas en API 37 aprobadas (incluidas las 3 de HU14, las 6 de HU13 y las 3 de Places; las 5 E2E de T17 se omiten sin `-e e2e true`). | Completar el job de CI del backend (T15), verificar Firebase real y repetir las pruebas necesarias antes del release, incluida API 26. Las instrumentadas normales comparten `applicationId` con la demo. Sin red, `connectedDebugAndroidTest` falla porque falta `utp:gradle-work-action` en caché: usar `installDebug installDebugAndroidTest` y `adb shell am instrument`. |

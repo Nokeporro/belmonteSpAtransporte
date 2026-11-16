@@ -56,6 +56,8 @@ internal class ReposP1Falsos {
     var enviosHabilitacion = 0
     var cambiosActivo = 0
     val viajeActual = MutableStateFlow<Viaje?>(null)
+    var errorRefrescoViaje: ErrorApp? = null
+    val refrescosViaje = mutableListOf<String>()
     var pago: Pago? = null
     var errorPago: ErrorApp? = null
     var consultasPago = 0
@@ -95,7 +97,10 @@ internal class ReposP1Falsos {
         override fun observarViajes(filtro: FiltroViajes): Flow<List<Viaje>> = flowOf(emptyList())
         override fun observarViaje(folio: String): Flow<Viaje?> = viajeActual
         override suspend fun refrescarViajes(filtro: FiltroViajes): Resultado<Unit> = sinUso()
-        override suspend fun refrescarViaje(folio: String): Resultado<Unit> = sinUso()
+        override suspend fun refrescarViaje(folio: String): Resultado<Unit> {
+            refrescosViaje += folio
+            return errorRefrescoViaje?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)
+        }
         override suspend fun agregarPasajero(folio: String, pasajero: NuevoPasajero): Resultado<Unit> {
             enviosPasajero++; nuevoPasajero = folio to pasajero; espera?.await()
             return fallo?.let { Resultado.Fallo(it) } ?: Resultado.Exito(Unit)

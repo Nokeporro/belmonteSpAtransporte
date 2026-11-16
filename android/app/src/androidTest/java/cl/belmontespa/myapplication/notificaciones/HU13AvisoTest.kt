@@ -90,28 +90,24 @@ class HU13AvisoTest {
     }
 
     @Test
-    fun sinSesionElAvisoSeDescartaYDespuesDelLoginSeAbreElInicio() {
+    fun sinSesionElAvisoEsperaAlLoginYDespuesAbreElViaje() {
         abrirCon(AvisoPush.desde("VIAJE", "TR-1042"))
         esperarTexto(texto(R.string.login_iniciar_sesion))
 
         entrar(Rol.CONDUCTOR)
 
-        esperarTexto(texto(R.string.nav_perfil))
-        compose.waitForIdle()
-        compose.onAllNodesWithText(titulo("TR-1042")).assertCountEquals(0)
+        esperarTexto(titulo("TR-1042"))
     }
 
     @Test
-    fun conLaContrasenaTemporalElAvisoSeDescarta() {
+    fun conLaContrasenaTemporalElAvisoEsperaAlCambioObligatorio() {
         runBlocking { entorno.sesiones.guardarTemporal(sesion(Rol.CONDUCTOR)) }
         abrirCon(AvisoPush.desde("VIAJE", "TR-1042"))
         esperarTexto(texto(R.string.aviso_cambio_password_obligatorio))
 
         entrar(Rol.CONDUCTOR)
 
-        esperarTexto(texto(R.string.nav_perfil))
-        compose.waitForIdle()
-        compose.onAllNodesWithText(titulo("TR-1042")).assertCountEquals(0)
+        esperarTexto(titulo("TR-1042"))
     }
 
     @Test
@@ -140,7 +136,7 @@ class HU13AvisoTest {
         val limite = System.currentTimeMillis() + 10_000
         var publicada: StatusBarNotification? = null
         while (publicada == null && System.currentTimeMillis() < limite) {
-            publicada = administrador.activeNotifications.singleOrNull { it.tag == etiqueta }
+            publicada = administrador.activeNotifications.singleOrNull { it.tag == "VIAJE:$etiqueta" }
             if (publicada == null) Thread.sleep(200)
         }
         return checkNotNull(publicada) { "No quedó publicada la notificación de $etiqueta" }

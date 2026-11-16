@@ -27,6 +27,7 @@
         <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
         <meta-data android:name="firebase_messaging_installation_id_enabled" android:value="false" />
         <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="avisos" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_notificacion" />
 
         <service android:name=".notificaciones.BelmonteFirebaseService" android:exported="false">
             <intent-filter>

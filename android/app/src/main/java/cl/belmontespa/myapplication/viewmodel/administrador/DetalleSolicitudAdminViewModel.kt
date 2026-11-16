@@ -11,6 +11,7 @@ import cl.belmontespa.myapplication.repository.PagoRepository
 import cl.belmontespa.myapplication.repository.ViajeRepository
 import cl.belmontespa.myapplication.util.Reloj
 import cl.belmontespa.myapplication.viewmodel.capturar
+import cl.belmontespa.myapplication.viewmodel.valor
 import java.time.Clock
 import java.time.LocalDateTime
 import kotlinx.coroutines.Job
@@ -46,8 +47,9 @@ class DetalleSolicitudAdminViewModel @JvmOverloads constructor(
         this.folio = folio
         consulta?.cancel()
         consulta = viewModelScope.launch {
-            _estado.update { it.copy(cargando = true, error = null) }
+            _estado.update { it.copy(cargando = true, error = null, viaje = null, pago = null) }
             val error = capturar(ErrorApp.Inesperado) {
+                viajes.refrescarViaje(folio).valor()
                 _estado.update { it.copy(cargando = false) }
                 viajes.observarViaje(folio).collectLatest { viaje ->
                     val pago = viaje?.hashPago?.let { hash -> (pagos.obtenerPago(hash) as? Resultado.Exito)?.valor }
