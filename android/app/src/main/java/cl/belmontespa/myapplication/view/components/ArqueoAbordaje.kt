@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -34,7 +35,13 @@ fun ArqueoDeAbordaje(arqueo: Arqueo, pasajeros: List<PasajeroViaje>, modifier: M
         } else {
             stringResource(R.string.arqueo_faltan, arqueo.abordaron, arqueo.total, arqueo.faltan.joinToString())
         }
-        Aviso(texto, if (arqueo.completo) TonoAviso.INFORMACION else TonoAviso.AVISO)
+        Aviso(
+            texto,
+            if (arqueo.completo) TonoAviso.INFORMACION else TonoAviso.AVISO,
+            Modifier.semantics(mergeDescendants = true) {
+                contentDescription = texto
+            },
+        )
         pasajeros.forEach { FilaPasajero(it) }
     }
 }

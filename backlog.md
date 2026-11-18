@@ -201,7 +201,7 @@ SP de la Etapa 1: A, 45 (P1 13, P2 6, P3 22, P4 4); B, 36 (P1 28, P2 3, P3 5).
 | 45 | T15 | Backend completo y pruebas al día | A y B | E2 | — | — | Etapa 1 | 48 rutas y suite local verificadas | 422 pruebas aprobadas el 14-11; job `backend` agregado a `ci.yml` el 15-11 y probado en local con sus mismos comandos; falta verlo en verde en GitHub (B), ver el [riesgo](#riesgos) |
 | 46 | T16 | `database/demo.sql` | B | E2 | — | — | Etapa 1 | — | Hecho el 14-11 (las mismas cuentas, vehículos, códigos de abordaje, pasajeros, viajes y pagos de `DatosDemo`, con folios TR-1001 a TR-1011; probado en `belmonte_test` contra el backend, ver el [riesgo](#riesgos)) |
 | 47 | T17 | `FlujosE2ETest` | A y B | E2 | — | — | T14, T16 | — | Hecho el 14-11 (5 pruebas sobre la interfaz real y el backend con `demo.sql` recién cargado: Solicitante, Administrador, Pasajero y Conductor sin conexión; ver el [riesgo](#riesgos) para ejecutarla) |
-| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — | Después de la ventana |
+| 48 | T18 | Pasada completa con TalkBack | A y B | E2 | — | — | T14 | — | En curso el 17-11: auditoría estática sin advertencias de accesibilidad de lint; Login revisado con TalkBack y texto al 200 % (campos, botones y alternativa de abordaje sin truncarse). El resumen de arqueo queda como un único elemento para lector de pantalla; `ArqueoAbordajeTest` pasa 3/3 en API 36. Falta la pasada manual completa de las demás pantallas |
 | 49 | T19 | APK release `v1.0.0` en GitHub Releases | A | E2 | — | — | T17, T18 | — | Después de la ventana |
 
 SP de la Etapa 2: A, 8; B, 13. La «ventana» es el 12 al 14-11. T16 pasa a depender solo de la Etapa 1:

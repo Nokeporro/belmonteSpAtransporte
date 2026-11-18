@@ -41,6 +41,8 @@ class ArqueoAbordajeTest {
 
         compose.onNodeWithText(textos.getString(R.string.campo_abordaje)).assertExists()
         compose.onNodeWithText("Abordaron 1 de 3. Faltan: Tomás Vidal, Marcela Soto.").assertExists()
+        compose.onAllNodesWithContentDescription("Abordaron 1 de 3. Faltan: Tomás Vidal, Marcela Soto.")
+            .assertCountEquals(1)
         compose.onNodeWithText(textos.getString(R.string.detalle_viaje_abordo_a_las, "14:05")).assertExists()
     }
 
