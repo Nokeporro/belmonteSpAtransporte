@@ -70,7 +70,7 @@ open class AuthRepository(private val local: SoporteLocal) {
     }
 
     open suspend fun registrarSolicitante(registro: RegistroSolicitante): Resultado<Solicitante> =
-        local.ejecutar {
+        if (!local.modoLocal) remoto.registrarSolicitante(registro) else local.ejecutar {
             val errores = Validaciones.registro(registro)
             if (errores.isNotEmpty()) return@ejecutar invalido(errores)
             if (usuarioDao.obtener(Validaciones.correo(registro.correo)) != null) {
